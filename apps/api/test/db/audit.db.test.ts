@@ -256,6 +256,18 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
       transact(null, (client) => client.query('TRUNCATE audit.event')),
     );
     expect(truncate.message).toContain('AUDIT_APPEND_ONLY');
+    const ownerUpdate = await catchFailure(() =>
+      transact(null, (client) =>
+        client.query(`UPDATE audit.event SET action = 'ALTERED' WHERE seq = 1`),
+      ),
+    );
+    expect(ownerUpdate.message).toContain('AUDIT_APPEND_ONLY');
+    const ownerDelete = await catchFailure(() =>
+      transact(null, (client) =>
+        client.query('DELETE FROM audit.event WHERE seq = 1'),
+      ),
+    );
+    expect(ownerDelete.message).toContain('AUDIT_APPEND_ONLY');
   });
 
   it('interdit l’écriture au rôle lecture seule', async () => {

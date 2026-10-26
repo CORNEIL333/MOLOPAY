@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { JsonValue } from '@achat/chain';
+import { BusinessError } from '@achat/contracts';
 import type { Pool, PoolClient } from 'pg';
 import {
   createAuditEvent,
@@ -61,12 +62,16 @@ const SELECT_COLUMNS = `seq, id, recorded_at, event_type, actor_id, action,
 function toSafeSeq(value: string): number {
   const seq = Number(value);
   if (!Number.isSafeInteger(seq) || seq < 1) {
-    throw new Error(`Séquence d’audit hors bornes: ${value}`);
+    throw new BusinessError(
+      'AUDIT_INVALID_EVENT',
+      `Séquence d’audit hors bornes: ${value}`,
+    );
   }
   return seq;
 }
 
-export function auditUuidv7(now: number = Date.now()): string {  if (!Number.isSafeInteger(now) || now < 0) {
+export function auditUuidv7(now: number = Date.now()): string {
+  if (!Number.isSafeInteger(now) || now < 0) {
     throw new Error('Horodatage UUID invalide');
   }
   const bytes = randomBytes(16);

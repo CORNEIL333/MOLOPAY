@@ -14,9 +14,8 @@
 | 03 · Chaînage/Merkle | terminé | `1bf7677` | 66 tests unitaires + 5 tests réseau TSA réels ; JCS, chaîne SHA-256, Merkle RFC 9162, STH Ed25519, RFC 3161 vérifié CMS/EKU/chaîne |
 | 04 · Vérificateur indépendant | terminé | `9dd0ee6` | Rust (D1), 9 tests crate + 20 altérations injectées + JSON strict ; `pnpm verify:ledger` vérifie l'export 6 écritures / 3 têtes / 2 témoins ; même dépôt (D9) |
 | 05 · Audit | terminé | `3adf53f` | 17 tests domaine ; migration `audit.event` (chaîne, ajout seul, motif) ; lecture SQL paginée prête, exposition HTTP différée au RBAC du lot 08 (D10) |
-| 06 · Identity | à faire si temps | — | `.env.local` absent |
-| 08 · Admin | terminé (code) | `0d7fdc6`, `c76bc90` | 174 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, contexte lié au payload, TTL anti-antidatage) + 7 tests paramétrage versionné lié à la demande approuvée ; migration `0003_admin.sql` ; 10 tests Testcontainers **écrits, non exécutés** (D2) ; durcissement post-revue |
-| 06 · Identity | à faire si temps | — | `.env.local` absent (D3) |
+| 06 · Identity | non entamé | — | `.env.local` absent (D3) |
+| 08 · Admin | terminé (code) | `0d7fdc6`, `c76bc90`, `b2a9fe3` | 176 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, contexte lié au payload, préparation ancrée sur l'horloge serveur) + 7 tests paramétrage versionné lié à la demande approuvée ; migration `0003_admin.sql` ; 12 tests Testcontainers **écrits, non exécutés** (D2) ; deux revues adversariales et durcissements |
 
 ## Prochaine étape exacte
 

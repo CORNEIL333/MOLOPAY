@@ -92,9 +92,12 @@ function settlementRequest(
     {
       id: REQUEST_ID,
       kind: 'SETTLEMENT',
-      payload: { settlement_id: 'set-1', amount_xaf: '100000' },
+      payload: {
+        settlement_id: 'set-1',
+        amount_xaf: '100000',
+        city_id: 'douala',
+      },
       reason: 'Règlement du lot 42',
-      preparedAt: NOW,
       now: NOW,
       ...overrides,
     },
@@ -355,7 +358,7 @@ describe('maker-checker · cycle de vie', () => {
       decideApprovalRequest(
         settlementRequest(),
         FINANCE,
-        { ...CONTEXT, amountXaf: 900_000n },
+        { ...CONTEXT, amountXaf: 200_000n },
         'APPROVED',
         undefined,
         '2026-10-26T09:00:00.000Z',
@@ -363,20 +366,14 @@ describe('maker-checker · cycle de vie', () => {
     }, 'ADMIN_INVALID_REQUEST');
     expectCode(() => {
       decideApprovalRequest(
-        settlementRequest({
-          payload: {
-            settlement_id: 'set-1',
-            amount_xaf: '100000',
-            city_id: 'douala',
-          },
-        }),
+        settlementRequest(),
         FINANCE,
         { ...CONTEXT, cityId: 'yaounde' },
         'APPROVED',
         undefined,
         '2026-10-26T09:00:00.000Z',
       );
-    }, 'ADMIN_INVALID_REQUEST');
+    }, 'ADMIN_SCOPE_DENIED');
   });
 
   it('exige un montant déclaré pour une approbation plafonnée', () => {
@@ -387,7 +384,81 @@ describe('maker-checker · cycle de vie', () => {
       decideApprovalRequest(
         request,
         FINANCE,
-        { cityId: 'douala', reason: 'Motif de contrôle' },
+        CONTEXT,
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('exige la ville déclarée pour une approbation géolocalisée', () => {
+    const request = settlementRequest({
+      payload: { settlement_id: 'set-1', amount_xaf: '100000' },
+    });
+    expectCode(() => {
+      decideApprovalRequest(
+        request,
+        FINANCE,
+        CONTEXT,
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('exige et lie le partenaire déclaré pour une approbation partenaire', () => {
+    const network = principal('network-1', ['PARTNER_NETWORK']);
+    const compliance = principal('comp-1', ['COMPLIANCE']);
+    const valid = createApprovalRequest(
+      {
+        id: REQUEST_ID,
+        kind: 'PARTNER_APPROVAL',
+        payload: { partner_id: 'partner-1' },
+        reason: 'Admission partenaire',
+        now: NOW,
+      },
+      network,
+      CONTEXT,
+    );
+    expect(
+      decideApprovalRequest(
+        valid,
+        compliance,
+        CONTEXT,
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      ).status,
+    ).toBe('APPROVED');
+    expectCode(() => {
+      decideApprovalRequest(
+        valid,
+        compliance,
+        { ...CONTEXT, partnerId: 'partner-2' },
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+
+    const missing = createApprovalRequest(
+      {
+        id: '019a3000-0000-7000-8000-0000000002a1',
+        kind: 'PARTNER_APPROVAL',
+        payload: { dossier: 'partner-1' },
+        reason: 'Admission partenaire',
+        now: NOW,
+      },
+      network,
+      CONTEXT,
+    );
+    expectCode(() => {
+      decideApprovalRequest(
+        missing,
+        compliance,
+        CONTEXT,
         'APPROVED',
         undefined,
         '2026-10-26T09:00:00.000Z',
@@ -425,10 +496,10 @@ describe('maker-checker · cycle de vie', () => {
     }, 'ADMIN_INVALID_REQUEST');
   });
 
-  it('refuse une préparation antidatée ou postdatée', () => {
-    expectCode(() => {
-      settlementRequest({ preparedAt: '2026-11-02T08:00:00.000Z' });
-    }, 'ADMIN_INVALID_REQUEST');
+  it('ancre la préparation et l’expiration sur l’horloge serveur', () => {
+    const request = settlementRequest({ now: '2026-10-26T09:00:00.000Z' });
+    expect(request.preparedAt).toBe('2026-10-26T09:00:00.000Z');
+    expect(request.expiresAt).toBe('2026-10-27T09:00:00.000Z');
   });
 
   it('refuse un acteur de portée ville sans périmètre déclaré', () => {
@@ -474,7 +545,6 @@ describe('maker-checker · cycle de vie', () => {
           kind: 'BREAK_GLASS',
           payload: { session: 'prod-1' },
           reason: 'Incident majeur',
-          preparedAt: NOW,
           now: NOW,
           ttlMs: 2 * 3_600_000 + 1,
         },
@@ -489,7 +559,6 @@ describe('maker-checker · cycle de vie', () => {
         kind: 'BREAK_GLASS',
         payload: { session: 'prod-1' },
         reason: 'Incident majeur',
-        preparedAt: NOW,
         now: NOW,
       },
       principal('tech-1', ['TECH_ADMIN']),
@@ -605,7 +674,6 @@ describe('maker-checker · preuve d’audit', () => {
         kind: 'ROLE_GRANT',
         payload: { target_actor: 'fin-9', role: 'FINANCE' },
         reason: 'Arrivée dans l’équipe finance',
-        preparedAt: NOW,
         now: NOW,
       },
       principal('tech-1', ['TECH_ADMIN']),
@@ -622,7 +690,6 @@ describe('maker-checker · preuve d’audit', () => {
         kind: 'FINANCIAL_SETTING',
         payload: { key: 'settlement_threshold_xaf', value: '500000' },
         reason: 'Nouveau seuil de règlement',
-        preparedAt: NOW,
         now: NOW,
       },
       FINANCE,

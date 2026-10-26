@@ -139,7 +139,6 @@ const HOUR_MS = 3_600_000;
 const DEFAULT_TTL_MS = 24 * HOUR_MS;
 const MAX_TTL_MS = 7 * 24 * HOUR_MS;
 const BREAK_GLASS_TTL_MS = 2 * HOUR_MS;
-const CLOCK_TOLERANCE_MS = 5 * 60_000;
 const PAYLOAD_AMOUNT_PATTERN = /^[1-9][0-9]*$/;
 
 function fail(code: ErrorCode, message: string): never {
@@ -158,11 +157,12 @@ function assertActorId(value: string, field: string): void {
   if (
     nonEmpty(value) === null ||
     value !== value.trim() ||
+    /[\s\u200b-\u200f\u2028\u2029\ufeff]/u.test(value) ||
     value.length > 200
   ) {
     fail(
       'ADMIN_INVALID_REQUEST',
-      `${field} doit être un identifiant non vide, sans espaces de bord`,
+      `${field} doit être un identifiant non vide, sans espace ni caractère invisible`,
     );
   }
 }
@@ -293,7 +293,6 @@ export type CreateApprovalInput = {
   readonly kind: ApprovalKind;
   readonly payload: Readonly<Record<string, JsonValue>>;
   readonly reason: string;
-  readonly preparedAt: string;
   readonly now: string;
   readonly ttlMs?: number;
 };
@@ -380,11 +379,15 @@ function declaredAmount(
 function assertContextMatchesPayload(
   payload: Readonly<Record<string, JsonValue>>,
   context: AuthorizationContext,
-  requireAmount: boolean,
+  required: {
+    readonly amount: boolean;
+    readonly city: boolean;
+    readonly partner: boolean;
+  },
 ): void {
   const amount = declaredAmount(payload);
   if (amount === null) {
-    if (requireAmount) {
+    if (required.amount) {
       fail(
         'ADMIN_INVALID_REQUEST',
         'La charge approuvée doit déclarer amount_xaf',
@@ -397,22 +400,32 @@ function assertContextMatchesPayload(
     );
   }
   const cityId = payload['city_id'];
-  if (cityId !== undefined) {
-    if (typeof cityId !== 'string' || context.cityId !== cityId) {
+  if (cityId === undefined) {
+    if (required.city) {
       fail(
         'ADMIN_INVALID_REQUEST',
-        'Ville du contexte différente de la charge approuvée',
+        'La charge approuvée doit déclarer city_id',
       );
     }
+  } else if (typeof cityId !== 'string' || context.cityId !== cityId) {
+    fail(
+      'ADMIN_INVALID_REQUEST',
+      'Ville du contexte différente de la charge approuvée',
+    );
   }
   const partnerId = payload['partner_id'];
-  if (partnerId !== undefined) {
-    if (typeof partnerId !== 'string' || context.partnerId !== partnerId) {
+  if (partnerId === undefined) {
+    if (required.partner) {
       fail(
         'ADMIN_INVALID_REQUEST',
-        'Partenaire du contexte différent de la charge approuvée',
+        'La charge approuvée doit déclarer partner_id',
       );
     }
+  } else if (typeof partnerId !== 'string' || context.partnerId !== partnerId) {
+    fail(
+      'ADMIN_INVALID_REQUEST',
+      'Partenaire du contexte différent de la charge approuvée',
+    );
   }
 }
 
@@ -431,31 +444,19 @@ export function createApprovalRequest(
     fail('ADMIN_INVALID_REQUEST', 'Préparateur absent');
   }
   assertActorId(principal.actorId, 'Préparateur');
-  if (!isIsoUtcMs(input.preparedAt)) {
-    fail(
-      'ADMIN_INVALID_REQUEST',
-      'preparedAt doit être ISO 8601 UTC avec millisecondes',
-    );
-  }
   if (!isIsoUtcMs(input.now)) {
     fail(
       'ADMIN_INVALID_REQUEST',
       'now doit être ISO 8601 UTC avec millisecondes',
     );
   }
-  if (
-    Math.abs(
-      new Date(input.preparedAt).getTime() - new Date(input.now).getTime(),
-    ) > CLOCK_TOLERANCE_MS
-  ) {
-    fail(
-      'ADMIN_INVALID_REQUEST',
-      'preparedAt s’écarte trop de l’horloge serveur',
-    );
-  }
   const reason = requireReason(input.reason, 'Un motif est exigé pour la demande');
   const canonical = canonicalPayload(input.payload);
-  assertContextMatchesPayload(input.payload, context, false);
+  assertContextMatchesPayload(input.payload, context, {
+    amount: false,
+    city: false,
+    partner: false,
+  });
   const payloadHash = createHash('sha256').update(canonical, 'utf8').digest();
 
   const ttl =
@@ -477,7 +478,7 @@ export function createApprovalRequest(
   });
 
   const expiresAt = new Date(
-    new Date(input.preparedAt).getTime() + ttl,
+    new Date(input.now).getTime() + ttl,
   ).toISOString();
 
   return {
@@ -487,7 +488,7 @@ export function createApprovalRequest(
     payload: input.payload,
     payloadHash,
     reason,
-    preparedAt: input.preparedAt,
+    preparedAt: input.now,
     expiresAt,
     status: 'PENDING',
     checkerId: null,
@@ -551,19 +552,21 @@ export function decideApprovalRequest(
     );
   }
   const approveAction = KIND_ACTIONS[request.kind].approve;
-  assertContextMatchesPayload(
-    request.payload,
-    context,
-    AMOUNT_LIMITED_ACTIONS.has(approveAction),
-  );
   const reason =
     decision === 'REJECTED'
       ? requireReason(decisionReason, 'Un motif est exigé pour le refus')
       : nonEmpty(decisionReason);
-  assertAuthorized(checker, KIND_ACTIONS[request.kind].approve, {
+  assertAuthorized(checker, approveAction, {
     ...context,
     reason: context.reason ?? reason ?? request.reason,
   });
+  if (decision === 'APPROVED') {
+    assertContextMatchesPayload(request.payload, context, {
+      amount: AMOUNT_LIMITED_ACTIONS.has(approveAction),
+      city: CITY_SCOPED_ACTIONS.has(approveAction),
+      partner: request.kind === 'PARTNER_APPROVAL',
+    });
+  }
   return {
     ...request,
     status: decision,

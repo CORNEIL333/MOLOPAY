@@ -112,7 +112,8 @@ BEGIN
 END $$;
 
 -- Deuxième barrière contre les secrets dans refs, même en SQL direct.
--- La liste reprend la normalisation du domaine (minuscules, sans séparateurs).
+-- La liste reprend la normalisation du domaine (minuscules, sans séparateurs)
+-- et doit rester en miroir de apps/api/src/modules/audit/domain.ts.
 CREATE FUNCTION audit.assert_safe_refs(metadata jsonb, depth integer DEFAULT 0)
 RETURNS void
 LANGUAGE plpgsql IMMUTABLE AS $$

@@ -30,7 +30,7 @@ CREATE TABLE admin.approval_request (
     'BREAK_GLASS'
   )),
   maker_id text NOT NULL CHECK (
-    length(btrim(maker_id)) BETWEEN 1 AND 200 AND maker_id = btrim(maker_id)
+    length(maker_id) BETWEEN 1 AND 200 AND maker_id !~ '[[:space:]]'
   ),
   payload jsonb NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
   payload_hash bytea NOT NULL CHECK (octet_length(payload_hash) = 32),
@@ -52,8 +52,7 @@ CREATE TABLE admin.approval_decision (
   request_id uuid PRIMARY KEY REFERENCES admin.approval_request (id),
   decision text NOT NULL CHECK (decision IN ('APPROVED', 'REJECTED', 'CANCELLED')),
   decided_by text NOT NULL CHECK (
-    length(btrim(decided_by)) BETWEEN 1 AND 200
-    AND decided_by = btrim(decided_by)
+    length(decided_by) BETWEEN 1 AND 200 AND decided_by !~ '[[:space:]]'
   ),
   decided_at timestamptz NOT NULL,
   decision_reason text NULL CHECK (
@@ -84,11 +83,11 @@ BEGIN
     RAISE EXCEPTION 'ADMIN_REQUEST_EXPIRED: demande % expirée', NEW.request_id;
   END IF;
   IF NEW.decision = 'CANCELLED' THEN
-    IF btrim(NEW.decided_by) <> btrim(request_maker) THEN
+    IF NEW.decided_by <> request_maker THEN
       RAISE EXCEPTION 'ADMIN_FORBIDDEN: annulation réservée au préparateur';
     END IF;
   ELSE
-    IF btrim(NEW.decided_by) = btrim(request_maker) THEN
+    IF NEW.decided_by = request_maker THEN
       RAISE EXCEPTION 'MAKER_CANNOT_APPROVE: le préparateur ne peut pas décider';
     END IF;
   END IF;
@@ -118,8 +117,11 @@ LANGUAGE plpgsql AS $$
 DECLARE
   request_payload jsonb;
   request_decision text;
+  request_kind text;
+  request_maker text;
 BEGIN
-  SELECT r.payload, d.decision INTO request_payload, request_decision
+  SELECT r.payload, r.kind, r.maker_id, d.decision
+    INTO request_payload, request_kind, request_maker, request_decision
   FROM admin.approval_request r
   LEFT JOIN admin.approval_decision d ON d.request_id = r.id
   WHERE r.id = NEW.approval_request_id;
@@ -127,8 +129,14 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % absente', NEW.approval_request_id;
   END IF;
+  IF request_kind <> 'FINANCIAL_SETTING' THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % de type %', NEW.approval_request_id, request_kind;
+  END IF;
   IF request_decision IS DISTINCT FROM 'APPROVED' THEN
     RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % non approuvée', NEW.approval_request_id;
+  END IF;
+  IF NEW.created_by <> request_maker THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: publication par un acteur autre que le préparateur';
   END IF;
   IF request_payload->>'key' IS DISTINCT FROM NEW.key
      OR request_payload->'value' IS DISTINCT FROM NEW.value THEN

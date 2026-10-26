@@ -40,7 +40,6 @@ function approvedSettingRequest(
       kind: 'FINANCIAL_SETTING',
       payload: { key: 'settlement_threshold_xaf', value },
       reason: 'Nouveau seuil de règlement',
-      preparedAt: NOW,
       now: NOW,
     },
     FINANCE,
@@ -54,6 +53,17 @@ function approvedSettingRequest(
     'Seuil validé',
     '2026-10-26T08:30:00.000Z',
   );
+}
+
+function expectInvalid(action: () => unknown): void {
+  try {
+    action();
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(BusinessError);
+    expect((error as BusinessError).code).toBe('ADMIN_INVALID_REQUEST');
+    return;
+  }
+  throw new Error('Aucune erreur levée, attendu ADMIN_INVALID_REQUEST');
 }
 
 describe('paramètres versionnés', () => {
@@ -111,13 +121,12 @@ describe('paramètres versionnés', () => {
         kind: 'FINANCIAL_SETTING',
         payload: { key: 'settlement_threshold_xaf' },
         reason: 'Nouveau seuil',
-        preparedAt: NOW,
         now: NOW,
       },
       FINANCE,
       CONTEXT,
     );
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -127,7 +136,7 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
 
     const settlement = createApprovalRequest(
       {
@@ -135,7 +144,6 @@ describe('paramètres versionnés', () => {
         kind: 'SETTLEMENT',
         payload: { settlement_id: 'set-1' },
         reason: 'Règlement',
-        preparedAt: NOW,
         now: NOW,
       },
       {
@@ -146,7 +154,7 @@ describe('paramètres versionnés', () => {
       },
       CONTEXT,
     );
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -156,7 +164,7 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
   });
 
   it('refuse une demande déjà publiée et une clé invalide', () => {
@@ -171,7 +179,7 @@ describe('paramètres versionnés', () => {
         requestId: REQUEST_ID,
       },
     ];
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -181,8 +189,8 @@ describe('paramètres versionnés', () => {
         },
         existing,
       ),
-    ).toThrow(BusinessError);
-    expect(() =>
+    );
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'Bad-Key',
@@ -192,11 +200,11 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
   });
 
   it('refuse une valeur non canonisable', () => {
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -206,11 +214,11 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
   });
 
   it('refuse une valeur ou une clé différente de la demande approuvée', () => {
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -220,8 +228,8 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
-    expect(() =>
+    );
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'other_threshold_xaf',
@@ -231,7 +239,7 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
   });
 
   it('refuse une demande dont la charge utile a été altérée après approbation', () => {
@@ -239,7 +247,7 @@ describe('paramètres versionnés', () => {
       ...approvedSettingRequest(),
       payload: { key: 'settlement_threshold_xaf', value: '9000000' },
     };
-    expect(() =>
+    expectInvalid(() =>
       createSettingVersion(
         {
           key: 'settlement_threshold_xaf',
@@ -249,6 +257,6 @@ describe('paramètres versionnés', () => {
         },
         [],
       ),
-    ).toThrow(BusinessError);
+    );
   });
 });
