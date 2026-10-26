@@ -21,6 +21,10 @@ const AUDIT_METADATA_MIGRATION = resolve(
   process.cwd(),
   'db/migrations/0005_audit_metadata.sql',
 );
+const IDENTITY_CLOCK_MIGRATION = resolve(
+  process.cwd(),
+  'db/migrations/0007_identity_clock.sql',
+);
 
 const PHONE = '+237612345678';
 const OTHER_PHONE = '+237698765432';
@@ -36,6 +40,7 @@ let admin: Client;
 let auditSql: string;
 let auditMetadataSql: string;
 let identitySql: string;
+let identityClockSql: string;
 
 function uuid(seq: number, variant = '8'): string {
   return `019a5000-0000-7000-${variant}000-${seq.toString().padStart(12, '0')}`;
@@ -277,6 +282,7 @@ beforeAll(async () => {
   auditSql = await readFile(AUDIT_MIGRATION, 'utf8');
   auditMetadataSql = await readFile(AUDIT_METADATA_MIGRATION, 'utf8');
   identitySql = await readFile(IDENTITY_MIGRATION, 'utf8');
+  identityClockSql = await readFile(IDENTITY_CLOCK_MIGRATION, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
@@ -290,6 +296,7 @@ beforeEach(async () => {
   await admin.query(auditSql);
   await admin.query(identitySql);
   await admin.query(auditMetadataSql);
+  await admin.query(identityClockSql);
   const clock = await admin.query<{ now: Date }>('SELECT now() AS now');
   const current = clock.rows[0]?.now;
   if (!(current instanceof Date)) {
@@ -695,6 +702,31 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     expect(anchored.rows[0]?.completed_at).toBeNull();
     expect(anchored.rows[0]?.delay_hours).toBeCloseTo(24, 3);
     expect(anchored.rows[0]?.age_seconds).toBeLessThan(5);
+  });
+
+  it('n’utilise pas le début de transaction comme horloge de récupération', async () => {
+    let transactionStart = 0;
+    await transact('app_rw', async (client) => {
+      const clock = await client.query<{ now: Date }>('SELECT now() AS now');
+      const start = clock.rows[0]?.now;
+      if (!(start instanceof Date)) {
+        throw new Error('Horloge base indisponible');
+      }
+      transactionStart = start.getTime();
+      await client.query('SELECT pg_sleep(0.2)');
+      const accountId = await insertAccount(client, 1);
+      await insertRecovery(client, 2, accountId, { hadBalance: true });
+    });
+    const row = await admin.query<{ requested_at: Date; available_at: Date }>(
+      'SELECT requested_at, available_at FROM identity.recovery',
+    );
+    const requestedAt = row.rows[0]?.requested_at;
+    const availableAt = row.rows[0]?.available_at;
+    if (!(requestedAt instanceof Date) || !(availableAt instanceof Date)) {
+      throw new Error('Horodatage de récupération absent');
+    }
+    expect(requestedAt.getTime() - transactionStart).toBeGreaterThan(100);
+    expect(availableAt.getTime() - requestedAt.getTime()).toBe(86_400_000);
   });
 
   it('refuse une transaction sans signature complète, à montant nul ou trop longue', async () => {
