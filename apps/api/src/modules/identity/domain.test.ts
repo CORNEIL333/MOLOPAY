@@ -719,11 +719,25 @@ describe('SEC-AUTH-002 · signature de transaction', () => {
     );
   });
 
-  it('refuse un montant au-delà de la plage BIGINT', () => {
+  it('refuse un montant au-delà de la plage BIGINT ou non textuel', () => {
     expectCode(
       () =>
         canonicalTransaction(
           transaction({ amountXaf: '9223372036854775808' }),
+        ),
+      'IDENTITY_INVALID_REQUEST',
+    );
+    expectCode(
+      () =>
+        canonicalTransaction(
+          transaction({ amountXaf: 25_000 as unknown as string }),
+        ),
+      'IDENTITY_INVALID_REQUEST',
+    );
+    expectCode(
+      () =>
+        canonicalTransaction(
+          transaction({ operationId: 123 as unknown as string }),
         ),
       'IDENTITY_INVALID_REQUEST',
     );
