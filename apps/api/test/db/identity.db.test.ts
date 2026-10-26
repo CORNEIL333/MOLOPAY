@@ -1418,16 +1418,16 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
   });
 
   it('refuse une rotation avec un jeton faux, un compte bloqué ou un appareil révoqué', async () => {
-    const wrongToken = await transact('app_rw', async (client) => {
+    const fixture = await transact('app_rw', async (client) => {
       const accountId = await insertAccount(client, 1);
       const deviceId = await insertDevice(client, 2, accountId);
-      await insertTokenSession(client, 3, accountId, deviceId);
-      return { accountId, deviceId };
+      const session = await insertTokenSession(client, 3, accountId, deviceId);
+      return { accountId, deviceId, ...session };
     });
     const bad = await catchFailure(() =>
       transact('app_rw', (client) =>
         rotateSessionFromStore(client, {
-          sessionId: uuid(3),
+          sessionId: fixture.sessionId,
           refreshToken: 'jeton-faux',
         }),
       ),
@@ -1436,13 +1436,13 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
 
     await admin.query(
       `UPDATE identity.account SET status = 'BLOCKED' WHERE id = $1`,
-      [wrongToken.accountId],
+      [fixture.accountId],
     );
     const blocked = await catchFailure(() =>
       transact('app_rw', (client) =>
         rotateSessionFromStore(client, {
-          sessionId: uuid(3),
-          refreshToken: 'jeton-de-rafraichissement-3',
+          sessionId: fixture.sessionId,
+          refreshToken: fixture.refreshToken,
         }),
       ),
     );
@@ -1450,17 +1450,17 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
 
     await admin.query(
       `UPDATE identity.account SET status = 'ACTIVE' WHERE id = $1`,
-      [wrongToken.accountId],
+      [fixture.accountId],
     );
     await admin.query(
       `UPDATE identity.device SET status = 'REVOKED' WHERE id = $1`,
-      [wrongToken.deviceId],
+      [fixture.deviceId],
     );
     const revoked = await catchFailure(() =>
       transact('app_rw', (client) =>
         rotateSessionFromStore(client, {
-          sessionId: uuid(3),
-          refreshToken: 'jeton-de-rafraichissement-3',
+          sessionId: fixture.sessionId,
+          refreshToken: fixture.refreshToken,
         }),
       ),
     );
