@@ -2,7 +2,7 @@
 
 - **Heure de début (Europe/Paris) :** 08:13
 - **Branche :** `sprint/integration` (jamais `main`)
-- **Lot en cours :** clôture lot 08 (commit)
+- **Lot en cours :** clôture de journée (tous les lots du jour sont terminés)
 
 ## Lots
 
@@ -14,24 +14,26 @@
 | 03 · Chaînage/Merkle | terminé | `1bf7677` | 66 tests unitaires + 5 tests réseau TSA réels ; JCS, chaîne SHA-256, Merkle RFC 9162, STH Ed25519, RFC 3161 vérifié CMS/EKU/chaîne |
 | 04 · Vérificateur indépendant | terminé | `9dd0ee6` | Rust (D1), 9 tests crate + 20 altérations injectées + JSON strict ; `pnpm verify:ledger` vérifie l'export 6 écritures / 3 têtes / 2 témoins ; même dépôt (D9) |
 | 05 · Audit | terminé | `3adf53f` | 17 tests domaine ; migration `audit.event` (chaîne, ajout seul, motif) ; lecture SQL paginée prête, exposition HTTP différée au RBAC du lot 08 (D10) |
-| 06 · Identity | non entamé | — | `.env.local` absent (D3) |
-| 08 · Admin | terminé (code) | `0d7fdc6`, `c76bc90`, `b2a9fe3` | 176 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, contexte lié au payload, préparation ancrée sur l'horloge serveur) + 7 tests paramétrage versionné lié à la demande approuvée ; migration `0003_admin.sql` ; 12 tests Testcontainers **écrits, non exécutés** (D2) ; deux revues adversariales et durcissements |
+| 06 · Identity | terminé (code) | `ebb2aac` | 31 tests domaine + 30 tests d'attaque ; migration `0004_identity.sql` ; 22 tests Testcontainers **écrits, non exécutés** (D2) ; deux revues adversariales et durcissements (horloge base, grants colonne, KYC non attribuable, MAC OTP) ; adaptateur SMS réel différé (D3), aucune simulation |
+| 08 · Admin | terminé (code) | `0d7fdc6`, `c76bc90`, `b2a9fe3`, `31a0ccf` | 177 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, contexte lié au payload, préparation ancrée sur l'horloge serveur) + 7 tests paramétrage versionné lié à la demande approuvée ; migration `0003_admin.sql` ; 11 tests Testcontainers **écrits, non exécutés** (D2) ; deux revues adversariales et durcissements |
 
 ## Prochaine étape exacte
 
-Clôture de journée : relire `docs/journal/2026-10-26.md`, vérifier la barrière complète, commit final et push de `sprint/integration` si un remote existe. Lot 06 non entamé faute de secrets réels (D3).
+À partir de 16:30 : relire et compléter `docs/journal/2026-10-26.md`, relancer toutes les barrières disponibles, commit final et push de `sprint/integration` si un remote existe. Aucun nouveau lot après 16:30.
 
 ## Commandes de la dernière barrière
 
 - `pnpm typecheck` : OK
 - `pnpm lint` : OK (`Module boundaries: OK`)
-- `pnpm test` : 339 tests verts (13 fichiers)
+- `pnpm test` : 374 tests verts (14 fichiers)
 - `pnpm test:tsa` : 5 tests réseau verts contre DigiCert (jeton réel : signature CMS, EKU horodatage, chaîne Mozilla, nonce, empreinte)
-- `pnpm test:attack` : 7 tests verts
+- `pnpm test:attack` : 37 tests verts (2 fichiers)
 - `pnpm test:e2e` : 1 test vert
 - `cargo test --manifest-path tools/verifier/Cargo.toml` : 9 tests verts
-- `pnpm test:db` : non exécutable, sortie `DOCKER_UNAVAILABLE` (D2) ; 32 tests ledger + 10 tests audit + 10 tests admin écrits
+- `pnpm test:db` : non exécutable, sortie `DOCKER_UNAVAILABLE` (D2) ; 32 tests ledger + 10 tests audit + 11 tests admin + 22 tests identité écrits
 - `pnpm verify:ledger` : OK, `LEDGER VERIFIED entries=6 heads=3 witnesses=2`
+- `pnpm openapi:check` : OK
+- `pnpm security:scan` : OK (secrets et SCA)
 
 
 ## Plan lot 05 (5 lignes)
@@ -49,3 +51,11 @@ Clôture de journée : relire `docs/journal/2026-10-26.md`, vérifier la barriè
 3. Moteur maker-checker générique : préparation, décision distincte, expiration, annulation, contre-passation d'état interdite, TTL bris de glace ≤ 2 h.
 4. Traçabilité : chaque transition produit un `AuditEventDraft` chaînable, sans recopier la charge utile métier.
 5. Migration `0003_admin.sql` (demandes et décisions en ajout seul), tests base à exécuter dès Docker, puis barrières et commit.
+
+## Plan lot 06 (5 lignes)
+
+1. Domaine pur `identity/domain.ts` : E.164 Cameroun, OTP 6 chiffres à usage unique (HMAC poivré, expiration, essais bornés), aucune livraison SMS simulée.
+2. PIN 6 chiffres : refus des suites et répétitions, Argon2id + poivre fourni par l'appelant ; le domaine n'accepte aucun poivre par défaut.
+3. Appareils : clé Ed25519 publique, enregistrement, révocation ; signature de transaction sur payload JCS lié à compte/appareil/opération/montant/ville/partenaire + nonce.
+4. Sessions : accès ≤ 15 min, rafraîchissement lié à l'appareil, révocation immédiate ; récupération interdisant le simple OTP sur nouveau numéro, délai 24 h si solde ; blocage immédiat.
+5. Migration `0004_identity.sql`, tests d'attaque identité (rejeu, autre appareil, PIN trivial, OTP rejoué/expiré, session expirée, récupération contournée), tests base écrits non exécutés, barrières et commit.
