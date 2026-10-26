@@ -95,6 +95,7 @@ function settlementRequest(
       payload: { settlement_id: 'set-1', amount_xaf: '100000' },
       reason: 'Règlement du lot 42',
       preparedAt: NOW,
+      now: NOW,
       ...overrides,
     },
     OPERATIONS,
@@ -325,16 +326,111 @@ describe('maker-checker · cycle de vie', () => {
 
   it('applique le plafond aussi à la décision', () => {
     const request = settlementRequest();
+    const lowCeiling = principal('fin-1', ['FINANCE'], {
+      maxAmountXaf: 50_000n,
+    });
     expectCode(() => {
       decideApprovalRequest(
         request,
-        FINANCE,
-        { ...CONTEXT, amountXaf: 600_000n },
+        lowCeiling,
+        CONTEXT,
         'APPROVED',
         undefined,
         '2026-10-26T08:30:00.000Z',
       );
     }, 'ADMIN_AMOUNT_LIMIT');
+  });
+
+  it('refuse un contexte qui ne correspond pas à la charge approuvée', () => {
+    expectCode(() => {
+      decideApprovalRequest(
+        settlementRequest(),
+        FINANCE,
+        { ...CONTEXT, amountXaf: 900_000n },
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+    expectCode(() => {
+      decideApprovalRequest(
+        settlementRequest({
+          payload: {
+            settlement_id: 'set-1',
+            amount_xaf: '100000',
+            city_id: 'douala',
+          },
+        }),
+        FINANCE,
+        { ...CONTEXT, cityId: 'yaounde' },
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('exige un montant déclaré pour une approbation plafonnée', () => {
+    const request = settlementRequest({
+      payload: { settlement_id: 'set-1' },
+    });
+    expectCode(() => {
+      decideApprovalRequest(
+        request,
+        FINANCE,
+        { cityId: 'douala', reason: 'Motif de contrôle' },
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('refuse un identifiant de décideur avec espaces de bord', () => {
+    expectCode(() => {
+      decideApprovalRequest(
+        settlementRequest(),
+        principal('fin-1 ', ['FINANCE']),
+        CONTEXT,
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('refuse une date d’expiration non valide au lieu de laisser passer', () => {
+    const tampered: ApprovalRequest = {
+      ...settlementRequest(),
+      expiresAt: 'jamais',
+    };
+    expectCode(() => {
+      decideApprovalRequest(
+        tampered,
+        FINANCE,
+        CONTEXT,
+        'APPROVED',
+        undefined,
+        '2026-10-26T09:00:00.000Z',
+      );
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('refuse une préparation antidatée ou postdatée', () => {
+    expectCode(() => {
+      settlementRequest({ preparedAt: '2026-11-02T08:00:00.000Z' });
+    }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('refuse un acteur de portée ville sans périmètre déclaré', () => {
+    const blind: AdminPrincipal = {
+      actorId: 'fin-9',
+      roles: ['FINANCE'],
+      maxAmountXaf: 500_000n,
+    };
+    expect(
+      authorize(blind, 'APPROVE_SETTLEMENT', CONTEXT),
+    ).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
   });
 
   it('refuse toute décision ou annulation sur une charge utile altérée', () => {
@@ -370,6 +466,7 @@ describe('maker-checker · cycle de vie', () => {
           payload: { session: 'prod-1' },
           reason: 'Incident majeur',
           preparedAt: NOW,
+          now: NOW,
           ttlMs: 2 * 3_600_000 + 1,
         },
         principal('tech-1', ['TECH_ADMIN']),
@@ -384,6 +481,7 @@ describe('maker-checker · cycle de vie', () => {
         payload: { session: 'prod-1' },
         reason: 'Incident majeur',
         preparedAt: NOW,
+        now: NOW,
       },
       principal('tech-1', ['TECH_ADMIN']),
       { ...CONTEXT, reason: 'Incident majeur' },
@@ -499,6 +597,7 @@ describe('maker-checker · preuve d’audit', () => {
         payload: { target_actor: 'fin-9', role: 'FINANCE' },
         reason: 'Arrivée dans l’équipe finance',
         preparedAt: NOW,
+        now: NOW,
       },
       principal('tech-1', ['TECH_ADMIN']),
       { ...CONTEXT, reason: 'Arrivée dans l’équipe finance' },
@@ -515,6 +614,7 @@ describe('maker-checker · preuve d’audit', () => {
         payload: { key: 'settlement_threshold_xaf', value: '500000' },
         reason: 'Nouveau seuil de règlement',
         preparedAt: NOW,
+        now: NOW,
       },
       FINANCE,
       { ...CONTEXT, reason: 'Nouveau seuil de règlement' },

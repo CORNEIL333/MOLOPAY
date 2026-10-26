@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { canonicalize, type JsonValue } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
 import { type ApprovalRequest } from './domain';
@@ -54,12 +55,43 @@ export function createSettingVersion(
   if (existing.some((entry) => entry.requestId === input.request.id)) {
     fail('Demande déjà publiée dans une version de paramètre');
   }
+  const approvedKey = input.request.payload['key'];
+  if (approvedKey !== input.key) {
+    fail('La clé publiée diffère de la clé approuvée');
+  }
+  const approvedValue = input.request.payload['value'];
+  if (approvedValue === undefined) {
+    fail('La demande approuvée ne porte pas de valeur');
+  }
+  let approvedCanonical: string;
+  let publishedCanonical: string;
   try {
-    canonicalize(input.value);
+    approvedCanonical = canonicalize(approvedValue);
+    publishedCanonical = canonicalize(input.value);
   } catch (error: unknown) {
     fail(
       `Valeur non canonisable: ${error instanceof Error ? error.message : String(error)}`,
     );
+  }
+  if (approvedCanonical !== publishedCanonical) {
+    fail('La valeur publiée diffère de la valeur approuvée');
+  }
+  let payloadCanonical: string;
+  try {
+    payloadCanonical = canonicalize(input.request.payload);
+  } catch (error: unknown) {
+    fail(
+      `Charge approuvée non canonisable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const payloadHash = createHash('sha256')
+    .update(payloadCanonical, 'utf8')
+    .digest();
+  if (
+    payloadHash.length !== input.request.payloadHash.length ||
+    !timingSafeEqual(payloadHash, input.request.payloadHash)
+  ) {
+    fail('La charge approuvée a été altérée');
   }
   const versions = existing
     .filter((entry) => entry.key === input.key)

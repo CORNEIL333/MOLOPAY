@@ -413,6 +413,30 @@ describe('vérificateur indépendant · altérations injectées', () => {
       },
       code: 'TREE_HEAD_INVALID',
     },
+    {
+      name: 'absence de tête signée',
+      alter: (draft) => {
+        draft.tree_heads = [];
+      },
+      code: 'HEAD_COVERAGE_MISSING',
+    },
+    {
+      name: 'absence de témoin',
+      alter: (draft) => {
+        draft.witness_heads = [];
+      },
+      code: 'WITNESS_MISSING',
+    },
+    {
+      name: 'témoin ne couvrant pas tout l’export',
+      alter: (draft) => {
+        const head = headAt(draft, 0);
+        draft.witness_heads = [
+          { tree_size: head.tree_size, root_hash: head.root_hash },
+        ];
+      },
+      code: 'WITNESS_COVERAGE_MISSING',
+    },
   ];
 
   it.each(cases)('détecte l’altération: $name', ({ alter, code }) => {

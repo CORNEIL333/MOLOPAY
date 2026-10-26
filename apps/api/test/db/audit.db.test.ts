@@ -4,8 +4,13 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { Client } from 'pg';
+import { Client, Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { verifyAuditChain } from '../../src/modules/audit/domain';
+import {
+  appendAuditEvent,
+  listAuditEvents,
+} from '../../src/modules/audit/audit.store';
 
 const POSTGRES_IMAGE =
   'postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab';
@@ -21,12 +26,14 @@ type SeedEvent = {
   readonly id: string;
   readonly eventType?: string;
   readonly reason?: string | null;
+  readonly refs?: string;
   readonly prevHash: Buffer;
   readonly eventHash: Buffer;
 };
 
 let container: StartedPostgreSqlContainer;
 let admin: Client;
+let pool: Pool;
 let migrationSql: string;
 
 function uuid(seq: number): string {
@@ -61,12 +68,13 @@ async function insertEvent(client: Client, seed: SeedEvent): Promise<void> {
        (seq, id, recorded_at, event_type, actor_id, action, target_type,
         target_id, outcome, reason, refs, prev_hash, event_hash)
      VALUES ($1, $2, now(), $3, 'admin-1', 'TEST_ACTION', 'SESSION', 'sess-1',
-             'SUCCESS', $4, '{}'::jsonb, $5, $6)`,
+             'SUCCESS', $4, $5::jsonb, $6, $7)`,
     [
       seed.seq,
       seed.id,
       seed.eventType ?? 'AUTH_LOGIN',
       seed.reason ?? null,
+      seed.refs ?? '{}',
       seed.prevHash,
       seed.eventHash,
     ],
@@ -90,11 +98,13 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
+  pool = new Pool({ connectionString: container.getConnectionUri() });
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
   await admin.end();
+  await pool.end();
   await container.stop();
 });
 
@@ -193,6 +203,34 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
     expect(failure.message).toContain('event_sensitive_reason_required');
   });
 
+  it('refuse une métadonnée sensible même en SQL direct', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        insertEvent(client, {
+          seq: 1,
+          id: uuid(1),
+          refs: '{"client_pin":"1234"}',
+          prevHash: ZERO_HASH,
+          eventHash: Buffer.alloc(32, 1),
+        }),
+      ),
+    );
+    expect(failure.message).toContain('AUDIT_SENSITIVE_METADATA');
+
+    const nested = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        insertEvent(client, {
+          seq: 1,
+          id: uuid(1),
+          refs: '{"context":[{"accessToken":"x"}]}',
+          prevHash: ZERO_HASH,
+          eventHash: Buffer.alloc(32, 1),
+        }),
+      ),
+    );
+    expect(nested.message).toContain('AUDIT_SENSITIVE_METADATA');
+  });
+
   it('refuse modification, suppression et troncature', async () => {
     await transact('app_rw', async (client) => {
       await insertEvent(client, {
@@ -232,6 +270,59 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
       ),
     );
     expect(failure.code).toBe('42501');
+  });
+
+  it('conserve une chaîne vérifiable de bout en bout via l’API', async () => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE app_rw');
+      for (const action of ['LOGIN_SEEN', 'LOGOUT_SEEN']) {
+        await appendAuditEvent(client, {
+          eventType: 'AUTH_LOGIN',
+          actorId: 'admin-1',
+          action,
+          targetType: 'SESSION',
+          targetId: 'sess-1',
+          outcome: 'SUCCESS',
+          refs: { session: 'sess-1' },
+        });
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    const rows = await listAuditEvents(pool, {
+      afterSeq: null,
+      limit: 50,
+      actorId: null,
+      targetId: null,
+      eventType: null,
+    });
+    expect(rows.map((row) => row.seq)).toEqual([1, 2]);
+    expect(() =>
+      verifyAuditChain(
+        rows.map((row) => ({
+          seq: row.seq,
+          id: row.id,
+          ts: row.recordedAt,
+          eventType: row.eventType,
+          actorId: row.actorId,
+          action: row.action,
+          targetType: row.targetType,
+          targetId: row.targetId,
+          outcome: row.outcome,
+          reason: row.reason,
+          refs: row.refs,
+          prevHash: Buffer.from(row.prevHash, 'hex'),
+          eventHash: Buffer.from(row.eventHash, 'hex'),
+        })),
+      ),
+    ).not.toThrow();
   });
 
   it('autorise la lecture au rôle lecture seule', async () => {

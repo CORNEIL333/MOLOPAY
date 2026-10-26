@@ -15,7 +15,7 @@
 | 04 · Vérificateur indépendant | terminé | `9dd0ee6` | Rust (D1), 9 tests crate + 20 altérations injectées + JSON strict ; `pnpm verify:ledger` vérifie l'export 6 écritures / 3 têtes / 2 témoins ; même dépôt (D9) |
 | 05 · Audit | terminé | `3adf53f` | 17 tests domaine ; migration `audit.event` (chaîne, ajout seul, motif) ; lecture SQL paginée prête, exposition HTTP différée au RBAC du lot 08 (D10) |
 | 06 · Identity | à faire si temps | — | `.env.local` absent |
-| 08 · Admin | terminé (code) | `à venir` | 168 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, audit sans payload) + 5 tests paramétrage versionné ; migration `0003_admin.sql` ; 8 tests Testcontainers **écrits, non exécutés** (D2) |
+| 08 · Admin | terminé (code) | `0d7fdc6` | 174 tests domaine (matrice 9×16 exhaustive, ABAC, maker-checker, charge utile scellée SHA-256/JCS, contexte lié au payload, TTL anti-antidatage) + 7 tests paramétrage versionné lié à la demande approuvée ; migration `0003_admin.sql` ; 10 tests Testcontainers **écrits, non exécutés** (D2) ; durcissement post-revue |
 | 06 · Identity | à faire si temps | — | `.env.local` absent (D3) |
 
 ## Prochaine étape exacte
@@ -26,12 +26,12 @@ Clôture de journée : relire `docs/journal/2026-10-26.md`, vérifier la barriè
 
 - `pnpm typecheck` : OK
 - `pnpm lint` : OK (`Module boundaries: OK`)
-- `pnpm test` : 328 tests verts (13 fichiers)
+- `pnpm test` : 339 tests verts (13 fichiers)
 - `pnpm test:tsa` : 5 tests réseau verts contre DigiCert (jeton réel : signature CMS, EKU horodatage, chaîne Mozilla, nonce, empreinte)
 - `pnpm test:attack` : 7 tests verts
 - `pnpm test:e2e` : 1 test vert
 - `cargo test --manifest-path tools/verifier/Cargo.toml` : 9 tests verts
-- `pnpm test:db` : non exécutable, sortie `DOCKER_UNAVAILABLE` (D2) ; 32 tests ledger + 8 tests audit + 8 tests admin écrits
+- `pnpm test:db` : non exécutable, sortie `DOCKER_UNAVAILABLE` (D2) ; 32 tests ledger + 10 tests audit + 10 tests admin écrits
 - `pnpm verify:ledger` : OK, `LEDGER VERIFIED entries=6 heads=3 witnesses=2`
 
 

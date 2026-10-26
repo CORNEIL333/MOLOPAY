@@ -1,5 +1,9 @@
 -- Migration 0002 — journal d'audit de sécurité chaîné, en ajout seul.
 -- Exigences : SEC-LOG-001, F-BO-004, INT-HASH-005, I-3.
+-- La base garantit la continuité (séquence, prev_hash), l'ajout seul et le
+-- motif des lectures sensibles ; elle ne peut pas recalculer event_hash sans
+-- canonicalisation JCS : l'intégrité du contenu est vérifiée par
+-- verifyAuditChain (application) et par le test de bout en bout.
 -- Les migrations sont additives ; toute correction de schéma passe par une
 -- nouvelle migration.
 
@@ -107,9 +111,56 @@ BEGIN
   RAISE EXCEPTION 'AUDIT_APPEND_ONLY: % sur % refusé', TG_OP, TG_TABLE_NAME;
 END $$;
 
+-- Deuxième barrière contre les secrets dans refs, même en SQL direct.
+-- La liste reprend la normalisation du domaine (minuscules, sans séparateurs).
+CREATE FUNCTION audit.assert_safe_refs(metadata jsonb, depth integer DEFAULT 0)
+RETURNS void
+LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+  entry record;
+  normalized text;
+BEGIN
+  IF depth > 8 THEN
+    RAISE EXCEPTION 'AUDIT_INVALID_EVENT: métadonnées trop profondes';
+  END IF;
+  IF jsonb_typeof(metadata) = 'object' THEN
+    FOR entry IN SELECT key, value FROM jsonb_each(metadata) LOOP
+      normalized := regexp_replace(lower(entry.key), '[^a-z0-9]', '', 'g');
+      IF normalized IN (
+        'password', 'passwordhash', 'passwd', 'pin', 'pinnumber',
+        'otp', 'otpcode', 'token', 'accesstoken', 'refreshtoken',
+        'secret', 'clientsecret', 'authorization', 'cookie', 'cvv', 'cvv2',
+        'pan', 'cardnumber', 'iban', 'accountnumber', 'documentnumber',
+        'idnumber', 'nationalid', 'msisdn'
+      ) THEN
+        RAISE EXCEPTION 'AUDIT_SENSITIVE_METADATA: clé % interdite', entry.key;
+      END IF;
+      PERFORM audit.assert_safe_refs(entry.value, depth + 1);
+    END LOOP;
+  ELSIF jsonb_typeof(metadata) = 'array' THEN
+    FOR entry IN SELECT item FROM jsonb_array_elements(metadata) AS item LOOP
+      PERFORM audit.assert_safe_refs(entry.item, depth + 1);
+    END LOOP;
+  END IF;
+END $$;
+
+REVOKE ALL ON FUNCTION audit.assert_safe_refs(jsonb, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION audit.assert_safe_refs(jsonb, integer) TO app_rw;
+
+CREATE FUNCTION audit.check_event_refs() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM audit.assert_safe_refs(NEW.refs, 0);
+  RETURN NEW;
+END $$;
+
 CREATE TRIGGER event_chain
   BEFORE INSERT ON audit.event
   FOR EACH ROW EXECUTE FUNCTION audit.assert_chain();
+
+CREATE TRIGGER event_refs_safe
+  BEFORE INSERT ON audit.event
+  FOR EACH ROW EXECUTE FUNCTION audit.check_event_refs();
 
 CREATE TRIGGER event_no_update_delete
   BEFORE UPDATE OR DELETE ON audit.event
@@ -119,6 +170,7 @@ CREATE TRIGGER event_no_truncate
   FOR EACH STATEMENT EXECUTE FUNCTION audit.forbid_mutation();
 
 ALTER TABLE audit.event ENABLE ALWAYS TRIGGER event_chain;
+ALTER TABLE audit.event ENABLE ALWAYS TRIGGER event_refs_safe;
 ALTER TABLE audit.event ENABLE ALWAYS TRIGGER event_no_update_delete;
 ALTER TABLE audit.event ENABLE ALWAYS TRIGGER event_no_truncate;
 

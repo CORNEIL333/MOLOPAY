@@ -93,3 +93,6 @@ JCS de `{algorithm, log_id, root_hash, timestamp, tree_size}`.
   les racines, pas la signature CMS du jeton d'horodatage.
 - L'export doit être produit après la dernière tête ancrée ; les écritures
   postérieures à un témoin ne sont pas couvertes et sont donc refusées.
+- Le type d'opération est contrôlé comme chaîne non vide : le vocabulaire
+  n'est pas encore figé par le CDC (décision D11). Un type inconnu reste
+  couvert par le hash, l'équilibre et la couverture Merkle.

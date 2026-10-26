@@ -30,14 +30,18 @@ const FINANCE_2: AdminPrincipal = {
   maxAmountXaf: 500_000n,
 };
 
-function approvedSettingRequest(): ApprovalRequest {
+function approvedSettingRequest(
+  value = '500000',
+  id = REQUEST_ID,
+): ApprovalRequest {
   const request = createApprovalRequest(
     {
-      id: REQUEST_ID,
+      id,
       kind: 'FINANCIAL_SETTING',
-      payload: { key: 'settlement_threshold_xaf', value: '500000' },
+      payload: { key: 'settlement_threshold_xaf', value },
       reason: 'Nouveau seuil de règlement',
       preparedAt: NOW,
+      now: NOW,
     },
     FINANCE,
     CONTEXT,
@@ -86,7 +90,10 @@ describe('paramètres versionnés', () => {
         key: 'settlement_threshold_xaf',
         value: '600000',
         createdAt: NOW,
-        request: approvedSettingRequest(),
+        request: approvedSettingRequest(
+          '600000',
+          '019a3000-0000-7000-8000-000000000204',
+        ),
       },
       [first],
     );
@@ -105,6 +112,7 @@ describe('paramètres versionnés', () => {
         payload: { key: 'settlement_threshold_xaf' },
         reason: 'Nouveau seuil',
         preparedAt: NOW,
+        now: NOW,
       },
       FINANCE,
       CONTEXT,
@@ -128,6 +136,7 @@ describe('paramètres versionnés', () => {
         payload: { settlement_id: 'set-1' },
         reason: 'Règlement',
         preparedAt: NOW,
+        now: NOW,
       },
       {
         actorId: 'ops-1',
@@ -194,6 +203,49 @@ describe('paramètres versionnés', () => {
           value: 1.5,
           createdAt: NOW,
           request: approvedSettingRequest(),
+        },
+        [],
+      ),
+    ).toThrow(BusinessError);
+  });
+
+  it('refuse une valeur ou une clé différente de la demande approuvée', () => {
+    expect(() =>
+      createSettingVersion(
+        {
+          key: 'settlement_threshold_xaf',
+          value: '9000000',
+          createdAt: NOW,
+          request: approvedSettingRequest(),
+        },
+        [],
+      ),
+    ).toThrow(BusinessError);
+    expect(() =>
+      createSettingVersion(
+        {
+          key: 'other_threshold_xaf',
+          value: '500000',
+          createdAt: NOW,
+          request: approvedSettingRequest(),
+        },
+        [],
+      ),
+    ).toThrow(BusinessError);
+  });
+
+  it('refuse une demande dont la charge utile a été altérée après approbation', () => {
+    const tampered: ApprovalRequest = {
+      ...approvedSettingRequest(),
+      payload: { key: 'settlement_threshold_xaf', value: '9000000' },
+    };
+    expect(() =>
+      createSettingVersion(
+        {
+          key: 'settlement_threshold_xaf',
+          value: '9000000',
+          createdAt: NOW,
+          request: tampered,
         },
         [],
       ),

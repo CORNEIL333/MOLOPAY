@@ -29,7 +29,9 @@ CREATE TABLE admin.approval_request (
     'ROLE_GRANT',
     'BREAK_GLASS'
   )),
-  maker_id text NOT NULL CHECK (length(btrim(maker_id)) > 0),
+  maker_id text NOT NULL CHECK (
+    length(btrim(maker_id)) BETWEEN 1 AND 200 AND maker_id = btrim(maker_id)
+  ),
   payload jsonb NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
   payload_hash bytea NOT NULL CHECK (octet_length(payload_hash) = 32),
   reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 1 AND 1000),
@@ -49,7 +51,10 @@ CREATE INDEX approval_request_expiry_idx ON admin.approval_request (expires_at);
 CREATE TABLE admin.approval_decision (
   request_id uuid PRIMARY KEY REFERENCES admin.approval_request (id),
   decision text NOT NULL CHECK (decision IN ('APPROVED', 'REJECTED', 'CANCELLED')),
-  decided_by text NOT NULL CHECK (length(btrim(decided_by)) > 0),
+  decided_by text NOT NULL CHECK (
+    length(btrim(decided_by)) BETWEEN 1 AND 200
+    AND decided_by = btrim(decided_by)
+  ),
   decided_at timestamptz NOT NULL,
   decision_reason text NULL CHECK (
     decision_reason IS NULL OR length(btrim(decision_reason)) BETWEEN 1 AND 1000
@@ -79,11 +84,11 @@ BEGIN
     RAISE EXCEPTION 'ADMIN_REQUEST_EXPIRED: demande % expirée', NEW.request_id;
   END IF;
   IF NEW.decision = 'CANCELLED' THEN
-    IF NEW.decided_by <> request_maker THEN
+    IF btrim(NEW.decided_by) <> btrim(request_maker) THEN
       RAISE EXCEPTION 'ADMIN_FORBIDDEN: annulation réservée au préparateur';
     END IF;
   ELSE
-    IF NEW.decided_by = request_maker THEN
+    IF btrim(NEW.decided_by) = btrim(request_maker) THEN
       RAISE EXCEPTION 'MAKER_CANNOT_APPROVE: le préparateur ne peut pas décider';
     END IF;
   END IF;
@@ -107,9 +112,38 @@ BEGIN
   RAISE EXCEPTION 'ADMIN_APPEND_ONLY: % sur % refusé', TG_OP, TG_TABLE_NAME;
 END $$;
 
+-- La version publiée doit reprendre exactement la clé et la valeur approuvées.
+CREATE FUNCTION admin.assert_setting_matches_request() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  request_payload jsonb;
+  request_decision text;
+BEGIN
+  SELECT r.payload, d.decision INTO request_payload, request_decision
+  FROM admin.approval_request r
+  LEFT JOIN admin.approval_decision d ON d.request_id = r.id
+  WHERE r.id = NEW.approval_request_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % absente', NEW.approval_request_id;
+  END IF;
+  IF request_decision IS DISTINCT FROM 'APPROVED' THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % non approuvée', NEW.approval_request_id;
+  END IF;
+  IF request_payload->>'key' IS DISTINCT FROM NEW.key
+     OR request_payload->'value' IS DISTINCT FROM NEW.value THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: clé ou valeur différente de la demande approuvée';
+  END IF;
+  RETURN NEW;
+END $$;
+
 CREATE TRIGGER approval_decision_verify
   BEFORE INSERT ON admin.approval_decision
   FOR EACH ROW EXECUTE FUNCTION admin.assert_decision();
+
+CREATE TRIGGER setting_version_verify
+  BEFORE INSERT ON admin.setting_version
+  FOR EACH ROW EXECUTE FUNCTION admin.assert_setting_matches_request();
 
 CREATE TRIGGER approval_request_no_update_delete
   BEFORE UPDATE OR DELETE ON admin.approval_request
@@ -137,6 +171,7 @@ ALTER TABLE admin.approval_decision ENABLE ALWAYS TRIGGER approval_decision_no_u
 ALTER TABLE admin.approval_decision ENABLE ALWAYS TRIGGER approval_decision_no_truncate;
 ALTER TABLE admin.setting_version ENABLE ALWAYS TRIGGER setting_version_no_update_delete;
 ALTER TABLE admin.setting_version ENABLE ALWAYS TRIGGER setting_version_no_truncate;
+ALTER TABLE admin.setting_version ENABLE ALWAYS TRIGGER setting_version_verify;
 
 -- État dérivé : PENDING, APPROVED, REJECTED, CANCELLED ou EXPIRED.
 CREATE VIEW admin.approval_request_state

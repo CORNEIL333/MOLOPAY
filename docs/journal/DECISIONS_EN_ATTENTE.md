@@ -57,6 +57,24 @@
 
 ### D10 · Lecture HTTP du journal d'audit différée au RBAC (lot 08)
 - **Constat :** SEC-AUTHZ-001 exige un contrôle d'accès serveur sur chaque requête ; aucun mécanisme d'authentification ni de RBAC n'existe encore. Exposer `/audit/events` maintenant rendrait les journaux de sécurité consultables sans autorisation.
-- **Option appliquée :** la couche de lecture est livrée et testée (requêtes SQL entièrement paramétrées, pagination et filtres validés), mais aucun contrôleur HTTP n'est monté. L'exposition se fera derrière le guard RBAC du lot 08, sans modifier le domaine ni les requêtes.
+- **Option appliquée :** la couche de lecture est livrée et testée (requêtes SQL entièrement paramétrées, pagination et filtres validés), mais aucun contrôleur HTTP n'est monté. L'exposition se fera quand un guard d'authentification existera (lot 06), avec les décisions RBAC du lot 08.
 - **Retour arrière :** monter `AuditController` et son module dans `AppModule` dès que le guard existe ; aucun changement de données.
 - **À trancher :** rôles autorisés à consulter l'audit (auditeur, conformité, administrateur) et politique de conservation/rétention de 10 ans (SEC-LOG-001).
+
+### D11 · Vocabulaire des types d'écriture non figé par le CDC
+- **Constat :** les fixtures utilisent `GENESIS`, `PAYMENT_RECEIVED`, `SETTLEMENT_SENT`, `FEE_CHARGED`, `PAYMENT_REVERSED`, `ADJUSTMENT`, mais aucun document normatif ne liste les types autorisés ; le domaine du grand livre valide seulement « chaîne non vide ». Le vérificateur Rust applique donc la même règle (structure, équilibre et hash stricts, type non énuméré).
+- **Option appliquée :** ne pas inventer de liste dans le vérificateur, qui refuserait un export légitime dès qu'un nouveau type est introduit. Aucun type inconnu ne peut toutefois passer sans hash cohérent et sans couverture Merkle.
+- **Retour arrière :** ajouter une liste blanche dans `packages/chain` et son miroir Rust, puis un test « type inconnu avec hash recalculé ».
+- **À trancher :** figer la liste des types d'opération dans le CDC, avec leur règle de contre-passation.
+
+### D12 · Horodatage d'audit et intégrité du hash côté application
+- **Constat :** `audit.event.recorded_at` reçoit l'horodatage fourni par l'application (nécessaire pour que le hash soit reproductible hors base), et la base ne peut pas recalculer `event_hash` sans canonicalisation JCS. La base garantit la continuité de séquence et de `prev_hash`, l'ajout seul et le refus des clés sensibles ; le contenu est vérifié par `verifyAuditChain` et par un test de bout en bout.
+- **Option appliquée :** l'horloge serveur applicative est la source de vérité tant qu'aucun acteur externe ne peut fournir `ts` (aucun endpoint HTTP d'audit n'est monté). Un test base relit deux événements écrits via `appendAuditEvent` et rejoue la chaîne complète.
+- **Retour arrière :** passer à `recorded_at DEFAULT now()` et inclure l'horodatage base dans le contenu canonique lors de la prochaine migration.
+- **À trancher :** source d'horodatage opposable (horloge base, TSA) et conservation des preuves de recalcul.
+
+### D13 · Domaine admin non exposé et schéma de charge utile non formalisé
+- **Constat :** le lot 08 livre le domaine RBAC/maker-checker et les migrations, mais aucun contrôleur HTTP : sans authentification réelle (lot 06), exposer les actions back-office serait fail-open. Les charges utiles `SETTLEMENT`/`LEDGER_REVERSAL` ne sont pas encore schématisées par le CDC ; le domaine exige `amount_xaf` pour les approbations plafonnées et lie `city_id`/`partner_id` au contexte lorsqu'ils sont présents, mais ne peut pas exiger des champs non spécifiés.
+- **Option appliquée :** aucun endpoint admin monté ; le contexte d'autorisation ne peut pas diverger d'un montant déclaré, et la ville/partenaire déclarés sont liés au contexte. Les charges utiles restent des objets JSON canonisés et scellés par SHA-256.
+- **Retour arrière :** monter les contrôleurs derrière un guard d'authentification et ajouter des schémas de charge utile par type.
+- **À trancher :** schémas de charge utile par type de demande et mécanisme d'authentification des agents (OIDC interne, MFA, sessions).

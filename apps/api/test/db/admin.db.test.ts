@@ -55,17 +55,19 @@ async function insertRequest(
     readonly maker?: string;
     readonly kind?: string;
     readonly expiresAt?: string;
+    readonly payload?: string;
   },
 ): Promise<void> {
   await client.query(
     `INSERT INTO admin.approval_request
        (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
-     VALUES ($1, $2, $3, '{"settlement_id":"set-1"}'::jsonb, $4,
-             'Règlement du lot 42', $5, $6)`,
+     VALUES ($1, $2, $3, $4::jsonb, $5,
+             'Règlement du lot 42', $6, $7)`,
     [
       options.id,
       options.kind ?? 'SETTLEMENT',
       options.maker ?? 'ops-1',
+      options.payload ?? '{"settlement_id":"set-1"}',
       HASH,
       PREPARED_AT,
       options.expiresAt ?? EXPIRES_AT,
@@ -256,7 +258,11 @@ describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
 
   it('publie des paramètres versionnés liés à une demande approuvée', async () => {
     await transact('app_rw', async (client) => {
-      await insertRequest(client, { id: uuid(1), kind: 'FINANCIAL_SETTING' });
+      await insertRequest(client, {
+        id: uuid(1),
+        kind: 'FINANCIAL_SETTING',
+        payload: '{"key":"settlement_threshold_xaf","value":"500000"}',
+      });
       await insertDecision(client, uuid(1), {
         decision: 'APPROVED',
         decidedBy: 'fin-2',
@@ -285,6 +291,57 @@ describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
       }),
     );
     expect(duplicateRequest.code).toBe('23505');
+  });
+
+  it('refuse un paramètre non approuvé ou différent de la demande', async () => {
+    const pending = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await insertRequest(client, {
+          id: uuid(1),
+          kind: 'FINANCIAL_SETTING',
+          payload: '{"key":"settlement_threshold_xaf","value":"500000"}',
+        });
+        await client.query(
+          `INSERT INTO admin.setting_version
+             (key, version, value, created_by, created_at, approval_request_id)
+           VALUES ('settlement_threshold_xaf', 1, '"500000"'::jsonb, 'ops-1',
+                   $1, $2)`,
+          [PREPARED_AT, uuid(1)],
+        );
+      }),
+    );
+    expect(pending.message).toContain('ADMIN_INVALID_REQUEST');
+
+    const altered = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await insertRequest(client, {
+          id: uuid(2),
+          kind: 'FINANCIAL_SETTING',
+          payload: '{"key":"settlement_threshold_xaf","value":"500000"}',
+        });
+        await insertDecision(client, uuid(2), {
+          decision: 'APPROVED',
+          decidedBy: 'fin-2',
+        });
+        await client.query(
+          `INSERT INTO admin.setting_version
+             (key, version, value, created_by, created_at, approval_request_id)
+           VALUES ('settlement_threshold_xaf', 1, '"9000000"'::jsonb, 'ops-1',
+                   $1, $2)`,
+          [PREPARED_AT, uuid(2)],
+        );
+      }),
+    );
+    expect(altered.message).toContain('ADMIN_INVALID_REQUEST');
+  });
+
+  it('refuse les identifiants de décideur avec espaces de bord', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await insertRequest(client, { id: uuid(1), maker: 'ops-1 ' });
+      }),
+    );
+    expect(failure.code).toBe('23514');
   });
 
   it('interdit l’écriture au rôle lecture seule', async () => {
