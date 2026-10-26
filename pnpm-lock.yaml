@@ -220,6 +220,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@achat/chain':
+        specifier: workspace:*
+        version: link:../../packages/chain
       '@achat/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -247,6 +250,8 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
+
+  packages/chain: {}
 
   packages/contracts: {}
 
