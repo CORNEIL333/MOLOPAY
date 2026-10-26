@@ -399,6 +399,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         );
       }),
     );
+    expect(increase.code).toBe('P0001');
     expect(increase.message).toContain('IDENTITY_APPEND_ONLY');
 
     const rebind = await catchFailure(() =>
@@ -455,6 +456,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     const deleted = await catchFailure(() =>
       admin.query('DELETE FROM identity.otp_challenge WHERE id = $1', [uuid(2)]),
     );
+    expect(deleted.code).toBe('P0001');
     expect(deleted.message).toContain('IDENTITY_APPEND_ONLY');
   });
 
@@ -492,6 +494,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         });
       }),
     );
+    expect(futureAnchor.code).toBe('P0001');
     expect(futureAnchor.message).toContain('IDENTITY_SESSION_INVALID');
 
     const duplicate = await catchFailure(() =>
@@ -741,6 +744,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         [uuid(3)],
       ),
     );
+    expect(deleted.code).toBe('P0001');
     expect(deleted.message).toContain('IDENTITY_APPEND_ONLY');
     const updated = await catchFailure(() =>
       admin.query(
@@ -748,6 +752,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         [uuid(3)],
       ),
     );
+    expect(updated.code).toBe('P0001');
     expect(updated.message).toContain('IDENTITY_APPEND_ONLY');
   });
 
@@ -778,6 +783,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         );
       }),
     );
+    expect(device.code).toBe('P0001');
     expect(device.message).toContain('IDENTITY_APPEND_ONLY');
 
     const session = await catchFailure(() =>
@@ -788,6 +794,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         );
       }),
     );
+    expect(session.code).toBe('P0001');
     expect(session.message).toContain('IDENTITY_APPEND_ONLY');
 
     const recovery = await catchFailure(() =>
@@ -796,6 +803,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         [uuid(4)],
       ),
     );
+    expect(recovery.code).toBe('P0001');
     expect(recovery.message).toContain('IDENTITY_APPEND_ONLY');
   });
 
@@ -857,6 +865,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         ]);
       }),
     );
+    expect(replay.code).toBe('P0001');
     expect(replay.message).toContain('IDENTITY_RECOVERY_FORBIDDEN');
 
     const account = await admin.query<{
@@ -885,7 +894,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     expect(recovery.rows[0]).toMatchObject({ status: 'COMPLETED' });
   });
 
-  it('refuse une récupération sans KYC, preuve invalide ou avant le délai', async () => {
+  it('refuse une récupération sans KYC, preuve invalide ou avant le délai déclaré', async () => {
     type Proof =
       | 'valid'
       | 'none'
@@ -954,6 +963,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     }
 
     const noKyc = await complete(await setup({ seqBase: 1, phone: PHONE }));
+    expect(noKyc.code).toBe('P0001');
     expect(noKyc.message).toContain('IDENTITY_RECOVERY_FORBIDDEN');
 
     const noProof = await complete(
@@ -964,6 +974,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         proof: 'none',
       }),
     );
+    expect(noProof.code).toBe('P0001');
     expect(noProof.message).toContain('IDENTITY_RECOVERY_FORBIDDEN');
 
     const cases: readonly {
@@ -980,6 +991,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       const failure = await complete(
         await setup({ ...testCase, kyc: 'STRONG' }),
       );
+      expect(failure.code).toBe('P0001');
       expect(failure.message).toContain('IDENTITY_RECOVERY_FORBIDDEN');
     }
 
@@ -991,6 +1003,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         hadBalance: true,
       }),
     );
+    expect(tooEarly.code).toBe('P0001');
     expect(tooEarly.message).toContain('IDENTITY_RECOVERY_NOT_DUE');
 
     const swapped = await admin.query<{ count: number }>(
@@ -998,6 +1011,43 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       [OTHER_PHONE],
     );
     expect(swapped.rows[0]?.count).toBe(0);
+  });
+
+  it('refuse une récupération vers un numéro déjà attribué', async () => {
+    let accountId = '';
+    let recoveryId = '';
+    let challengeId = '';
+    await transact('app_rw', async (client) => {
+      accountId = await insertAccount(client, 1);
+      await insertAccount(client, 2, { phone: OTHER_PHONE });
+      recoveryId = await insertRecovery(client, 3, accountId, {
+        oldPhone: PHONE,
+        newPhone: OTHER_PHONE,
+      });
+      challengeId = await insertConsumedRecoveryOtp(
+        client,
+        4,
+        accountId,
+        OTHER_PHONE,
+      );
+    });
+    await setStrongKyc(accountId);
+
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await client.query('SELECT identity.complete_recovery($1, $2)', [
+          recoveryId,
+          challengeId,
+        ]);
+      }),
+    );
+    expect(failure.code).toBe('P0001');
+    expect(failure.message).toContain('numéro déjà attribué');
+
+    const phones = await admin.query<{ phone: string }>(
+      'SELECT phone FROM identity.account ORDER BY phone',
+    );
+    expect(phones.rows.map((row) => row.phone)).toEqual([PHONE, OTHER_PHONE]);
   });
 
   it('réserve la clôture des récupérations aux fonctions dédiées', async () => {
@@ -1036,6 +1086,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         accountId,
       ]),
     );
+    expect(failure.code).toBe('P0001');
     expect(failure.message).toContain('IDENTITY_RECOVERY_FORBIDDEN');
   });
 

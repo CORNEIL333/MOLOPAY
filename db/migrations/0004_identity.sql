@@ -455,6 +455,16 @@ BEGIN
     RAISE EXCEPTION
       'IDENTITY_RECOVERY_FORBIDDEN: vérification KYC renforcée exigée';
   END IF;
+  -- Un numéro déjà attribué à un autre compte ne doit pas produire une
+  -- violation d'unicité brute (23505) : le refus est explicite.
+  IF EXISTS (
+    SELECT 1
+    FROM identity.account other
+    WHERE other.phone = target.new_phone
+      AND other.id <> target.account_id
+  ) THEN
+    RAISE EXCEPTION 'IDENTITY_RECOVERY_FORBIDDEN: numéro déjà attribué';
+  END IF;
   IF p_challenge IS NULL OR NOT EXISTS (
     SELECT 1
     FROM identity.otp_challenge c
