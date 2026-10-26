@@ -18,6 +18,10 @@ const MIGRATION_PATH = resolve(
   process.cwd(),
   'db/migrations/0002_audit.sql',
 );
+const METADATA_MIGRATION_PATH = resolve(
+  process.cwd(),
+  'db/migrations/0005_audit_metadata.sql',
+);
 
 const ZERO_HASH = Buffer.alloc(32);
 
@@ -35,6 +39,7 @@ let container: StartedPostgreSqlContainer;
 let admin: Client;
 let pool: Pool;
 let migrationSql: string;
+let metadataMigrationSql: string;
 
 function uuid(seq: number): string {
   return `019a2000-0000-7000-8000-${seq.toString().padStart(12, '0')}`;
@@ -100,6 +105,7 @@ beforeAll(async () => {
   await admin.connect();
   pool = new Pool({ connectionString: container.getConnectionUri() });
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
+  metadataMigrationSql = await readFile(METADATA_MIGRATION_PATH, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
@@ -111,6 +117,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await admin.query('DROP SCHEMA IF EXISTS audit CASCADE');
   await admin.query(migrationSql);
+  await admin.query(metadataMigrationSql);
 });
 
 describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {

@@ -17,6 +17,10 @@ const IDENTITY_MIGRATION = resolve(
   process.cwd(),
   'db/migrations/0004_identity.sql',
 );
+const AUDIT_METADATA_MIGRATION = resolve(
+  process.cwd(),
+  'db/migrations/0005_audit_metadata.sql',
+);
 
 const PHONE = '+237612345678';
 const OTHER_PHONE = '+237698765432';
@@ -30,6 +34,7 @@ const PIN_HASH = '$argon2id$v=19$m=19456,t=2,p=1$c2VsZWN0c2VsZWN0$aGFzaA';
 let container: StartedPostgreSqlContainer;
 let admin: Client;
 let auditSql: string;
+let auditMetadataSql: string;
 let identitySql: string;
 
 function uuid(seq: number, variant = '8'): string {
@@ -270,6 +275,7 @@ beforeAll(async () => {
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
   auditSql = await readFile(AUDIT_MIGRATION, 'utf8');
+  auditMetadataSql = await readFile(AUDIT_METADATA_MIGRATION, 'utf8');
   identitySql = await readFile(IDENTITY_MIGRATION, 'utf8');
 }, 120_000);
 
@@ -282,6 +288,7 @@ beforeEach(async () => {
   await admin.query('DROP SCHEMA IF EXISTS identity CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS audit CASCADE');
   await admin.query(auditSql);
+  await admin.query(auditMetadataSql);
   await admin.query(identitySql);
   const clock = await admin.query<{ now: Date }>('SELECT now() AS now');
   const current = clock.rows[0]?.now;

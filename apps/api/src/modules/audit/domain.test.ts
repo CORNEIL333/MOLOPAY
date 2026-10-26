@@ -253,6 +253,26 @@ describe('journal d’audit chaîné · validation', () => {
     }, 'AUDIT_SENSITIVE_METADATA');
   });
 
+  it('refuse les clés composées qui masquent un secret', () => {
+    for (const key of [
+      'client_pin',
+      'clientPin',
+      'pin_code',
+      'newPIN',
+      'otp_code',
+      'auth_token',
+      'new_password',
+    ]) {
+      expectCode(() => {
+        createAuditEvent(
+          draft({ refs: { [key]: '1234' } }),
+          1,
+          genesisAuditPrevHash(),
+        );
+      }, 'AUDIT_SENSITIVE_METADATA');
+    }
+  });
+
   it('refuse un type d’événement non déclaré', () => {
     expectCode(() => {
       createAuditEvent(
