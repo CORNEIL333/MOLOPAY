@@ -68,7 +68,6 @@ const ISO_UTC_MS_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const HASH_LENGTH = 32;
 const MAX_REASON_LENGTH = 1000;
-const MAX_METADATA_DEPTH = 8;
 
 const EVENT_TYPE_SET: ReadonlySet<string> = new Set(AUDIT_EVENT_TYPES);
 const ALLOWED_QUERY_KEYS: ReadonlySet<string> = new Set([
@@ -84,62 +83,59 @@ const REASON_REQUIRED_TYPES: ReadonlySet<AuditEventType> = new Set([
 ]);
 const OUTCOMES: ReadonlySet<string> = new Set(['SUCCESS', 'DENIED', 'ERROR']);
 
-// Comparaison sur la clé normalisée : « client_pin » et « clientPin »
-// désignent le même secret ; on refuse le conteneur, jamais le motif textuel.
-const FORBIDDEN_METADATA_KEYS: ReadonlySet<string> = new Set([
-  'password',
-  'passwordhash',
-  'passwd',
-  'passwordconfirmation',
-  'newpassword',
-  'oldpassword',
-  'currentpassword',
-  'pin',
-  'pinnumber',
-  'pincode',
-  'clientpin',
-  'newpin',
-  'oldpin',
-  'pinhash',
-  'otp',
-  'otpcode',
-  'smscode',
-  'verificationcode',
-  'otphash',
-  'codehash',
-  'recoverycode',
-  'backupcode',
-  'otpmac',
-  'token',
-  'accesstoken',
-  'refreshtoken',
-  'authtoken',
-  'bearertoken',
-  'sessiontoken',
-  'tokenhash',
-  'secret',
-  'clientsecret',
-  'secretkey',
-  'privatekey',
-  'apikey',
-  'mackey',
-  'pepper',
-  'authorization',
-  'cookie',
-  'cvv',
-  'cvv2',
-  'cvvcode',
-  'securitycode',
-  'pan',
-  'cardnumber',
-  'iban',
-  'accountnumber',
-  'documentnumber',
-  'idnumber',
-  'nationalid',
-  'msisdn',
-]);
-const METADATA_KEY_PATTERN = /^[A-Za-z0-9_.-]+$/;
+// Refus par défaut : chaque action n'accepte que les clés listées ici, et
+// uniquement des valeurs scalaires. Une action absente de registre est
+// refusée : ajouter une action exige de déclarer ses références.
+const IDENTITY_REF_KEYS = [
+  'account_id',
+  'device_id',
+  'challenge_id',
+  'operation_id',
+] as const;
+const ADMIN_REF_KEYS = [
+  'kind',
+  'status',
+  'maker_id',
+  'checker_id',
+  'payload_sha256',
+] as const;
+const ADMIN_ACTION_PATTERN =
+  /^(?:SETTLEMENT|REFUND|LEDGER_REVERSAL|FINANCIAL_SETTING|PARTNER_APPROVAL|ROLE_GRANT|BREAK_GLASS)_(?:REQUESTED|APPROVED|REJECTED|CANCELLED)$/;
+
+const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
+  new Map(
+    Object.entries({
+      SESSION_OPEN: ['ip'],
+      SESSION_CLOSE: ['ip'],
+      LOGIN_SEEN: ['session'],
+      LOGOUT_SEEN: [],
+      PLAN_PRICE_UPDATE: ['plan_id'],
+      READ_FINANCIAL_HISTORY: ['client_id', 'ip'],
+      READ_IDENTITY_DOCUMENT: ['client_id', 'ip'],
+      OTP_ISSUED: IDENTITY_REF_KEYS,
+      OTP_VERIFIED: IDENTITY_REF_KEYS,
+      OTP_FAILED: IDENTITY_REF_KEYS,
+      PIN_SET: IDENTITY_REF_KEYS,
+      PIN_VERIFIED: IDENTITY_REF_KEYS,
+      PIN_FAILED: IDENTITY_REF_KEYS,
+      PIN_LOCKED: IDENTITY_REF_KEYS,
+      DEVICE_REGISTERED: IDENTITY_REF_KEYS,
+      DEVICE_REVOKED: IDENTITY_REF_KEYS,
+      ACCOUNT_BLOCKED: IDENTITY_REF_KEYS,
+      SESSION_CREATED: IDENTITY_REF_KEYS,
+      SESSION_REVOKED: IDENTITY_REF_KEYS,
+      TRANSACTION_AUTHORIZED: IDENTITY_REF_KEYS,
+      TRANSACTION_DENIED: IDENTITY_REF_KEYS,
+      RECOVERY_REQUESTED: IDENTITY_REF_KEYS,
+      RECOVERY_COMPLETED: IDENTITY_REF_KEYS,
+    }).map(
+      ([action, keys]): [string, ReadonlySet<string>] => [
+        action,
+        new Set(keys),
+      ],
+    ),
+  );
+const ADMIN_ALLOWED_REF_KEYS: ReadonlySet<string> = new Set(ADMIN_REF_KEYS);
 
 function fail(code: ErrorCode, message: string): never {
   throw new BusinessError(code, message);
@@ -277,35 +273,33 @@ function normalizeReason(
   return trimmed;
 }
 
-function assertMetadataKey(key: string): void {
-  if (!METADATA_KEY_PATTERN.test(key)) {
-    fail('AUDIT_INVALID_EVENT', `Clé de métadonnée invalide: ${key}`);
+function assertAllowedRefs(
+  action: string,
+  refs: Readonly<Record<string, JsonValue>>,
+): void {
+  const allowed =
+    ALLOWED_REF_KEYS_BY_ACTION.get(action) ??
+    (ADMIN_ACTION_PATTERN.test(action) ? ADMIN_ALLOWED_REF_KEYS : null);
+  if (allowed === null) {
+    fail('AUDIT_INVALID_EVENT', `Action d’audit non déclarée: ${action}`);
   }
-  const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
-  if (FORBIDDEN_METADATA_KEYS.has(normalized)) {
-    fail(
-      'AUDIT_SENSITIVE_METADATA',
-      `Métadonnée interdite dans le journal d’audit: ${key}`,
-    );
-  }
-}
-
-function assertSafeMetadata(value: JsonValue, depth: number): void {
-  if (depth > MAX_METADATA_DEPTH) {
-    fail('AUDIT_INVALID_EVENT', 'Métadonnées trop profondes');
-  }
-  if (Array.isArray(value)) {
-    const items = value as readonly JsonValue[];
-    for (const item of items) {
-      assertSafeMetadata(item, depth + 1);
+  for (const [key, value] of Object.entries(refs)) {
+    if (!allowed.has(key)) {
+      fail(
+        'AUDIT_REFS_FORBIDDEN',
+        `Clé de référence non autorisée pour ${action}: ${key}`,
+      );
     }
-    return;
-  }
-  if (value !== null && typeof value === 'object') {
-    const entries = Object.entries<JsonValue>(value);
-    for (const [key, item] of entries) {
-      assertMetadataKey(key);
-      assertSafeMetadata(item, depth + 1);
+    const scalar =
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isSafeInteger(value));
+    if (!scalar) {
+      fail(
+        'AUDIT_REFS_FORBIDDEN',
+        `Référence non scalaire pour ${action}: ${key}`,
+      );
     }
   }
 }
@@ -350,10 +344,11 @@ function normalizeContent(content: AuditEventContent): AuditEventContent {
   ) {
     fail('AUDIT_INVALID_EVENT', 'refs doit être un objet JSON');
   }
-  assertSafeMetadata(content.refs, 0);
+  const reason = normalizeReason(content.eventType, content.reason);
+  assertAllowedRefs(content.action, content.refs);
   return {
     ...content,
-    reason: normalizeReason(content.eventType, content.reason),
+    reason,
   };
 }
 

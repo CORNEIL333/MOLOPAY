@@ -167,17 +167,16 @@ describe('journal d’audit chaîné · validation', () => {
 
   it('refuse un contenu altéré après coup', () => {
     const records = chainOfThree();
-    const second = records[1];
-    if (second === undefined) {
-      throw new Error('Chaîne de test incomplète');
-    }
-    const tampered: AuditEventRecord = { ...second, action: 'PLAN_DELETE' };
     const first = records[0];
-    if (first === undefined) {
+    const second = records[1];
+    if (first === undefined || second === undefined) {
       throw new Error('Chaîne de test incomplète');
     }
+    // SESSION_CLOSE accepte la même référence que SESSION_OPEN : seule
+    // l'altération du contenu est détectée, pas un refus de liste blanche.
+    const tampered: AuditEventRecord = { ...first, action: 'SESSION_CLOSE' };
     expectCode(() => {
-      verifyAuditChain([first, tampered]);
+      verifyAuditChain([tampered, second]);
     }, 'AUDIT_CHAIN_BROKEN');
   });
 
@@ -229,31 +228,31 @@ describe('journal d’audit chaîné · validation', () => {
     );
   });
 
-  it('refuse les métadonnées sensibles, y compris imbriquées', () => {
+  it('refuse les métadonnées hors liste blanche, y compris imbriquées', () => {
     expectCode(() => {
       createAuditEvent(
         draft({ refs: { password: 'secret' } }),
         1,
         genesisAuditPrevHash(),
       );
-    }, 'AUDIT_SENSITIVE_METADATA');
+    }, 'AUDIT_REFS_FORBIDDEN');
     expectCode(() => {
       createAuditEvent(
         draft({ refs: { request: { headers: { Authorization: 'Bearer x' } } } }),
         1,
         genesisAuditPrevHash(),
       );
-    }, 'AUDIT_SENSITIVE_METADATA');
+    }, 'AUDIT_REFS_FORBIDDEN');
     expectCode(() => {
       createAuditEvent(
         draft({ refs: { documents: [{ document_number: 'CNI-1' }] } }),
         1,
         genesisAuditPrevHash(),
       );
-    }, 'AUDIT_SENSITIVE_METADATA');
+    }, 'AUDIT_REFS_FORBIDDEN');
   });
 
-  it('refuse les clés composées qui masquent un secret', () => {
+  it('refuse les clés composées, même lorsqu’elles imitent un secret', () => {
     for (const key of [
       'client_pin',
       'clientPin',
@@ -276,8 +275,35 @@ describe('journal d’audit chaîné · validation', () => {
           1,
           genesisAuditPrevHash(),
         );
-      }, 'AUDIT_SENSITIVE_METADATA');
+      }, 'AUDIT_REFS_FORBIDDEN');
     }
+  });
+
+  it('refuse une clé autorisée pour une autre action', () => {
+    expectCode(() => {
+      createAuditEvent(
+        draft({ refs: { plan_id: 'plan-1' } }),
+        1,
+        genesisAuditPrevHash(),
+      );
+    }, 'AUDIT_REFS_FORBIDDEN');
+    expectCode(() => {
+      createAuditEvent(
+        draft({ refs: { ip: { nested: 'x' } } }),
+        1,
+        genesisAuditPrevHash(),
+      );
+    }, 'AUDIT_REFS_FORBIDDEN');
+  });
+
+  it('refuse une action non déclarée', () => {
+    expectCode(() => {
+      createAuditEvent(
+        draft({ action: 'PLAN_DELETE', refs: {} }),
+        1,
+        genesisAuditPrevHash(),
+      );
+    }, 'AUDIT_INVALID_EVENT');
   });
 
   it('refuse une clé de métadonnée hors du jeu autorisé', () => {
@@ -288,7 +314,7 @@ describe('journal d’audit chaîné · validation', () => {
           1,
           genesisAuditPrevHash(),
         );
-      }, 'AUDIT_INVALID_EVENT');
+      }, 'AUDIT_REFS_FORBIDDEN');
     }
   });
 
@@ -305,11 +331,11 @@ describe('journal d’audit chaîné · validation', () => {
   it('refuse les flottants et les champs vides', () => {
     expectCode(() => {
       createAuditEvent(
-        draft({ refs: { amount: 1.5 } }),
+        draft({ refs: { ip: 1.5 } }),
         1,
         genesisAuditPrevHash(),
       );
-    }, 'AUDIT_INVALID_EVENT');
+    }, 'AUDIT_REFS_FORBIDDEN');
     expectCode(() => {
       createAuditEvent(draft({ actorId: ' ' }), 1, genesisAuditPrevHash());
     }, 'AUDIT_INVALID_EVENT');
