@@ -4,11 +4,11 @@
 
 ## 2026-10-26
 
-### D1 · Go absent de la machine
-- **Constat :** `go version` → command not found ; aucun binaire dans `Program Files/Go`.
-- **Option appliquée :** installer un toolchain Go officiel portable **dans le dossier du projet** (`.toolchains/go`, ignoré par Git) si le réseau vers go.dev le permet ; sinon écrire le vérificateur et consigner qu'il n'a pas été compilé.
-- **Retour arrière :** supprimer `.toolchains/`.
-- **À trancher :** conserver ce mode d'installation pour le sprint, ou fournir Go via l'image de développement.
+### D1 · Go absent de la machine, bascule du vérificateur vers Rust
+- **Constat :** `go version` → command not found ; aucun binaire dans `Program Files/Go`. Le téléchargement du toolchain officiel a échoué deux fois (curl exit 56 « schannel: server closed abruptly », fichier bloqué à 10 162 240 octets sur 79 010 309 ; PowerShell en délai dépassé). Rust 1.96.1 est installé et fonctionnel.
+- **Option appliquée :** le vérificateur indépendant (lot 04) sera écrit en **Rust** dans `tools/verifier/`, module séparé sans import TypeScript. ADR-0001 autorise Go ou Rust pour l'outil de vérification indépendant ; l'exigence d'indépendance (langage et module distincts) est conservée. Le lot reste intitulé « vérificateur indépendant ».
+- **Retour arrière :** réécrire le module en Go si un toolchain est fourni ; aucune interface avec le reste du dépôt hors export JSON.
+- **À trancher :** fournir Go (préféré par le prompt initial) ou valider définitivement Rust pour le sprint.
 
 ### D2 · Docker absent de la machine
 - **Constat :** `docker` introuvable ; aucun Docker Desktop installé.
@@ -34,3 +34,15 @@
 ### D6 · Autorité d'horodatage RFC 3161
 - **Option appliquée :** utilisation d'une TSA publique réelle sans compte (DigiCert `http://timestamp.digicert.com`, avec repli documenté sur FreeTSA) pour les tests d'intégration ; à remplacer par la TSA retenue en production.
 - **Retour arrière :** changer l'URL dans la configuration ; aucune donnée n'est publiée (empreinte SHA-256 seule).
+
+### D7 · Image PostgreSQL des tests base
+- **Constat :** Docker absent localement (D2). Pour que la CI et le futur poste de test soient reproductibles, l'image est épinglée par tag et digest : `postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab`.
+- **Option appliquée :** digest du manifeste multi-architecture vérifié sur le registre officiel Docker Hub le 2026-10-26 ; aucune autre image n'est utilisée.
+- **Retour arrière :** changer la constante `POSTGRES_IMAGE` du test ; aucun impact hors tests.
+- **À trancher :** politique de mise à jour des digests d'images (revue mensuelle ou Renovate).
+
+### D8 · INT-LED-008 (état métier et écriture dans la même transaction)
+- **Constat :** le lot 02 livre le grand livre seul ; aucune table d'état métier (paiement, accord) n'existe encore. L'invariant « pas d'état sans écriture, pas d'écriture sans état » ne peut pas être prouvé sans cette table, et aucun faux module ne sera créé (zéro simulation).
+- **Option appliquée :** INT-LED-008 reste ouvert ; il sera couvert par le lot paiements (11) avec une transaction réelle état + écriture, et un test d'attaque provoquant l'échec de l'écriture pour vérifier le rollback de l'état.
+- **Retour arrière :** aucun code à retirer.
+- **À trancher :** confirmer que la couverture d'INT-LED-008 au lot 11 est acceptable pour la revue L3 du lot 02.
