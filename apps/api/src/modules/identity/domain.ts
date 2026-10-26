@@ -1173,6 +1173,40 @@ export function revokeSession(session: Session, now: string): Session {
 // attestation d'appareil réelle n'est pas livrée : seul le KYC renforcé ouvre.
 export type RecoveryMethod = 'KYC_STRONG';
 
+// Refus par défaut : le solde n'est jamais un paramètre libre. Seuls les
+// totaux lus dans `ledger.account_balance` peuvent construire cet objet, et
+// le constructeur privé interdit de le forger depuis l'extérieur.
+export class ClientBalance {
+  readonly #netCreditXaf: bigint;
+
+  private constructor(netCreditXaf: bigint) {
+    this.#netCreditXaf = netCreditXaf;
+  }
+
+  public static fromLedgerTotals(totals: {
+    readonly debitTotalXaf: bigint;
+    readonly creditTotalXaf: bigint;
+  }): ClientBalance {
+    if (
+      typeof totals.debitTotalXaf !== 'bigint' ||
+      typeof totals.creditTotalXaf !== 'bigint' ||
+      totals.debitTotalXaf < 0n ||
+      totals.creditTotalXaf < 0n
+    ) {
+      fail('IDENTITY_INVALID_REQUEST', 'Totaux de solde invalides');
+    }
+    const netCreditXaf = totals.creditTotalXaf - totals.debitTotalXaf;
+    if (netCreditXaf < 0n || netCreditXaf > MAX_AMOUNT) {
+      fail('IDENTITY_INVALID_REQUEST', 'Solde client incohérent');
+    }
+    return new ClientBalance(netCreditXaf);
+  }
+
+  public get xaf(): bigint {
+    return this.#netCreditXaf;
+  }
+}
+
 export type RecoveryStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 
 export type RecoveryRequest = {
@@ -1193,7 +1227,7 @@ export function requestRecovery(input: {
   readonly account: Account;
   readonly newPhone: string;
   readonly method: RecoveryMethod;
-  readonly balanceXaf: bigint;
+  readonly balance: ClientBalance;
   readonly now: string;
 }): RecoveryRequest {
   assertUuidV7(input.id, 'id');
@@ -1218,14 +1252,10 @@ export function requestRecovery(input: {
       'Le nouveau numéro doit différer du numéro actuel',
     );
   }
-  if (
-    typeof input.balanceXaf !== 'bigint' ||
-    input.balanceXaf < 0n ||
-    input.balanceXaf > MAX_AMOUNT
-  ) {
-    fail('IDENTITY_INVALID_REQUEST', 'Solde invalide');
+  if (!(input.balance instanceof ClientBalance)) {
+    fail('IDENTITY_INVALID_REQUEST', 'Solde dérivé du grand livre requis');
   }
-  const hadBalance = input.balanceXaf > 0n;
+  const hadBalance = input.balance.xaf > 0n;
   return {
     id: input.id,
     accountId: input.account.id,

@@ -15,6 +15,7 @@ import {
   blockAccount,
   cancelRecovery,
   canonicalTransaction,
+  ClientBalance,
   confirmRecovery,
   createAccount,
   createPinState,
@@ -55,6 +56,13 @@ const SESSION_ID = '019a0c2e-7b3a-7c4d-8e5f-0123456789b4';
 const RECOVERY_ID = '019a0c2e-7b3a-7c4d-8e5f-0123456789b5';
 const AUDIT_ID = '019a0c2e-7b3a-7c4d-8e5f-0123456789b6';
 const STRONG_PIN = '284917';
+
+function noBalance(): ClientBalance {
+  return ClientBalance.fromLedgerTotals({
+    debitTotalXaf: 0n,
+    creditTotalXaf: 0n,
+  });
+}
 
 let pepper: Uint8Array;
 let otherPepper: Uint8Array;
@@ -1040,6 +1048,43 @@ describe('SEC-AUTH-005 · sessions', () => {
   });
 });
 
+describe('I-9 · solde dérivé du grand livre', () => {
+  it('calcule un solde net créditeur à partir des totaux', () => {
+    const balance = ClientBalance.fromLedgerTotals({
+      debitTotalXaf: 500n,
+      creditTotalXaf: 15000n,
+    });
+    expect(balance.xaf).toBe(14500n);
+  });
+
+  it('refuse un solde net débiteur ou des totaux invalides', () => {
+    expectCode(
+      () =>
+        ClientBalance.fromLedgerTotals({
+          debitTotalXaf: 100n,
+          creditTotalXaf: 40n,
+        }),
+      'IDENTITY_INVALID_REQUEST',
+    );
+    expectCode(
+      () =>
+        ClientBalance.fromLedgerTotals({
+          debitTotalXaf: -1n,
+          creditTotalXaf: 0n,
+        }),
+      'IDENTITY_INVALID_REQUEST',
+    );
+    expectCode(
+      () =>
+        ClientBalance.fromLedgerTotals({
+          debitTotalXaf: 0 as never,
+          creditTotalXaf: 0n,
+        }),
+      'IDENTITY_INVALID_REQUEST',
+    );
+  });
+});
+
 describe('SEC-AUTH-007 · récupération de compte', () => {
   function strongAccount(): Account {
     return { ...signup(), kycLevel: 'STRONG' };
@@ -1065,7 +1110,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
           account: strongAccount(),
           newPhone: '+237698765432',
           method: 'OTP_ONLY' as never,
-          balanceXaf: 0n,
+          balance: noBalance(),
           now: NOW,
         }),
       'IDENTITY_RECOVERY_FORBIDDEN',
@@ -1077,7 +1122,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
           account: strongAccount(),
           newPhone: '+237698765432',
           method: 'TRUSTED_DEVICE' as never,
-          balanceXaf: 0n,
+          balance: noBalance(),
           now: NOW,
         }),
       'IDENTITY_RECOVERY_FORBIDDEN',
@@ -1089,7 +1134,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
           account: signup(),
           newPhone: '+237698765432',
           method: 'KYC_STRONG',
-          balanceXaf: 0n,
+          balance: noBalance(),
           now: NOW,
         }),
       'IDENTITY_RECOVERY_FORBIDDEN',
@@ -1101,10 +1146,25 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
           account: strongAccount(),
           newPhone: PHONE,
           method: 'KYC_STRONG',
-          balanceXaf: 0n,
+          balance: noBalance(),
           now: NOW,
         }),
       'IDENTITY_RECOVERY_FORBIDDEN',
+    );
+  });
+
+  it('refuse un solde forgé au lieu d’un objet dérivé', () => {
+    expectCode(
+      () =>
+        requestRecovery({
+          id: RECOVERY_ID,
+          account: strongAccount(),
+          newPhone: '+237698765432',
+          method: 'KYC_STRONG',
+          balance: { xaf: 0n } as never,
+          now: NOW,
+        }),
+      'IDENTITY_INVALID_REQUEST',
     );
   });
 
@@ -1115,7 +1175,10 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
       account,
       newPhone: '+237698765432',
       method: 'KYC_STRONG',
-      balanceXaf: 1n,
+      balance: ClientBalance.fromLedgerTotals({
+        debitTotalXaf: 0n,
+        creditTotalXaf: 1n,
+      }),
       now: NOW,
     });
     expect(recovery).toMatchObject({
@@ -1143,7 +1206,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
       account,
       newPhone: '+237698765432',
       method: 'KYC_STRONG',
-      balanceXaf: 0n,
+      balance: noBalance(),
       now: NOW,
     });
     expect(recovery.availableAt).toBe(NOW);
@@ -1189,7 +1252,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
       account,
       newPhone: '+237698765432',
       method: 'KYC_STRONG',
-      balanceXaf: 0n,
+      balance: noBalance(),
       now: NOW,
     });
     const proof = recoveryProof();

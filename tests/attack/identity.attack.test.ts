@@ -11,6 +11,7 @@ import {
   authorizeTransaction,
   blockAccount,
   canonicalTransaction,
+  ClientBalance,
   createAccount,
   createPinState,
   createSession,
@@ -713,6 +714,13 @@ describe('Attaques identité · récupération', () => {
     return { ...account(), kycLevel: 'STRONG' };
   }
 
+  function noBalance(): ClientBalance {
+    return ClientBalance.fromLedgerTotals({
+      debitTotalXaf: 0n,
+      creditTotalXaf: 0n,
+    });
+  }
+
   it('SEC-AUTH-007 interdit la récupération par simple OTP ou appareil non attesté', () => {
     for (const method of ['OTP_ONLY', 'TRUSTED_DEVICE']) {
       expectCode(
@@ -722,12 +730,35 @@ describe('Attaques identité · récupération', () => {
             account: strongAccount(),
             newPhone: NEW_PHONE,
             method: method as never,
-            balanceXaf: 0n,
+            balance: noBalance(),
             now: NOW,
           }),
         'IDENTITY_RECOVERY_FORBIDDEN',
       );
     }
+  });
+
+  it('I-9 refuse un solde déclaré par l’appelant', () => {
+    expectCode(
+      () =>
+        requestRecovery({
+          id: RECOVERY_ID,
+          account: strongAccount(),
+          newPhone: NEW_PHONE,
+          method: 'KYC_STRONG',
+          balance: { xaf: 100_000n } as never,
+          now: NOW,
+        }),
+      'IDENTITY_INVALID_REQUEST',
+    );
+    expectCode(
+      () =>
+        ClientBalance.fromLedgerTotals({
+          debitTotalXaf: 100n,
+          creditTotalXaf: 0n,
+        }),
+      'IDENTITY_INVALID_REQUEST',
+    );
   });
 
   it('SEC-AUTH-007 ne contourne pas le délai de vingt-quatre heures', () => {
@@ -737,7 +768,7 @@ describe('Attaques identité · récupération', () => {
       account: owner,
       newPhone: NEW_PHONE,
       method: 'KYC_STRONG',
-      balanceXaf: 100_000n,
+      balance: ClientBalance.fromLedgerTotals({ debitTotalXaf: 0n, creditTotalXaf: 100_000n }),
       now: NOW,
     });
     const proof = proofFor(
@@ -767,7 +798,7 @@ describe('Attaques identité · récupération', () => {
       account: owner,
       newPhone: NEW_PHONE,
       method: 'KYC_STRONG',
-      balanceXaf: 0n,
+      balance: noBalance(),
       now: NOW,
     });
     expectCode(
@@ -797,7 +828,7 @@ describe('Attaques identité · récupération', () => {
           account: { ...account(), kycLevel: 'BASIC' },
           newPhone: NEW_PHONE,
           method: 'KYC_STRONG',
-          balanceXaf: 0n,
+          balance: noBalance(),
           now: NOW,
         }),
       'IDENTITY_RECOVERY_FORBIDDEN',

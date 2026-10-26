@@ -13,7 +13,7 @@ export type BoundaryViolation = {
 };
 
 const MODULE_DEPS: Readonly<Record<string, readonly string[]>> = {
-  identity: ['audit'],
+  identity: ['audit', 'ledger'],
   kyc: ['identity', 'audit'],
   catalog: ['audit'],
   agreements: ['catalog', 'ledger', 'audit'],
