@@ -3,6 +3,15 @@ import { resolve } from 'node:path';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  rotateSessionFromStore,
+  verifyOtpFromStore,
+} from '../../src/modules/identity/auth.store';
+import {
+  issueOtp,
+  sessionTokenHash,
+  type OtpChallenge,
+} from '../../src/modules/identity/domain';
 
 const AUDIT_MIGRATION = resolve(
   process.cwd(),
@@ -66,6 +75,27 @@ async function transact<T>(
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;
+  } finally {
+    await client.end();
+  }
+}
+
+// Certains refus du store doivent rester écrits (décrément d'essai OTP) :
+// la transaction est validée même quand l'appel lève.
+async function transactCommitted(
+  role: 'app_rw',
+  action: (client: Client) => Promise<unknown>,
+): Promise<void> {
+  const client = new Client({ connectionString: container.getConnectionUri() });
+  await client.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`SET LOCAL ROLE ${role}`);
+    try {
+      await action(client);
+    } finally {
+      await client.query('COMMIT');
+    }
   } finally {
     await client.end();
   }
@@ -152,12 +182,84 @@ async function insertSession(
   );
 }
 
+const PEPPER = new Uint8Array(32).fill(9);
+
+function issuedChallenge(
+  seq: number,
+  options?: { readonly ttlMs?: number },
+): { readonly challenge: OtpChallenge; readonly code: string } {
+  return issueOtp({
+    id: uuid(seq),
+    phone: PHONE,
+    purpose: 'SIGNUP',
+    binding: uuid(1),
+    now: NOW,
+    pepper: PEPPER,
+    ...(options?.ttlMs === undefined ? {} : { ttlMs: options.ttlMs }),
+  });
+}
+
+async function insertIssuedChallenge(
+  client: Client,
+  issued: { readonly challenge: OtpChallenge; readonly code: string },
+  options?: { readonly attempts?: number; readonly expired?: boolean },
+): Promise<void> {
+  const challenge = issued.challenge;
+  await client.query(
+    `INSERT INTO identity.otp_challenge
+       (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      challenge.id,
+      challenge.phone,
+      challenge.purpose,
+      challenge.binding,
+      challenge.codeHash,
+      options?.expired === true
+        ? new Date(Date.parse(NOW) - 60_000).toISOString()
+        : challenge.expiresAt,
+      options?.attempts ?? 5,
+    ],
+  );
+}
+
+async function insertTokenSession(
+  client: Client,
+  seq: number,
+  accountId: string,
+  deviceId: string,
+  options?: {
+    readonly accessIssuedAt?: string;
+    readonly refreshExpiresAt?: string;
+  },
+): Promise<{ readonly sessionId: string; readonly refreshToken: string }> {
+  const sessionId = uuid(seq);
+  const refreshToken = `jeton-de-rafraichissement-${seq}`;
+  await client.query(
+    `INSERT INTO identity.session
+       (id, account_id, device_id, access_token_hash, refresh_token_hash,
+        access_issued_at, access_expires_at, refresh_expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      sessionId,
+      accountId,
+      deviceId,
+      sessionTokenHash(`jeton-d-acces-${seq}`),
+      sessionTokenHash(refreshToken),
+      options?.accessIssuedAt ?? NOW,
+      plus(15 * 60_000),
+      options?.refreshExpiresAt ?? plus(30 * 24 * 60 * 60_000),
+      NOW,
+    ],
+  );
+  return { sessionId, refreshToken };
+}
+
 async function insertRecovery(
   client: Client,
   seq: number,
   accountId: string,
-  options?: {
-    readonly hadBalance?: boolean;
+  options?: {    readonly hadBalance?: boolean;
     readonly newPhone?: string;
     readonly oldPhone?: string;
   },
@@ -1149,5 +1251,277 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       }),
     );
     expect(unknown.code).toBe('23514');
+  });
+});
+
+describe('identité · stores atomiques (PostgreSQL réel)', () => {
+  it('consomme un OTP valide dans la même requête que le décrément', async () => {
+    const issued = issuedChallenge(1);
+    await transact('app_rw', (client) => insertIssuedChallenge(client, issued));
+    const result = await transact('app_rw', (client) =>
+      verifyOtpFromStore(client, {
+        challengeId: issued.challenge.id,
+        submitted: issued.code,
+        pepper: PEPPER,
+      }),
+    );
+    expect(result.challenge.consumedAt).not.toBeNull();
+    expect(result.proof.challengeId).toBe(issued.challenge.id);
+    expect(result.proof.purpose).toBe('SIGNUP');
+    const row = await admin.query<{
+      attempts_remaining: number;
+      consumed_at: Date | null;
+    }>(
+      `SELECT attempts_remaining, consumed_at
+         FROM identity.otp_challenge WHERE id = $1`,
+      [issued.challenge.id],
+    );
+    expect(row.rows[0]?.attempts_remaining).toBe(4);
+    expect(row.rows[0]?.consumed_at).toBeInstanceOf(Date);
+  });
+
+  it('décrémente un essai faux et verrouille à zéro', async () => {
+    const issued = issuedChallenge(1);
+    await transact('app_rw', (client) =>
+      insertIssuedChallenge(client, issued, { attempts: 1 }),
+    );
+    const wrong = String((Number(issued.code) + 1) % 1_000_000).padStart(
+      6,
+      '0',
+    );
+    const failure = await catchFailure(() =>
+      transactCommitted('app_rw', (client) =>
+        verifyOtpFromStore(client, {
+          challengeId: issued.challenge.id,
+          submitted: wrong,
+          pepper: PEPPER,
+        }),
+      ),
+    );
+    expect(failure.code).toBe('IDENTITY_OTP_LOCKED');
+    const row = await admin.query<{ attempts_remaining: number }>(
+      'SELECT attempts_remaining FROM identity.otp_challenge WHERE id = $1',
+      [issued.challenge.id],
+    );
+    expect(row.rows[0]?.attempts_remaining).toBe(0);
+    const retry = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        verifyOtpFromStore(client, {
+          challengeId: issued.challenge.id,
+          submitted: issued.code,
+          pepper: PEPPER,
+        }),
+      ),
+    );
+    expect(retry.code).toBe('IDENTITY_OTP_LOCKED');
+  });
+
+  it('refuse un OTP expiré ou déjà consommé sans le réécrire', async () => {
+    const expired = issuedChallenge(1);
+    await transact('app_rw', (client) =>
+      insertIssuedChallenge(client, expired, { expired: true }),
+    );
+    const expiredFailure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        verifyOtpFromStore(client, {
+          challengeId: expired.challenge.id,
+          submitted: expired.code,
+          pepper: PEPPER,
+        }),
+      ),
+    );
+    expect(expiredFailure.code).toBe('IDENTITY_OTP_EXPIRED');
+
+    const replayed = issuedChallenge(2);
+    await transact('app_rw', (client) =>
+      insertIssuedChallenge(client, replayed),
+    );
+    const verify = (client: Client): Promise<unknown> =>
+      verifyOtpFromStore(client, {
+        challengeId: replayed.challenge.id,
+        submitted: replayed.code,
+        pepper: PEPPER,
+      });
+    await transact('app_rw', verify);
+    const replayFailure = await catchFailure(() =>
+      transact('app_rw', verify),
+    );
+    expect(replayFailure.code).toBe('IDENTITY_OTP_REPLAYED');
+  });
+
+  it('n’accorde qu’une consommation à deux vérifications concurrentes', async () => {
+    const issued = issuedChallenge(1);
+    await transact('app_rw', (client) =>
+      insertIssuedChallenge(client, issued, { attempts: 1 }),
+    );
+    const verify = (): Promise<unknown> =>
+      transact('app_rw', (client) =>
+        verifyOtpFromStore(client, {
+          challengeId: issued.challenge.id,
+          submitted: issued.code,
+          pepper: PEPPER,
+        }),
+      );
+    const results = await Promise.allSettled([verify(), verify()]);
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult =>
+        result.status === 'rejected',
+    );
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0]?.reason as { code?: string }).code).toBe(
+      'IDENTITY_OTP_REPLAYED',
+    );
+  });
+
+  it('fait tourner le refresh une seule fois et remplace les deux hachés', async () => {
+    const fixture = await transact('app_rw', async (client) => {
+      const accountId = await insertAccount(client, 1);
+      const deviceId = await insertDevice(client, 2, accountId);
+      const session = await insertTokenSession(client, 3, accountId, deviceId);
+      return session;
+    });
+    const rotated = await transact('app_rw', (client) =>
+      rotateSessionFromStore(client, {
+        sessionId: fixture.sessionId,
+        refreshToken: fixture.refreshToken,
+      }),
+    );
+    expect(rotated.refreshToken).not.toBe(fixture.refreshToken);
+    expect(rotated.session.accessTokenHash.toString('hex')).toBe(
+      sessionTokenHash(rotated.accessToken).toString('hex'),
+    );
+    const row = await admin.query<{
+      refresh_token_hash: Buffer;
+      access_token_hash: Buffer;
+    }>(
+      `SELECT refresh_token_hash, access_token_hash
+         FROM identity.session WHERE id = $1`,
+      [fixture.sessionId],
+    );
+    expect(row.rows[0]?.refresh_token_hash.toString('hex')).toBe(
+      sessionTokenHash(rotated.refreshToken).toString('hex'),
+    );
+    expect(row.rows[0]?.access_token_hash.toString('hex')).toBe(
+      sessionTokenHash(rotated.accessToken).toString('hex'),
+    );
+    const replay = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: fixture.sessionId,
+          refreshToken: fixture.refreshToken,
+        }),
+      ),
+    );
+    expect(replay.code).toBe('IDENTITY_SESSION_INVALID');
+  });
+
+  it('refuse une rotation avec un jeton faux, un compte bloqué ou un appareil révoqué', async () => {
+    const wrongToken = await transact('app_rw', async (client) => {
+      const accountId = await insertAccount(client, 1);
+      const deviceId = await insertDevice(client, 2, accountId);
+      await insertTokenSession(client, 3, accountId, deviceId);
+      return { accountId, deviceId };
+    });
+    const bad = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: uuid(3),
+          refreshToken: 'jeton-faux',
+        }),
+      ),
+    );
+    expect(bad.code).toBe('IDENTITY_SESSION_INVALID');
+
+    await admin.query(
+      `UPDATE identity.account SET status = 'BLOCKED' WHERE id = $1`,
+      [wrongToken.accountId],
+    );
+    const blocked = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: uuid(3),
+          refreshToken: 'jeton-de-rafraichissement-3',
+        }),
+      ),
+    );
+    expect(blocked.code).toBe('IDENTITY_ACCOUNT_BLOCKED');
+
+    await admin.query(
+      `UPDATE identity.account SET status = 'ACTIVE' WHERE id = $1`,
+      [wrongToken.accountId],
+    );
+    await admin.query(
+      `UPDATE identity.device SET status = 'REVOKED' WHERE id = $1`,
+      [wrongToken.deviceId],
+    );
+    const revoked = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: uuid(3),
+          refreshToken: 'jeton-de-rafraichissement-3',
+        }),
+      ),
+    );
+    expect(revoked.code).toBe('IDENTITY_DEVICE_REVOKED');
+  });
+
+  it('refuse un accès qui survivrait au refresh et ne modifie pas la session', async () => {
+    const fixture = await transact('app_rw', async (client) => {
+      const accountId = await insertAccount(client, 1);
+      const deviceId = await insertDevice(client, 2, accountId);
+      const session = await insertTokenSession(client, 3, accountId, deviceId, {
+        refreshExpiresAt: plus(10_000),
+      });
+      return session;
+    });
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: fixture.sessionId,
+          refreshToken: fixture.refreshToken,
+          accessTtlMs: 60_000,
+        }),
+      ),
+    );
+    expect(failure.code).toBe('IDENTITY_SESSION_INVALID');
+    const row = await admin.query<{
+      refresh_token_hash: Buffer;
+      access_issued_at: Date;
+    }>(
+      `SELECT refresh_token_hash, access_issued_at
+         FROM identity.session WHERE id = $1`,
+      [fixture.sessionId],
+    );
+    expect(row.rows[0]?.refresh_token_hash.toString('hex')).toBe(
+      sessionTokenHash(fixture.refreshToken).toString('hex'),
+    );
+  });
+
+  it('n’accorde qu’une rotation à deux rafraîchissements concurrents', async () => {
+    const fixture = await transact('app_rw', async (client) => {
+      const accountId = await insertAccount(client, 1);
+      const deviceId = await insertDevice(client, 2, accountId);
+      return insertTokenSession(client, 3, accountId, deviceId);
+    });
+    const rotate = (): Promise<unknown> =>
+      transact('app_rw', (client) =>
+        rotateSessionFromStore(client, {
+          sessionId: fixture.sessionId,
+          refreshToken: fixture.refreshToken,
+        }),
+      );
+    const results = await Promise.allSettled([rotate(), rotate()]);
+    const fulfilled = results.filter((result) => result.status === 'fulfilled');
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult =>
+        result.status === 'rejected',
+    );
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0]?.reason as { code?: string }).code).toBe(
+      'IDENTITY_SESSION_INVALID',
+    );
   });
 });

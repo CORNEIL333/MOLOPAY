@@ -1,6 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
+
+// Un Client ou un PoolClient suffit : le store n'utilise que `query`.
+type SqlClient = Pick<PoolClient, 'query'>;
 import {
   ACCESS_TOKEN_DEFAULT_TTL_MS,
   createOtpProof,
@@ -86,7 +89,7 @@ function toSession(row: SessionRow): Session {
   };
 }
 
-async function databaseNow(client: PoolClient): Promise<Date> {
+async function databaseNow(client: SqlClient): Promise<Date> {
   const result = await client.query<{ now: Date }>(
     'SELECT clock_timestamp() AS now',
   );
@@ -94,7 +97,7 @@ async function databaseNow(client: PoolClient): Promise<Date> {
 }
 
 async function otpFailure(
-  client: PoolClient,
+  client: SqlClient,
   challengeId: string,
 ): Promise<BusinessError> {
   const result = await client.query<OtpRow>(
@@ -122,7 +125,7 @@ async function otpFailure(
  * tentatives concurrentes ne peuvent pas réutiliser le même essai restant.
  */
 export async function verifyOtpFromStore(
-  client: PoolClient,
+  client: SqlClient,
   input: {
     readonly challengeId: string;
     readonly submitted: string;
@@ -182,7 +185,7 @@ export async function verifyOtpFromStore(
 }
 
 async function sessionFailure(
-  client: PoolClient,
+  client: SqlClient,
   sessionId: string,
   refreshTokenHash: Buffer,
 ): Promise<BusinessError> {
@@ -235,7 +238,7 @@ async function sessionFailure(
  * par la base sur son horloge.
  */
 export async function rotateSessionFromStore(
-  client: PoolClient,
+  client: SqlClient,
   input: {
     readonly sessionId: string;
     readonly refreshToken: string;
