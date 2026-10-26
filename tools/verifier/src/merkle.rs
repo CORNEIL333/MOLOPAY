@@ -1,0 +1,91 @@
+use sha2::{Digest, Sha256};
+
+pub type Hash = [u8; 32];
+
+pub fn root(hashes: &[Hash]) -> Hash {
+    if hashes.is_empty() {
+        let empty = Sha256::digest([]);
+        return empty.into();
+    }
+    tree_hash(hashes)
+}
+
+fn tree_hash(hashes: &[Hash]) -> Hash {
+    if hashes.len() == 1 {
+        return leaf_hash(&hashes[0]);
+    }
+    let split = largest_power_of_two_below(hashes.len());
+    node_hash(&tree_hash(&hashes[..split]), &tree_hash(&hashes[split..]))
+}
+
+fn leaf_hash(entry_hash: &Hash) -> Hash {
+    let mut hasher = Sha256::new();
+    hasher.update([0u8]);
+    hasher.update(entry_hash);
+    hasher.finalize().into()
+}
+
+fn node_hash(left: &Hash, right: &Hash) -> Hash {
+    let mut hasher = Sha256::new();
+    hasher.update([1u8]);
+    hasher.update(left);
+    hasher.update(right);
+    hasher.finalize().into()
+}
+
+fn largest_power_of_two_below(value: usize) -> usize {
+    debug_assert!(value > 1);
+    let mut power = 1;
+    while power * 2 < value {
+        power *= 2;
+    }
+    power
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{root, Hash};
+
+    fn leaf(byte: u8) -> Hash {
+        [byte; 32]
+    }
+
+    #[test]
+    fn racine_vide_egale_sha256_vide() {
+        let expected = [
+            0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8,
+            0x99, 0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c,
+            0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+        ];
+        assert_eq!(root(&[]), expected);
+    }
+
+    #[test]
+    fn racines_de_reference_pour_un_deux_et_trois_feuilles() {
+        let one = root(&[leaf(0x00)]);
+        assert_eq!(
+            one,
+            [
+                0x7f, 0x9c, 0x9e, 0x31, 0xac, 0x82, 0x56, 0xca, 0x2f, 0x25, 0x85,
+                0x83, 0xdf, 0x26, 0x2d, 0xbc, 0x7d, 0x6f, 0x68, 0xf2, 0xa0, 0x30,
+                0x43, 0xd5, 0xc9, 0x9a, 0x4a, 0xe5, 0xa7, 0x39, 0x6c, 0xe9,
+            ]
+        );
+        assert_eq!(
+            root(&[leaf(0x00), leaf(0x11)]),
+            [
+                0x8a, 0xb6, 0x71, 0xc6, 0x92, 0x94, 0xe6, 0x99, 0x17, 0x04, 0x2e,
+                0xd7, 0x94, 0xe5, 0xea, 0x9d, 0xda, 0x18, 0x71, 0x0c, 0xa3, 0x07,
+                0xa6, 0x5b, 0x98, 0x62, 0x26, 0x34, 0x4b, 0x87, 0x55, 0x2a,
+            ]
+        );
+        assert_eq!(
+            root(&[leaf(0x00), leaf(0x11), leaf(0x22)]),
+            [
+                0xcf, 0xdd, 0x57, 0xc4, 0x9c, 0xf0, 0xb2, 0x3d, 0xf4, 0x1b, 0x9f,
+                0xf2, 0xfc, 0xe7, 0x0e, 0xed, 0x9d, 0x15, 0xfd, 0x02, 0x42, 0xa1,
+                0x85, 0xdb, 0xdb, 0x5b, 0x91, 0x8f, 0x8b, 0x14, 0x0c, 0xce,
+            ]
+        );
+    }
+}

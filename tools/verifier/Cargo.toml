@@ -1,0 +1,20 @@
+[package]
+name = "achat-ledger-verifier"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Vérificateur indépendant du grand livre Achat Planifié"
+
+[[bin]]
+name = "verifier"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "=1.0.219", features = ["derive"] }
+serde_json = "=1.0.140"
+sha2 = "=0.10.9"
+ed25519-dalek = { version = "=2.1.1", features = ["std"] }
+base64 = "=0.22.1"
+
+[profile.release]
+strip = true
