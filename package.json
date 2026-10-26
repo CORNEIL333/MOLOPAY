@@ -1,0 +1,40 @@
+{
+  "name": "achat-planifie",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plateforme d'achat planifié — cœur financier vérifiable",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "eslint . && tsx tools/boundaries.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "test:db": "tsx tools/require-docker.ts && vitest run --config vitest.db.config.ts",
+    "test:attack": "vitest run --config vitest.attack.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "verify:ledger": "tsx tools/verify-ledger.ts",
+    "openapi:check": "tsx tools/check-openapi.ts",
+    "security:scan": "tsx tools/scan-secrets.ts && tsx tools/sca.ts",
+    "sbom": "cyclonedx-npm --output-file sbom.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@nestjs/testing": "12.2.0",
+    "@testcontainers/postgresql": "12.2.1",
+    "@types/node": "26.6.5",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.13.0",
+    "fast-check": "4.10.2",
+    "globals": "17.13.0",
+    "reflect-metadata": "0.2.2",
+    "supertest": "7.3.1",
+    "testcontainers": "12.2.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
+  }
+}

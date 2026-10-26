@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+sbom.json
+.env
+.env.local
+.env.*.local
+.toolchains/
+.dev-keys/
+*.tsbuildinfo
+.DS_Store
