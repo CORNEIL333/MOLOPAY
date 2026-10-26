@@ -18,8 +18,8 @@
 
 ### D3 · `.env.local` absent
 - **Constat :** aucun fichier `.env.local` ; pas d'identifiants d'environnements de test (SMS, agrégateur).
-- **Option appliquée :** lot 06 (Identity) n'est pas commencé faute d'adaptateur SMS réel testable ; aucun faux prestataire ne sera créé.
-- **Retour arrière :** déposer les identifiants de test dans `.env.local` (non versionné).
+- **Option appliquée :** le lot 06 livre le domaine identité complet (OTP, PIN Argon2id, appareils, sessions, signatures de transaction, récupération) et ses tests ; **aucun adaptateur SMS n'est livré** et aucun faux prestataire n'est créé. La remise du code OTP à un opérateur réel reste branchée plus tard derrière une interface d'envoi.
+- **Retour arrière :** déposer les identifiants de test dans `.env.local` (non versionné) puis brancher l'adaptateur SMS réel.
 
 ### D4 · Commits non signés
 - **Constat :** aucune clé de signature configurée ; `commit.gpgsign` absent.
@@ -78,3 +78,27 @@
 - **Option appliquée :** aucun endpoint admin monté ; le contexte d'autorisation ne peut pas diverger d'un montant déclaré, et la ville/partenaire déclarés sont liés au contexte. Les charges utiles restent des objets JSON canonisés et scellés par SHA-256.
 - **Retour arrière :** monter les contrôleurs derrière un guard d'authentification et ajouter des schémas de charge utile par type.
 - **À trancher :** schémas de charge utile par type de demande et mécanisme d'authentification des agents (OIDC interne, MFA, sessions).
+
+### D14 · Identité livrée sans couche de persistance ni HTTP
+- **Constat :** le lot 06 livre le domaine pur et les migrations, mais aucun repository ni contrôleur HTTP. Les décisions de sécurité qui dépendent de l'état persisté (preuve OTP rejouée, compteurs OTP/PIN concurrents, appareil/PIN réellement chargés) ne peuvent pas être prouvées par le seul domaine.
+- **Option appliquée :** le domaine exige que l'appelant fournisse des objets déjà chargés (`Account`, `Device`, `PinState`) et revérifie l'empreinte SHA-256 de la clé d'appareil ; les preuves OTP portent un MAC HMAC-SHA-256 poivré. La couche de persistance devra lire l'appareil, le PIN et les compteurs sous verrou (`SELECT ... FOR UPDATE`) et refuser un défi OTP déjà consommé. Aucun endpoint n'est monté sans guard d'authentification. La base ne peut pas recalculer le MAC OTP : elle garantit seulement la cohérence (défi non créé consommé, consommation unique, expiration ≤ 15 min) ; la preuve cryptographique reste dans le domaine.
+- **Retour arrière :** ajouter un repository transactionnel et un guard, puis des tests base concurrents ; aucun changement de schéma.
+- **À trancher :** stratégie de concurrence (verrou de ligne vs colonne de version) et propriétaire du chargement des objets d'identité.
+
+### D15 · Récupération de compte limitée au KYC renforcé
+- **Constat :** SEC-AUTH-007 exige un KYC renforcé et un délai de 24 h pour les comptes avec solde ; aucune attestation d'appareil de confiance n'existe encore. Une récupération `TRUSTED_DEVICE` sans preuve d'appareil serait un contournement.
+- **Option appliquée :** seul `KYC_STRONG` est accepté par le domaine et par la contrainte SQL. La fin de récupération passe par la fonction atomique `identity.complete_recovery(p_recovery, p_challenge)`, qui vérifie KYC, délai, OTP RECOVERY consommé récent, change le numéro puis révoque appareils et sessions. Elle n'accepte **aucun horodatage appelant** : délai, fenêtre OTP de dix minutes et écritures utilisent `now()`. Le trigger `recovery_anchor` force `requested_at`, `available_at` (24 h si solde), `status='PENDING'` et `completed_at=NULL`. Le rôle `app_rw` n'a ni `UPDATE(phone)`, ni `UPDATE(kyc_level)`, ni `UPDATE` direct sur `identity.recovery`.
+- **Retour arrière :** ajouter une méthode `TRUSTED_DEVICE` avec signature d'attestation vérifiée et migration additive.
+- **À trancher :** mécanisme d'attestation d'appareil (Play Integrity/App Attest) et conditions d'acceptation.
+
+### D16 · Atomicité OTP/PIN et confiance dans les objets chargés
+- **Constat :** les compteurs OTP et PIN sont des entiers lus puis réécrits par le domaine ; deux requêtes concurrentes peuvent perdre un incrément si la persistance ne verrouille pas. De même, le domaine ne peut pas prouver qu'un `Account`, `Device` ou `PinState` vient de la base.
+- **Option appliquée :** les transitions sont pures et testées ; la persistance doit verrouiller la ligne (`SELECT ... FOR UPDATE`) dans la même transaction que la mise à jour et ne jamais accepter des objets construits depuis une requête HTTP. Le niveau KYC n'est plus modifiable par `app_rw` (aucun grant) : seul le propriétaire du schéma l'élève, en attendant le lot KYC. **Risque résiduel assumé :** `had_balance` reste déclaré par l'appelant ; un bug ou une compromission de l'API pourrait supprimer le délai de 24 h. Le corriger demande de lire le solde du grand livre dans un trigger `SECURITY DEFINER`, ce qui couple identity au schéma ledger ; à faire au lot paiements.
+- **Retour arrière :** déplacer les compteurs dans des fonctions SQL atomiques ou ajouter une colonne `version` avec mise à jour conditionnelle.
+- **À trancher :** verrouillage pessimiste vs optimiste, et source de vérité du solde (grand livre).
+
+### D17 · Fonctions de récupération `SECURITY DEFINER`
+- **Constat :** `identity.complete_recovery` et `identity.cancel_recovery` doivent modifier des colonnes non accordées à `app_rw`. `SECURITY DEFINER` exécute avec les droits du rôle qui a appliqué la migration.
+- **Option appliquée :** exécution révoquée à `PUBLIC`, accordée uniquement à `app_rw` ; `search_path` figé à `pg_catalog` ; noms de tables qualifiés ; signatures `complete_recovery(uuid, uuid)` et `cancel_recovery(uuid)`, sans horodatage appelant. `cancel_recovery` fait un `UPDATE ... WHERE status='PENDING'` et vérifie `ROW_COUNT` (pas de course test-puis-écriture). La migration doit donc être appliquée par un rôle propriétaire de schéma, distinct du rôle applicatif.
+- **Retour arrière :** révoquer les exécutions et revenir à des mises à jour directes avec des grants colonne.
+- **À trancher :** rôle de migration en production (propriétaire dédié, coffre de credentials) et revue des fonctions `SECURITY DEFINER`.

@@ -12,6 +12,7 @@ export const AUDIT_EVENT_TYPES = [
   'BACKOFFICE_ACTION',
   'CONFIG_CHANGED',
   'EXPORT_CREATED',
+  'IDENTITY_ACTION',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
