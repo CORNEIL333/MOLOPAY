@@ -70,6 +70,13 @@ const MAX_REASON_LENGTH = 1000;
 const MAX_METADATA_DEPTH = 8;
 
 const EVENT_TYPE_SET: ReadonlySet<string> = new Set(AUDIT_EVENT_TYPES);
+const ALLOWED_QUERY_KEYS: ReadonlySet<string> = new Set([
+  'afterSeq',
+  'limit',
+  'actorId',
+  'targetId',
+  'eventType',
+]);
 const REASON_REQUIRED_TYPES: ReadonlySet<AuditEventType> = new Set([
   'SENSITIVE_DATA_READ',
   'FINANCIAL_HISTORY_READ',
@@ -149,6 +156,11 @@ function readFilter(raw: Readonly<Record<string, unknown>>, key: string): string
 export function parseAuditListQuery(
   raw: Readonly<Record<string, unknown>>,
 ): AuditListQuery {
+  for (const key of Object.keys(raw)) {
+    if (!ALLOWED_QUERY_KEYS.has(key)) {
+      fail('AUDIT_INVALID_EVENT', `Paramètre de requête inconnu: ${key}`);
+    }
+  }
   const afterSeqText = readQueryValue(raw, 'afterSeq');
   let afterSeq: number | null = null;
   if (afterSeqText !== null) {

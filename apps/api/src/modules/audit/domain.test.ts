@@ -338,5 +338,8 @@ describe('journal d’audit chaîné · lecture paginée', () => {
     expectCode(() => {
       parseAuditListQuery({ targetId: '   ' });
     }, 'AUDIT_INVALID_EVENT');
+    expectCode(() => {
+      parseAuditListQuery({ afterSeq: '1', admin: 'true' });
+    }, 'AUDIT_INVALID_EVENT');
   });
 });

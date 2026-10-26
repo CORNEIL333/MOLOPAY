@@ -58,8 +58,15 @@ const SELECT_COLUMNS = `seq, id, recorded_at, event_type, actor_id, action,
   encode(prev_hash, 'hex') AS prev_hash,
   encode(event_hash, 'hex') AS event_hash`;
 
-export function auditUuidv7(now: number = Date.now()): string {
-  if (!Number.isSafeInteger(now) || now < 0) {
+function toSafeSeq(value: string): number {
+  const seq = Number(value);
+  if (!Number.isSafeInteger(seq) || seq < 1) {
+    throw new Error(`Séquence d’audit hors bornes: ${value}`);
+  }
+  return seq;
+}
+
+export function auditUuidv7(now: number = Date.now()): string {  if (!Number.isSafeInteger(now) || now < 0) {
     throw new Error('Horodatage UUID invalide');
   }
   const bytes = randomBytes(16);
@@ -84,7 +91,7 @@ export async function appendAuditEvent(
     'SELECT seq, event_hash FROM audit.event ORDER BY seq DESC LIMIT 1',
   );
   const lastRow = last.rows[0];
-  const seq = lastRow === undefined ? 1 : Number(lastRow.seq) + 1;
+  const seq = lastRow === undefined ? 1 : toSafeSeq(lastRow.seq) + 1;
   const prevHash =
     lastRow === undefined ? genesisAuditPrevHash() : lastRow.event_hash;
   const record = createAuditEvent(
@@ -122,7 +129,7 @@ export async function appendAuditEvent(
 
 function toView(row: EventRow): AuditEventView {
   return {
-    seq: Number(row.seq),
+    seq: toSafeSeq(row.seq),
     id: row.id,
     recordedAt: row.recorded_at.toISOString(),
     eventType: row.event_type,

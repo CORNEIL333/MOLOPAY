@@ -136,6 +136,15 @@ describe('ABAC · périmètre, plafond et motif', () => {
     expect(decision).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
   });
 
+  it('applique la portée partenaire aussi à un rôle composite', () => {
+    const composite = principal('comp-1', ['COMPLIANCE', 'PARTNER_NETWORK']);
+    const decision = authorize(composite, 'APPROVE_PARTNER', {
+      ...CONTEXT,
+      partnerId: 'partner-2',
+    });
+    expect(decision).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
+  });
+
   it('refuse une ville hors périmètre pour les opérations', () => {
     const decision = authorize(OPERATIONS, 'PREPARE_SETTLEMENT', {
       ...CONTEXT,

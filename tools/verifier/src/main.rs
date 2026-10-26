@@ -67,6 +67,9 @@ fn run() -> Result<Report, RunError> {
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
             "-export" | "--export" => {
+                if export_path.is_some() {
+                    return Err(RunError::Usage("option -export répétée".to_string()));
+                }
                 export_path = Some(
                     arguments
                         .next()
@@ -74,6 +77,11 @@ fn run() -> Result<Report, RunError> {
                 );
             }
             "-public-key" | "--public-key" => {
+                if public_key_path.is_some() {
+                    return Err(RunError::Usage(
+                        "option -public-key répétée".to_string(),
+                    ));
+                }
                 public_key_path = Some(
                     arguments
                         .next()

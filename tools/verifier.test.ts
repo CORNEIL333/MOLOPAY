@@ -239,6 +239,23 @@ describe('vérificateur indépendant · export de référence', () => {
     expect(result.stderr).toContain('EXPORT_INVALID');
   });
 
+  it('refuse une option répétée (code 2)', () => {
+    const result = spawnSync(
+      BINARY,
+      [
+        '-export',
+        PUBLIC_KEY_PATH,
+        '-export',
+        PUBLIC_KEY_PATH,
+        '-public-key',
+        PUBLIC_KEY_PATH,
+      ],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('VERIFIER_USAGE');
+  });
+
   it('refuse une clé publique étrangère au journal', () => {
     const { publicKey } = generateKeyPairSync('ed25519');
     const raw = publicKey.export({ type: 'spki', format: 'der' });
