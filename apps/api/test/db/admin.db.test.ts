@@ -216,10 +216,24 @@ describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
         insertDecision(client, uuid(3), {
           decision: 'APPROVED',
           decidedBy: 'fin-1',
+          decidedAt: PREPARED_AT,
         }),
       );
     });
     expect(expired.message).toContain('ADMIN_REQUEST_EXPIRED');
+  });
+
+  it('borne la durée de validité à sept jours', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        insertRequest(client, {
+          id: uuid(1),
+          expiresAt: '2026-11-03T08:00:00.001Z',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('P0001');
+    expect(failure.message).toContain('sept jours');
   });
 
   it('ancre préparation et décision sur l’horloge serveur', async () => {

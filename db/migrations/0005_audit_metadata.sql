@@ -1,8 +1,10 @@
 -- 0002 est déjà appliquée : on remplace la fonction sans réécrire l'historique.
 -- La normalisation (minuscules, sans séparateurs) transforme « client_pin » en
--- « clientpin » ; la liste de 0002 ne couvrait pas ces compositions. La liste
--- reste en miroir de FORBIDDEN_METADATA_KEYS dans
--- apps/api/src/modules/audit/domain.ts.
+-- « clientpin » ; la liste de 0002 ne couvrait pas ces compositions, ni les
+-- empreintes (pin_hash, code_hash, token_hash). La liste reste en miroir de
+-- FORBIDDEN_METADATA_KEYS dans apps/api/src/modules/audit/domain.ts.
+BEGIN;
+
 CREATE OR REPLACE FUNCTION audit.assert_safe_refs(metadata jsonb, depth integer DEFAULT 0)
 RETURNS void
 LANGUAGE plpgsql IMMUTABLE AS $$
@@ -15,16 +17,22 @@ BEGIN
   END IF;
   IF jsonb_typeof(metadata) = 'object' THEN
     FOR entry IN SELECT key, value FROM jsonb_each(metadata) LOOP
+      IF entry.key !~ '^[A-Za-z0-9_.-]+$' THEN
+        RAISE EXCEPTION 'AUDIT_INVALID_EVENT: clé % invalide', entry.key;
+      END IF;
       normalized := regexp_replace(lower(entry.key), '[^a-z0-9]', '', 'g');
       IF normalized IN (
-        'password', 'passwordhash', 'passwd',
+        'password', 'passwordhash', 'passwd', 'passwordconfirmation',
         'newpassword', 'oldpassword', 'currentpassword',
         'pin', 'pinnumber', 'pincode', 'clientpin', 'newpin', 'oldpin',
+        'pinhash',
         'otp', 'otpcode', 'smscode', 'verificationcode',
+        'otphash', 'codehash', 'recoverycode', 'backupcode', 'otpmac',
         'token', 'accesstoken', 'refreshtoken', 'authtoken', 'bearertoken',
-        'sessiontoken',
-        'secret', 'clientsecret', 'authorization', 'cookie', 'cvv', 'cvv2',
-        'cvvcode', 'securitycode',
+        'sessiontoken', 'tokenhash',
+        'secret', 'clientsecret', 'secretkey', 'privatekey', 'apikey',
+        'mackey', 'pepper',
+        'authorization', 'cookie', 'cvv', 'cvv2', 'cvvcode', 'securitycode',
         'pan', 'cardnumber', 'iban', 'accountnumber', 'documentnumber',
         'idnumber', 'nationalid', 'msisdn'
       ) THEN
@@ -41,3 +49,5 @@ END $$;
 
 REVOKE ALL ON FUNCTION audit.assert_safe_refs(jsonb, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION audit.assert_safe_refs(jsonb, integer) TO app_rw;
+
+COMMIT;

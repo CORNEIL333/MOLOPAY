@@ -90,6 +90,7 @@ const FORBIDDEN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'password',
   'passwordhash',
   'passwd',
+  'passwordconfirmation',
   'newpassword',
   'oldpassword',
   'currentpassword',
@@ -99,18 +100,30 @@ const FORBIDDEN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'clientpin',
   'newpin',
   'oldpin',
+  'pinhash',
   'otp',
   'otpcode',
   'smscode',
   'verificationcode',
+  'otphash',
+  'codehash',
+  'recoverycode',
+  'backupcode',
+  'otpmac',
   'token',
   'accesstoken',
   'refreshtoken',
   'authtoken',
   'bearertoken',
   'sessiontoken',
+  'tokenhash',
   'secret',
   'clientsecret',
+  'secretkey',
+  'privatekey',
+  'apikey',
+  'mackey',
+  'pepper',
   'authorization',
   'cookie',
   'cvv',
@@ -126,6 +139,7 @@ const FORBIDDEN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'nationalid',
   'msisdn',
 ]);
+const METADATA_KEY_PATTERN = /^[A-Za-z0-9_.-]+$/;
 
 function fail(code: ErrorCode, message: string): never {
   throw new BusinessError(code, message);
@@ -264,6 +278,9 @@ function normalizeReason(
 }
 
 function assertMetadataKey(key: string): void {
+  if (!METADATA_KEY_PATTERN.test(key)) {
+    fail('AUDIT_INVALID_EVENT', `Clé de métadonnée invalide: ${key}`);
+  }
   const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
   if (FORBIDDEN_METADATA_KEYS.has(normalized)) {
     fail(

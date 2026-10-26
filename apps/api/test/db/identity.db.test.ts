@@ -288,8 +288,8 @@ beforeEach(async () => {
   await admin.query('DROP SCHEMA IF EXISTS identity CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS audit CASCADE');
   await admin.query(auditSql);
-  await admin.query(auditMetadataSql);
   await admin.query(identitySql);
+  await admin.query(auditMetadataSql);
   const clock = await admin.query<{ now: Date }>('SELECT now() AS now');
   const current = clock.rows[0]?.now;
   if (!(current instanceof Date)) {

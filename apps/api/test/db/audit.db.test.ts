@@ -211,18 +211,33 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
   });
 
   it('refuse une métadonnée sensible même en SQL direct', async () => {
-    const failure = await catchFailure(() =>
-      transact('app_rw', (client) =>
-        insertEvent(client, {
-          seq: 1,
-          id: uuid(1),
-          refs: '{"client_pin":"1234"}',
-          prevHash: ZERO_HASH,
-          eventHash: Buffer.alloc(32, 1),
-        }),
-      ),
-    );
-    expect(failure.message).toContain('AUDIT_SENSITIVE_METADATA');
+    for (const key of [
+      'client_pin',
+      'pin_code',
+      'pin_hash',
+      'code_hash',
+      'token_hash',
+      'auth_token',
+      'new_password',
+      'cvv_code',
+      'api_key',
+      'private_key',
+      'otp_mac',
+      'recovery_code',
+    ]) {
+      const failure = await catchFailure(() =>
+        transact('app_rw', (client) =>
+          insertEvent(client, {
+            seq: 1,
+            id: uuid(1),
+            refs: JSON.stringify({ [key]: 'x' }),
+            prevHash: ZERO_HASH,
+            eventHash: Buffer.alloc(32, 1),
+          }),
+        ),
+      );
+      expect(failure.message).toContain('AUDIT_SENSITIVE_METADATA');
+    }
 
     const nested = await catchFailure(() =>
       transact('app_rw', (client) =>
@@ -236,6 +251,19 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
       ),
     );
     expect(nested.message).toContain('AUDIT_SENSITIVE_METADATA');
+
+    const invalidKey = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        insertEvent(client, {
+          seq: 1,
+          id: uuid(1),
+          refs: '{"clé":"x"}',
+          prevHash: ZERO_HASH,
+          eventHash: Buffer.alloc(32, 1),
+        }),
+      ),
+    );
+    expect(invalidKey.message).toContain('AUDIT_INVALID_EVENT');
   });
 
   it('refuse modification, suppression et troncature', async () => {

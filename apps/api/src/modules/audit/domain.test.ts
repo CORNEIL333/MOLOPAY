@@ -259,9 +259,16 @@ describe('journal d’audit chaîné · validation', () => {
       'clientPin',
       'pin_code',
       'newPIN',
+      'pin_hash',
       'otp_code',
+      'code_hash',
       'auth_token',
+      'token_hash',
       'new_password',
+      'api_key',
+      'private_key',
+      'otp_mac',
+      'recovery_code',
     ]) {
       expectCode(() => {
         createAuditEvent(
@@ -270,6 +277,18 @@ describe('journal d’audit chaîné · validation', () => {
           genesisAuditPrevHash(),
         );
       }, 'AUDIT_SENSITIVE_METADATA');
+    }
+  });
+
+  it('refuse une clé de métadonnée hors du jeu autorisé', () => {
+    for (const key of ['clé', 'pin code', 'pin:code', 'pin/code']) {
+      expectCode(() => {
+        createAuditEvent(
+          draft({ refs: { [key]: 'x' } }),
+          1,
+          genesisAuditPrevHash(),
+        );
+      }, 'AUDIT_INVALID_EVENT');
     }
   });
 

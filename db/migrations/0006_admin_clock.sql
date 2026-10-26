@@ -1,7 +1,11 @@
 -- 0003 est déjà appliquée. Les horodatages de préparation et de décision sont
 -- déclarés par l'appelant : sans ancrage, un décideur peut antidater sa
 -- décision pour approuver après expiration. On conserve la durée de validité
--- demandée mais on ancre les bornes sur l'horloge serveur.
+-- demandée (bornée à 7 jours comme le domaine) mais on ancre les bornes sur
+-- l'horloge murale du serveur. clock_timestamp() est requis : now() renvoie
+-- l'heure de début de transaction, qu'un appelant peut étirer avant l'INSERT.
+BEGIN;
+
 CREATE FUNCTION admin.anchor_request_clock() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -11,8 +15,11 @@ BEGIN
   IF declared_lifetime <= interval '0' THEN
     RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: durée de validité non positive';
   END IF;
-  NEW.prepared_at := now();
-  NEW.expires_at := now() + declared_lifetime;
+  IF declared_lifetime > interval '7 days' THEN
+    RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: durée de validité supérieure à sept jours';
+  END IF;
+  NEW.prepared_at := clock_timestamp();
+  NEW.expires_at := NEW.prepared_at + declared_lifetime;
   RETURN NEW;
 END $$;
 
@@ -37,7 +44,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ADMIN_INVALID_REQUEST: demande % absente', NEW.request_id;
   END IF;
-  NEW.decided_at := now();
+  NEW.decided_at := clock_timestamp();
   IF NEW.decided_at >= request_expires THEN
     RAISE EXCEPTION 'ADMIN_REQUEST_EXPIRED: demande % expirée', NEW.request_id;
   END IF;
@@ -52,3 +59,5 @@ BEGIN
   END IF;
   RETURN NEW;
 END $$;
+
+COMMIT;
