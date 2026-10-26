@@ -34,6 +34,7 @@ const PIN_MIN_TIME_COST = 2;
 const PEPPER_MIN_BYTES = 32;
 const PEPPER_MAX_BYTES = 64;
 const ACCESS_TOKEN_MAX_TTL_MS = 15 * 60_000;
+export const ACCESS_TOKEN_DEFAULT_TTL_MS = ACCESS_TOKEN_MAX_TTL_MS;
 const REFRESH_TOKEN_DEFAULT_TTL_MS = 30 * 24 * 60 * 60_000;
 const REFRESH_TOKEN_MAX_TTL_MS = 90 * 24 * 60 * 60_000;
 const TRANSACTION_MAX_AGE_MS = 5 * 60_000;
@@ -298,21 +299,7 @@ export function verifyOtp(
       message: 'OTP verrouillé après trop d’essais',
     };
   }
-  const candidate =
-    typeof submitted === 'string' && submitted.length <= 64
-      ? submitted
-      : '\u0000invalid';
-  const expected = otpDigest(
-    pepper,
-    challenge.id,
-    challenge.purpose,
-    challenge.binding,
-    candidate,
-  );
-  if (
-    expected.length !== challenge.codeHash.length ||
-    !timingSafeEqual(expected, challenge.codeHash)
-  ) {
+  if (!otpCodeMatches(challenge, submitted, pepper)) {
     const attemptsRemaining = challenge.attemptsRemaining - 1;
     return {
       ok: false,
@@ -327,19 +314,55 @@ export function verifyOtp(
           : 'Code OTP invalide',
     };
   }
-  const consumed = { ...challenge, consumedAt: now };
+  return {
+    ok: true,
+    challenge: { ...challenge, consumedAt: now },
+    proof: createOtpProof(challenge, now, pepper),
+  };
+}
+
+/**
+ * Compare un code soumis à l'empreinte stockée en temps constant. Le store
+ * atomique décide ainsi avant de décrémenter le compteur dans sa requête.
+ */
+export function otpCodeMatches(
+  challenge: OtpChallenge,
+  submitted: string,
+  pepper: Uint8Array,
+): boolean {
+  assertPepper(pepper);
+  const candidate =
+    typeof submitted === 'string' && submitted.length <= 64
+      ? submitted
+      : '\u0000invalid';
+  const expected = otpDigest(
+    pepper,
+    challenge.id,
+    challenge.purpose,
+    challenge.binding,
+    candidate,
+  );
+  return (
+    expected.length === challenge.codeHash.length &&
+    timingSafeEqual(expected, challenge.codeHash)
+  );
+}
+
+export function createOtpProof(
+  challenge: OtpChallenge,
+  verifiedAt: string,
+  pepper: Uint8Array,
+): OtpProof {
+  assertIsoUtcMs(verifiedAt, 'verifiedAt');
+  assertPepper(pepper);
   const proof: Omit<OtpProof, 'mac'> = {
     challengeId: challenge.id,
     phone: challenge.phone,
     purpose: challenge.purpose,
     binding: challenge.binding,
-    verifiedAt: now,
+    verifiedAt,
   };
-  return {
-    ok: true,
-    challenge: consumed,
-    proof: { ...proof, mac: otpProofMac(pepper, proof) },
-  };
+  return { ...proof, mac: otpProofMac(pepper, proof) };
 }
 
 export function assertOtpProof(
@@ -991,6 +1014,13 @@ function hashToken(token: string): Buffer {
   return createHash('sha256').update(token, 'utf8').digest();
 }
 
+export function sessionTokenHash(token: string): Buffer {
+  if (typeof token !== 'string' || token.length === 0 || token.length > 512) {
+    fail('IDENTITY_SESSION_INVALID', 'Jeton de rafraîchissement invalide');
+  }
+  return hashToken(token);
+}
+
 export type Session = {
   readonly id: string;
   readonly accountId: string;
@@ -1009,6 +1039,22 @@ export type IssuedSession = {
   readonly accessToken: string;
   readonly refreshToken: string;
 };
+
+export function issueSessionTokens(): {
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly accessTokenHash: Buffer;
+  readonly refreshTokenHash: Buffer;
+} {
+  const accessToken = randomBytes(32).toString('base64url');
+  const refreshToken = randomBytes(32).toString('base64url');
+  return {
+    accessToken,
+    refreshToken,
+    accessTokenHash: hashToken(accessToken),
+    refreshTokenHash: hashToken(refreshToken),
+  };
+}
 
 export function createSession(input: {
   readonly id: string;
@@ -1041,24 +1087,23 @@ export function createSession(input: {
   ) {
     fail('IDENTITY_INVALID_REQUEST', 'Durée de rafraîchissement hors bornes');
   }
-  const accessToken = randomBytes(32).toString('base64url');
-  const refreshToken = randomBytes(32).toString('base64url');
+  const tokens = issueSessionTokens();
   const nowMs = new Date(input.now).getTime();
   return {
     session: {
       id: input.id,
       accountId: input.account.id,
       deviceId: input.device.id,
-      accessTokenHash: hashToken(accessToken),
-      refreshTokenHash: hashToken(refreshToken),
+      accessTokenHash: tokens.accessTokenHash,
+      refreshTokenHash: tokens.refreshTokenHash,
       accessIssuedAt: input.now,
       accessExpiresAt: new Date(nowMs + accessTtl).toISOString(),
       refreshExpiresAt: new Date(nowMs + refreshTtl).toISOString(),
       createdAt: input.now,
       revokedAt: null,
     },
-    accessToken,
-    refreshToken,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
   };
 }
 
@@ -1146,18 +1191,17 @@ export function refreshSession(input: {
   ) {
     fail('IDENTITY_SESSION_EXPIRED', 'Session trop proche de son expiration');
   }
-  const accessToken = randomBytes(32).toString('base64url');
-  const refreshToken = randomBytes(32).toString('base64url');
+  const tokens = issueSessionTokens();
   return {
     session: {
       ...input.session,
-      accessTokenHash: hashToken(accessToken),
-      refreshTokenHash: hashToken(refreshToken),
+      accessTokenHash: tokens.accessTokenHash,
+      refreshTokenHash: tokens.refreshTokenHash,
       accessIssuedAt: input.now,
       accessExpiresAt,
     },
-    accessToken,
-    refreshToken,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
   };
 }
 
