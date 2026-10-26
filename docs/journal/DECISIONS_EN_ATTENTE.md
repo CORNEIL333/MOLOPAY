@@ -11,10 +11,10 @@
 - **À trancher :** fournir Go (préféré par le prompt initial) ou valider définitivement Rust pour le sprint.
 
 ### D2 · Docker absent de la machine
-- **Constat :** `docker` introuvable ; aucun Docker Desktop installé.
-- **Option appliquée :** conformément au prompt § 6, lot 02 livré (migrations + code + tests) **sans exécuter `test:db`** ; les tests PostgreSQL restent à lancer dès que Docker ou un PostgreSQL 16 de test est disponible. Aucun faux PostgreSQL n'est utilisé (zéro simulation).
-- **Retour arrière :** aucun changement système.
-- **À trancher :** fournir Docker (ou un PostgreSQL 16 local de test) pour valider les contraintes SQL.
+- **Constat :** `docker` introuvable ; aucun Docker Desktop installé. `psql`, `initdb` et `pg_ctl` le sont aussi : aucun PostgreSQL local.
+- **Option appliquée :** conformément au prompt § 6, lot 02 livré (migrations + code + tests) **sans exécuter `test:db`** ; les tests PostgreSQL restent à lancer dès que Docker ou un PostgreSQL 16 de test est disponible. Aucun faux PostgreSQL n'est utilisé (zéro simulation). Depuis la reprise, `pnpm test:db` accepte aussi `DATABASE_URL` vers une base existante (harnais `apps/api/test/db/harness.ts`, documenté dans le README) ; sans Docker ni `DATABASE_URL`, la commande sort en code 2 `DOCKER_UNAVAILABLE` et n'exécute aucun test base.
+- **Retour arrière :** aucun changement système ; retirer `DATABASE_URL` de l'environnement pour revenir à Testcontainers.
+- **À trancher :** fournir Docker, un PostgreSQL 16 local de test, ou exécuter `test:db` via `DATABASE_URL` sur une base jetable.
 
 ### D3 · `.env.local` absent
 - **Constat :** aucun fichier `.env.local` ; pas d'identifiants d'environnements de test (SMS, agrégateur).
@@ -62,9 +62,9 @@
 - **À trancher :** rôles autorisés à consulter l'audit (auditeur, conformité, administrateur) et politique de conservation/rétention de 10 ans (SEC-LOG-001).
 
 ### D11 · Vocabulaire des types d'écriture non figé par le CDC
-- **Constat :** les fixtures utilisent `GENESIS`, `PAYMENT_RECEIVED`, `SETTLEMENT_SENT`, `FEE_CHARGED`, `PAYMENT_REVERSED`, `ADJUSTMENT`, mais aucun document normatif ne liste les types autorisés ; le domaine du grand livre valide seulement « chaîne non vide ». Le vérificateur Rust applique donc la même règle (structure, équilibre et hash stricts, type non énuméré).
-- **Option appliquée :** ne pas inventer de liste dans le vérificateur, qui refuserait un export légitime dès qu'un nouveau type est introduit. Aucun type inconnu ne peut toutefois passer sans hash cohérent et sans couverture Merkle.
-- **Retour arrière :** ajouter une liste blanche dans `packages/chain` et son miroir Rust, puis un test « type inconnu avec hash recalculé ».
+- **Constat :** les fixtures utilisent `GENESIS`, `PAYMENT_RECEIVED`, `SETTLEMENT_SENT`, `FEE_CHARGED`, `PAYMENT_REVERSED`, `ADJUSTMENT`, mais aucun document normatif ne liste les types autorisés.
+- **Option appliquée (mise à jour du 2026-10-26) :** le vérificateur Rust applique désormais une **liste blanche fermée** de huit types (`ADJUSTMENT`, `FEE_CHARGED`, `GENESIS`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REVERSED`, `REVERSAL`, `SETTLEMENT_SENT`) ; un type inconnu est refusé `ENTRY_INVALID` même si son hash est recalculé. Le miroir dans `packages/chain` n'est pas ajouté : le test adversarial doit pouvoir produire un type inconnu au hash valide, ce qui exigerait un chemin de test distinct. Aucun nouveau type ne peut être écrit en production sans mettre à jour cette liste et son test.
+- **Retour arrière :** retirer la liste blanche du vérificateur (déconseillé) ; ou étendre la liste dans le même commit qu'un nouveau type réel.
 - **À trancher :** figer la liste des types d'opération dans le CDC, avec leur règle de contre-passation.
 
 ### D12 · Horodatage d'audit et intégrité du hash côté application
@@ -93,9 +93,9 @@
 
 ### D16 · Atomicité OTP/PIN et confiance dans les objets chargés
 - **Constat :** les compteurs OTP et PIN sont des entiers lus puis réécrits par le domaine ; deux requêtes concurrentes peuvent perdre un incrément si la persistance ne verrouille pas. De même, le domaine ne peut pas prouver qu'un `Account`, `Device` ou `PinState` vient de la base.
-- **Option appliquée :** les transitions sont pures et testées ; la persistance doit verrouiller la ligne (`SELECT ... FOR UPDATE`) dans la même transaction que la mise à jour et ne jamais accepter des objets construits depuis une requête HTTP. Le niveau KYC n'est plus modifiable par `app_rw` (aucun grant) : seul le propriétaire du schéma l'élève, en attendant le lot KYC. **Risque résiduel assumé :** `had_balance` reste déclaré par l'appelant ; un bug ou une compromission de l'API pourrait supprimer le délai de 24 h. Le corriger demande de lire le solde du grand livre dans un trigger `SECURITY DEFINER`, ce qui couple identity au schéma ledger ; à faire au lot paiements.
-- **Retour arrière :** déplacer les compteurs dans des fonctions SQL atomiques ou ajouter une colonne `version` avec mise à jour conditionnelle.
-- **À trancher :** verrouillage pessimiste vs optimiste, et source de vérité du solde (grand livre).
+- **Option appliquée (mise à jour du 2026-10-26) :** `identity/auth.store.ts` exécute le compteur OTP et la rotation du refresh en une seule requête `UPDATE … WHERE … RETURNING` (décrément et consommation dans la même instruction ; ancien refresh consommé une fois ; compte et appareil vérifiés par `EXISTS`). Le solde de récupération n'est plus fourni par l'appelant : `ClientBalance` (constructeur privé) est dérivé de `ledger.account_balance` (compte 2100, nature LIABILITY) par `readClientLedgerTotals`, et `requestRecovery` refuse un objet forgé. Le niveau KYC n'est pas modifiable par `app_rw`. **Risques résiduels :** les compteurs PIN restent lus puis réécrits par le domaine ; les requêtes SQL des stores n'ont **jamais été exécutées** faute de PostgreSQL (D2), même si huit tests base supplémentaires sont écrits ; `has_balance` reste matérialisé en base au moment de la demande, sans relecture du grand livre à la confirmation.
+- **Retour arrière :** revenir à des lectures/écritures séparées dans `auth.store.ts` ; le domaine et ses tests restent inchangés.
+- **À trancher :** verrouillage des compteurs PIN, et fraîcheur du solde entre la demande et la confirmation de récupération.
 
 ### D17 · Fonctions de récupération `SECURITY DEFINER`
 - **Constat :** `identity.complete_recovery` et `identity.cancel_recovery` doivent modifier des colonnes non accordées à `app_rw`. `SECURITY DEFINER` exécute avec les droits du rôle qui a appliqué la migration.
@@ -114,3 +114,21 @@
 - **Option appliquée :** migration `0007_identity_clock.sql`. `anchor_recovery_request` et `complete_recovery` utilisent `clock_timestamp()` (horloge murale serveur), sans accepter d'heure appelante ; les contrôles KYC, statut, numéro et attribution restent inchangés, et les privilèges de la fonction sont réappliqués. Un test base discrimine l'ancien comportement : `pg_sleep(0.2)` avant l'INSERT, puis vérification que `requested_at` suit l'horloge murale et que `available_at - requested_at` vaut exactement 24 h.
 - **Retour arrière :** restaurer la version 0004 des deux fonctions (déconseillé).
 - **À trancher :** aucune décision ouverte ; le rôle de migration reste celui défini en D17.
+
+### D20 · Références d'audit en liste blanche par action
+- **Constat :** la normalisation de l'audit refusait des clés par liste noire et acceptait des métadonnées imbriquées ; une clé sensible non répertoriée passait.
+- **Option appliquée :** registre fermé `action → clés autorisées` (7 actions génériques, 16 actions identité, 28 actions admin reconnues par motif fermé), valeurs scalaires uniquement ; action inconnue refusée `AUDIT_INVALID_EVENT`, clé non déclarée ou non scalaire refusée `AUDIT_REFS_FORBIDDEN`. Toute nouvelle action d'audit exige une entrée explicite et un test.
+- **Retour arrière :** revenir à la validation générique de `normalizeContent` (déconseillé).
+- **À trancher :** propriétaire du registre (sécurité ou module émetteur) et procédure de revue lors de l'ajout d'une action.
+
+### D21 · Vocabulaire du catalogue et activation des plans
+- **Constat :** le CDC impose quatre univers et deux villes mais ne fournit aucun identifiant canonique ; il exige qu'un partenaire ne puisse pas créer de conditions de crédit sans préciser la forme de la requête.
+- **Option appliquée :** identifiants fermés `ESSENTIALS|TECHNOLOGY|HOUSING|MOBILITY` et `yaounde|douala` (ce dernier aligné sur `cityId` du back-office). L'activation d'un plan accepte uniquement `planId`, `offerId`, `model` ; toute autre clé (taux, durée, frais) est refusée `CATALOG_FIELD_FORBIDDEN`. Un plan doit être approuvé par la plateforme et, pour `FINANCED_PURCHASE`, porter une référence d'approbation du financeur. Aucune migration et aucun câblage HTTP/audit : la journalisation de la tentative refusée exige un type d'événement catalogue qui n'existe pas encore.
+- **Retour arrière :** changer les constantes et le registre d'actions dans `catalog/domain.ts` ; aucun schéma touché.
+- **À trancher :** identifiants définitifs des univers/villes, et type d'événement d'audit pour les refus d'activation (lot 09 avec persistance).
+
+### D22 · `DATABASE_URL` pour les tests base : garde de base jetable
+- **Constat :** les suites PostgreSQL détruisent les schémas du domaine ; accepter une URL arbitraire pourrait effacer une base partagée.
+- **Option appliquée :** `DATABASE_URL` n'est acceptée que si l'hôte est local (`localhost`, `127.0.0.1`, `::1`) ; une base distante exige `ALLOW_REMOTE_TEST_DB=1`. Aucun conteneur n'est lancé ni arrêté dans ce mode. Le README racine documente les deux modes.
+- **Retour arrière :** supprimer le support `DATABASE_URL` et revenir à Testcontainers seul.
+- **À trancher :** maintien de l'option distante pour une CI sans Docker, et politique de nom de base (`*_test` obligatoire).
