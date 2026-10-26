@@ -1,14 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { startTestDatabase, type TestDatabase } from './harness';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-const POSTGRES_IMAGE =
-  'postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab';
 const AUDIT_MIGRATION = resolve(
   process.cwd(),
   'db/migrations/0002_audit.sql',
@@ -35,7 +30,7 @@ const PUBLIC_KEY =
   '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAdGVzdA==\n-----END PUBLIC KEY-----\n';
 const PIN_HASH = '$argon2id$v=19$m=19456,t=2,p=1$c2VsZWN0c2VsZWN0$aGFzaA';
 
-let container: StartedPostgreSqlContainer;
+let container: TestDatabase;
 let admin: Client;
 let auditSql: string;
 let auditMetadataSql: string;
@@ -276,7 +271,7 @@ async function catchFailure(action: () => Promise<unknown>): Promise<{
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
+  container = await startTestDatabase();
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
   auditSql = await readFile(AUDIT_MIGRATION, 'utf8');

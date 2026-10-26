@@ -1,16 +1,11 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { startTestDatabase, type TestDatabase } from './harness';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 
-const POSTGRES_IMAGE =
-  'postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab';
 const MIGRATION_PATH = resolve(
   process.cwd(),
   'db/migrations/0001_ledger.sql',
@@ -84,7 +79,7 @@ function computeHash(prevHash: Buffer, id: string): Buffer {
   return createHash('sha256').update(prevHash).update(id, 'utf8').digest();
 }
 
-let container: StartedPostgreSqlContainer;
+let container: TestDatabase;
 let admin: Client;
 let migrationSql: string;
 
@@ -225,9 +220,7 @@ async function expectPgFailure(
 
 beforeAll(async () => {
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
-  container = await new PostgreSqlContainer(POSTGRES_IMAGE)
-    .withDatabase('achat_test')
-    .start();
+  container = await startTestDatabase({ database: 'achat_test' });
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
 });

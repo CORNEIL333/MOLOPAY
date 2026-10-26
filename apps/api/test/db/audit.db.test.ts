@@ -1,9 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { startTestDatabase, type TestDatabase } from './harness';
 import { Client, Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { verifyAuditChain } from '../../src/modules/audit/domain';
@@ -12,8 +9,6 @@ import {
   listAuditEvents,
 } from '../../src/modules/audit/audit.store';
 
-const POSTGRES_IMAGE =
-  'postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab';
 const MIGRATION_PATH = resolve(
   process.cwd(),
   'db/migrations/0002_audit.sql',
@@ -35,7 +30,7 @@ type SeedEvent = {
   readonly eventHash: Buffer;
 };
 
-let container: StartedPostgreSqlContainer;
+let container: TestDatabase;
 let admin: Client;
 let pool: Pool;
 let migrationSql: string;
@@ -100,7 +95,7 @@ async function catchFailure(action: () => Promise<unknown>): Promise<{
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
+  container = await startTestDatabase();
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
   pool = new Pool({ connectionString: container.getConnectionUri() });

@@ -1,14 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import {
-  PostgreSqlContainer,
-  type StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+import { startTestDatabase, type TestDatabase } from './harness';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-const POSTGRES_IMAGE =
-  'postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab';
 const MIGRATION_PATH = resolve(
   process.cwd(),
   'db/migrations/0003_admin.sql',
@@ -22,7 +17,7 @@ const HASH = Buffer.alloc(32, 7);
 const PREPARED_AT = '2026-10-26T08:00:00.000Z';
 const EXPIRES_AT = '2026-10-27T08:00:00.000Z';
 
-let container: StartedPostgreSqlContainer;
+let container: TestDatabase;
 let admin: Client;
 let migrationSql: string;
 let clockMigrationSql: string;
@@ -119,7 +114,7 @@ async function catchFailure(action: () => Promise<unknown>): Promise<{
 }
 
 beforeAll(async () => {
-  container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
+  container = await startTestDatabase();
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
