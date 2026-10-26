@@ -41,6 +41,7 @@ const BANNED_MODULES = new Set([
 const WORKSPACE_TARGETS: Readonly<Record<string, string>> = {
   '@achat/money': 'packages/money/src/index.ts',
   '@achat/contracts': 'packages/contracts/src/index.ts',
+  '@achat/chain': 'packages/chain/src/index.ts',
   '@achat/api': 'apps/api/src/main.ts',
 };
 
@@ -97,6 +98,13 @@ export function evaluateImport(input: {
     resolved.startsWith('apps/')
   ) {
     return { code: 'PACKAGE_BOUNDARY_VIOLATION', source, specifier };
+  }
+
+  if (source.startsWith('packages/chain/')) {
+    if (!resolved.startsWith('packages/chain/')) {
+      return { code: 'PACKAGE_BOUNDARY_VIOLATION', source, specifier };
+    }
+    return null;
   }
 
   const sourceModule = moduleOf(source);

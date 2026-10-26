@@ -30,7 +30,8 @@
     "vitest.config.ts",
     "vitest.db.config.ts",
     "vitest.attack.config.ts",
-    "vitest.e2e.config.ts"
+    "vitest.e2e.config.ts",
+    "vitest.tsa.config.ts"
   ],
   "exclude": ["node_modules", "dist", ".toolchains"]
 }

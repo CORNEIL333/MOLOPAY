@@ -13,6 +13,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:db": "tsx tools/require-docker.ts && vitest run --config vitest.db.config.ts",
     "test:attack": "vitest run --config vitest.attack.config.ts",
+    "test:tsa": "vitest run --config vitest.tsa.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "verify:ledger": "tsx tools/verify-ledger.ts",
     "openapi:check": "tsx tools/check-openapi.ts",

@@ -32,8 +32,10 @@
 - **Retour arrière :** supprimer les fichiers temporaires générés par les tests.
 
 ### D6 · Autorité d'horodatage RFC 3161
-- **Option appliquée :** utilisation d'une TSA publique réelle sans compte (DigiCert `http://timestamp.digicert.com`, avec repli documenté sur FreeTSA) pour les tests d'intégration ; à remplacer par la TSA retenue en production.
-- **Retour arrière :** changer l'URL dans la configuration ; aucune donnée n'est publiée (empreinte SHA-256 seule).
+- **Constat (2026-10-26) :** la TSA publique DigiCert répond en HTTPS ? Non : l'endpoint documenté `http://timestamp.digicert.com` répond en HTTP 200 `application/timestamp-reply` et délivre un jeton signé ; aucune donnée sensible n'est transmise (empreinte SHA-256 d'une tête publique).
+- **Option appliquée :** `DEFAULT_TSA_URL = http://timestamp.digicert.com` pour le test d'intégration `pnpm test:tsa`, avec `TSA_URL` surchargeable. Le jeton réel est vérifié : signature CMS (y compris `SignerInfo` en `rsaEncryption` + SHA-256), `messageDigest`, `messageImprint`, nonce, `genTime`, EKU horodatage `1.3.6.1.5.5.7.3.8`, chaîne de certificats jusqu'aux racines Mozilla fournies par Node.
+- **Retour arrière :** changer `TSA_URL` ou `DEFAULT_TSA_URL` ; aucun état publié, aucune donnée personnelle ni montant dans l'empreinte.
+- **À trancher :** TSA retenue en production (contrat, politique, HTTPS obligatoire ou non, conservation des jetons et de leurs preuves de receipt).
 
 ### D7 · Image PostgreSQL des tests base
 - **Constat :** Docker absent localement (D2). Pour que la CI et le futur poste de test soient reproductibles, l'image est épinglée par tag et digest : `postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab`.

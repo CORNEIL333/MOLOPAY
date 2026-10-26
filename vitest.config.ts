@@ -12,6 +12,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/*.db.test.ts',
       '**/*.e2e.test.ts',
+      '**/*.live.test.ts',
       'tests/db/**',
       'tests/attack/**',
       'tests/e2e/**',
