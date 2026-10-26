@@ -332,9 +332,17 @@ describe('vérificateur indépendant · altérations injectées', () => {
     {
       name: 'type',
       alter: (draft) => {
-        entryAt(draft, 1).type = 'PAYMENT_RETURNED';
+        entryAt(draft, 1).type = 'ADJUSTMENT';
       },
       code: 'ENTRY_HASH_MISMATCH',
+    },
+    {
+      name: 'type inconnu au hash recalculé',
+      alter: (draft) => {
+        entryAt(draft, 1).type = 'PAYMENT_RETURNED';
+        recomputeFrom(draft, 1);
+      },
+      code: 'ENTRY_INVALID',
     },
     {
       name: 'approbateurs',

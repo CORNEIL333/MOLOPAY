@@ -15,6 +15,19 @@ use crate::model::{Entry, Export, Posting, TreeHead};
 const MAX_BIGINT: i128 = i64::MAX as i128;
 const MAX_ORDINAL: u32 = i16::MAX as u32;
 
+// Liste blanche : un type inconnu est refusé même si son hash est cohérent,
+// car le vérificateur ne peut pas savoir quelles règles métier il porte.
+const ALLOWED_ENTRY_TYPES: [&str; 8] = [
+    "ADJUSTMENT",
+    "FEE_CHARGED",
+    "GENESIS",
+    "PAYMENT_CONFIRMED",
+    "PAYMENT_RECEIVED",
+    "PAYMENT_REVERSED",
+    "REVERSAL",
+    "SETTLEMENT_SENT",
+];
+
 #[derive(Debug)]
 pub struct Report {
     pub entries: usize,
@@ -290,6 +303,15 @@ fn validate_entry(entry: &Entry) -> VerifyResult<()> {
         return Err(VerifyError::new(
             "ENTRY_INVALID",
             format!("séquence {} : champ texte vide", entry.seq),
+        ));
+    }
+    if !ALLOWED_ENTRY_TYPES.contains(&entry.kind.as_str()) {
+        return Err(VerifyError::new(
+            "ENTRY_INVALID",
+            format!(
+                "séquence {} : type d’écriture inconnu « {} »",
+                entry.seq, entry.kind
+            ),
         ));
     }
     if !entry.refs.is_object() {
