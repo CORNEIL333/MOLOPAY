@@ -13,6 +13,10 @@ const MIGRATION_PATH = resolve(
   process.cwd(),
   'db/migrations/0003_admin.sql',
 );
+const CLOCK_MIGRATION_PATH = resolve(
+  process.cwd(),
+  'db/migrations/0006_admin_clock.sql',
+);
 
 const HASH = Buffer.alloc(32, 7);
 const PREPARED_AT = '2026-10-26T08:00:00.000Z';
@@ -21,6 +25,7 @@ const EXPIRES_AT = '2026-10-27T08:00:00.000Z';
 let container: StartedPostgreSqlContainer;
 let admin: Client;
 let migrationSql: string;
+let clockMigrationSql: string;
 
 function uuid(seq: number): string {
   return `019a4000-0000-7000-8000-${seq.toString().padStart(12, '0')}`;
@@ -54,6 +59,7 @@ async function insertRequest(
     readonly id: string;
     readonly maker?: string;
     readonly kind?: string;
+    readonly preparedAt?: string;
     readonly expiresAt?: string;
     readonly payload?: string;
   },
@@ -69,7 +75,7 @@ async function insertRequest(
       options.maker ?? 'ops-1',
       options.payload ?? '{"settlement_id":"set-1"}',
       HASH,
-      PREPARED_AT,
+      options.preparedAt ?? PREPARED_AT,
       options.expiresAt ?? EXPIRES_AT,
     ],
   );
@@ -117,6 +123,7 @@ beforeAll(async () => {
   admin = new Client({ connectionString: container.getConnectionUri() });
   await admin.connect();
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
+  clockMigrationSql = await readFile(CLOCK_MIGRATION_PATH, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
@@ -127,6 +134,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await admin.query('DROP SCHEMA IF EXISTS admin CASCADE');
   await admin.query(migrationSql);
+  await admin.query(clockMigrationSql);
 });
 
 describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
@@ -196,17 +204,54 @@ describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
     );
     expect(duplicate.code).toBe('23505');
 
-    const expired = await catchFailure(() =>
-      transact('app_rw', async (client) => {
-        await insertRequest(client, { id: uuid(3) });
-        await insertDecision(client, uuid(3), {
+    const expired = await catchFailure(async () => {
+      await transact('app_rw', (client) =>
+        insertRequest(client, {
+          id: uuid(3),
+          expiresAt: '2026-10-26T08:00:00.250Z',
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await transact('app_rw', (client) =>
+        insertDecision(client, uuid(3), {
           decision: 'APPROVED',
           decidedBy: 'fin-1',
-          decidedAt: EXPIRES_AT,
-        });
-      }),
-    );
+        }),
+      );
+    });
     expect(expired.message).toContain('ADMIN_REQUEST_EXPIRED');
+  });
+
+  it('ancre préparation et décision sur l’horloge serveur', async () => {
+    await transact('app_rw', async (client) => {
+      await insertRequest(client, {
+        id: uuid(1),
+        preparedAt: '2026-10-27T08:00:00.000Z',
+        expiresAt: '2026-10-28T08:00:00.000Z',
+      });
+      await insertDecision(client, uuid(1), {
+        decision: 'APPROVED',
+        decidedBy: 'fin-1',
+        decidedAt: '2020-01-01T00:00:00.000Z',
+      });
+    });
+    const state = await admin.query<{
+      prepared_age: string;
+      decided_age: string;
+      lifetime_seconds: string;
+    }>(
+      `SELECT EXTRACT(EPOCH FROM now() - r.prepared_at) AS prepared_age,
+              EXTRACT(EPOCH FROM now() - d.decided_at) AS decided_age,
+              EXTRACT(EPOCH FROM r.expires_at - r.prepared_at) AS lifetime_seconds
+         FROM admin.approval_request r
+         JOIN admin.approval_decision d ON d.request_id = r.id
+        WHERE r.id = $1`,
+      [uuid(1)],
+    );
+    const row = state.rows[0];
+    expect(Number(row?.prepared_age)).toBeLessThan(5);
+    expect(Number(row?.decided_age)).toBeLessThan(5);
+    expect(Number(row?.lifetime_seconds)).toBe(86_400);
   });
 
   it('exige un motif de refus et borne le bris de glace à deux heures', async () => {
