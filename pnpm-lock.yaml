@@ -220,6 +220,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@achat/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@achat/money':
+        specifier: workspace:*
+        version: link:../../packages/money
       '@nestjs/common':
         specifier: 12.2.0
         version: 12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
