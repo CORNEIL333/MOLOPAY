@@ -5,6 +5,17 @@ import { canonicalize, type JsonValue } from '@achat/chain';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  createOffer,
+  publishOffer,
+  type Offer,
+  type OfferInput,
+} from '../../src/modules/catalog/domain';
+import {
+  appendOfferVersion,
+  getCurrentOffer,
+  listVisibleOffers,
+} from '../../src/modules/catalog/offer.store';
+import {
   createPartnerDossier,
   partnerDossierHash,
   type PartnerApprovalDecision,
@@ -21,6 +32,7 @@ const MIGRATIONS = [
   'db/migrations/0003_admin.sql',
   'db/migrations/0006_admin_clock.sql',
   'db/migrations/0008_catalog_partner.sql',
+  'db/migrations/0009_catalog_offer.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const PREPARED_AT = '2026-10-27T08:00:00.000Z';
@@ -359,5 +371,193 @@ describe('F-PRT-001 · onboarding partenaire (PostgreSQL réel)', () => {
       admin.query('TRUNCATE catalog.partner_validation'),
     );
     expect(truncate.message).toContain('CATALOG_APPEND_ONLY');
+  });
+});
+
+const OFFER_ID = '019a9000-0000-7000-8000-0000000000f1';
+const BIG_PRICE = 9_007_199_254_740_993n;
+
+function draftOffer(overrides: Partial<OfferInput> = {}): Offer {
+  return createOffer({
+    id: OFFER_ID,
+    partner: { id: 'partner-1', status: 'VALIDATED' },
+    universe: 'TECHNOLOGY',
+    models: ['SAVE_THEN_BUY'],
+    cityIds: ['douala'],
+    priceXaf: 150_000n,
+    availability: { kind: 'IN_STOCK', units: 3 },
+    warranty: 'Garantie 12 mois',
+    discountTerms: 'Remise de 5 % dès 50 % versés',
+    ...overrides,
+  });
+}
+
+async function validatePartner1(client: Client): Promise<void> {
+  const stored = await appendPartnerDossier(client, dossier(), 'net-1');
+  const decision = await approve(client, {
+    id: uuid(1),
+    payload: approvalPayload(stored.dossier),
+  });
+  await recordPartnerValidation(client, {
+    partnerId: 'partner-1',
+    dossierVersion: stored.version,
+    decision,
+  });
+}
+
+async function insertRawOffer(client: Client): Promise<void> {
+  await client.query(
+    `INSERT INTO catalog.offer (id, partner_id, created_at)
+     VALUES ($1, 'partner-1', now())`,
+    [OFFER_ID],
+  );
+}
+
+async function insertRawVersion(
+  client: Client,
+  options: {
+    readonly version?: number;
+    readonly state?: string;
+    readonly models?: readonly string[];
+  },
+): Promise<void> {
+  await client.query(
+    `INSERT INTO catalog.offer_version
+       (offer_id, version, universe, models, city_ids, price_xaf,
+        availability_kind, stock_units, lead_days, warranty, discount_terms,
+        state, created_by, created_at)
+     VALUES ($1, $2, 'TECHNOLOGY', $3::text[], ARRAY['douala'], 150000,
+             'IN_STOCK', 3, NULL, 'Garantie', 'Remise', $4, 'net-1', now())`,
+    [
+      OFFER_ID,
+      options.version ?? 1,
+      options.models ?? ['SAVE_THEN_BUY'],
+      options.state ?? 'DRAFT',
+    ],
+  );
+}
+
+describe('F-PRT-002 · offres versionnées (PostgreSQL réel)', () => {
+  it('F-PRT-001 une offre d’un partenaire non validé reste invisible', async () => {
+    await transact('app_rw', async (client) => {
+      await appendPartnerDossier(client, dossier(), 'net-1');
+      await appendOfferVersion(client, draftOffer(), 'net-1');
+    });
+    const visible = await transact('app_ro', (client) => listVisibleOffers(client));
+    expect(visible).toEqual([]);
+    const current = await transact('app_ro', (client) => getCurrentOffer(client, OFFER_ID));
+    expect(current?.offer.state).toBe('DRAFT');
+    expect(current?.offer.partner.status).toBe('PENDING');
+  });
+
+  it('F-CAT-001 la base refuse la publication pour un partenaire non validé', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await appendPartnerDossier(client, dossier(), 'net-1');
+        await insertRawOffer(client);
+        await insertRawVersion(client, { state: 'PUBLISHED' });
+      }),
+    );
+    expect(failure.message).toContain('CATALOG_PARTNER_NOT_VALIDATED');
+  });
+
+  it('F-CAT-004 une offre publiée d’un partenaire validé est visible et filtrable', async () => {
+    await transact('app_rw', async (client) => {
+      await validatePartner1(client);
+      await appendOfferVersion(client, publishOffer(draftOffer()), 'net-1');
+    });
+    const visible = await transact('app_ro', (client) => listVisibleOffers(client));
+    expect(visible.map((offer) => offer.id)).toEqual([OFFER_ID]);
+    const yaounde = await transact('app_ro', (client) =>
+      listVisibleOffers(client, { city: 'yaounde' }),
+    );
+    expect(yaounde).toEqual([]);
+  });
+
+  it('F-PRT-002 un changement de prix crée une version et conserve l’ancienne', async () => {
+    await transact('app_rw', async (client) => {
+      await validatePartner1(client);
+      await appendOfferVersion(client, publishOffer(draftOffer()), 'net-1');
+      await appendOfferVersion(
+        client,
+        publishOffer(draftOffer({ priceXaf: BIG_PRICE })),
+        'net-1',
+      );
+    });
+    const current = await transact('app_ro', (client) => getCurrentOffer(client, OFFER_ID));
+    expect(current?.version).toBe(2);
+    expect(current?.offer.priceXaf).toBe(BIG_PRICE);
+    const history = await admin.query<{ version: number; price_xaf: string }>(
+      `SELECT version, price_xaf::text AS price_xaf FROM catalog.offer_version
+       WHERE offer_id = $1 ORDER BY version`,
+      [OFFER_ID],
+    );
+    expect(history.rows).toEqual([
+      { version: 1, price_xaf: '150000' },
+      { version: 2, price_xaf: '9007199254740993' },
+    ]);
+  });
+
+  it('F-PRT-001 un dossier modifié masque les offres déjà publiées', async () => {
+    await transact('app_rw', async (client) => {
+      await validatePartner1(client);
+      await appendOfferVersion(client, publishOffer(draftOffer()), 'net-1');
+      await appendPartnerDossier(
+        client,
+        dossier({ settlementAccountRef: 'settlement-ref-0002' }),
+        'net-1',
+      );
+    });
+    const visible = await transact('app_ro', (client) => listVisibleOffers(client));
+    expect(visible).toEqual([]);
+  });
+
+  it('F-PRT-002 refuse qu’un autre partenaire versionne l’offre', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await appendOfferVersion(client, draftOffer(), 'net-1');
+        await appendOfferVersion(
+          client,
+          draftOffer({ partner: { id: 'partner-2', status: 'VALIDATED' } }),
+          'net-2',
+        );
+      }),
+    );
+    expect(failure.code).toBe('CATALOG_INVALID_REQUEST');
+  });
+
+  it('F-CAT-001 la base refuse un modèle dupliqué', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await insertRawOffer(client);
+        await insertRawVersion(client, { models: ['SAVE_THEN_BUY', 'SAVE_THEN_BUY'] });
+      }),
+    );
+    expect(failure.message).toContain('CATALOG_OFFER_INCOMPLETE');
+  });
+
+  it('F-PRT-002 refuse une version d’offre non consécutive', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', async (client) => {
+        await insertRawOffer(client);
+        await insertRawVersion(client, { version: 2 });
+      }),
+    );
+    expect(failure.message).toContain('CATALOG_INVALID_REQUEST');
+  });
+
+  it('F-PRT-002 offres et versions sont en ajout seul', async () => {
+    await transact('app_rw', (client) => appendOfferVersion(client, draftOffer(), 'net-1'));
+    for (const statement of [
+      'UPDATE catalog.offer_version SET price_xaf = 1',
+      'DELETE FROM catalog.offer',
+    ]) {
+      const asApp = await catchFailure(() =>
+        transact('app_rw', (client) => client.query(statement)),
+      );
+      expect(asApp.code).toBe('42501');
+      const asOwner = await catchFailure(() => admin.query(statement));
+      expect(asOwner.message).toContain('CATALOG_APPEND_ONLY');
+    }
   });
 });
