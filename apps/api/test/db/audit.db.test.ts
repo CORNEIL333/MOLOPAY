@@ -18,6 +18,11 @@ const METADATA_MIGRATION_PATH = resolve(
   'db/migrations/0005_audit_metadata.sql',
 );
 
+const CATALOG_MIGRATION_PATH = resolve(
+  process.cwd(),
+  'db/migrations/0010_audit_catalog.sql',
+);
+
 const ZERO_HASH = Buffer.alloc(32);
 
 type SeedEvent = {
@@ -35,6 +40,7 @@ let admin: Client;
 let pool: Pool;
 let migrationSql: string;
 let metadataMigrationSql: string;
+let catalogMigrationSql: string;
 
 function uuid(seq: number): string {
   return `019a2000-0000-7000-8000-${seq.toString().padStart(12, '0')}`;
@@ -101,6 +107,7 @@ beforeAll(async () => {
   pool = new Pool({ connectionString: container.getConnectionUri() });
   migrationSql = await readFile(MIGRATION_PATH, 'utf8');
   metadataMigrationSql = await readFile(METADATA_MIGRATION_PATH, 'utf8');
+  catalogMigrationSql = await readFile(CATALOG_MIGRATION_PATH, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
@@ -372,5 +379,40 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
       client.query('SELECT count(*)::int AS total FROM audit.event'),
     );
     expect(rows.rows[0]).toEqual({ total: 0 });
+  });
+});
+
+describe('F-CAT-002 · vocabulaire d’audit du catalogue (base réelle)', () => {
+  it('F-CAT-002 refuse CATALOG_ACTION avant 0010 et l’accepte après', async () => {
+    const seed = {
+      seq: 1,
+      id: uuid(1),
+      eventType: 'CATALOG_ACTION',
+      prevHash: ZERO_HASH,
+      eventHash: Buffer.alloc(32, 1),
+    };
+    const before = await catchFailure(() =>
+      transact('app_rw', (client) => insertEvent(client, seed)),
+    );
+    expect(before.code).toBe('23514');
+    await admin.query(catalogMigrationSql);
+    await transact('app_rw', (client) => insertEvent(client, seed));
+    const rows = await admin.query<{ event_type: string }>(
+      'SELECT event_type FROM audit.event',
+    );
+    expect(rows.rows).toEqual([{ event_type: 'CATALOG_ACTION' }]);
+  });
+
+  it('F-CAT-002 0010 conserve les types existants', async () => {
+    await admin.query(catalogMigrationSql);
+    await transact('app_rw', (client) =>
+      insertEvent(client, {
+        seq: 1,
+        id: uuid(1),
+        eventType: 'IDENTITY_ACTION',
+        prevHash: ZERO_HASH,
+        eventHash: Buffer.alloc(32, 1),
+      }),
+    );
   });
 });

@@ -13,6 +13,7 @@ export const AUDIT_EVENT_TYPES = [
   'CONFIG_CHANGED',
   'EXPORT_CREATED',
   'IDENTITY_ACTION',
+  'CATALOG_ACTION',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
@@ -128,6 +129,8 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       TRANSACTION_DENIED: IDENTITY_REF_KEYS,
       RECOVERY_REQUESTED: IDENTITY_REF_KEYS,
       RECOVERY_COMPLETED: IDENTITY_REF_KEYS,
+      PLAN_ACTIVATED: ['plan_id', 'offer_id', 'model'],
+      PLAN_ACTIVATION_DENIED: ['plan_id', 'offer_id', 'model', 'error_code'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,
