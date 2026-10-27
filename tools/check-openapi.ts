@@ -1,15 +1,23 @@
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 
+type Parameter = {
+  name?: string;
+  in?: string;
+  required?: boolean;
+  $ref?: string;
+};
+
 type Operation = {
   responses?: Record<string, unknown>;
-  parameters?: Array<{ name?: string; in?: string; required?: boolean }>;
+  parameters?: Parameter[];
 };
 
 type OpenApiDocument = {
   openapi?: string;
   info?: { title?: string; version?: string };
   paths?: Record<string, Record<string, Operation>>;
+  components?: { parameters?: Record<string, Parameter> };
 };
 
 const SPEC_PATH = path.join('packages', 'contracts', 'openapi.json');
@@ -41,6 +49,22 @@ if (document.paths === undefined) {
   fail('paths est obligatoire');
 }
 
+function resolveParameter(parameter: Parameter): Parameter {
+  const reference = parameter.$ref;
+  if (reference === undefined) {
+    return parameter;
+  }
+  const prefix = '#/components/parameters/';
+  if (!reference.startsWith(prefix)) {
+    fail(`référence de paramètre non locale: ${reference}`);
+  }
+  const resolved = document.components?.parameters?.[reference.slice(prefix.length)];
+  if (resolved === undefined) {
+    fail(`paramètre référencé introuvable: ${reference}`);
+  }
+  return resolved;
+}
+
 for (const [route, item] of Object.entries(document.paths)) {
   if (!route.startsWith('/')) {
     fail(`chemin invalide: ${route}`);
@@ -56,12 +80,14 @@ for (const [route, item] of Object.entries(document.paths)) {
       fail(`${method.toUpperCase()} ${route} sans responses`);
     }
     if (WRITE_METHODS.has(method)) {
-      const idempotency = (operation.parameters ?? []).some(
-        (parameter) =>
-          parameter.in === 'header' &&
-          parameter.name === 'Idempotency-Key' &&
-          parameter.required === true,
-      );
+      const idempotency = (operation.parameters ?? [])
+        .map(resolveParameter)
+        .some(
+          (parameter) =>
+            parameter.in === 'header' &&
+            parameter.name === 'Idempotency-Key' &&
+            parameter.required === true,
+        );
       if (!idempotency) {
         fail(
           `${method.toUpperCase()} ${route} doit déclarer Idempotency-Key obligatoire`,
