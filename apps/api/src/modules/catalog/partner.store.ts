@@ -1,0 +1,186 @@
+import { timingSafeEqual } from 'node:crypto';
+import { BusinessError } from '@achat/contracts';
+import type { PoolClient } from 'pg';
+import { type Partner } from './domain';
+import {
+  createPartnerDossier,
+  partnerDossierHash,
+  partnerFromValidation,
+  validatePartner,
+  type PartnerApprovalDecision,
+  type PartnerDossier,
+  type PartnerValidation,
+} from './partner';
+
+// Un Client ou un PoolClient suffit : le store n'utilise que `query`.
+type SqlClient = Pick<PoolClient, 'query'>;
+
+type DossierRow = {
+  partner_id: string;
+  version: number;
+  legal_name: string;
+  rccm: string;
+  niu: string;
+  representative_document_ref: string;
+  settlement_account_ref: string;
+  dossier_hash: Buffer;
+};
+
+type StateRow = {
+  partner_id: string;
+  dossier_version: number;
+  status: string;
+  approval_request_id: string | null;
+  validated_at: Date | null;
+};
+
+export type StoredPartnerDossier = {
+  readonly dossier: PartnerDossier;
+  readonly version: number;
+};
+
+/**
+ * Ajoute une version du dossier. La base attribue l'horodatage et refuse une
+ * version qui ne suit pas la précédente (écritures concurrentes incluses).
+ */
+export async function appendPartnerDossier(
+  client: SqlClient,
+  input: PartnerDossier,
+  createdBy: string,
+): Promise<StoredPartnerDossier> {
+  const dossier = createPartnerDossier(input);
+  const result = await client.query<{ version: number }>(
+    `INSERT INTO catalog.partner_dossier
+       (partner_id, version, legal_name, rccm, niu,
+        representative_document_ref, settlement_account_ref,
+        dossier_hash, created_by, created_at)
+     SELECT $1, COALESCE(max(version), 0) + 1, $2, $3, $4, $5, $6, $7, $8, now()
+     FROM catalog.partner_dossier WHERE partner_id = $1
+     RETURNING version`,
+    [
+      dossier.partnerId,
+      dossier.legalName,
+      dossier.rccm,
+      dossier.niu,
+      dossier.representativeDocumentRef,
+      dossier.settlementAccountRef,
+      partnerDossierHash(dossier),
+      createdBy,
+    ],
+  );
+  const version = result.rows[0]?.version;
+  if (version === undefined) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Dossier non enregistré');
+  }
+  return { dossier, version };
+}
+
+/** Relit un dossier et vérifie que l'empreinte stockée correspond aux champs. */
+export async function getPartnerDossier(
+  client: SqlClient,
+  partnerId: string,
+  version: number,
+): Promise<StoredPartnerDossier | null> {
+  const result = await client.query<DossierRow>(
+    `SELECT partner_id, version, legal_name, rccm, niu,
+            representative_document_ref, settlement_account_ref, dossier_hash
+     FROM catalog.partner_dossier
+     WHERE partner_id = $1 AND version = $2`,
+    [partnerId, version],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  const dossier = createPartnerDossier({
+    partnerId: row.partner_id,
+    legalName: row.legal_name,
+    rccm: row.rccm,
+    niu: row.niu,
+    representativeDocumentRef: row.representative_document_ref,
+    settlementAccountRef: row.settlement_account_ref,
+  });
+  const expected = partnerDossierHash(dossier);
+  if (
+    row.dossier_hash.length !== expected.length ||
+    !timingSafeEqual(row.dossier_hash, expected)
+  ) {
+    throw new BusinessError(
+      'CATALOG_INVALID_REQUEST',
+      'Empreinte du dossier stocké incohérente',
+    );
+  }
+  return { dossier, version: row.version };
+}
+
+/**
+ * Enregistre la validation du dossier courant. Le domaine vérifie la décision
+ * avant l'écriture ; le déclencheur la revérifie contre les tables admin et
+ * ancre `validated_at` sur l'horloge du serveur.
+ */
+export async function recordPartnerValidation(
+  client: SqlClient,
+  input: {
+    readonly partnerId: string;
+    readonly dossierVersion: number;
+    readonly decision: PartnerApprovalDecision;
+  },
+): Promise<PartnerValidation> {
+  const stored = await getPartnerDossier(
+    client,
+    input.partnerId,
+    input.dossierVersion,
+  );
+  if (stored === null) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Dossier absent');
+  }
+  const checked = validatePartner({
+    dossier: stored.dossier,
+    decision: input.decision,
+    validatedAt: new Date().toISOString(),
+  });
+  const result = await client.query<{ validated_at: Date }>(
+    `INSERT INTO catalog.partner_validation
+       (partner_id, dossier_version, approval_request_id, validated_at)
+     VALUES ($1, $2, $3, now())
+     RETURNING validated_at`,
+    [checked.partnerId, stored.version, checked.requestId],
+  );
+  const validatedAt = result.rows[0]?.validated_at;
+  if (validatedAt === undefined) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Validation non enregistrée');
+  }
+  return { ...checked, validatedAt: validatedAt.toISOString() };
+}
+
+/** Statut du partenaire dérivé de la base ; inconnu = null. */
+export async function getPartner(
+  client: SqlClient,
+  partnerId: string,
+): Promise<Partner | null> {
+  const result = await client.query<StateRow>(
+    `SELECT partner_id, dossier_version, status, approval_request_id, validated_at
+     FROM catalog.partner_state WHERE partner_id = $1`,
+    [partnerId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  if (row.status === 'PENDING') {
+    return partnerFromValidation(row.partner_id, null);
+  }
+  if (
+    row.status !== 'VALIDATED' ||
+    row.approval_request_id === null ||
+    row.validated_at === null
+  ) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Statut partenaire inconnu');
+  }
+  return partnerFromValidation(row.partner_id, {
+    partnerId: row.partner_id,
+    dossierHash: '',
+    requestId: row.approval_request_id,
+    validatedAt: row.validated_at.toISOString(),
+  });
+}
