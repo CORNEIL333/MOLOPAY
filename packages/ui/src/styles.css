@@ -1,0 +1,373 @@
+/* Jetons de design @achat/ui — clair par défaut, sombre si l'appareil le demande. */
+:root {
+  color-scheme: light dark;
+
+  --achat-bg: #f7f4ee;
+  --achat-surface: #ffffff;
+  --achat-surface-muted: #efeae0;
+  --achat-ink: #1f2421;
+  --achat-ink-muted: #5a615c;
+  --achat-primary: #0b6b53;
+  --achat-primary-strong: #08503f;
+  --achat-on-primary: #ffffff;
+  --achat-accent: #e4a11b;
+  --achat-danger: #b3261e;
+  --achat-danger-surface: #fdecea;
+  --achat-success: #1e6b3a;
+  --achat-success-surface: #e8f4ec;
+  --achat-border: #d6d0c4;
+  --achat-focus: #0b6b53;
+
+  --achat-space-xs: 4px;
+  --achat-space-sm: 8px;
+  --achat-space-md: 12px;
+  --achat-space-lg: 16px;
+  --achat-space-xl: 24px;
+  --achat-space-xxl: 32px;
+  --achat-space-xxxl: 48px;
+
+  --achat-radius-sm: 8px;
+  --achat-radius-md: 12px;
+  --achat-radius-lg: 20px;
+  --achat-radius-pill: 999px;
+
+  --achat-font-xs: 0.875rem;
+  --achat-font-sm: 1rem;
+  --achat-font-md: 1.125rem;
+  --achat-font-lg: 1.375rem;
+  --achat-font-xl: 1.75rem;
+  --achat-font-xxl: 2.25rem;
+
+  --achat-line-tight: 1.2;
+  --achat-line-normal: 1.5;
+  --achat-line-relaxed: 1.65;
+
+  --achat-font-sans:
+    'Segoe UI', 'Noto Sans', system-ui, -apple-system, sans-serif;
+  --achat-font-mono: 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --achat-touch-target: 44px;
+  --achat-max-content: 72rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --achat-bg: #101412;
+    --achat-surface: #171d1a;
+    --achat-surface-muted: #222b26;
+    --achat-ink: #f2f5f2;
+    --achat-ink-muted: #b6c0b9;
+    --achat-primary: #5bd0ae;
+    --achat-primary-strong: #8be4c8;
+    --achat-on-primary: #06241b;
+    --achat-accent: #f0b94b;
+    --achat-danger: #ffb4ab;
+    --achat-danger-surface: #3b1b18;
+    --achat-success: #8fd6a5;
+    --achat-success-surface: #16301f;
+    --achat-border: #33413a;
+    --achat-focus: #8be4c8;
+  }
+}
+
+:root[data-theme='dark'] {
+  --achat-bg: #101412;
+  --achat-surface: #171d1a;
+  --achat-surface-muted: #222b26;
+  --achat-ink: #f2f5f2;
+  --achat-ink-muted: #b6c0b9;
+  --achat-primary: #5bd0ae;
+  --achat-primary-strong: #8be4c8;
+  --achat-on-primary: #06241b;
+  --achat-accent: #f0b94b;
+  --achat-danger: #ffb4ab;
+  --achat-danger-surface: #3b1b18;
+  --achat-success: #8fd6a5;
+  --achat-success-surface: #16301f;
+  --achat-border: #33413a;
+  --achat-focus: #8be4c8;
+}
+
+.achat-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.achat-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--achat-space-sm);
+  min-height: var(--achat-touch-target);
+  min-width: var(--achat-touch-target);
+  padding: var(--achat-space-sm) var(--achat-space-lg);
+  border: 1px solid transparent;
+  border-radius: var(--achat-radius-pill);
+  font-family: var(--achat-font-sans);
+  font-size: var(--achat-font-sm);
+  font-weight: 600;
+  line-height: var(--achat-line-tight);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .achat-button,
+  .achat-progress__fill {
+    transition: none;
+  }
+}
+
+.achat-button:focus-visible {
+  outline: 3px solid var(--achat-focus);
+  outline-offset: 2px;
+}
+
+.achat-button--primary {
+  background: var(--achat-primary);
+  color: var(--achat-on-primary);
+}
+
+.achat-button--primary:hover:not(:disabled) {
+  background: var(--achat-primary-strong);
+}
+
+.achat-button--secondary {
+  background: var(--achat-surface);
+  color: var(--achat-primary);
+  border-color: var(--achat-primary);
+}
+
+.achat-button--secondary:hover:not(:disabled) {
+  background: var(--achat-surface-muted);
+}
+
+.achat-button--danger {
+  background: var(--achat-danger);
+  color: var(--achat-surface);
+}
+
+.achat-button--danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.achat-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.achat-button--block {
+  width: 100%;
+}
+
+.achat-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--achat-space-xs);
+  font-family: var(--achat-font-sans);
+  color: var(--achat-ink);
+}
+
+.achat-field__label {
+  font-size: var(--achat-font-sm);
+  font-weight: 600;
+  line-height: var(--achat-line-normal);
+}
+
+.achat-field__input {
+  min-height: var(--achat-touch-target);
+  padding: var(--achat-space-sm) var(--achat-space-md);
+  border: 1px solid var(--achat-border);
+  border-radius: var(--achat-radius-sm);
+  background: var(--achat-surface);
+  color: var(--achat-ink);
+  font-family: inherit;
+  font-size: var(--achat-font-sm);
+  line-height: var(--achat-line-normal);
+}
+
+.achat-field__input:focus-visible {
+  outline: 3px solid var(--achat-focus);
+  outline-offset: 2px;
+}
+
+.achat-field__textarea {
+  min-height: calc(var(--achat-touch-target) * 2.5);
+  resize: vertical;
+}
+
+.achat-field__input[aria-invalid='true'] {
+  border-color: var(--achat-danger);
+}
+
+.achat-field__hint {
+  margin: 0;
+  color: var(--achat-ink-muted);
+  font-size: var(--achat-font-xs);
+  line-height: var(--achat-line-normal);
+}
+
+.achat-field__error {
+  margin: 0;
+  color: var(--achat-danger);
+  font-size: var(--achat-font-xs);
+  font-weight: 600;
+  line-height: var(--achat-line-normal);
+}
+
+.achat-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.achat-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--achat-space-xs);
+  width: 100%;
+}
+
+.achat-progress__label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--achat-space-sm);
+  font-family: var(--achat-font-sans);
+  font-size: var(--achat-font-xs);
+  color: var(--achat-ink-muted);
+}
+
+.achat-progress__track {
+  height: 12px;
+  border-radius: var(--achat-radius-pill);
+  background: var(--achat-surface-muted);
+  overflow: hidden;
+}
+
+.achat-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--achat-primary);
+  transition: width 200ms ease;
+}
+
+.achat-goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--achat-space-md);
+  padding: var(--achat-space-lg);
+  border: 1px solid var(--achat-border);
+  border-radius: var(--achat-radius-md);
+  background: var(--achat-surface);
+  color: var(--achat-ink);
+  font-family: var(--achat-font-sans);
+}
+
+.achat-goal-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--achat-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--achat-ink-muted);
+  font-size: var(--achat-font-xs);
+}
+
+.achat-goal-card__title {
+  margin: 0;
+  font-size: var(--achat-font-md);
+  line-height: var(--achat-line-tight);
+}
+
+.achat-goal-card__target {
+  margin: 0;
+  font-size: var(--achat-font-lg);
+  font-weight: 700;
+}
+
+.achat-goal-card__label {
+  display: block;
+  color: var(--achat-ink-muted);
+  font-size: var(--achat-font-xs);
+  line-height: var(--achat-line-normal);
+}
+
+.achat-goal-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--achat-space-sm);
+}
+
+.achat-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--achat-space-sm);
+  padding: var(--achat-space-xl);
+  border: 1px dashed var(--achat-border);
+  border-radius: var(--achat-radius-md);
+  background: var(--achat-surface);
+  color: var(--achat-ink);
+  font-family: var(--achat-font-sans);
+}
+
+.achat-state--error {
+  border-style: solid;
+  border-color: var(--achat-danger);
+  background: var(--achat-danger-surface);
+}
+
+.achat-state__title {
+  margin: 0;
+  font-size: var(--achat-font-md);
+  line-height: var(--achat-line-tight);
+}
+
+.achat-state__detail {
+  margin: 0;
+  color: var(--achat-ink);
+  font-size: var(--achat-font-sm);
+  line-height: var(--achat-line-relaxed);
+  overflow-wrap: anywhere;
+}
+
+.achat-state__code {
+  margin: 0;
+  color: var(--achat-ink-muted);
+  font-family: var(--achat-font-mono);
+  font-size: var(--achat-font-xs);
+  overflow-wrap: anywhere;
+}
+
+.achat-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--achat-space-sm);
+  border-radius: var(--achat-radius-pill);
+  background: var(--achat-surface-muted);
+  color: var(--achat-ink);
+  font-family: var(--achat-font-sans);
+  font-size: var(--achat-font-xs);
+  font-weight: 600;
+  line-height: var(--achat-line-tight);
+}
+
+.achat-badge--success {
+  background: var(--achat-success-surface);
+  color: var(--achat-success);
+}
+
+.achat-badge--danger {
+  background: var(--achat-danger-surface);
+  color: var(--achat-danger);
+}

@@ -28,10 +28,12 @@
     "tools/**/*.ts",
     "vitest.setup.ts",
     "vitest.config.ts",
+    "vitest.web.setup.ts",
+    "vitest.web.config.ts",
     "vitest.db.config.ts",
     "vitest.attack.config.ts",
     "vitest.e2e.config.ts",
     "vitest.tsa.config.ts"
   ],
-  "exclude": ["node_modules", "dist", ".toolchains"]
+  "exclude": ["node_modules", "dist", ".toolchains", "packages/ui", "apps/web-client", "apps/partner-portal", "apps/back-office"]
 }

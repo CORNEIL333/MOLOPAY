@@ -132,3 +132,9 @@
 - **Option appliquée :** `DATABASE_URL` n'est acceptée que si l'hôte est local (`localhost`, `127.0.0.1`, `::1`) ; une base distante exige `ALLOW_REMOTE_TEST_DB=1`. Aucun conteneur n'est lancé ni arrêté dans ce mode. Le README racine documente les deux modes.
 - **Retour arrière :** supprimer le support `DATABASE_URL` et revenir à Testcontainers seul.
 - **À trancher :** maintien de l'option distante pour une CI sans Docker, et politique de nom de base (`*_test` obligatoire).
+
+### D23 · Version provisoire des conditions d’offre
+- **Constat :** la création d’un projet exige `acceptTermsVersion`, mais aucun texte juridique approuvé n’est fourni. La constante `2026-10-26-v1` est donc un identifiant technique provisoire, pas une approbation juridique.
+- **Option appliquée :** le parcours web local transmet cet identifiant explicite après une case d’acceptation ; aucune disponibilité en production n’est déclarée et aucune règle juridique supplémentaire n’est inventée.
+- **Retour arrière :** remplacer la constante par la version du texte approuvé avant toute ouverture réelle ; le serveur reste responsable d’accepter ou refuser cette version.
+- **À trancher :** texte, version et date d’effet des conditions applicables à chaque offre.
