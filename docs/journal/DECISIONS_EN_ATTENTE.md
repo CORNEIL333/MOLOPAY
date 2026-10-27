@@ -151,3 +151,9 @@
 - **Option appliquée (la plus prudente) :** l'approbation porte l'empreinte JCS/SHA-256 du dossier ; toute nouvelle version repasse le partenaire `PENDING`, donc invisible du catalogue, jusqu'à une nouvelle approbation. L'empreinte est calculée par l'application ; la base vérifie qu'elle égale celle de la décision approuvée et le store revérifie l'empreinte stockée à la lecture.
 - **Retour arrière :** limiter la revalidation aux seuls champs sensibles (règlement, représentant) par une nouvelle migration.
 - **À trancher :** liste des champs dont la modification exige une revalidation ; formats officiels RCCM/NIU (non inventés : seuls longueur et jeu de caractères sont contrôlés).
+
+### D26 · Circuit d'approbation des plans de paiement (lot 09)
+- **Constat :** F-CAT-002 exige des plans « approuvés par la plateforme et, pour B, par le financeur », mais aucune source ne fixe le type de demande maker-checker (`APPROVAL_KINDS` n'a pas de `PAYMENT_PLAN`), ni le contenu d'un plan (durée, rythme, frais), ni le format de la référence d'approbation du financeur.
+- **Option appliquée :** persistance des plans **non implémentée**. Le domaine (`activatePartnerPlan`) et sa journalisation (`activatePartnerPlanAudited`, `CATALOG_ACTION`) sont prêts ; un plan reste une donnée fournie par l'appelant serveur.
+- **Retour arrière :** sans objet.
+- **À trancher :** réutiliser `FINANCIAL_SETTING` ou ajouter un type `PAYMENT_PLAN` (ADR, touche `admin`), champs d'un plan, et forme de la preuve d'approbation du financeur (I-10).

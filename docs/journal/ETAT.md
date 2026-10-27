@@ -1,7 +1,7 @@
 # État du sprint — 2026-10-28 (reprise sous Claude Code)
 
 - **Branche :** `sprint/integration` (jamais `main`, aucun remote)
-- **Lot en cours :** 09 Catalog (onboarding partenaire fait ; offres et plans à persister)
+- **Lot en cours :** 09 Catalog (partenaires, offres versionnées et journalisation F-CAT-002 faits ; plans bloqués par D26)
 - **Journal du jour :** `docs/journal/2026-10-28.md` (précédent : `2026-10-26.md`)
 - **Client web :** PWA commitée (`d896b37`), ADR-0006 **Proposé**, fusion soumise au fondateur
 
@@ -29,13 +29,13 @@
 | 05 · Audit | terminé (code) | refs en liste blanche par action ; 10 tests base écrits |
 | 06 · Identity | terminé (code) | stores OTP/rotation atomiques, solde dérivé du grand livre ; 32 tests base écrits, non exécutés |
 | 08 · Admin | terminé (code) | 184 tests domaine verts ; 13 tests base écrits |
-| 09 · Catalog | partiel | domaine offres/plans ; onboarding partenaire maker-checker (domaine + 0008 + store, `0eb1088`, `f82bb11`) ; persistance offres/plans et journalisation des refus à faire |
+| 09 · Catalog | partiel | onboarding partenaire maker-checker (`0eb1088`, `f82bb11`) ; offres versionnées 0009 (`bbcc012`) ; activation de plan journalisée + `CATALOG_ACTION` 0010 (`d69e1ee`) ; persistance des plans en attente de D26 |
 
 ## Prochaine étape exacte
 
-1. Obtenir un PostgreSQL 16 local (D24), puis `DATABASE_URL=… pnpm test:db` : **99 tests base** jamais exécutés (32 ledger, 10 audit, 13 admin, 32 identité, 12 catalogue). Corriger les divergences SQL réelles.
+1. Obtenir un PostgreSQL 16 local (D24), puis `DATABASE_URL=… pnpm test:db` : **110 tests base** jamais exécutés (32 ledger, 12 audit, 13 admin, 32 identité, 21 catalogue). Corriger les divergences SQL réelles.
 2. Réparer `pnpm` 12.6.0 sur le poste et relancer `pnpm security:scan` (SCA non exécutée).
-3. Lot 09 : persistance versionnée des offres (F-PRT-002) avec publication refusée si `partner_state` ≠ VALIDATED ; plans approuvés et journalisation des refus d'activation (F-CAT-002 « refusée et journalisée » : nouveau type d'événement d'audit à ajouter).
+3. Lot 09 : persistance des plans approuvés après décision D26 ; sinon passer au lot 10 (accords A/C, prix figé sur `(offer_id, version)`).
 4. Contrôleurs HTTP derrière un guard réel, puis lot 11 (paiements).
 
 ## Barrière finale (reprise)
