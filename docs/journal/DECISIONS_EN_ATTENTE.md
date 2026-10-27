@@ -138,3 +138,16 @@
 - **Option appliquée :** le parcours web local transmet cet identifiant explicite après une case d’acceptation ; aucune disponibilité en production n’est déclarée et aucune règle juridique supplémentaire n’est inventée.
 - **Retour arrière :** remplacer la constante par la version du texte approuvé avant toute ouverture réelle ; le serveur reste responsable d’accepter ou refuser cette version.
 - **À trancher :** texte, version et date d’effet des conditions applicables à chaque offre.
+
+### D24 · PostgreSQL local indisponible (reprise Claude Code)
+- **Constat :** ni Docker ni PostgreSQL sur le poste. `scoop install postgresql` (18.6) a échoué deux fois (délai dépassé) et cinq téléchargements `curl` avec reprise ont été coupés (`Recv failure: Connection was reset`) alors que l'hôte répond `200`. Budget de trois tentatives dépassé : arrêt.
+- **Option appliquée :** aucune base distante ni simulateur (`pg-mem` écarté : zéro simulation). Les tests base restent écrits et non exécutés : **99** (87 + 12 catalogue).
+- **Retour arrière :** sans objet.
+- **À trancher :** installer Docker Desktop ou PostgreSQL 16 sur une connexion stable, puis `DATABASE_URL=postgres://…@127.0.0.1/… pnpm test:db`. Noter que Scoop fournit 18.6 alors que la CI fige `postgres:16.15`.
+- **Outillage :** `pnpm` 12.6.0 est cassé sur ce poste (shim pointant vers un fichier absent) ; les commandes du § 5 ont été lancées via `node_modules/.bin`. `pnpm security:scan` n'a donc couvert que les secrets : la SCA (`pnpm audit`) n'a pas pu tourner.
+
+### D25 · Dossier partenaire modifié après validation
+- **Constat :** F-PRT-001 exige une validation maker-checker mais ne dit pas ce qui se passe si le dossier (notamment `settlement_account_ref`) change ensuite.
+- **Option appliquée (la plus prudente) :** l'approbation porte l'empreinte JCS/SHA-256 du dossier ; toute nouvelle version repasse le partenaire `PENDING`, donc invisible du catalogue, jusqu'à une nouvelle approbation. L'empreinte est calculée par l'application ; la base vérifie qu'elle égale celle de la décision approuvée et le store revérifie l'empreinte stockée à la lecture.
+- **Retour arrière :** limiter la revalidation aux seuls champs sensibles (règlement, représentant) par une nouvelle migration.
+- **À trancher :** liste des champs dont la modification exige une revalidation ; formats officiels RCCM/NIU (non inventés : seuls longueur et jeu de caractères sont contrôlés).

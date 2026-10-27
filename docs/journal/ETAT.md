@@ -1,8 +1,9 @@
-# État du sprint — 2026-10-26 (jour 1, reprise de session)
+# État du sprint — 2026-10-28 (reprise sous Claude Code)
 
 - **Branche :** `sprint/integration` (jamais `main`, aucun remote)
-- **Lot en cours :** aucun ; reprise terminée, constats de revue fermés et lot 09 amorcé (logique pure)
-- **Journal du jour :** `docs/journal/2026-10-26.md`
+- **Lot en cours :** 09 Catalog (onboarding partenaire fait ; offres et plans à persister)
+- **Journal du jour :** `docs/journal/2026-10-28.md` (précédent : `2026-10-26.md`)
+- **Client web :** PWA commitée (`d896b37`), ADR-0006 **Proposé**, fusion soumise au fondateur
 
 ## Reprise de session (après-midi)
 
@@ -28,13 +29,14 @@
 | 05 · Audit | terminé (code) | refs en liste blanche par action ; 10 tests base écrits |
 | 06 · Identity | terminé (code) | stores OTP/rotation atomiques, solde dérivé du grand livre ; 32 tests base écrits, non exécutés |
 | 08 · Admin | terminé (code) | 184 tests domaine verts ; 13 tests base écrits |
-| 09 · Catalog | partiel | domaine pur et tests ; persistance, onboarding maker-checker et audit différés |
+| 09 · Catalog | partiel | domaine offres/plans ; onboarding partenaire maker-checker (domaine + 0008 + store, `0eb1088`, `f82bb11`) ; persistance offres/plans et journalisation des refus à faire |
 
 ## Prochaine étape exacte
 
-1. Sur une machine avec Docker ou un PostgreSQL 16 jetable : `DATABASE_URL=… pnpm test:db` (87 tests base écrits, jamais exécutés), corriger les divergences SQL réelles, puis retirer la mention « non exécuté ».
-2. Poursuivre le lot 09 uniquement après cette exécution : persistance des offres/plans, onboarding partenaire maker-checker et journalisation des refus.
-3. Contrôleurs HTTP derrière un guard réel, puis lot 11 (paiements) pour INT-LED-008 et la fraîcheur du solde de récupération.
+1. Obtenir un PostgreSQL 16 local (D24), puis `DATABASE_URL=… pnpm test:db` : **99 tests base** jamais exécutés (32 ledger, 10 audit, 13 admin, 32 identité, 12 catalogue). Corriger les divergences SQL réelles.
+2. Réparer `pnpm` 12.6.0 sur le poste et relancer `pnpm security:scan` (SCA non exécutée).
+3. Lot 09 : persistance versionnée des offres (F-PRT-002) avec publication refusée si `partner_state` ≠ VALIDATED ; plans approuvés et journalisation des refus d'activation (F-CAT-002 « refusée et journalisée » : nouveau type d'événement d'audit à ajouter).
+4. Contrôleurs HTTP derrière un guard réel, puis lot 11 (paiements).
 
 ## Barrière finale (reprise)
 
