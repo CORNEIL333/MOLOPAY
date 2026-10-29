@@ -230,6 +230,7 @@ async function insertTokenSession(
   deviceId: string,
   options?: {
     readonly accessIssuedAt?: string;
+    readonly accessExpiresAt?: string;
     readonly refreshExpiresAt?: string;
   },
 ): Promise<{ readonly sessionId: string; readonly refreshToken: string }> {
@@ -247,7 +248,7 @@ async function insertTokenSession(
       sessionTokenHash(`jeton-d-acces-${seq}`),
       sessionTokenHash(refreshToken),
       options?.accessIssuedAt ?? NOW,
-      plus(15 * 60_000),
+      options?.accessExpiresAt ?? plus(15 * 60_000),
       options?.refreshExpiresAt ?? plus(30 * 24 * 60 * 60_000),
       NOW,
     ],
@@ -1435,7 +1436,10 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
     expect(bad.code).toBe('IDENTITY_SESSION_INVALID');
 
     await admin.query(
-      `UPDATE identity.account SET status = 'BLOCKED' WHERE id = $1`,
+      `UPDATE identity.account
+          SET status = 'BLOCKED', blocked_at = now(),
+              block_channel = 'SUPPORT', block_reason = 'Blocage de test'
+        WHERE id = $1`,
       [fixture.accountId],
     );
     const blocked = await catchFailure(() =>
@@ -1449,11 +1453,14 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
     expect(blocked.code).toBe('IDENTITY_ACCOUNT_BLOCKED');
 
     await admin.query(
-      `UPDATE identity.account SET status = 'ACTIVE' WHERE id = $1`,
+      `UPDATE identity.account
+          SET status = 'ACTIVE', blocked_at = NULL,
+              block_channel = NULL, block_reason = NULL
+        WHERE id = $1`,
       [fixture.accountId],
     );
     await admin.query(
-      `UPDATE identity.device SET status = 'REVOKED' WHERE id = $1`,
+      `UPDATE identity.device SET status = 'REVOKED', revoked_at = now() WHERE id = $1`,
       [fixture.deviceId],
     );
     const revoked = await catchFailure(() =>
@@ -1472,6 +1479,7 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
       const accountId = await insertAccount(client, 1);
       const deviceId = await insertDevice(client, 2, accountId);
       const session = await insertTokenSession(client, 3, accountId, deviceId, {
+        accessExpiresAt: plus(5_000),
         refreshExpiresAt: plus(10_000),
       });
       return session;

@@ -144,6 +144,7 @@
 - **Option appliquée :** aucune base distante ni simulateur (`pg-mem` écarté : zéro simulation). Les tests base restent écrits et non exécutés : **99** (87 + 12 catalogue).
 - **Retour arrière :** sans objet.
 - **À trancher :** installer Docker Desktop ou PostgreSQL 16 sur une connexion stable, puis `DATABASE_URL=postgres://…@127.0.0.1/… pnpm test:db`. Noter que Scoop fournit 18.6 alors que la CI fige `postgres:16.15`.
+- **Mise à jour 2026-10-29 · résolu pour `test:db` :** PostgreSQL 16.15 installé par le fondateur (`winget`, service Windows protégé par mot de passe, non utilisé). Pour ne manipuler aucun secret, les tests tournent sur une **grappe jetable** créée avec les binaires officiels (`initdb --auth=trust`, écoute `localhost` seule, port 54329, dossier temporaire de session) : `DATABASE_URL=postgres://postgres@localhost:54329/achat_test`. Résultat : **110/110 verts**. Aucune contrainte SQL modifiée ; 5 jeux de données de test corrigés (motif de rejet manquant, blocage/révocation sans date ni motif, session avec refresh antérieur à l’accès, `TRUNCATE` arrêté par la clé étrangère avant le trigger → testé avec `CASCADE`, référence `session` interdite pour `LOGOUT_SEEN`).
 - **Outillage :** `pnpm` 12.6.0 est cassé sur ce poste (shim pointant vers un fichier absent) ; les commandes du § 5 ont été lancées via `node_modules/.bin`. `pnpm security:scan` n'a donc couvert que les secrets : la SCA (`pnpm audit`) n'a pas pu tourner.
 
 ### D25 · Dossier partenaire modifié après validation

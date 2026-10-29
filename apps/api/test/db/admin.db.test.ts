@@ -305,7 +305,9 @@ describe('maker-checker · contraintes de base (PostgreSQL réel)', () => {
     );
     expect(remove.message).toMatch(/ADMIN_APPEND_ONLY|permission denied/);
     const truncate = await catchFailure(() =>
-      transact(null, (client) => client.query('TRUNCATE admin.approval_request')),
+      transact(null, (client) =>
+        client.query('TRUNCATE admin.approval_request CASCADE'),
+      ),
     );
     expect(truncate.message).toContain('ADMIN_APPEND_ONLY');
   });

@@ -334,7 +334,7 @@ describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
           targetType: 'SESSION',
           targetId: 'sess-1',
           outcome: 'SUCCESS',
-          refs: { session: 'sess-1' },
+          refs: action === 'LOGIN_SEEN' ? { session: 'sess-1' } : {},
         });
       }
       await client.query('COMMIT');

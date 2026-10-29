@@ -117,8 +117,8 @@ async function approve(
   await client.query(
     `INSERT INTO admin.approval_decision
        (request_id, decision, decided_by, decided_at, decision_reason)
-     VALUES ($1, $2, 'comp-1', now(), NULL)`,
-    [options.id, decision],
+     VALUES ($1, $2, 'comp-1', now(), $3)`,
+    [options.id, decision, decision === 'REJECTED' ? 'Dossier incomplet' : null],
   );
   return {
     id: options.id,

@@ -1,4 +1,4 @@
-# État du sprint — 2026-10-28 (reprise sous Claude Code)
+# État du sprint — 2026-10-29 (reprise sous Claude Code)
 
 - **Branche :** `sprint/integration` (jamais `main`, aucun remote)
 - **Lot en cours :** 09 Catalog (partenaires, offres versionnées et journalisation F-CAT-002 faits ; plans bloqués par D26)
@@ -33,7 +33,7 @@
 
 ## Prochaine étape exacte
 
-1. Obtenir un PostgreSQL 16 local (D24), puis `DATABASE_URL=… pnpm test:db` : **110 tests base** jamais exécutés (32 ledger, 12 audit, 13 admin, 32 identité, 21 catalogue). Corriger les divergences SQL réelles.
+1. ~~Exécuter les tests base~~ : fait le 2026-10-29, **110/110 verts** sur PostgreSQL 16.15 réel (D24).
 2. Réparer `pnpm` 12.6.0 sur le poste et relancer `pnpm security:scan` (SCA non exécutée).
 3. Lot 09 : persistance des plans approuvés après décision D26 ; sinon passer au lot 10 (accords A/C, prix figé sur `(offer_id, version)`).
 4. Contrôleurs HTTP derrière un guard réel, puis lot 11 (paiements).
@@ -48,6 +48,6 @@
 - `pnpm verify:ledger` : `LEDGER VERIFIED entries=6 heads=3 witnesses=2 last_tree_size=6 log_id=achat-ledger-fixture-v1`
 - `pnpm openapi:check` : OK
 - `pnpm security:scan` : OK (secrets et SCA)
-- `pnpm test:db` : **non exécuté**, sortie `DOCKER_UNAVAILABLE` (code 2, D2) ; Docker, `psql`, `initdb` et `pg_ctl` absents. **87 tests base écrits** (32 ledger, 10 audit, 13 admin, 32 identité), 7 migrations.
+- `pnpm test:db` (2026-10-29) : **110 tests verts**, 5 fichiers (32 ledger, 12 audit, 13 admin, 32 identité, 21 catalogue), migrations 0001–0010, PostgreSQL 16.15 local. Premier passage : 105/110 ; les 5 échecs étaient des jeux de données de test violant des contraintes existantes (corrigés côté test, aucune contrainte modifiée).
 - `pnpm test:tsa` : non relancé pendant la reprise (5 tests réseau déjà verts le matin)
 - `pnpm test:e2e` : non relancé pendant la reprise (1 test vert le matin)
