@@ -20,6 +20,7 @@
     "verify:ledger": "tsx tools/verify-ledger.ts",
     "openapi:check": "tsx tools/check-openapi.ts",
     "security:scan": "tsx tools/scan-secrets.ts && tsx tools/sca.ts",
+    "ci:local": "tsx tools/ci-local.ts",
     "sbom": "cyclonedx-npm --output-file sbom.json"
   },
   "devDependencies": {

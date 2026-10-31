@@ -178,3 +178,9 @@
 - **Option appliquée (la plus stricte) :** un bénéficiaire suit exactement l'onboarding partenaire (mêmes champs obligatoires, dont RCCM et NIU), avec `partner_type = BENEFICIARY` et une catégorie parmi celles de F-PLN-001 (`LANDLORD`, `AGENCY`, `SCHOOL`, `MATERIALS_SELLER`, `LAND_SELLER`), dans l'empreinte approuvée (migration 0013). Un bailleur particulier sans RCCM ne peut donc pas encore être enregistré. Seuls les marchands publient des offres ; la base refuse un objectif C vers un partenaire qui n'est pas un bénéficiaire validé.
 - **Hors périmètre de cette tranche :** F-PLN-002 (bail ou titre foncier vérifié par la conformité avant tout règlement) sera branché sur le règlement (lot 12) : le règlement C devra exiger cette vérification maker-checker.
 - **À trancher :** pièces exigées d'un bénéficiaire personne physique ; liste définitive des catégories.
+
+### D30 · CI GitHub indisponible (compte bloqué pour facturation)
+- **Constat (2026-10-31) :** les jobs de `.github/workflows/ci.yml` ne démarrent pas (« account is locked due to a billing issue ») ; le fondateur n'a pas de budget pour le débloquer.
+- **Option appliquée :** `tools/ci-local.ts` (`pnpm ci:local`, ou `node_modules/.bin/tsx tools/ci-local.ts`) rejoue les mêmes étapes que la CI sur le poste, tests base compris contre une base locale jetable (`DATABASE_URL`). Aucune étape n'est sautée ; tout échec rend le code de sortie non nul. Le workflow GitHub est inchangé et reprendra seul au déblocage.
+- **Limite :** la SCA échoue tant que `pnpm` est cassé sur le poste (D24) ; c'est un échec d'outillage, pas un résultat d'audit. Réparation possible : `npm install -g pnpm@12.6.0`.
+- **Premier passage :** 11 étapes sur 12 OK (dont 159 tests base), SCA en échec (pnpm).
