@@ -158,3 +158,11 @@
 - **Option appliquée :** persistance des plans **non implémentée**. Le domaine (`activatePartnerPlan`) et sa journalisation (`activatePartnerPlanAudited`, `CATALOG_ACTION`) sont prêts ; un plan reste une donnée fournie par l'appelant serveur.
 - **Retour arrière :** sans objet.
 - **À trancher :** réutiliser `FINANCIAL_SETTING` ou ajouter un type `PAYMENT_PLAN` (ADR, touche `admin`), champs d'un plan, et forme de la preuve d'approbation du financeur (I-10).
+
+### D27 · Accords A/C : points non tranchés par les sources (lot 10)
+- **Conflit signalé (non arbitré) :** `CDC_05` § 5.2 n'autorise l'annulation client que depuis `ACTIVE`, alors que `CDC_01` F-PLN-004 dit « annuler avant règlement » (donc aussi depuis `FUNDED` pour C) et F-SAV-005 « annuler un objectif non verrouillé » sans restreindre l'état.
+- **Option appliquée (la plus stricte, réversible) :** la liste blanche suit `CDC_05` à la lettre ; `FUNDED → CANCELLED_BY_CUSTOMER` est refusé (`UNAUTHORIZED_TRANSITION`). Ajouter la transition plus tard est une extension, pas un affaiblissement.
+- **Verrou (F-SAV-003) :** l'annulation client d'un objectif verrouillé est toujours refusée (`AGREEMENT_LOCKED`) ; les cas prévus (décès, défaillance marchand, force majeure) passent par `FROZEN → REFUNDED`, opération qui sera soumise au maker-checker. Le verrou n'est jamais levé par le client.
+- **Barème de restitution :** seul le barème par défaut publié (100 %, sans frais) est accepté (`FULL_NO_FEE`) ; aucun autre barème n'est inventé.
+- **Plan :** les champs de `CDC_05` § 4 (`rhythm`, `min_amount`, `max_duration`) sont utilisés ; un plan porte un seul rythme et le client choisit son rythme en choisissant le plan. Unité de `max_duration` non précisée : **jours** retenus. Le circuit d'approbation reste D26.
+- **À trancher :** transitions d'annulation depuis `FUNDED` ; unité de durée ; liste des barèmes autorisés.
