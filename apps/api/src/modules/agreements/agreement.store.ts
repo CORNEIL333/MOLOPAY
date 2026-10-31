@@ -4,6 +4,7 @@ import { BusinessError } from '@achat/contracts';
 import { parseXaf, toCanonicalString, xaf } from '@achat/money';
 import type { PoolClient } from 'pg';
 import { getCurrentOffer } from '../catalog/offer.store';
+import { getBeneficiary } from '../catalog/partner.store';
 import {
   AGREEMENT_MODELS,
   AGREEMENT_STATUSES,
@@ -18,7 +19,6 @@ import {
   type AgreementPlan,
   type AgreementStatus,
   type AgreementTerms,
-  type BeneficiarySnapshot,
   type RefundPolicy,
   type Rhythm,
 } from './domain';
@@ -282,20 +282,39 @@ export async function createSaveThenBuyAgreement(
   return reload(client, agreement.terms.agreementId);
 }
 
-/** Crée un objectif C vers un bénéficiaire vérifié (F-PLN-001). */
+/**
+ * Crée un objectif C vers un bénéficiaire lu en base : partenaire de type
+ * BENEFICIARY validé par maker-checker (F-PLN-001). La base revérifie.
+ */
 export async function createPlannedExpenseAgreement(
   client: SqlClient,
   input: {
     readonly id: string;
     readonly customerId: string;
-    readonly beneficiary: BeneficiarySnapshot;
+    readonly beneficiaryId: string;
     readonly targetXaf: bigint;
     readonly plan: AgreementPlan;
     readonly durationDays: number;
     readonly createdAt: string;
   },
 ): Promise<StoredAgreement> {
-  const agreement = createAgreement({ ...input, model: 'PLANNED_EXPENSE' });
+  const beneficiary = await getBeneficiary(client, input.beneficiaryId);
+  if (beneficiary === null) {
+    throw new BusinessError(
+      'AGREEMENT_BENEFICIARY_NOT_VERIFIED',
+      'Bénéficiaire inconnu',
+    );
+  }
+  const agreement = createAgreement({
+    id: input.id,
+    customerId: input.customerId,
+    model: 'PLANNED_EXPENSE',
+    beneficiary: { id: beneficiary.id, status: beneficiary.status },
+    targetXaf: input.targetXaf,
+    plan: input.plan,
+    durationDays: input.durationDays,
+    createdAt: input.createdAt,
+  });
   await insertAgreement(client, agreement);
   return reload(client, agreement.terms.agreementId);
 }

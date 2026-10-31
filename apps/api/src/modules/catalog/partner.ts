@@ -12,6 +12,20 @@ const ISO_UTC_MS_PATTERN =
 const HASH_HEX_PATTERN = /^[0-9a-f]{64}$/;
 const MAX_LEGAL_NAME_LENGTH = 200;
 
+// CDC_05 § 4 : un partenaire est un marchand ou un bénéficiaire (modèle C).
+export const PARTNER_TYPES = ['MERCHANT', 'BENEFICIARY'] as const;
+export type PartnerType = (typeof PARTNER_TYPES)[number];
+
+// F-PLN-001 : bailleur, agence, école, vendeur de matériaux ou de terrain.
+export const BENEFICIARY_KINDS = [
+  'LANDLORD',
+  'AGENCY',
+  'SCHOOL',
+  'MATERIALS_SELLER',
+  'LAND_SELLER',
+] as const;
+export type BeneficiaryKind = (typeof BENEFICIARY_KINDS)[number];
+
 /**
  * Dossier d'onboarding (F-PRT-001). Les pièces ne transitent jamais ici :
  * seules des références opaques vers le stockage KYC et vers les coordonnées
@@ -19,6 +33,9 @@ const MAX_LEGAL_NAME_LENGTH = 200;
  */
 export type PartnerDossierInput = {
   readonly partnerId: string;
+  readonly partnerType: PartnerType;
+  /** Catégorie d’un bénéficiaire ; `null` pour un marchand. */
+  readonly beneficiaryKind: BeneficiaryKind | null;
   readonly legalName: string;
   readonly rccm: string;
   readonly niu: string;
@@ -52,6 +69,8 @@ export type PartnerValidation = {
 
 const DOSSIER_KEYS: ReadonlySet<string> = new Set([
   'partnerId',
+  'partnerType',
+  'beneficiaryKind',
   'legalName',
   'rccm',
   'niu',
@@ -93,8 +112,22 @@ export function createPartnerDossier(input: PartnerDossierInput): PartnerDossier
       fail('CATALOG_FIELD_FORBIDDEN', `Champ de dossier non autorisé: ${key}`);
     }
   }
+  const partnerType = input.partnerType;
+  if (!(PARTNER_TYPES as readonly unknown[]).includes(partnerType)) {
+    fail('CATALOG_INVALID_REQUEST', 'partnerType invalide');
+  }
+  const beneficiaryKind = input.beneficiaryKind;
+  const kindValid =
+    partnerType === 'BENEFICIARY'
+      ? (BENEFICIARY_KINDS as readonly unknown[]).includes(beneficiaryKind)
+      : beneficiaryKind === null;
+  if (!kindValid) {
+    fail('CATALOG_INVALID_REQUEST', 'beneficiaryKind incohérent avec partnerType');
+  }
   return Object.freeze({
     partnerId: assertMatches(input.partnerId, PARTNER_ID_PATTERN, 'partnerId'),
+    partnerType,
+    beneficiaryKind,
     legalName: assertLegalName(input.legalName),
     rccm: assertMatches(input.rccm, REFERENCE_PATTERN, 'rccm'),
     niu: assertMatches(input.niu, REFERENCE_PATTERN, 'niu'),

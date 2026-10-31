@@ -31,6 +31,7 @@ const MIGRATIONS = [
   'db/migrations/0009_catalog_offer.sql',
   'db/migrations/0011_agreements.sql',
   'db/migrations/0012_agreements_customer_signature.sql',
+  'db/migrations/0013_partner_type_beneficiary.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const OFFER_ID = '019a9100-0000-7000-8000-0000000000f1';
@@ -98,13 +99,23 @@ function offer(priceXaf: bigint, published = true): Offer {
   return published ? publishOffer(draft) : draft;
 }
 
-/** Partenaire validé par maker-checker et offre publiée à 150 000 XAF (v1). */
-async function seedCatalog(client: Client): Promise<void> {
+/** Valide un partenaire par maker-checker (demande PARTNER_APPROVAL approuvée). */
+async function validatePartner(
+  client: Client,
+  options: {
+    readonly partnerId: string;
+    readonly requestId: string;
+    readonly partnerType: 'MERCHANT' | 'BENEFICIARY';
+    readonly beneficiaryKind: 'LANDLORD' | null;
+  },
+): Promise<void> {
   const stored = await appendPartnerDossier(
     client,
     createPartnerDossier({
-      partnerId: 'partner-1',
-      legalName: 'Électro Douala SARL',
+      partnerId: options.partnerId,
+      partnerType: options.partnerType,
+      beneficiaryKind: options.beneficiaryKind,
+      legalName: 'Partenaire de test',
       rccm: 'RC/DLA/2024/B/0001',
       niu: 'M000000000000A',
       representativeDocumentRef: 'kyc-doc-ref-0001',
@@ -113,7 +124,7 @@ async function seedCatalog(client: Client): Promise<void> {
     'net-1',
   );
   const payload: Record<string, JsonValue> = {
-    partner_id: 'partner-1',
+    partner_id: options.partnerId,
     dossier_hash: partnerDossierHash(stored.dossier).toString('hex'),
   };
   const payloadHash = createHash('sha256').update(canonicalize(payload), 'utf8').digest();
@@ -122,19 +133,19 @@ async function seedCatalog(client: Client): Promise<void> {
        (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
      VALUES ($1, 'PARTNER_APPROVAL', 'net-1', $2::jsonb, $3, 'Onboarding partenaire',
              now(), now() + interval '1 day')`,
-    [REQUEST_ID, JSON.stringify(payload), payloadHash],
+    [options.requestId, JSON.stringify(payload), payloadHash],
   );
   await client.query(
     `INSERT INTO admin.approval_decision
        (request_id, decision, decided_by, decided_at, decision_reason)
      VALUES ($1, 'APPROVED', 'comp-1', now(), NULL)`,
-    [REQUEST_ID],
+    [options.requestId],
   );
   await recordPartnerValidation(client, {
-    partnerId: 'partner-1',
+    partnerId: options.partnerId,
     dossierVersion: stored.version,
     decision: {
-      id: REQUEST_ID,
+      id: options.requestId,
       kind: 'PARTNER_APPROVAL',
       status: 'APPROVED',
       makerId: 'net-1',
@@ -143,7 +154,26 @@ async function seedCatalog(client: Client): Promise<void> {
       payloadHash,
     },
   });
+}
+
+/**
+ * Marchand validé avec une offre publiée à 150 000 XAF (v1) et bailleur
+ * validé comme bénéficiaire (F-PLN-001).
+ */
+async function seedCatalog(client: Client): Promise<void> {
+  await validatePartner(client, {
+    partnerId: 'partner-1',
+    requestId: REQUEST_ID,
+    partnerType: 'MERCHANT',
+    beneficiaryKind: null,
+  });
   await appendOfferVersion(client, offer(150_000n), 'net-1');
+  await validatePartner(client, {
+    partnerId: 'landlord-1',
+    requestId: uuid(900),
+    partnerType: 'BENEFICIARY',
+    beneficiaryKind: 'LANDLORD',
+  });
 }
 
 async function insertAgreementA(
@@ -676,7 +706,7 @@ describe('F-SAV-001 · INT-NR-001 · store des accords (PostgreSQL réel)', () =
       createPlannedExpenseAgreement(client, {
         id: uuid(11),
         customerId: CUSTOMER_ID,
-        beneficiary: { id: 'landlord-1', status: 'VERIFIED' },
+        beneficiaryId: 'landlord-1',
         targetXaf: 300_000n,
         plan: { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE' },
         durationDays: 120,
@@ -829,5 +859,70 @@ describe('F-SAV-001 · INT-NR-001 · store des accords (PostgreSQL réel)', () =
       ),
     );
     expect(failure.code).toBe('AGREEMENT_NOT_FOUND');
+  });
+});
+
+describe('F-PLN-001 · bénéficiaire vérifié imposé (PostgreSQL réel)', () => {
+  it.each([
+    ['un marchand', 'partner-1'],
+    ['un partenaire inconnu', 'nobody'],
+  ])('F-PLN-001 la base refuse un objectif C vers %s', async (_label, beneficiaryId) => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO agreements.agreement
+             (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
+              target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+              terms_hash, created_at)
+           VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, $3, 300000,
+                   'plan-c', 'MONTHLY', 10000, 120, 'FULL_NO_FEE', $4, now())`,
+          [uuid(20), CUSTOMER_ID, beneficiaryId, TERMS_HASH],
+        ),
+      ),
+    );
+    expect(failure.message).toContain('AGREEMENT_BENEFICIARY_NOT_VERIFIED');
+  });
+
+  it('F-PLN-001 la base refuse un bénéficiaire dont le dossier modifié n’est pas revalidé', async () => {
+    await transact('app_rw', (client) =>
+      appendPartnerDossier(
+        client,
+        createPartnerDossier({
+          partnerId: 'landlord-1',
+          partnerType: 'BENEFICIARY',
+          beneficiaryKind: 'LANDLORD',
+          legalName: 'Partenaire de test',
+          rccm: 'RC/DLA/2024/B/0001',
+          niu: 'M000000000000A',
+          representativeDocumentRef: 'kyc-doc-ref-0001',
+          settlementAccountRef: 'settlement-ref-0002',
+        }),
+        'net-1',
+      ),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) => insertAgreementC(client)),
+    );
+    expect(failure.message).toContain('AGREEMENT_BENEFICIARY_NOT_VERIFIED');
+  });
+
+  it.each([
+    ['un marchand', 'partner-1'],
+    ['un partenaire inconnu', 'nobody'],
+  ])('F-PLN-001 le store refuse un objectif C vers %s', async (_label, beneficiaryId) => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        createPlannedExpenseAgreement(client, {
+          id: uuid(21),
+          customerId: CUSTOMER_ID,
+          beneficiaryId,
+          targetXaf: 300_000n,
+          plan: { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE' },
+          durationDays: 120,
+          createdAt: '2026-10-31T09:00:00.000Z',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_BENEFICIARY_NOT_VERIFIED');
   });
 });

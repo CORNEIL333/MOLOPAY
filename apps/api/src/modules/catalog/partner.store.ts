@@ -7,8 +7,11 @@ import {
   partnerDossierHash,
   partnerFromValidation,
   validatePartner,
+  BENEFICIARY_KINDS,
+  type BeneficiaryKind,
   type PartnerApprovalDecision,
   type PartnerDossier,
+  type PartnerType,
   type PartnerValidation,
 } from './partner';
 
@@ -18,6 +21,8 @@ type SqlClient = Pick<PoolClient, 'query'>;
 type DossierRow = {
   partner_id: string;
   version: number;
+  partner_type: string;
+  beneficiary_kind: string | null;
   legal_name: string;
   rccm: string;
   niu: string;
@@ -30,6 +35,8 @@ type StateRow = {
   partner_id: string;
   dossier_version: number;
   status: string;
+  partner_type: string;
+  beneficiary_kind: string | null;
   approval_request_id: string | null;
   validated_at: Date | null;
 };
@@ -51,10 +58,10 @@ export async function appendPartnerDossier(
   const dossier = createPartnerDossier(input);
   const result = await client.query<{ version: number }>(
     `INSERT INTO catalog.partner_dossier
-       (partner_id, version, legal_name, rccm, niu,
+       (partner_id, version, partner_type, beneficiary_kind, legal_name, rccm, niu,
         representative_document_ref, settlement_account_ref,
         dossier_hash, created_by, created_at)
-     SELECT $1, COALESCE(max(version), 0) + 1, $2, $3, $4, $5, $6, $7, $8, now()
+     SELECT $1, COALESCE(max(version), 0) + 1, $9, $10, $2, $3, $4, $5, $6, $7, $8, now()
      FROM catalog.partner_dossier WHERE partner_id = $1
      RETURNING version`,
     [
@@ -66,6 +73,8 @@ export async function appendPartnerDossier(
       dossier.settlementAccountRef,
       partnerDossierHash(dossier),
       createdBy,
+      dossier.partnerType,
+      dossier.beneficiaryKind,
     ],
   );
   const version = result.rows[0]?.version;
@@ -82,7 +91,7 @@ export async function getPartnerDossier(
   version: number,
 ): Promise<StoredPartnerDossier | null> {
   const result = await client.query<DossierRow>(
-    `SELECT partner_id, version, legal_name, rccm, niu,
+    `SELECT partner_id, version, partner_type, beneficiary_kind, legal_name, rccm, niu,
             representative_document_ref, settlement_account_ref, dossier_hash
      FROM catalog.partner_dossier
      WHERE partner_id = $1 AND version = $2`,
@@ -94,6 +103,8 @@ export async function getPartnerDossier(
   }
   const dossier = createPartnerDossier({
     partnerId: row.partner_id,
+    partnerType: row.partner_type as PartnerType,
+    beneficiaryKind: row.beneficiary_kind as BeneficiaryKind | null,
     legalName: row.legal_name,
     rccm: row.rccm,
     niu: row.niu,
@@ -159,7 +170,8 @@ export async function getPartner(
   partnerId: string,
 ): Promise<Partner | null> {
   const result = await client.query<StateRow>(
-    `SELECT partner_id, dossier_version, status, approval_request_id, validated_at
+    `SELECT partner_id, dossier_version, status, partner_type, beneficiary_kind,
+            approval_request_id, validated_at
      FROM catalog.partner_state WHERE partner_id = $1`,
     [partnerId],
   );
@@ -183,4 +195,43 @@ export async function getPartner(
     requestId: row.approval_request_id,
     validatedAt: row.validated_at.toISOString(),
   });
+}
+
+export type Beneficiary = {
+  readonly id: string;
+  readonly kind: BeneficiaryKind;
+  /** VERIFIED si le dossier courant est validé par maker-checker (F-PLN-001). */
+  readonly status: 'VERIFIED' | 'PENDING';
+};
+
+/**
+ * Bénéficiaire du modèle C : partenaire de type BENEFICIARY. Un marchand ou un
+ * partenaire inconnu n'est pas un bénéficiaire (null).
+ */
+export async function getBeneficiary(
+  client: SqlClient,
+  partnerId: string,
+): Promise<Beneficiary | null> {
+  const result = await client.query<StateRow>(
+    `SELECT partner_id, dossier_version, status, partner_type, beneficiary_kind,
+            approval_request_id, validated_at
+     FROM catalog.partner_state WHERE partner_id = $1`,
+    [partnerId],
+  );
+  const row = result.rows[0];
+  if (row === undefined || row.partner_type !== 'BENEFICIARY') {
+    return null;
+  }
+  const kind = row.beneficiary_kind;
+  if (kind === null || !(BENEFICIARY_KINDS as readonly string[]).includes(kind)) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Catégorie de bénéficiaire inconnue');
+  }
+  if (row.status !== 'VALIDATED' && row.status !== 'PENDING') {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Statut partenaire inconnu');
+  }
+  return {
+    id: row.partner_id,
+    kind: kind as BeneficiaryKind,
+    status: row.status === 'VALIDATED' ? 'VERIFIED' : 'PENDING',
+  };
 }

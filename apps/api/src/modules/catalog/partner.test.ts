@@ -17,6 +17,8 @@ const NOW = '2026-10-27T10:00:00.000Z';
 
 const INPUT: PartnerDossierInput = {
   partnerId: 'partner-1',
+  partnerType: 'MERCHANT',
+  beneficiaryKind: null,
   legalName: 'Électro Douala SARL',
   rccm: 'RC/DLA/2024/B/0001',
   niu: 'M000000000000A',
@@ -257,5 +259,36 @@ describe('F-PRT-001 · validation maker-checker', () => {
         }),
       'CATALOG_INVALID_REQUEST',
     );
+  });
+});
+
+describe('F-PLN-001 · CDC_05 · type de partenaire', () => {
+  it('F-PLN-001 accepte un bénéficiaire avec sa catégorie', () => {
+    const landlord = dossier({ partnerType: 'BENEFICIARY', beneficiaryKind: 'LANDLORD' });
+    expect(landlord.partnerType).toBe('BENEFICIARY');
+    expect(landlord.beneficiaryKind).toBe('LANDLORD');
+  });
+
+  it.each([
+    ['un bénéficiaire sans catégorie', { partnerType: 'BENEFICIARY', beneficiaryKind: null }],
+    ['un marchand avec catégorie', { partnerType: 'MERCHANT', beneficiaryKind: 'SCHOOL' }],
+    ['une catégorie inconnue', { partnerType: 'BENEFICIARY', beneficiaryKind: 'CHURCH' }],
+    ['un type inconnu', { partnerType: 'LENDER', beneficiaryKind: null }],
+  ])('F-PLN-001 refuse %s → CATALOG_INVALID_REQUEST', (_label, overrides) => {
+    expect(() => dossier(overrides as Partial<PartnerDossierInput>)).toThrowError(
+      expect.objectContaining({ code: 'CATALOG_INVALID_REQUEST' }),
+    );
+  });
+
+  it('SEC-AUTHZ-003 le type entre dans l’empreinte approuvée', () => {
+    const merchant = partnerDossierHash(dossier());
+    const beneficiary = partnerDossierHash(
+      dossier({ partnerType: 'BENEFICIARY', beneficiaryKind: 'AGENCY' }),
+    );
+    const otherKind = partnerDossierHash(
+      dossier({ partnerType: 'BENEFICIARY', beneficiaryKind: 'SCHOOL' }),
+    );
+    expect(merchant.equals(beneficiary)).toBe(false);
+    expect(beneficiary.equals(otherKind)).toBe(false);
   });
 });

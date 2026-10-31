@@ -23,6 +23,7 @@ import {
 } from '../../src/modules/catalog/partner';
 import {
   appendPartnerDossier,
+  getBeneficiary,
   getPartner,
   recordPartnerValidation,
 } from '../../src/modules/catalog/partner.store';
@@ -33,6 +34,9 @@ const MIGRATIONS = [
   'db/migrations/0006_admin_clock.sql',
   'db/migrations/0008_catalog_partner.sql',
   'db/migrations/0009_catalog_offer.sql',
+  'db/migrations/0011_agreements.sql',
+  'db/migrations/0012_agreements_customer_signature.sql',
+  'db/migrations/0013_partner_type_beneficiary.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const PREPARED_AT = '2026-10-27T08:00:00.000Z';
@@ -49,6 +53,8 @@ function uuid(seq: number): string {
 function dossier(overrides: Partial<PartnerDossier> = {}): PartnerDossier {
   return createPartnerDossier({
     partnerId: 'partner-1',
+    partnerType: 'MERCHANT',
+    beneficiaryKind: null,
     legalName: 'Électro Douala SARL',
     rccm: 'RC/DLA/2024/B/0001',
     niu: 'M000000000000A',
@@ -170,6 +176,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  await admin.query('DROP SCHEMA IF EXISTS agreements CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS catalog CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS admin CASCADE');
   for (const sql of migrationSql) {
@@ -206,10 +213,10 @@ describe('F-PRT-001 · onboarding partenaire (PostgreSQL réel)', () => {
     await transact('app_rw', async (client) => {
       await client.query(
         `INSERT INTO catalog.partner_dossier
-           (partner_id, version, legal_name, rccm, niu,
+           (partner_id, version, partner_type, legal_name, rccm, niu,
             representative_document_ref, settlement_account_ref,
             dossier_hash, created_by, created_at)
-         VALUES ('partner-1', 1, 'Électro Douala SARL', 'RC/DLA/2024/B/0001',
+         VALUES ('partner-1', 1, 'MERCHANT', 'Électro Douala SARL', 'RC/DLA/2024/B/0001',
                  'M000000000000A', 'kyc-doc-ref-0001', 'settlement-ref-0001',
                  $1, 'net-1', '2000-01-01T00:00:00Z')`,
         [partnerDossierHash(dossier())],
@@ -559,5 +566,87 @@ describe('F-PRT-002 · offres versionnées (PostgreSQL réel)', () => {
       const asOwner = await catchFailure(() => admin.query(statement));
       expect(asOwner.message).toContain('CATALOG_APPEND_ONLY');
     }
+  });
+});
+
+function landlordDossier(): PartnerDossier {
+  return dossier({
+    partnerId: 'landlord-1',
+    partnerType: 'BENEFICIARY',
+    beneficiaryKind: 'LANDLORD',
+  });
+}
+
+describe('F-PLN-001 · bénéficiaires vérifiés (PostgreSQL réel)', () => {
+  it('F-PLN-001 un bénéficiaire est PENDING puis VERIFIED après maker-checker', async () => {
+    await transact('app_rw', (client) => appendPartnerDossier(client, landlordDossier(), 'net-1'));
+    const pending = await transact('app_ro', (client) => getBeneficiary(client, 'landlord-1'));
+    expect(pending).toEqual({ id: 'landlord-1', kind: 'LANDLORD', status: 'PENDING' });
+    await transact('app_rw', async (client) => {
+      const decision = await approve(client, {
+        id: uuid(50),
+        payload: {
+          partner_id: 'landlord-1',
+          dossier_hash: partnerDossierHash(landlordDossier()).toString('hex'),
+        },
+      });
+      await recordPartnerValidation(client, {
+        partnerId: 'landlord-1',
+        dossierVersion: 1,
+        decision,
+      });
+    });
+    const verified = await transact('app_ro', (client) => getBeneficiary(client, 'landlord-1'));
+    expect(verified?.status).toBe('VERIFIED');
+  });
+
+  it('F-PLN-001 un marchand ou un inconnu n’est pas un bénéficiaire', async () => {
+    await transact('app_rw', (client) => validatePartner1(client));
+    expect(await transact('app_ro', (client) => getBeneficiary(client, 'partner-1'))).toBeNull();
+    expect(await transact('app_ro', (client) => getBeneficiary(client, 'nobody'))).toBeNull();
+  });
+
+  it('CDC_05 refuse en base un type et une catégorie incohérents', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO catalog.partner_dossier
+             (partner_id, version, partner_type, beneficiary_kind, legal_name, rccm, niu,
+              representative_document_ref, settlement_account_ref,
+              dossier_hash, created_by, created_at)
+           VALUES ('landlord-1', 1, 'BENEFICIARY', NULL, 'Bailleur', 'RC/1', 'M1',
+                   'kyc-1', 'settlement-1', $1, 'net-1', now())`,
+          [Buffer.alloc(32, 1)],
+        ),
+      ),
+    );
+    expect(failure.code).toBe('23514');
+    expect(failure.message).toContain('partner_dossier_kind_matches_type');
+  });
+
+  it('F-PRT-002 refuse qu’un bénéficiaire validé publie une offre', async () => {
+    await transact('app_rw', async (client) => {
+      const stored = await appendPartnerDossier(
+        client,
+        dossier({ partnerType: 'BENEFICIARY', beneficiaryKind: 'MATERIALS_SELLER' }),
+        'net-1',
+      );
+      const decision = await approve(client, {
+        id: uuid(51),
+        payload: approvalPayload(stored.dossier),
+      });
+      await recordPartnerValidation(client, {
+        partnerId: 'partner-1',
+        dossierVersion: stored.version,
+        decision,
+      });
+    });
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendOfferVersion(client, publishOffer(draftOffer()), 'net-1'),
+      ),
+    );
+    expect(failure.message).toContain('CATALOG_PARTNER_NOT_VALIDATED');
+    expect(failure.message).toContain('marchand');
   });
 });
