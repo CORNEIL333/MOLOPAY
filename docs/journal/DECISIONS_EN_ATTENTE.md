@@ -195,3 +195,12 @@
   - gel automatique des accords A `ACTIVE` dans la même transaction (tout ou rien) ; les accords gelés sont renvoyés pour notification (lot 17) ;
   - levée uniquement par une nouvelle version du dossier, créée après l'incident et validée en maker-checker ; l'incident reste au registre ; accords gelés non réactivés ; versions d'offre et brouillons antérieurs à l'incident restent bloqués jusqu'à republication ; récidive possible après levée ;
   - écart de prix d'un article équivalent : à la charge de la plateforme puis recouvré auprès du marchand (clause contractuelle à valider par le juriste) ; restitution au client si l'équivalent est moins cher ; choix du client signé. Mise en œuvre au lot 12.
+
+### D32 · Routes HTTP des accords : contrat OpenAPI en conflit avec CDC_05 (lot 10)
+- **Conflit signalé (non arbitré) :**
+  - `packages/contracts/openapi.json`, schéma `Goal.status` : `ACTIVE | LOCKED | COMPLETED | CANCELLED | FROZEN`.
+  - `CDC_05` § 5.2 : `DRAFT → ACTIVE → FUNDED → HANDED_OVER | PAID_TO_BENEFICIARY → CLOSED`, `CANCELLED_BY_CUSTOMER`, `REFUNDED`, `DISPUTED`, `FROZEN`, et « `LOCKED` est un attribut, pas un état ».
+  - `GoalRequest` (`offerId`, `quoteId`, `acceptTermsVersion`) crée un objectif directement, sans signature d'appareil ni PIN, alors que INT-NR-001 et SEC-AUTH-002 les exigent ; `QuoteRequest.durationMonths` (1–36) alors que le domaine a retenu des jours faute de source (D27).
+- **Manques constatés :** aucune couche HTTP authentifiée (seul `/health` existe) : pas de pool PostgreSQL dans Nest, pas de garde de session (`cookieAuth` / `client_session`), pas de store de tentatives PIN (verrouillage atomique).
+- **Recommandation :** (1) aligner le contrat sur CDC_05 (statuts du § 5.2 + booléen `locked`) ; (2) création en deux temps : `POST /v1/goals` crée un brouillon à partir du devis, puis `POST /v1/goals/{goalId}/activation` avec signature d'appareil + PIN ; idem `/cancellation` ; `/lock` ; (3) durée en **mois** comme le devis (tranche D27) ; (4) construire d'abord le socle HTTP (pool, garde de session, store PIN, erreurs RFC 9457, Idempotency-Key, contrôle d'origine) avant les routes.
+- **En attendant :** aucune route d'accord n'est exposée.
