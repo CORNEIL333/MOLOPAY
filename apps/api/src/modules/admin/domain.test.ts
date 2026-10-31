@@ -35,6 +35,7 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
     'PREPARE_LEDGER_REVERSAL',
+    'DECLARE_MERCHANT_DEFAULT',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -48,9 +49,11 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
     'APPROVE_PARTNER',
+    'DECLARE_MERCHANT_DEFAULT',
   ],
-  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT'],
-  PARTNER_NETWORK: ['PREPARE_PARTNER'],
+  // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
+  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT'],
+  PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT'],
   AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
 };
@@ -130,6 +133,21 @@ describe('RBAC · matrice rôle × action exhaustive', () => {
 });
 
 describe('ABAC · périmètre, plafond et motif', () => {
+  it('D31 exige un motif pour déclarer une défaillance marchand', () => {
+    const decision = authorize(principal('network-1', ['PARTNER_NETWORK']), 'DECLARE_MERCHANT_DEFAULT', {
+      partnerId: 'partner-1',
+    });
+    expect(decision).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+  });
+
+  it('D31 limite la déclaration au périmètre partenaire de l’agent', () => {
+    const decision = authorize(principal('network-1', ['PARTNER_NETWORK']), 'DECLARE_MERCHANT_DEFAULT', {
+      ...CONTEXT,
+      partnerId: 'partner-2',
+    });
+    expect(decision).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
+  });
+
   it('refuse un partenaire hors périmètre pour le réseau partenaires', () => {
     const decision = authorize(
       principal('network-1', ['PARTNER_NETWORK']),

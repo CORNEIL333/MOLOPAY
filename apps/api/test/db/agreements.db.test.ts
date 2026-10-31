@@ -24,9 +24,13 @@ import {
   type StoredAgreement,
 } from '../../src/modules/agreements/agreement.store';
 import { agreementTermsHash } from '../../src/modules/agreements/domain';
+import { declareMerchantDefault } from '../../src/modules/agreements/merchant-default';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
+  'db/migrations/0002_audit.sql',
+  'db/migrations/0005_audit_metadata.sql',
+  'db/migrations/0010_audit_catalog.sql',
   'db/migrations/0003_admin.sql',
   'db/migrations/0006_admin_clock.sql',
   'db/migrations/0008_catalog_partner.sql',
@@ -35,6 +39,7 @@ const MIGRATIONS = [
   'db/migrations/0012_agreements_customer_signature.sql',
   'db/migrations/0013_partner_type_beneficiary.sql',
   'db/migrations/0014_partner_incident.sql',
+  'db/migrations/0015_partner_default_lift.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const OFFER_ID = '019a9100-0000-7000-8000-0000000000f1';
@@ -287,6 +292,7 @@ beforeEach(async () => {
   await admin.query('DROP SCHEMA IF EXISTS agreements CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS catalog CASCADE');
   await admin.query('DROP SCHEMA IF EXISTS admin CASCADE');
+  await admin.query('DROP SCHEMA IF EXISTS audit CASCADE');
   for (const sql of migrationSql) {
     await admin.query(sql);
   }
@@ -1014,7 +1020,7 @@ describe('F-SAV-006 · défaillance marchand (PostgreSQL réel)', () => {
         }),
       ),
     );
-    expect(duplicate.code).toBe('23505');
+    expect(duplicate.message).toContain('CATALOG_PARTNER_IN_DEFAULT');
     for (const partnerId of ['landlord-1', 'nobody']) {
       const failure = await catchFailure(() =>
         transact('app_rw', (client) =>
@@ -1054,5 +1060,182 @@ describe('F-SAV-006 · défaillance marchand (PostgreSQL réel)', () => {
       const failure = await catchFailure(() => transact(null, (client) => client.query(sql)));
       expect(failure.message).toContain('CATALOG_APPEND_ONLY');
     }
+  });
+});
+
+/** Nouvelle version du dossier marchand validée par maker-checker (levée D31). */
+async function revalidateMerchant(requestId: string): Promise<void> {
+  await transact('app_rw', (client) =>
+    validatePartner(client, {
+      partnerId: 'partner-1',
+      requestId,
+      partnerType: 'MERCHANT',
+      beneficiaryKind: null,
+    }),
+  );
+}
+
+async function auditEvents(): Promise<
+  { action: string; reason: string | null; refs: Record<string, string> }[]
+> {
+  const rows = await admin.query<{
+    action: string;
+    reason: string | null;
+    refs: Record<string, string>;
+  }>('SELECT action, reason, refs FROM audit.event ORDER BY seq');
+  return rows.rows;
+}
+
+describe('D31 · déclaration, gel automatique et levée (PostgreSQL réel)', () => {
+  it('F-SAV-006 gèle les accords actifs et journalise dans la même transaction', async () => {
+    const active = (await activate(await createA(), deviceKeys())).agreement.terms.agreementId;
+    const draft = await transact('app_rw', (client) => insertAgreementA(client, { id: uuid(2) }));
+    const declaration = await transact('app_rw', (client) =>
+      declareMerchantDefault(client, {
+        incidentId: INCIDENT_ID,
+        partnerId: 'partner-1',
+        reason: 'Fermeture du magasin constatée',
+        actorId: 'network-1',
+      }),
+    );
+    expect(declaration.frozenAgreementIds).toEqual([active]);
+    expect((await stateOf(active)).status).toBe('FROZEN');
+    expect((await stateOf(draft)).status).toBe('DRAFT');
+    expect(await auditEvents()).toEqual([
+      {
+        action: 'MERCHANT_DEFAULT_DECLARED',
+        reason: 'Fermeture du magasin constatée',
+        refs: { incident_id: INCIDENT_ID, frozen_agreements: '1' },
+      },
+    ]);
+  });
+
+  it('F-SAV-006 un accord à l’empreinte altérée fait échouer toute la déclaration', async () => {
+    const tampered = await transact('app_rw', (client) => insertAgreementA(client));
+    await transact('app_rw', (client) =>
+      appendEvent(client, tampered, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        declareMerchantDefault(client, {
+          incidentId: INCIDENT_ID,
+          partnerId: 'partner-1',
+          reason: 'Fermeture du magasin constatée',
+          actorId: 'network-1',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_INVALID_REQUEST');
+    const incidents = await admin.query('SELECT id FROM catalog.partner_incident');
+    expect(incidents.rowCount).toBe(0);
+    expect(await auditEvents()).toHaveLength(0);
+    expect((await stateOf(tampered)).status).toBe('ACTIVE');
+  });
+
+  it('F-SAV-006 une seconde déclaration active est refusée sans aucun effet', async () => {
+    await transact('app_rw', (client) =>
+      declareMerchantDefault(client, {
+        incidentId: INCIDENT_ID,
+        partnerId: 'partner-1',
+        reason: 'Fermeture du magasin constatée',
+        actorId: 'network-1',
+      }),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        declareMerchantDefault(client, {
+          incidentId: uuid(33),
+          partnerId: 'partner-1',
+          reason: 'Doublon',
+          actorId: 'ops-1',
+        }),
+      ),
+    );
+    expect(failure.message).toContain('CATALOG_PARTNER_IN_DEFAULT');
+    expect(await auditEvents()).toHaveLength(1);
+  });
+
+  it('D31 une nouvelle version non validée ne lève pas la défaillance', async () => {
+    await declareDefault();
+    await transact('app_rw', (client) =>
+      appendPartnerDossier(
+        client,
+        createPartnerDossier({
+          partnerId: 'partner-1',
+          partnerType: 'MERCHANT',
+          beneficiaryKind: null,
+          legalName: 'Partenaire de test',
+          rccm: 'RC/DLA/2024/B/0001',
+          niu: 'M000000000000A',
+          representativeDocumentRef: 'kyc-doc-ref-0001',
+          settlementAccountRef: 'settlement-ref-0001',
+        }),
+        'net-1',
+      ),
+    );
+    const row = await admin.query<{ in_default: boolean; status: string }>(
+      `SELECT in_default, status FROM catalog.partner_state WHERE partner_id = 'partner-1'`,
+    );
+    expect(row.rows[0]).toEqual({ in_default: true, status: 'PENDING' });
+  });
+
+  it('D31 la revalidation maker-checker lève la défaillance sans réactiver les accords gelés', async () => {
+    const id = (await activate(await createA(), deviceKeys())).agreement.terms.agreementId;
+    await transact('app_rw', (client) =>
+      declareMerchantDefault(client, {
+        incidentId: INCIDENT_ID,
+        partnerId: 'partner-1',
+        reason: 'Fermeture du magasin constatée',
+        actorId: 'network-1',
+      }),
+    );
+    await revalidateMerchant(uuid(901));
+    const row = await admin.query<{ in_default: boolean }>(
+      `SELECT in_default FROM catalog.partner_state WHERE partner_id = 'partner-1'`,
+    );
+    expect(row.rows[0]?.in_default).toBe(false);
+    expect((await stateOf(id)).status).toBe('FROZEN');
+    const incidents = await admin.query('SELECT id FROM catalog.partner_incident');
+    expect(incidents.rowCount).toBe(1);
+    expect(await transact('app_ro', (client) => listVisibleOffers(client))).toHaveLength(0);
+    const stale = await catchFailure(() =>
+      transact('app_rw', (client) => insertAgreementA(client, { id: uuid(3) })),
+    );
+    expect(stale.message).toContain('AGREEMENT_OFFER_NOT_AVAILABLE');
+    await transact('app_rw', (client) => appendOfferVersion(client, offer(150_000n), 'net-1'));
+    expect(await transact('app_ro', (client) => listVisibleOffers(client))).toHaveLength(1);
+    const fresh = await transact('app_rw', (client) =>
+      insertAgreementA(client, { id: uuid(4), offerVersion: 2 }),
+    );
+    expect((await stateOf(fresh)).status).toBe('DRAFT');
+  });
+
+  it('D31 un brouillon antérieur à l’incident ne s’active pas après la levée', async () => {
+    const draft = await transact('app_rw', (client) => insertAgreementA(client));
+    await declareDefault();
+    await revalidateMerchant(uuid(901));
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendEvent(client, draft, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+      ),
+    );
+    expect(failure.message).toContain('AGREEMENT_OFFER_NOT_AVAILABLE');
+  });
+
+  it('D31 une récidive peut être déclarée après une levée', async () => {
+    await declareDefault();
+    await revalidateMerchant(uuid(901));
+    await transact('app_rw', (client) =>
+      recordMerchantDefault(client, {
+        id: uuid(34),
+        partnerId: 'partner-1',
+        reason: 'Nouvelle défaillance',
+        reportedBy: 'risk-1',
+      }),
+    );
+    const row = await admin.query<{ in_default: boolean }>(
+      `SELECT in_default FROM catalog.partner_state WHERE partner_id = 'partner-1'`,
+    );
+    expect(row.rows[0]?.in_default).toBe(true);
   });
 });

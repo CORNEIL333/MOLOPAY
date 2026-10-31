@@ -88,7 +88,8 @@ export function auditUuidv7(now: number = Date.now()): string {
  * lecture du dernier maillon, comme pour le grand livre.
  */
 export async function appendAuditEvent(
-  client: PoolClient,
+  // Un Client ou un PoolClient suffit : seule `query` est utilisée.
+  client: Pick<PoolClient, 'query'>,
   input: AuditAppendInput,
 ): Promise<AuditEventRecord> {
   await client.query('SELECT audit.lock_chain()');

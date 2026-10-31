@@ -131,6 +131,7 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       RECOVERY_COMPLETED: IDENTITY_REF_KEYS,
       PLAN_ACTIVATED: ['plan_id', 'offer_id', 'model'],
       PLAN_ACTIVATION_DENIED: ['plan_id', 'offer_id', 'model', 'error_code'],
+      MERCHANT_DEFAULT_DECLARED: ['incident_id', 'frozen_agreements'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

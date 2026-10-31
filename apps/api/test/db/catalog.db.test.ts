@@ -38,6 +38,7 @@ const MIGRATIONS = [
   'db/migrations/0012_agreements_customer_signature.sql',
   'db/migrations/0013_partner_type_beneficiary.sql',
   'db/migrations/0014_partner_incident.sql',
+  'db/migrations/0015_partner_default_lift.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const PREPARED_AT = '2026-10-27T08:00:00.000Z';

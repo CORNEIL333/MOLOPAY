@@ -32,6 +32,7 @@ export const ADMIN_ACTIONS = [
   'APPROVE_PARTNER',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
+  'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
 ] as const;
@@ -77,6 +78,7 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
     'PREPARE_LEDGER_REVERSAL',
+    'DECLARE_MERCHANT_DEFAULT',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -90,12 +92,16 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
     'APPROVE_PARTNER',
+    'DECLARE_MERCHANT_DEFAULT',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
     'MANAGE_RISK_ALERT',
+    'DECLARE_MERCHANT_DEFAULT',
   ]),
-  PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER']),
+  // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
+  // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
+  PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT']),
   AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG']),
   TECH_ADMIN: new Set<AdminAction>([
     'MANAGE_USERS',
@@ -108,6 +114,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'READ_IDENTITY_DOCUMENT',
   'READ_FINANCIAL_HISTORY',
   'EXPORT_AUDIT_LOG',
+  'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
 ]);
@@ -115,6 +122,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'PREPARE_PARTNER',
   'APPROVE_PARTNER',
+  'DECLARE_MERCHANT_DEFAULT',
 ]);
 
 const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
