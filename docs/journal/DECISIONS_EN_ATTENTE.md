@@ -166,3 +166,9 @@
 - **Barème de restitution :** seul le barème par défaut publié (100 %, sans frais) est accepté (`FULL_NO_FEE`) ; aucun autre barème n'est inventé.
 - **Plan :** les champs de `CDC_05` § 4 (`rhythm`, `min_amount`, `max_duration`) sont utilisés ; un plan porte un seul rythme et le client choisit son rythme en choisissant le plan. Unité de `max_duration` non précisée : **jours** retenus. Le circuit d'approbation reste D26.
 - **À trancher :** transitions d'annulation depuis `FUNDED` ; unité de durée ; liste des barèmes autorisés.
+
+### D28 · Format de la signature d'appareil des accords (lot 10)
+- **Constat :** INT-NR-001 et SEC-AUTH-002 exigent une signature par la clé de l'appareil (Ed25519, module identity) pour l'acceptation et l'annulation, sans fixer le message signé.
+- **Option appliquée :** message = JCS de `{domain: "agreement-transition-v1", agreement_id, terms_hash, from, to, seq}` ; le rang `seq` empêche de rejouer une signature sur un autre événement ; la base exige `device_id` + `signature` exactement pour `DRAFT → ACTIVE` et `ACTIVE → CANCELLED_BY_CUSTOMER` (migration 0012) et les refuse ailleurs. La vérification Ed25519 est faite par l'application (PostgreSQL n'a pas Ed25519) ; signature et empreinte sont conservées pour le vérificateur.
+- **Reste à câbler :** la preuve de saisie du PIN (SEC-AUTH-002 « après saisie du PIN ») et la lecture de l'appareil depuis identity se feront dans le contrôleur HTTP (agreements ne peut pas importer identity).
+- **À trancher :** valider ce format avant que l'app mobile ne l'implémente (lot 19).

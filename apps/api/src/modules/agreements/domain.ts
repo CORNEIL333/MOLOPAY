@@ -79,11 +79,12 @@ export type AgreementTerms = {
   readonly minAmountXaf: bigint;
   readonly durationDays: number;
   readonly refundPolicy: RefundPolicy;
-  readonly createdAt: string;
 };
 
 export type Agreement = {
   readonly terms: AgreementTerms;
+  /** Horodatage de création ; la base l’ancre sur son horloge, hors empreinte. */
+  readonly createdAt: string;
   /** Empreinte SHA-256 (hex) de la forme canonique JCS des conditions. */
   readonly termsHash: string;
   readonly status: AgreementStatus;
@@ -199,7 +200,6 @@ function termsToJson(terms: AgreementTerms): Parameters<typeof canonicalize>[0] 
     min_amount_xaf: toCanonicalString(xaf(terms.minAmountXaf)),
     duration_days: terms.durationDays,
     refund_policy: terms.refundPolicy,
-    created_at: terms.createdAt,
   };
 }
 
@@ -253,7 +253,6 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
       minAmountXaf: plan.minAmountXaf,
       durationDays,
       refundPolicy: 'FULL_NO_FEE',
-      createdAt,
     };
   } else {
     const beneficiary = input.beneficiary;
@@ -278,7 +277,6 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
       minAmountXaf: plan.minAmountXaf,
       durationDays,
       refundPolicy: 'FULL_NO_FEE',
-      createdAt,
     };
   }
   if (terms.minAmountXaf > terms.targetXaf) {
@@ -287,6 +285,7 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
   const frozenTerms = Object.freeze(terms);
   return Object.freeze({
     terms: frozenTerms,
+    createdAt,
     termsHash: agreementTermsHash(frozenTerms),
     status: 'DRAFT',
     locked: false,

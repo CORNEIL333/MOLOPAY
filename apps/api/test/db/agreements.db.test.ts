@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { canonicalize, type JsonValue } from '@achat/chain';
@@ -11,6 +11,17 @@ import {
   appendPartnerDossier,
   recordPartnerValidation,
 } from '../../src/modules/catalog/partner.store';
+import {
+  agreementSigningPayload,
+  appendAgreementTransition,
+  createPlannedExpenseAgreement,
+  createSaveThenBuyAgreement,
+  getAgreement,
+  lockStoredAgreement,
+  type SigningDevice,
+  type StoredAgreement,
+} from '../../src/modules/agreements/agreement.store';
+import { agreementTermsHash } from '../../src/modules/agreements/domain';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
@@ -19,6 +30,7 @@ const MIGRATIONS = [
   'db/migrations/0008_catalog_partner.sql',
   'db/migrations/0009_catalog_offer.sql',
   'db/migrations/0011_agreements.sql',
+  'db/migrations/0012_agreements_customer_signature.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const OFFER_ID = '019a9100-0000-7000-8000-0000000000f1';
@@ -191,8 +203,8 @@ async function appendEvent(
   const signed =
     options.signed ??
     ((options.kind ?? 'TRANSITION') === 'TRANSITION' &&
-      options.from === 'DRAFT' &&
-      options.to === 'ACTIVE');
+      ((options.from === 'DRAFT' && options.to === 'ACTIVE') ||
+        (options.from === 'ACTIVE' && options.to === 'CANCELLED_BY_CUSTOMER')));
   await client.query(
     `INSERT INTO agreements.status_event
        (agreement_id, seq, kind, from_status, to_status, device_id, signature,
@@ -407,7 +419,39 @@ describe('CDC_05 § 5.2 · transitions imposées par la base (PostgreSQL réel)'
       ),
     );
     expect(failure.code).toBe('23514');
-    expect(failure.message).toContain('status_event_activation_signed');
+    expect(failure.message).toContain('status_event_customer_signed');
+  });
+
+  it('SEC-AUTH-002 refuse une annulation client sans signature d’appareil', async () => {
+    const id = await transact('app_rw', (client) => insertAgreementA(client));
+    await transact('app_rw', (client) =>
+      appendEvent(client, id, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendEvent(client, id, {
+          seq: 2,
+          from: 'ACTIVE',
+          to: 'CANCELLED_BY_CUSTOMER',
+          signed: false,
+        }),
+      ),
+    );
+    expect(failure.code).toBe('23514');
+    expect(failure.message).toContain('status_event_customer_signed');
+  });
+
+  it('SEC-AUTH-002 refuse une signature sur une transition qui n’en attend pas', async () => {
+    const id = await transact('app_rw', (client) => insertAgreementA(client));
+    await transact('app_rw', (client) =>
+      appendEvent(client, id, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendEvent(client, id, { seq: 2, from: 'ACTIVE', to: 'FROZEN', signed: true }),
+      ),
+    );
+    expect(failure.code).toBe('23514');
   });
 
   it('CDC_05 refuse une transition hors liste blanche', async () => {
@@ -541,4 +585,249 @@ describe('CDC_05 § 5.2 · transitions imposées par la base (PostgreSQL réel)'
       expect(failure.message).toContain('AGREEMENT_LEDGER_LINK_REQUIRED');
     },
   );
+});
+
+const PLAN_A = {
+  id: 'plan-a',
+  model: 'SAVE_THEN_BUY',
+  approved: true,
+  rhythm: 'WEEKLY',
+  minAmountXaf: 5_000n,
+  maxDurationDays: 180,
+} as const;
+
+function deviceKeys(accountId = CUSTOMER_ID, status = 'ACTIVE'): {
+  readonly device: SigningDevice;
+  readonly sign: (payload: Buffer) => Buffer;
+} {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  return {
+    device: {
+      id: DEVICE_ID,
+      accountId,
+      status,
+      publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+    },
+    sign: (payload) => sign(null, payload, privateKey),
+  };
+}
+
+function payloadFor(
+  stored: StoredAgreement,
+  to: 'ACTIVE' | 'CANCELLED_BY_CUSTOMER',
+): Buffer {
+  return agreementSigningPayload({
+    agreementId: stored.agreement.terms.agreementId,
+    termsHash: stored.agreement.termsHash,
+    from: stored.agreement.status,
+    to,
+    seq: stored.seq + 1,
+  });
+}
+
+async function createA(): Promise<StoredAgreement> {
+  return transact('app_rw', (client) =>
+    createSaveThenBuyAgreement(client, {
+      id: uuid(10),
+      customerId: CUSTOMER_ID,
+      offerId: OFFER_ID,
+      plan: PLAN_A,
+      durationDays: 90,
+      createdAt: '2026-10-31T09:00:00.000Z',
+    }),
+  );
+}
+
+async function activate(
+  stored: StoredAgreement,
+  keys: ReturnType<typeof deviceKeys>,
+): Promise<StoredAgreement> {
+  return transact('app_rw', (client) =>
+    appendAgreementTransition(client, {
+      agreementId: stored.agreement.terms.agreementId,
+      to: 'ACTIVE',
+      actorId: 'client-1',
+      signature: { device: keys.device, signature: keys.sign(payloadFor(stored, 'ACTIVE')) },
+    }),
+  );
+}
+
+describe('F-SAV-001 · INT-NR-001 · store des accords (PostgreSQL réel)', () => {
+  it('F-CAT-003 crée un accord A au prix de la version courante, empreinte relue', async () => {
+    const stored = await createA();
+    expect(stored.seq).toBe(0);
+    expect(stored.agreement.status).toBe('DRAFT');
+    expect(stored.agreement.terms.targetXaf).toBe(150_000n);
+    expect(stored.agreement.terms.offerVersion).toBe(1);
+    expect(stored.agreement.termsHash).toBe(agreementTermsHash(stored.agreement.terms));
+  });
+
+  it('I-11 le prix d’un accord existant ne suit pas un changement de prix', async () => {
+    const stored = await createA();
+    await transact('app_rw', (client) => appendOfferVersion(client, offer(199_000n), 'net-1'));
+    const reread = await transact('app_ro', (client) =>
+      getAgreement(client, stored.agreement.terms.agreementId),
+    );
+    expect(reread?.agreement.terms.targetXaf).toBe(150_000n);
+  });
+
+  it('F-PLN-001 crée un objectif C vers un bénéficiaire vérifié', async () => {
+    const stored = await transact('app_rw', (client) =>
+      createPlannedExpenseAgreement(client, {
+        id: uuid(11),
+        customerId: CUSTOMER_ID,
+        beneficiary: { id: 'landlord-1', status: 'VERIFIED' },
+        targetXaf: 300_000n,
+        plan: { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE' },
+        durationDays: 120,
+        createdAt: '2026-10-31T09:00:00.000Z',
+      }),
+    );
+    expect(stored.agreement.terms.beneficiaryId).toBe('landlord-1');
+  });
+
+  it('INT-NR-001 active un accord signé par l’appareil du client', async () => {
+    const active = await activate(await createA(), deviceKeys());
+    expect(active.agreement.status).toBe('ACTIVE');
+    expect(active.seq).toBe(1);
+  });
+
+  it.each([
+    ['sans signature', 'none'],
+    ['signée par une autre clé', 'other-key'],
+    ['par l’appareil d’un autre client', 'other-customer'],
+    ['par un appareil révoqué', 'revoked'],
+    ['avec une signature d’un autre rang', 'wrong-seq'],
+  ])('INT-NR-001 refuse une activation %s → AGREEMENT_SIGNATURE_INVALID', async (_label, variant) => {
+    const stored = await createA();
+    const keys =
+      variant === 'other-customer'
+        ? deviceKeys(uuid(99))
+        : variant === 'revoked'
+          ? deviceKeys(CUSTOMER_ID, 'REVOKED')
+          : deviceKeys();
+    const signer = variant === 'other-key' ? deviceKeys() : keys;
+    const payload =
+      variant === 'wrong-seq'
+        ? agreementSigningPayload({
+            agreementId: stored.agreement.terms.agreementId,
+            termsHash: stored.agreement.termsHash,
+            from: 'DRAFT',
+            to: 'ACTIVE',
+            seq: 2,
+          })
+        : payloadFor(stored, 'ACTIVE');
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendAgreementTransition(client, {
+          agreementId: stored.agreement.terms.agreementId,
+          to: 'ACTIVE',
+          actorId: 'client-1',
+          ...(variant === 'none'
+            ? {}
+            : { signature: { device: keys.device, signature: signer.sign(payload) } }),
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_SIGNATURE_INVALID');
+    const reread = await transact('app_ro', (client) =>
+      getAgreement(client, stored.agreement.terms.agreementId),
+    );
+    expect(reread?.agreement.status).toBe('DRAFT');
+  });
+
+  it('SEC-AUTH-002 refuse de rejouer la signature d’activation pour annuler', async () => {
+    const stored = await createA();
+    const keys = deviceKeys();
+    const activation = keys.sign(payloadFor(stored, 'ACTIVE'));
+    await transact('app_rw', (client) =>
+      appendAgreementTransition(client, {
+        agreementId: stored.agreement.terms.agreementId,
+        to: 'ACTIVE',
+        actorId: 'client-1',
+        signature: { device: keys.device, signature: activation },
+      }),
+    );
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendAgreementTransition(client, {
+          agreementId: stored.agreement.terms.agreementId,
+          to: 'CANCELLED_BY_CUSTOMER',
+          actorId: 'client-1',
+          signature: { device: keys.device, signature: activation },
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_SIGNATURE_INVALID');
+  });
+
+  it('F-SAV-003 verrouille puis refuse l’annulation signée', async () => {
+    const keys = deviceKeys();
+    await activate(await createA(), keys);
+    const id = uuid(10);
+    const locked = await transact('app_rw', (client) =>
+      lockStoredAgreement(client, { agreementId: id, actorId: 'client-1' }),
+    );
+    expect(locked.agreement.locked).toBe(true);
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendAgreementTransition(client, {
+          agreementId: id,
+          to: 'CANCELLED_BY_CUSTOMER',
+          actorId: 'client-1',
+          signature: {
+            device: keys.device,
+            signature: keys.sign(payloadFor(locked, 'CANCELLED_BY_CUSTOMER')),
+          },
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_LOCKED');
+  });
+
+  it('F-SAV-005 annule un objectif actif avec signature', async () => {
+    const keys = deviceKeys();
+    const active = await activate(await createA(), keys);
+    const cancelled = await transact('app_rw', (client) =>
+      appendAgreementTransition(client, {
+        agreementId: uuid(10),
+        to: 'CANCELLED_BY_CUSTOMER',
+        actorId: 'client-1',
+        signature: {
+          device: keys.device,
+          signature: keys.sign(payloadFor(active, 'CANCELLED_BY_CUSTOMER')),
+        },
+      }),
+    );
+    expect(cancelled.agreement.status).toBe('CANCELLED_BY_CUSTOMER');
+  });
+
+  it('CDC_05 refuse une signature fournie pour une transition non client', async () => {
+    const keys = deviceKeys();
+    await activate(await createA(), keys);
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendAgreementTransition(client, {
+          agreementId: uuid(10),
+          to: 'FROZEN',
+          actorId: 'ops-1',
+          signature: { device: keys.device, signature: Buffer.alloc(64) },
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_INVALID_REQUEST');
+  });
+
+  it('AGREEMENT_NOT_FOUND pour un accord inconnu', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendAgreementTransition(client, {
+          agreementId: uuid(77),
+          to: 'FROZEN',
+          actorId: 'ops-1',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_NOT_FOUND');
+  });
 });
