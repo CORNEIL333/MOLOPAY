@@ -1,7 +1,7 @@
 # État du sprint — 2026-10-29 (reprise sous Claude Code)
 
 - **Branche :** `sprint/integration` (jamais `main`, aucun remote)
-- **Lot en cours :** 09 Catalog (partenaires, offres versionnées et journalisation F-CAT-002 faits ; plans bloqués par D26)
+- **Lot en cours :** 10 Agreements A/C (domaine + migration 0011 faits) ; lot 09 partiel (plans bloqués par D26)
 - **Journal du jour :** `docs/journal/2026-10-28.md` (précédent : `2026-10-26.md`)
 - **Client web :** PWA commitée (`d896b37`), ADR-0006 **Proposé**, fusion soumise au fondateur
 
@@ -30,10 +30,11 @@
 | 06 · Identity | terminé (code) | stores OTP/rotation atomiques, solde dérivé du grand livre ; 32 tests base écrits, non exécutés |
 | 08 · Admin | terminé (code) | 184 tests domaine verts ; 13 tests base écrits |
 | 09 · Catalog | partiel | onboarding partenaire maker-checker (`0eb1088`, `f82bb11`) ; offres versionnées 0009 (`bbcc012`) ; activation de plan journalisée + `CATALOG_ACTION` 0010 (`d69e1ee`) ; persistance des plans en attente de D26 |
+| 10 · Agreements A/C | partiel | domaine `a1438ae` (233 tests verts, 100 % des paires de transitions) ; migration 0011 `b915c63` (prix figé et transitions imposés par la base, FUNDED/REFUNDED bloqués sans lien grand livre) ; **24 tests base écrits, non exécutés** ; D27 |
 
 ## Prochaine étape exacte
 
-1. ~~Exécuter les tests base~~ : fait le 2026-10-29, **110/110 verts** sur PostgreSQL 16.15 réel (D24).
+1. ~~Exécuter les tests base~~ : fait le 2026-10-29, **110/110 verts** sur PostgreSQL 16.15 réel (D24). Relancer la grappe jetable (port 54329, arrêtée par le système faute de mémoire) pour exécuter les 24 tests de `agreements.db.test.ts`.
 2. Réparer `pnpm` 12.6.0 sur le poste et relancer `pnpm security:scan` (SCA non exécutée).
 3. Lot 09 : persistance des plans approuvés après décision D26 ; sinon passer au lot 10 (accords A/C, prix figé sur `(offer_id, version)`).
 4. Contrôleurs HTTP derrière un guard réel, puis lot 11 (paiements).
