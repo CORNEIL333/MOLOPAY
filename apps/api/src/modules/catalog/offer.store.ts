@@ -207,8 +207,8 @@ export async function getCurrentOffer(
 }
 
 /**
- * Catalogue public : seules les offres publiées d'un partenaire validé sont
- * lues, puis le filtre client est appliqué par le domaine (F-CAT-004).
+ * Catalogue public : seules les offres publiées d'un partenaire validé et non
+ * défaillant (F-SAV-006) sont lues, puis le filtre client est appliqué par le domaine (F-CAT-004).
  */
 export async function listVisibleOffers(
   client: SqlClient,
@@ -217,6 +217,7 @@ export async function listVisibleOffers(
   const result = await client.query<OfferCurrentRow>(
     `SELECT ${CURRENT_COLUMNS} FROM catalog.offer_current
      WHERE state = 'PUBLISHED' AND partner_status = 'VALIDATED'
+       AND NOT partner_in_default
      ORDER BY offer_id`,
   );
   return filterOffers(

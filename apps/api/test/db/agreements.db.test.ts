@@ -5,10 +5,11 @@ import { canonicalize, type JsonValue } from '@achat/chain';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createOffer, publishOffer, type Offer } from '../../src/modules/catalog/domain';
-import { appendOfferVersion } from '../../src/modules/catalog/offer.store';
+import { appendOfferVersion, listVisibleOffers } from '../../src/modules/catalog/offer.store';
 import { createPartnerDossier, partnerDossierHash } from '../../src/modules/catalog/partner';
 import {
   appendPartnerDossier,
+  recordMerchantDefault,
   recordPartnerValidation,
 } from '../../src/modules/catalog/partner.store';
 import {
@@ -17,6 +18,7 @@ import {
   createPlannedExpenseAgreement,
   createSaveThenBuyAgreement,
   getAgreement,
+  listAgreementsAffectedByDefault,
   lockStoredAgreement,
   type SigningDevice,
   type StoredAgreement,
@@ -32,6 +34,7 @@ const MIGRATIONS = [
   'db/migrations/0011_agreements.sql',
   'db/migrations/0012_agreements_customer_signature.sql',
   'db/migrations/0013_partner_type_beneficiary.sql',
+  'db/migrations/0014_partner_incident.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const OFFER_ID = '019a9100-0000-7000-8000-0000000000f1';
@@ -924,5 +927,132 @@ describe('F-PLN-001 · bénéficiaire vérifié imposé (PostgreSQL réel)', () 
       ),
     );
     expect(failure.code).toBe('AGREEMENT_BENEFICIARY_NOT_VERIFIED');
+  });
+});
+
+const INCIDENT_ID = '019a9100-0000-7000-8000-0000000000e1';
+
+async function declareDefault(): Promise<void> {
+  await transact('app_rw', (client) =>
+    recordMerchantDefault(client, {
+      id: INCIDENT_ID,
+      partnerId: 'partner-1',
+      reason: 'Fermeture du magasin constatée',
+      reportedBy: 'ops-1',
+    }),
+  );
+}
+
+describe('F-SAV-006 · défaillance marchand (PostgreSQL réel)', () => {
+  it('F-SAV-006 trace l’incident et retire les offres du catalogue public', async () => {
+    expect(await transact('app_ro', (client) => listVisibleOffers(client))).toHaveLength(1);
+    await declareDefault();
+    const row = await admin.query<{ in_default: boolean }>(
+      `SELECT in_default FROM catalog.partner_state WHERE partner_id = 'partner-1'`,
+    );
+    expect(row.rows[0]?.in_default).toBe(true);
+    expect(await transact('app_ro', (client) => listVisibleOffers(client))).toHaveLength(0);
+  });
+
+  it('F-SAV-006 refuse une nouvelle publication du marchand défaillant', async () => {
+    await declareDefault();
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) => appendOfferVersion(client, offer(140_000n), 'net-1')),
+    );
+    expect(failure.message).toContain('CATALOG_PARTNER_IN_DEFAULT');
+  });
+
+  it('F-SAV-006 refuse un nouvel accord A chez le marchand défaillant', async () => {
+    await declareDefault();
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) => insertAgreementA(client)),
+    );
+    expect(failure.message).toContain('AGREEMENT_OFFER_NOT_AVAILABLE');
+  });
+
+  it('F-SAV-006 refuse l’activation d’un brouillon antérieur à la défaillance', async () => {
+    const id = await transact('app_rw', (client) => insertAgreementA(client));
+    await declareDefault();
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        appendEvent(client, id, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+      ),
+    );
+    expect(failure.message).toContain('AGREEMENT_OFFER_NOT_AVAILABLE');
+  });
+
+  it('F-SAV-006 liste les accords touchés avec les deux remèdes, puis permet le gel', async () => {
+    const id = await transact('app_rw', (client) => insertAgreementA(client));
+    await transact('app_rw', (client) =>
+      appendEvent(client, id, { seq: 1, from: 'DRAFT', to: 'ACTIVE' }),
+    );
+    expect(
+      await transact('app_ro', (client) => listAgreementsAffectedByDefault(client, 'partner-1')),
+    ).toEqual([]);
+    await declareDefault();
+    const affected = await transact('app_ro', (client) =>
+      listAgreementsAffectedByDefault(client, 'partner-1'),
+    );
+    expect(affected).toEqual([
+      { agreementId: id, status: 'ACTIVE', remedies: ['EQUIVALENT_ITEM', 'FULL_REFUND'] },
+    ]);
+    await transact('app_rw', (client) =>
+      appendEvent(client, id, { seq: 2, from: 'ACTIVE', to: 'FROZEN' }),
+    );
+    expect((await stateOf(id)).status).toBe('FROZEN');
+  });
+
+  it('F-SAV-006 refuse un doublon, un bénéficiaire et un partenaire inconnu', async () => {
+    await declareDefault();
+    const duplicate = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        recordMerchantDefault(client, {
+          id: uuid(31),
+          partnerId: 'partner-1',
+          reason: 'Second signalement',
+          reportedBy: 'ops-2',
+        }),
+      ),
+    );
+    expect(duplicate.code).toBe('23505');
+    for (const partnerId of ['landlord-1', 'nobody']) {
+      const failure = await catchFailure(() =>
+        transact('app_rw', (client) =>
+          recordMerchantDefault(client, {
+            id: uuid(32),
+            partnerId,
+            reason: 'Signalement',
+            reportedBy: 'ops-1',
+          }),
+        ),
+      );
+      expect(failure.message).toContain('CATALOG_INVALID_REQUEST');
+    }
+  });
+
+  it('F-SAV-006 refuse un motif vide avant toute écriture', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        recordMerchantDefault(client, {
+          id: INCIDENT_ID,
+          partnerId: 'partner-1',
+          reason: '   ',
+          reportedBy: 'ops-1',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('CATALOG_INVALID_REQUEST');
+  });
+
+  it('F-SAV-006 le registre est en ajout seul, même pour le propriétaire', async () => {
+    await declareDefault();
+    for (const sql of [
+      `UPDATE catalog.partner_incident SET reason = 'effacé'`,
+      'DELETE FROM catalog.partner_incident',
+      'TRUNCATE catalog.partner_incident',
+    ]) {
+      const failure = await catchFailure(() => transact(null, (client) => client.query(sql)));
+      expect(failure.message).toContain('CATALOG_APPEND_ONLY');
+    }
   });
 });

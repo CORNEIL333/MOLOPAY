@@ -430,3 +430,36 @@ export async function lockStoredAgreement(
   });
   return reload(client, input.agreementId);
 }
+
+// Accords A d'un marchand défaillant pour lesquels l'article n'est pas remis
+// et aucune restitution n'est engagée : remède à proposer (F-SAV-006).
+const DEFAULT_AFFECTED_STATUSES = ['DRAFT', 'ACTIVE', 'FUNDED', 'DISPUTED', 'FROZEN'];
+
+export type DefaultRemedy = 'EQUIVALENT_ITEM' | 'FULL_REFUND';
+
+export type AffectedAgreement = {
+  readonly agreementId: string;
+  readonly status: AgreementStatus;
+  /** F-SAV-006 : article équivalent ou remboursement intégral. */
+  readonly remedies: readonly DefaultRemedy[];
+};
+
+export async function listAgreementsAffectedByDefault(
+  client: SqlClient,
+  partnerId: string,
+): Promise<readonly AffectedAgreement[]> {
+  const result = await client.query<{ id: string; status: string }>(
+    `SELECT s.id, s.status
+     FROM agreements.agreement_state s
+     JOIN catalog.partner_state p ON p.partner_id = s.partner_id
+     WHERE s.model = 'SAVE_THEN_BUY' AND s.partner_id = $1
+       AND p.in_default AND s.status = ANY ($2::text[])
+     ORDER BY s.id`,
+    [partnerId, DEFAULT_AFFECTED_STATUSES],
+  );
+  return result.rows.map((row) => ({
+    agreementId: row.id,
+    status: oneOf<AgreementStatus>(AGREEMENT_STATUSES, row.status, 'status'),
+    remedies: ['EQUIVALENT_ITEM', 'FULL_REFUND'],
+  }));
+}

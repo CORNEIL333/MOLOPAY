@@ -235,3 +235,58 @@ export async function getBeneficiary(
     status: row.status === 'VALIDATED' ? 'VERIFIED' : 'PENDING',
   };
 }
+
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const ACTOR_ID = /^[^\s]{1,200}$/;
+
+export type MerchantDefault = {
+  readonly id: string;
+  readonly partnerId: string;
+  readonly reason: string;
+  readonly reportedBy: string;
+  readonly recordedAt: string;
+};
+
+/**
+ * Trace une défaillance marchand au registre des partenaires (F-SAV-006).
+ * Effet uniquement restrictif ; la base refuse un doublon, un partenaire
+ * inconnu ou un bénéficiaire, et ancre l'horodatage.
+ */
+export async function recordMerchantDefault(
+  client: SqlClient,
+  input: {
+    readonly id: string;
+    readonly partnerId: string;
+    readonly reason: string;
+    readonly reportedBy: string;
+  },
+): Promise<MerchantDefault> {
+  if (!UUID_V7.test(input.id)) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'id doit être un UUID v7');
+  }
+  if (!ACTOR_ID.test(input.reportedBy)) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'reportedBy invalide');
+  }
+  const reason = typeof input.reason === 'string' ? input.reason.trim() : '';
+  if (reason.length === 0 || reason.length > 500 || reason !== input.reason) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Motif obligatoire (500 caractères max)');
+  }
+  const result = await client.query<{ created_at: Date }>(
+    `INSERT INTO catalog.partner_incident
+       (id, partner_id, kind, reason, reported_by, created_at)
+     VALUES ($1, $2, 'MERCHANT_DEFAULT', $3, $4, now())
+     RETURNING created_at`,
+    [input.id, input.partnerId, reason, input.reportedBy],
+  );
+  const recordedAt = result.rows[0]?.created_at;
+  if (recordedAt === undefined) {
+    throw new BusinessError('CATALOG_INVALID_REQUEST', 'Incident non enregistré');
+  }
+  return {
+    id: input.id,
+    partnerId: input.partnerId,
+    reason,
+    reportedBy: input.reportedBy,
+    recordedAt: recordedAt.toISOString(),
+  };
+}

@@ -184,3 +184,9 @@
 - **Option appliquée :** `tools/ci-local.ts` (`pnpm ci:local`, ou `node_modules/.bin/tsx tools/ci-local.ts`) rejoue les mêmes étapes que la CI sur le poste, tests base compris contre une base locale jetable (`DATABASE_URL`). Aucune étape n'est sautée ; tout échec rend le code de sortie non nul. Le workflow GitHub est inchangé et reprendra seul au déblocage.
 - **Limite :** la SCA échoue tant que `pnpm` est cassé sur le poste (D24) ; c'est un échec d'outillage, pas un résultat d'audit. Réparation possible : `npm install -g pnpm@12.6.0`.
 - **Premier passage :** 11 étapes sur 12 OK (dont 159 tests base), SCA en échec (pnpm).
+
+### D31 · Défaillance marchand (F-SAV-006, lot 10)
+- **Constat :** F-SAV-006 exige de proposer un article équivalent ou le remboursement intégral et de tracer l'incident au registre des partenaires, sans dire qui déclare la défaillance, si elle se lève, ni qui paie l'écart de prix d'un article équivalent.
+- **Option appliquée (effet uniquement restrictif) :** registre `catalog.partner_incident` en ajout seul (une défaillance par marchand, horodatage serveur, motif obligatoire). Dès l'enregistrement : offres retirées du catalogue public, publication refusée (`CATALOG_PARTNER_IN_DEFAULT`), nouvel accord A et activation d'un brouillon refusés en base. Les accords touchés (DRAFT, ACTIVE, FUNDED, DISPUTED, FROZEN) sont listés avec les deux remèdes ; ils peuvent être gelés (`ACTIVE → FROZEN`). Pas de maker-checker à la déclaration : elle ne fait que bloquer. **Aucune levée** n'est possible : lever le blocage serait l'opération sensible.
+- **Reste (lot 12) :** exécution des remèdes (remboursement via le grand livre, remplacement par un article équivalent sans surcoût pour le client), journalisation d'audit de la déclaration.
+- **À trancher :** rôle habilité à déclarer ; procédure de levée (maker-checker ?) ; prise en charge de l'écart de prix d'un article équivalent.
