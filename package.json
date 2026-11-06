@@ -14,6 +14,8 @@
     "openapi:types": "openapi-typescript packages/contracts/openapi.json -o packages/contracts/src/api.d.ts",
     "test": "vitest run --config vitest.config.ts",
     "test:db": "tsx tools/require-docker.ts && vitest run --config vitest.db.config.ts",
+    "test:db:local": "tsx tools/local-postgres.ts db",
+    "notifications:check": "tsx tools/check-notification-queue.ts",
     "test:attack": "vitest run --config vitest.attack.config.ts",
     "test:tsa": "vitest run --config vitest.tsa.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
@@ -21,7 +23,7 @@
     "openapi:check": "tsx tools/check-openapi.ts",
     "security:scan": "tsx tools/scan-secrets.ts && tsx tools/sca.ts",
     "ci:local": "tsx tools/ci-local.ts",
-    "sbom": "cyclonedx-npm --output-file sbom.json"
+    "sbom": "pnpm sbom --lockfile-only --sbom-format cyclonedx --sbom-spec-version 1.6 --sbom-type application --out sbom.json"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
