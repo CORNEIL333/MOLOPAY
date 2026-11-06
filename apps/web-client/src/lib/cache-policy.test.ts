@@ -6,13 +6,14 @@ const script = readFileSync(new URL('../../public/sw.js', import.meta.url), 'utf
 
 describe('cache PWA sans HTML dynamique ni données privées', () => {
   it('ne stocke aucune navigation, même catalogue public à nonce CSP', () => {
-    for (const path of ['/', '/offres/abc', '/objectifs', '/objectifs/abc', '/connexion', '/langue/en']) {
+    for (const path of ['/', '/offres/abc', '/objectifs', '/objectifs/abc', '/connexion', '/langue/en', '/compte', '/compte/donnees']) {
       expect(cacheStrategy('GET', 'navigate', path)).toBe('network-only');
       expect(isStaticAsset(path)).toBe(false);
     }
   });
   it('refuse toutes les actions financières et les lectures API', () => {
-    for (const path of ['/v1/goals', '/v1/offers', '/v1/me', '/v1/goals/abc/contributions', '/v1/admin/ledger/entries']) {
+    for (const path of ['/v1/goals', '/v1/offers', '/v1/me', '/v1/goals/abc/contributions', '/v1/admin/ledger/entries',
+      '/v1/me/security', '/v1/me/security/block', '/v1/me/security/revoke-other-sessions', '/v1/auth/signouts', '/v1/me/data-rights']) {
       expect(cacheStrategy('GET', 'cors', path)).toBe('bypass');
       for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
         expect(cacheStrategy(method, 'navigate', path)).toBe('bypass');

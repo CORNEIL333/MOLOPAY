@@ -18,6 +18,8 @@ describe('RFC 9457 · traduction des erreurs', () => {
     ['AGREEMENT_PLAN_MISMATCH', 422],
     ['AGREEMENT_LEDGER_LINK_REQUIRED', 422],
     ['INTERNAL_ERROR', 500],
+    ['REQUEST_RATE_LIMITED', 429],
+    ['RATE_LIMIT_UNCONFIGURED', 503],
   ] as const)('%s → %i', (code, status) => {
     expect(statusForCode(code)).toBe(status);
   });

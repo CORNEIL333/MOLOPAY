@@ -1418,6 +1418,21 @@ describe('identité · stores atomiques (PostgreSQL réel)', () => {
     expect(replay.code).toBe('IDENTITY_SESSION_INVALID');
   });
 
+  it('SEC-AUTH-005 rotation : durée exacte ancrée sur un seul instant SQL', async () => {
+    const fixture = await transact('app_rw', async (client) => {
+      const accountId = await insertAccount(client, 1);
+      const deviceId = await insertDevice(client, 2, accountId);
+      return insertTokenSession(client, 3, accountId, deviceId);
+    });
+    let token = fixture.refreshToken;
+    for (let i = 0; i < 10; i++) {
+      const rotated = await transact('app_rw', (client) => rotateSessionFromStore(client, { sessionId: fixture.sessionId, refreshToken: token, accessTtlMs: 1000 }));
+      token = rotated.refreshToken;
+      const duration = await admin.query<{ ms: string }>('SELECT extract(epoch FROM (access_expires_at-access_issued_at))*1000 AS ms FROM identity.session WHERE id=$1', [fixture.sessionId]);
+      expect(Number(duration.rows[0]!.ms)).toBe(1000);
+    }
+  });
+
   it('refuse une rotation avec un jeton faux, un compte bloqué ou un appareil révoqué', async () => {
     const fixture = await transact('app_rw', async (client) => {
       const accountId = await insertAccount(client, 1);

@@ -5,21 +5,40 @@
     "version": "0.2.1",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
-  "servers": [{ "url": "/", "description": "Même origine, cookies httpOnly" }],
+  "servers": [
+    {
+      "url": "/",
+      "description": "Même origine, cookies httpOnly"
+    }
+  ],
   "tags": [
-    { "name": "Santé" },
-    { "name": "Authentification" },
-    { "name": "Catalogue" },
-    { "name": "Objectifs" },
-    { "name": "Partenaire" },
-    { "name": "Back-office" }
+    {
+      "name": "Santé"
+    },
+    {
+      "name": "Authentification"
+    },
+    {
+      "name": "Catalogue"
+    },
+    {
+      "name": "Objectifs"
+    },
+    {
+      "name": "Partenaire"
+    },
+    {
+      "name": "Back-office"
+    }
   ],
   "paths": {
     "/health": {
       "get": {
         "operationId": "getHealth",
         "summary": "État de disponibilité de l'API",
-        "tags": ["Santé"],
+        "tags": [
+          "Santé"
+        ],
         "security": [],
         "responses": {
           "200": {
@@ -28,8 +47,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status"],
-                  "properties": { "status": { "type": "string", "const": "ok" } },
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "ok"
+                    }
+                  },
                   "additionalProperties": false
                 }
               }
@@ -42,25 +68,45 @@
       "post": {
         "operationId": "issueOtpChallenge",
         "summary": "Envoyer un code OTP au numéro demandé",
-        "tags": ["Authentification"],
+        "tags": [
+          "Authentification"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/OtpChallengeRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpChallengeRequest"
+              }
+            }
           }
         },
         "responses": {
           "202": {
             "description": "Code envoyé par le canal officiel",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/OtpChallenge" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpChallenge"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "503": { "$ref": "#/components/responses/Unavailable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
@@ -68,28 +114,48 @@
       "post": {
         "operationId": "verifyOtpChallenge",
         "summary": "Vérifier un code OTP d'inscription",
-        "tags": ["Authentification"],
+        "tags": [
+          "Authentification"
+        ],
         "security": [],
         "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKey" },
-          { "$ref": "#/components/parameters/ChallengeId" }
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ChallengeId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/OtpVerifyRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyRequest"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Code vérifié",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/OtpVerification" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpVerification"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
         }
       }
     },
@@ -97,26 +163,52 @@
       "post": {
         "operationId": "createSignup",
         "summary": "Créer un compte après vérification OTP",
-        "tags": ["Authentification"],
+        "tags": [
+          "Authentification"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/SignupRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Compte créé, cookies de session posés",
-            "headers": { "Set-Cookie": { "schema": { "type": "string" } } },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/SessionSummary" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSummary"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -124,27 +216,55 @@
       "post": {
         "operationId": "createSession",
         "summary": "Ouvrir une session avec téléphone et PIN",
-        "tags": ["Authentification"],
+        "tags": [
+          "Authentification"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/SessionRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRequest"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Session ouverte, cookies httpOnly posés",
-            "headers": { "Set-Cookie": { "schema": { "type": "string" } } },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/SessionSummary" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSummary"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
         }
       }
     },
@@ -152,12 +272,203 @@
       "post": {
         "operationId": "deleteSession",
         "summary": "Fermer la session courante",
-        "tags": ["Authentification"],
-        "security": [{ "cookieAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "description": "Révocation et audit atomiques. Après succès, le cookie invalidé ne peut plus authentifier un rejeu (401).",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "responses": {
-          "204": { "description": "Session fermée" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "204": {
+            "description": "Session fermée",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/v1/me/security": {
+      "get": {
+        "operationId": "getAccountSecurity",
+        "summary": "Consulter ses appareils et sessions renouvelables",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sécurité du seul compte connecté, sans secrets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSecurity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/me/security/revoke-other-sessions": {
+      "post": {
+        "operationId": "revokeOtherSessions",
+        "summary": "Fermer les autres sessions du compte",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Autres sessions révoquées ; session courante conservée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSecurityMutation"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/me/security/block": {
+      "post": {
+        "operationId": "blockOwnAccount",
+        "summary": "Bloquer son compte depuis l'application",
+        "tags": [
+          "Authentification"
+        ],
+        "description": "Invalide appareils et sessions. Aucun déblocage ni ré-enrôlement fourni. Après commit, un rejeu avec le cookie invalidé répond 401/403.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "const": "LOST_OR_STOLEN"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compte bloqué, toutes les sessions et appareils révoqués",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSecurityMutation"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       }
     },
@@ -165,16 +476,28 @@
       "get": {
         "operationId": "getCurrentAccount",
         "summary": "Profil du client connecté",
-        "tags": ["Authentification"],
-        "security": [{ "cookieAuth": [] }],
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Profil",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Account" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
@@ -182,23 +505,41 @@
       "get": {
         "operationId": "listOffers",
         "summary": "Lister les offres publiées",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "security": [],
         "parameters": [
-          { "$ref": "#/components/parameters/UniverseFilter" },
-          { "$ref": "#/components/parameters/CityFilter" },
-          { "$ref": "#/components/parameters/ModelFilter" },
-          { "$ref": "#/components/parameters/MaxPriceFilter" },
-          { "$ref": "#/components/parameters/PartnerFilter" }
+          {
+            "$ref": "#/components/parameters/UniverseFilter"
+          },
+          {
+            "$ref": "#/components/parameters/CityFilter"
+          },
+          {
+            "$ref": "#/components/parameters/ModelFilter"
+          },
+          {
+            "$ref": "#/components/parameters/MaxPriceFilter"
+          },
+          {
+            "$ref": "#/components/parameters/PartnerFilter"
+          }
         ],
         "responses": {
           "200": {
             "description": "Offres visibles",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/OfferList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferList"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
         }
       }
     },
@@ -206,17 +547,32 @@
       "get": {
         "operationId": "getOffer",
         "summary": "Détail d'une offre",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/OfferId" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OfferId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Offre",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Offer" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -224,30 +580,58 @@
       "post": {
         "operationId": "createInstallmentQuote",
         "summary": "Calculer un échéancier côté API",
-        "tags": ["Catalogue"],
-        "security": [{ "cookieAuth": [] }],
+        "tags": [
+          "Catalogue"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKey" },
-          { "$ref": "#/components/parameters/OfferId" }
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/OfferId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/QuoteRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Devis calculé par l'API",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Quote" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -255,41 +639,79 @@
       "get": {
         "operationId": "listGoals",
         "summary": "Lister les objectifs du client",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Objectifs",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/GoalList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       },
       "post": {
         "operationId": "createGoal",
         "summary": "Créer un objectif à partir d'un devis",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/GoalRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalRequest"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Objectif créé",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Goal" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -297,18 +719,36 @@
       "get": {
         "operationId": "getGoal",
         "summary": "Suivi d'un objectif",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/GoalId" }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Objectif",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Goal" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -316,18 +756,36 @@
       "get": {
         "operationId": "listContributions",
         "summary": "Historique des versements confirmés",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/GoalId" }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Versements",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ContributionList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributionList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -335,20 +793,47 @@
       "get": {
         "operationId": "getHandoverCode",
         "summary": "Code de remise à usage unique",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/GoalId" }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Code de remise",
-            "headers": { "Cache-Control": { "schema": { "type": "string", "const": "no-store" } } },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/HandoverCode" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverCode"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
         }
       }
     },
@@ -356,28 +841,52 @@
       "post": {
         "operationId": "createClaim",
         "summary": "Ouvrir une réclamation",
-        "tags": ["Objectifs"],
-        "security": [{ "cookieAuth": [] }],
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKey" },
-          { "$ref": "#/components/parameters/GoalId" }
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/GoalId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ClaimRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimRequest"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Réclamation enregistrée",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ClaimReceipt" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimReceipt"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -385,26 +894,52 @@
       "post": {
         "operationId": "createPartnerSession",
         "summary": "Connexion du portail partenaire",
-        "tags": ["Partenaire"],
+        "tags": [
+          "Partenaire"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/PartnerSessionRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerSessionRequest"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Session partenaire ouverte",
-            "headers": { "Set-Cookie": { "schema": { "type": "string" } } },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PartnerSessionSummary" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerSessionSummary"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
         }
       }
     },
@@ -412,17 +947,31 @@
       "get": {
         "operationId": "listPartnerOffers",
         "summary": "Catalogue du partenaire connecté",
-        "tags": ["Partenaire"],
-        "security": [{ "partnerCookie": [] }],
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Offres du partenaire",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PartnerOfferList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOfferList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -430,27 +979,55 @@
       "post": {
         "operationId": "validateHandover",
         "summary": "Valider un code de remise en boutique",
-        "tags": ["Partenaire"],
-        "security": [{ "partnerCookie": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/HandoverValidationRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverValidationRequest"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Remise validée",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/HandoverReceipt" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverReceipt"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -458,17 +1035,31 @@
       "get": {
         "operationId": "listPartnerOrders",
         "summary": "Commandes et objectifs du partenaire",
-        "tags": ["Partenaire"],
-        "security": [{ "partnerCookie": [] }],
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Commandes",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PartnerOrderList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerOrderList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -476,17 +1067,31 @@
       "get": {
         "operationId": "listPartnerPayouts",
         "summary": "Règlements du partenaire, en lecture",
-        "tags": ["Partenaire"],
-        "security": [{ "partnerCookie": [] }],
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Règlements",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PayoutList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -494,26 +1099,52 @@
       "post": {
         "operationId": "createAdminSession",
         "summary": "Connexion interne avec MFA",
-        "tags": ["Back-office"],
+        "tags": [
+          "Back-office"
+        ],
         "security": [],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/AdminSessionRequest" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSessionRequest"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Session interne ouverte",
-            "headers": { "Set-Cookie": { "schema": { "type": "string" } } },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/AdminSessionSummary" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSessionSummary"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
         }
       }
     },
@@ -521,16 +1152,28 @@
       "get": {
         "operationId": "getAdminPrincipal",
         "summary": "Rôles de l'agent connecté",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Agent",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/AdminPrincipal" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrincipal"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
@@ -538,43 +1181,87 @@
       "get": {
         "operationId": "listApprovalRequests",
         "summary": "Demandes maker-checker, en lecture",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/ApprovalStatusFilter" }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ApprovalStatusFilter"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Demandes",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
         "operationId": "prepareApprovalRequest",
         "summary": "Préparer une demande maker-checker (contrat seulement)",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalPreparation" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalPreparation"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Demande préparée",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalRequest" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequest"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -582,30 +1269,58 @@
       "post": {
         "operationId": "decideApprovalRequest",
         "summary": "Approuver ou refuser une demande (contrat seulement)",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/IdempotencyKey" },
-          { "$ref": "#/components/parameters/ApprovalId" }
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ApprovalId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalDecision" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalDecision"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Demande décidée",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalRequest" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequest"
+                }
+              }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "422": { "$ref": "#/components/responses/Unprocessable" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
         }
       }
     },
@@ -613,21 +1328,53 @@
       "get": {
         "operationId": "listLedgerEntries",
         "summary": "Écritures du grand livre, en lecture",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
         "parameters": [
-          { "name": "afterSeq", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
-          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } }
+          {
+            "name": "afterSeq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Écritures",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/LedgerEntryList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerEntryList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -635,21 +1382,53 @@
       "get": {
         "operationId": "listAuditEvents",
         "summary": "Journal d'audit, en lecture",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
         "parameters": [
-          { "name": "afterSeq", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0 } },
-          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } }
+          {
+            "name": "afterSeq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Événements",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/AuditEventList" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventList"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -657,511 +1436,1985 @@
       "get": {
         "operationId": "getReconciliationSummary",
         "summary": "Rapprochement cantonné, en lecture",
-        "tags": ["Back-office"],
-        "security": [{ "adminCookie": [] }],
+        "tags": [
+          "Back-office"
+        ],
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Synthèse",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ReconciliationSummary" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSummary"
+                }
+              }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/v1/me/data-rights": {
+      "get": {
+        "operationId": "listOwnDataRights",
+        "summary": "Historique des demandes de droits du compte connecte",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Ordre decroissant (receivedAt, requestId), 50 maximum. before doit identifier une demande du compte ; curseur inconnu et etranger refusent REQUEST_INVALID. Aucune donnee libre ni export client. RECEIVED signifie uniquement demande enregistree.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique prive, page limitee a 50",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataRightHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "submitOwnDataRight",
+        "summary": "Enregistrer une demande de droits sur ses donnees",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Compte deduit de la session. Recu immuable ; aucun effacement, rectification, export ni traitement humain execute par cette route. Cle idempotente par compte et route. Traitement complet F-ACC-005 restant a livrer. Aucun autre champ ni filtre accepte.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataRightRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Demande enregistree ; aucun droit execute automatiquement",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataRightReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "client_session" },
-      "partnerCookie": { "type": "apiKey", "in": "cookie", "name": "partner_session" },
-      "adminCookie": { "type": "apiKey", "in": "cookie", "name": "admin_session" }
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "client_session"
+      },
+      "partnerCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "partner_session"
+      },
+      "adminCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "admin_session"
+      }
     },
     "parameters": {
       "IdempotencyKey": {
         "name": "Idempotency-Key",
         "in": "header",
         "required": true,
-        "schema": { "type": "string", "minLength": 16, "maxLength": 128 }
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        }
       },
-      "ChallengeId": { "name": "challengeId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "OfferId": { "name": "offerId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "GoalId": { "name": "goalId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "ApprovalId": { "name": "approvalId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-      "UniverseFilter": { "name": "universe", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Universe" } },
-      "CityFilter": { "name": "city", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/City" } },
-      "ModelFilter": { "name": "model", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/OfferModel" } },
-      "MaxPriceFilter": { "name": "maxPriceXaf", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/Money" } },
-      "PartnerFilter": { "name": "partnerId", "in": "query", "required": false, "schema": { "type": "string", "maxLength": 100 } },
-      "ApprovalStatusFilter": { "name": "status", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/ApprovalStatus" } }
+      "ChallengeId": {
+        "name": "challengeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "OfferId": {
+        "name": "offerId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "GoalId": {
+        "name": "goalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ApprovalId": {
+        "name": "approvalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "UniverseFilter": {
+        "name": "universe",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/Universe"
+        }
+      },
+      "CityFilter": {
+        "name": "city",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/City"
+        }
+      },
+      "ModelFilter": {
+        "name": "model",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/OfferModel"
+        }
+      },
+      "MaxPriceFilter": {
+        "name": "maxPriceXaf",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/Money"
+        }
+      },
+      "PartnerFilter": {
+        "name": "partnerId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "ApprovalStatusFilter": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/ApprovalStatus"
+        }
+      }
     },
     "schemas": {
       "Problem": {
         "type": "object",
         "description": "RFC 9457. `code` est le code métier stable.",
-        "required": ["type", "title", "status", "code"],
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
         "properties": {
-          "type": { "type": "string", "format": "uri-reference" },
-          "title": { "type": "string" },
-          "status": { "type": "integer", "minimum": 400, "maximum": 599 },
-          "detail": { "type": "string" },
-          "instance": { "type": "string", "format": "uri-reference" },
-          "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" }
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]+$"
+          }
         },
         "additionalProperties": false
       },
-      "Money": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "description": "Entier XAF, chaîne décimale" },
-      "Universe": { "type": "string", "enum": ["ESSENTIALS", "TECHNOLOGY", "HOUSING", "MOBILITY"] },
-      "City": { "type": "string", "enum": ["yaounde", "douala"] },
-      "OfferModel": { "type": "string", "enum": ["SAVE_THEN_BUY", "FINANCED_PURCHASE", "PLANNED_EXPENSE"] },
-      "OfferStatus": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "SUSPENDED"] },
-      "Rhythm": { "type": "string", "enum": ["DAILY", "WEEKLY", "MONTHLY", "FREE"] },
+      "Money": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "Entier XAF, chaîne décimale"
+      },
+      "Universe": {
+        "type": "string",
+        "enum": [
+          "ESSENTIALS",
+          "TECHNOLOGY",
+          "HOUSING",
+          "MOBILITY"
+        ]
+      },
+      "City": {
+        "type": "string",
+        "enum": [
+          "yaounde",
+          "douala"
+        ]
+      },
+      "OfferModel": {
+        "type": "string",
+        "enum": [
+          "SAVE_THEN_BUY",
+          "FINANCED_PURCHASE",
+          "PLANNED_EXPENSE"
+        ]
+      },
+      "OfferStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "PUBLISHED",
+          "SUSPENDED"
+        ]
+      },
+      "Rhythm": {
+        "type": "string",
+        "enum": [
+          "DAILY",
+          "WEEKLY",
+          "MONTHLY",
+          "FREE"
+        ]
+      },
       "StockAvailability": {
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind", "units"],
-            "properties": { "kind": { "const": "IN_STOCK" }, "units": { "type": "integer", "minimum": 0 } },
+            "required": [
+              "kind",
+              "units"
+            ],
+            "properties": {
+              "kind": {
+                "const": "IN_STOCK"
+              },
+              "units": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
             "additionalProperties": false
           },
           {
             "type": "object",
-            "required": ["kind", "leadDays"],
-            "properties": { "kind": { "const": "PREORDER" }, "leadDays": { "type": "integer", "minimum": 1, "maximum": 365 } },
+            "required": [
+              "kind",
+              "leadDays"
+            ],
+            "properties": {
+              "kind": {
+                "const": "PREORDER"
+              },
+              "leadDays": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 365
+              }
+            },
             "additionalProperties": false
           }
         ]
       },
       "Offer": {
         "type": "object",
-        "required": ["offerId", "title", "partnerId", "partnerName", "universe", "models", "cities", "priceXaf", "availability", "warranty", "discountTerms", "status"],
+        "required": [
+          "offerId",
+          "title",
+          "partnerId",
+          "partnerName",
+          "universe",
+          "models",
+          "cities",
+          "priceXaf",
+          "availability",
+          "warranty",
+          "discountTerms",
+          "status"
+        ],
         "properties": {
-          "offerId": { "type": "string", "format": "uuid" },
-          "title": { "type": "string" },
-          "partnerId": { "type": "string" },
-          "partnerName": { "type": "string" },
-          "universe": { "$ref": "#/components/schemas/Universe" },
-          "models": { "type": "array", "items": { "$ref": "#/components/schemas/OfferModel" }, "minItems": 1 },
-          "cities": { "type": "array", "items": { "$ref": "#/components/schemas/City" }, "minItems": 1 },
-          "priceXaf": { "$ref": "#/components/schemas/Money" },
-          "availability": { "$ref": "#/components/schemas/StockAvailability" },
-          "warranty": { "type": "string" },
-          "discountTerms": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/OfferStatus" }
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "partnerId": {
+            "type": "string"
+          },
+          "partnerName": {
+            "type": "string"
+          },
+          "universe": {
+            "$ref": "#/components/schemas/Universe"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfferModel"
+            },
+            "minItems": 1
+          },
+          "cities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/City"
+            },
+            "minItems": 1
+          },
+          "priceXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/StockAvailability"
+          },
+          "warranty": {
+            "type": "string"
+          },
+          "discountTerms": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OfferStatus"
+          }
         },
         "additionalProperties": false
       },
-      "OfferList": { "type": "object", "required": ["offers", "asOf"], "properties": { "offers": { "type": "array", "items": { "$ref": "#/components/schemas/Offer" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "OfferList": {
+        "type": "object",
+        "required": [
+          "offers",
+          "asOf"
+        ],
+        "properties": {
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Offer"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "QuoteRequest": {
         "type": "object",
-        "required": ["model", "rhythm", "durationMonths"],
+        "required": [
+          "model",
+          "rhythm",
+          "durationMonths"
+        ],
         "properties": {
-          "model": { "$ref": "#/components/schemas/OfferModel" },
-          "rhythm": { "$ref": "#/components/schemas/Rhythm" },
-          "durationMonths": { "type": "integer", "minimum": 1, "maximum": 36 },
-          "downPaymentXaf": { "$ref": "#/components/schemas/Money" }
+          "model": {
+            "$ref": "#/components/schemas/OfferModel"
+          },
+          "rhythm": {
+            "$ref": "#/components/schemas/Rhythm"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36
+          },
+          "downPaymentXaf": {
+            "$ref": "#/components/schemas/Money"
+          }
         },
         "additionalProperties": false
       },
       "Installment": {
         "type": "object",
-        "required": ["dueDate", "amountXaf"],
-        "properties": { "dueDate": { "type": "string", "format": "date" }, "amountXaf": { "$ref": "#/components/schemas/Money" } },
+        "required": [
+          "dueDate",
+          "amountXaf"
+        ],
+        "properties": {
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "amountXaf": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
         "additionalProperties": false
       },
       "Quote": {
         "type": "object",
-        "required": ["quoteId", "offerId", "model", "totalXaf", "feesXaf", "installments", "expiresAt"],
+        "required": [
+          "quoteId",
+          "offerId",
+          "model",
+          "totalXaf",
+          "feesXaf",
+          "installments",
+          "expiresAt"
+        ],
         "properties": {
-          "quoteId": { "type": "string", "format": "uuid" },
-          "offerId": { "type": "string", "format": "uuid" },
-          "model": { "$ref": "#/components/schemas/OfferModel" },
-          "totalXaf": { "$ref": "#/components/schemas/Money" },
-          "feesXaf": { "$ref": "#/components/schemas/Money" },
-          "downPaymentXaf": { "$ref": "#/components/schemas/Money" },
-          "tegPercent": { "type": ["string", "null"], "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
-          "installments": { "type": "array", "items": { "$ref": "#/components/schemas/Installment" }, "minItems": 1 },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "quoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "model": {
+            "$ref": "#/components/schemas/OfferModel"
+          },
+          "totalXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "feesXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "downPaymentXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "tegPercent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+          },
+          "installments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Installment"
+            },
+            "minItems": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "OtpChallengeRequest": {
         "type": "object",
-        "required": ["phone", "locale"],
-        "properties": { "phone": { "type": "string", "pattern": "^\\+[1-9][0-9]{7,14}$" }, "locale": { "type": "string", "enum": ["fr", "en"] } },
+        "required": [
+          "phone",
+          "locale"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{7,14}$"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ]
+          }
+        },
         "additionalProperties": false
       },
       "OtpChallenge": {
         "type": "object",
-        "required": ["challengeId", "expiresAt", "resendAfterSeconds"],
+        "required": [
+          "challengeId",
+          "expiresAt",
+          "resendAfterSeconds"
+        ],
         "properties": {
-          "challengeId": { "type": "string", "format": "uuid" },
-          "expiresAt": { "type": "string", "format": "date-time" },
-          "resendAfterSeconds": { "type": "integer", "minimum": 30 }
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAfterSeconds": {
+            "type": "integer",
+            "minimum": 30
+          }
         },
         "additionalProperties": false
       },
       "OtpVerifyRequest": {
         "type": "object",
-        "required": ["code"],
-        "properties": { "code": { "type": "string", "pattern": "^[0-9]{6}$" } },
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
         "additionalProperties": false
       },
       "OtpVerification": {
         "type": "object",
-        "required": ["challengeId", "signupToken", "expiresAt"],
+        "required": [
+          "challengeId",
+          "signupToken",
+          "expiresAt"
+        ],
         "properties": {
-          "challengeId": { "type": "string", "format": "uuid" },
-          "signupToken": { "type": "string", "minLength": 32 },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signupToken": {
+            "type": "string",
+            "minLength": 32
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "SignupRequest": {
         "type": "object",
-        "required": ["phone", "challengeId", "signupToken", "pin", "locale"],
+        "required": [
+          "phone",
+          "challengeId",
+          "signupToken",
+          "pin",
+          "locale"
+        ],
         "properties": {
-          "phone": { "type": "string", "pattern": "^\\+[1-9][0-9]{7,14}$" },
-          "challengeId": { "type": "string", "format": "uuid" },
-          "signupToken": { "type": "string", "minLength": 32 },
-          "pin": { "type": "string", "pattern": "^[0-9]{6}$" },
-          "locale": { "type": "string", "enum": ["fr", "en"] }
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{7,14}$"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signupToken": {
+            "type": "string",
+            "minLength": 32
+          },
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ]
+          }
         },
         "additionalProperties": false
       },
       "SessionRequest": {
         "type": "object",
-        "required": ["phone", "pin"],
+        "required": [
+          "phone",
+          "pin"
+        ],
         "properties": {
-          "phone": { "type": "string", "pattern": "^\\+[1-9][0-9]{7,14}$" },
-          "pin": { "type": "string", "pattern": "^[0-9]{6}$" }
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{7,14}$"
+          },
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
         },
         "additionalProperties": false
       },
       "SessionSummary": {
         "type": "object",
-        "required": ["accountId", "displayName", "locale", "expiresAt"],
+        "required": [
+          "accountId",
+          "displayName",
+          "locale",
+          "expiresAt"
+        ],
         "properties": {
-          "accountId": { "type": "string", "format": "uuid" },
-          "displayName": { "type": "string" },
-          "locale": { "type": "string", "enum": ["fr", "en"] },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
+      "AccountSecurity": {
+        "type": "object",
+        "required": [
+          "devices",
+          "sessions",
+          "asOf"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "deviceId",
+                "name",
+                "status",
+                "registeredAt",
+                "current"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "deviceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "REVOKED"
+                  ]
+                },
+                "registeredAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "current": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sessionId",
+                "deviceName",
+                "createdAt",
+                "accessExpiresAt",
+                "refreshExpiresAt",
+                "current"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "sessionId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "deviceName": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "accessExpiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "refreshExpiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "current": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AccountSecurityMutation": {
+        "type": "object",
+        "required": [
+          "action",
+          "affectedSessions",
+          "occurredAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "REVOKE_OTHERS",
+              "BLOCK"
+            ]
+          },
+          "affectedSessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Account": {
         "type": "object",
-        "required": ["accountId", "phoneMasked", "displayName", "kycLevel", "city", "locale"],
+        "required": [
+          "accountId",
+          "phoneMasked",
+          "displayName",
+          "kycLevel",
+          "city",
+          "locale"
+        ],
         "properties": {
-          "accountId": { "type": "string", "format": "uuid" },
-          "phoneMasked": { "type": "string" },
-          "displayName": { "type": "string" },
-          "kycLevel": { "type": "string", "enum": ["NONE", "BASIC", "STANDARD", "STRONG"] },
-          "city": { "$ref": "#/components/schemas/City" },
-          "locale": { "type": "string", "enum": ["fr", "en"] }
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phoneMasked": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "kycLevel": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "BASIC",
+              "STANDARD",
+              "STRONG"
+            ]
+          },
+          "city": {
+            "$ref": "#/components/schemas/City"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ]
+          }
         },
         "additionalProperties": false
       },
       "GoalRequest": {
         "type": "object",
-        "required": ["offerId", "quoteId", "acceptTermsVersion"],
+        "required": [
+          "offerId",
+          "quoteId",
+          "acceptTermsVersion"
+        ],
         "properties": {
-          "offerId": { "type": "string", "format": "uuid" },
-          "quoteId": { "type": "string", "format": "uuid" },
-          "acceptTermsVersion": { "type": "string", "minLength": 1 }
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "acceptTermsVersion": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "additionalProperties": false
       },
       "Goal": {
         "type": "object",
-        "required": ["goalId", "offerId", "offerTitle", "partnerName", "status", "targetXaf", "savedXaf", "progressBasisPoints", "rhythm", "createdAt", "updatedAt"],
+        "required": [
+          "goalId",
+          "offerId",
+          "offerTitle",
+          "partnerName",
+          "status",
+          "targetXaf",
+          "savedXaf",
+          "progressBasisPoints",
+          "rhythm",
+          "createdAt",
+          "updatedAt"
+        ],
         "properties": {
-          "goalId": { "type": "string", "format": "uuid" },
-          "offerId": { "type": "string", "format": "uuid" },
-          "offerTitle": { "type": "string" },
-          "partnerName": { "type": "string" },
-          "status": { "type": "string", "enum": ["ACTIVE", "LOCKED", "COMPLETED", "CANCELLED", "FROZEN"] },
-          "targetXaf": { "$ref": "#/components/schemas/Money" },
-          "savedXaf": { "$ref": "#/components/schemas/Money" },
-          "progressBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
-          "installmentAmountXaf": { "$ref": "#/components/schemas/Money" },
-          "rhythm": { "$ref": "#/components/schemas/Rhythm" },
-          "nextDueDate": { "type": "string", "format": "date" },
-          "handoverCodeAvailable": { "type": "boolean" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offerTitle": {
+            "type": "string"
+          },
+          "partnerName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "LOCKED",
+              "COMPLETED",
+              "CANCELLED",
+              "FROZEN"
+            ]
+          },
+          "targetXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "savedXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "progressBasisPoints": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "installmentAmountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "rhythm": {
+            "$ref": "#/components/schemas/Rhythm"
+          },
+          "nextDueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "handoverCodeAvailable": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
-      "GoalList": { "type": "object", "required": ["goals", "asOf"], "properties": { "goals": { "type": "array", "items": { "$ref": "#/components/schemas/Goal" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "GoalList": {
+        "type": "object",
+        "required": [
+          "goals",
+          "asOf"
+        ],
+        "properties": {
+          "goals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "Contribution": {
         "type": "object",
-        "required": ["contributionId", "amountXaf", "status", "receiptNumber"],
+        "required": [
+          "contributionId",
+          "amountXaf",
+          "status",
+          "receiptNumber"
+        ],
         "properties": {
-          "contributionId": { "type": "string", "format": "uuid" },
-          "amountXaf": { "$ref": "#/components/schemas/Money" },
-          "status": { "type": "string", "enum": ["CONFIRMED", "REVERSED"] },
-          "confirmedAt": { "type": "string", "format": "date-time" },
-          "receiptNumber": { "type": "string" }
+          "contributionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "REVERSED"
+            ]
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receiptNumber": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
-      "ContributionList": { "type": "object", "required": ["contributions", "asOf"], "properties": { "contributions": { "type": "array", "items": { "$ref": "#/components/schemas/Contribution" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "ContributionList": {
+        "type": "object",
+        "required": [
+          "contributions",
+          "asOf"
+        ],
+        "properties": {
+          "contributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Contribution"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "HandoverCode": {
         "type": "object",
-        "required": ["code", "expiresAt", "status"],
+        "required": [
+          "code",
+          "expiresAt",
+          "status"
+        ],
         "properties": {
-          "code": { "type": "string", "pattern": "^[0-9]{6}$" },
-          "expiresAt": { "type": "string", "format": "date-time" },
-          "status": { "type": "string", "enum": ["ACTIVE", "USED", "EXPIRED"] }
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "USED",
+              "EXPIRED"
+            ]
+          }
         },
         "additionalProperties": false
       },
       "ClaimRequest": {
         "type": "object",
-        "required": ["reason", "details"],
+        "required": [
+          "reason",
+          "details"
+        ],
         "properties": {
-          "reason": { "type": "string", "enum": ["PAYMENT_NOT_RECEIVED", "HANDOVER_REFUSED", "OFFER_MISMATCH", "OTHER"] },
-          "details": { "type": "string", "minLength": 10, "maxLength": 1000 }
+          "reason": {
+            "type": "string",
+            "enum": [
+              "PAYMENT_NOT_RECEIVED",
+              "HANDOVER_REFUSED",
+              "OFFER_MISMATCH",
+              "OTHER"
+            ]
+          },
+          "details": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          }
         },
         "additionalProperties": false
       },
       "ClaimReceipt": {
         "type": "object",
-        "required": ["claimId", "status", "createdAt"],
+        "required": [
+          "claimId",
+          "status",
+          "createdAt"
+        ],
         "properties": {
-          "claimId": { "type": "string", "format": "uuid" },
-          "status": { "type": "string", "enum": ["OPEN", "IN_REVIEW", "RESOLVED", "REJECTED"] },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "claimId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "IN_REVIEW",
+              "RESOLVED",
+              "REJECTED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "PartnerSessionRequest": {
         "type": "object",
-        "required": ["email", "password"],
-        "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string", "minLength": 12 } },
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12
+          }
+        },
         "additionalProperties": false
       },
       "PartnerSessionSummary": {
         "type": "object",
-        "required": ["partnerId", "displayName", "roles", "expiresAt"],
+        "required": [
+          "partnerId",
+          "displayName",
+          "roles",
+          "expiresAt"
+        ],
         "properties": {
-          "partnerId": { "type": "string" },
-          "displayName": { "type": "string" },
-          "roles": { "type": "array", "items": { "type": "string", "enum": ["MANAGER", "SELLER"] } },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "partnerId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "MANAGER",
+                "SELLER"
+              ]
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "PartnerOffer": {
         "type": "object",
-        "required": ["offerId", "title", "status", "priceXaf", "updatedAt"],
+        "required": [
+          "offerId",
+          "title",
+          "status",
+          "priceXaf",
+          "updatedAt"
+        ],
         "properties": {
-          "offerId": { "type": "string", "format": "uuid" },
-          "title": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/OfferStatus" },
-          "priceXaf": { "$ref": "#/components/schemas/Money" },
-          "stockUnits": { "type": "integer", "minimum": 0 },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OfferStatus"
+          },
+          "priceXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "stockUnits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
-      "PartnerOfferList": { "type": "object", "required": ["offers", "asOf"], "properties": { "offers": { "type": "array", "items": { "$ref": "#/components/schemas/PartnerOffer" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "PartnerOfferList": {
+        "type": "object",
+        "required": [
+          "offers",
+          "asOf"
+        ],
+        "properties": {
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerOffer"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "HandoverValidationRequest": {
         "type": "object",
-        "required": ["code", "storeId", "latitude", "longitude"],
+        "required": [
+          "code",
+          "storeId",
+          "latitude",
+          "longitude"
+        ],
         "properties": {
-          "code": { "type": "string", "pattern": "^[0-9]{6}$" },
-          "storeId": { "type": "string", "minLength": 1 },
-          "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
-          "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "storeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
         },
         "additionalProperties": false
       },
       "HandoverReceipt": {
         "type": "object",
-        "required": ["handoverId", "orderId", "validatedAt"],
+        "required": [
+          "handoverId",
+          "orderId",
+          "validatedAt"
+        ],
         "properties": {
-          "handoverId": { "type": "string", "format": "uuid" },
-          "orderId": { "type": "string", "format": "uuid" },
-          "customerDisplayName": { "type": "string" },
-          "validatedAt": { "type": "string", "format": "date-time" }
+          "handoverId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerDisplayName": {
+            "type": "string"
+          },
+          "validatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "PartnerOrder": {
         "type": "object",
-        "required": ["orderId", "offerTitle", "status", "createdAt"],
+        "required": [
+          "orderId",
+          "offerTitle",
+          "status",
+          "createdAt"
+        ],
         "properties": {
-          "orderId": { "type": "string", "format": "uuid" },
-          "offerTitle": { "type": "string" },
-          "customerDisplayName": { "type": "string" },
-          "status": { "type": "string", "enum": ["IN_PROGRESS", "READY", "HANDED_OVER", "CANCELLED"] },
-          "goalProgressBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offerTitle": {
+            "type": "string"
+          },
+          "customerDisplayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_PROGRESS",
+              "READY",
+              "HANDED_OVER",
+              "CANCELLED"
+            ]
+          },
+          "goalProgressBasisPoints": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
-      "PartnerOrderList": { "type": "object", "required": ["orders", "asOf"], "properties": { "orders": { "type": "array", "items": { "$ref": "#/components/schemas/PartnerOrder" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "PartnerOrderList": {
+        "type": "object",
+        "required": [
+          "orders",
+          "asOf"
+        ],
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerOrder"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "Payout": {
         "type": "object",
-        "required": ["payoutId", "orderId", "netXaf", "status"],
+        "required": [
+          "payoutId",
+          "orderId",
+          "netXaf",
+          "status"
+        ],
         "properties": {
-          "payoutId": { "type": "string", "format": "uuid" },
-          "orderId": { "type": "string", "format": "uuid" },
-          "netXaf": { "$ref": "#/components/schemas/Money" },
-          "status": { "type": "string", "enum": ["PENDING", "SENT", "CONFIRMED", "FAILED"] },
-          "executedAt": { "type": "string", "format": "date-time" }
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "netXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SENT",
+              "CONFIRMED",
+              "FAILED"
+            ]
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
-      "PayoutList": { "type": "object", "required": ["payouts", "asOf"], "properties": { "payouts": { "type": "array", "items": { "$ref": "#/components/schemas/Payout" } }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "PayoutList": {
+        "type": "object",
+        "required": [
+          "payouts",
+          "asOf"
+        ],
+        "properties": {
+          "payouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payout"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminSessionRequest": {
         "type": "object",
-        "required": ["email", "password", "mfaCode"],
+        "required": [
+          "email",
+          "password",
+          "mfaCode"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string", "minLength": 12 },
-          "mfaCode": { "type": "string", "pattern": "^[0-9]{6}$" }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12
+          },
+          "mfaCode": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
         },
         "additionalProperties": false
       },
       "AdminSessionSummary": {
         "type": "object",
-        "required": ["adminId", "displayName", "roles", "expiresAt"],
+        "required": [
+          "adminId",
+          "displayName",
+          "roles",
+          "expiresAt"
+        ],
         "properties": {
-          "adminId": { "type": "string", "format": "uuid" },
-          "displayName": { "type": "string" },
-          "roles": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "adminId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "AdminPrincipal": {
         "type": "object",
-        "required": ["adminId", "displayName", "roles", "cityScope"],
+        "required": [
+          "adminId",
+          "displayName",
+          "roles",
+          "cityScope"
+        ],
         "properties": {
-          "adminId": { "type": "string", "format": "uuid" },
-          "displayName": { "type": "string" },
-          "roles": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-          "cityScope": { "type": "array", "items": { "$ref": "#/components/schemas/City" } }
+          "adminId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "cityScope": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/City"
+            }
+          }
         },
         "additionalProperties": false
       },
-      "ApprovalStatus": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "EXPIRED"] },
-      "ApprovalKind": { "type": "string", "enum": ["SETTLEMENT", "REFUND", "LEDGER_REVERSAL", "FINANCIAL_SETTING", "PARTNER_APPROVAL", "ROLE_GRANT", "BREAK_GLASS"] },
+      "ApprovalStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "APPROVED",
+          "REJECTED",
+          "CANCELLED",
+          "EXPIRED"
+        ]
+      },
+      "ApprovalKind": {
+        "type": "string",
+        "enum": [
+          "SETTLEMENT",
+          "REFUND",
+          "LEDGER_REVERSAL",
+          "FINANCIAL_SETTING",
+          "PARTNER_APPROVAL",
+          "ROLE_GRANT",
+          "BREAK_GLASS"
+        ]
+      },
       "ApprovalRequest": {
         "type": "object",
-        "required": ["approvalId", "kind", "status", "makerId", "preparedAt", "expiresAt"],
+        "required": [
+          "approvalId",
+          "kind",
+          "status",
+          "makerId",
+          "preparedAt",
+          "expiresAt"
+        ],
         "properties": {
-          "approvalId": { "type": "string", "format": "uuid" },
-          "kind": { "$ref": "#/components/schemas/ApprovalKind" },
-          "status": { "$ref": "#/components/schemas/ApprovalStatus" },
-          "makerId": { "type": "string" },
-          "checkerId": { "type": ["string", "null"] },
-          "amountXaf": { "$ref": "#/components/schemas/Money" },
-          "preparedAt": { "type": "string", "format": "date-time" },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "approvalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApprovalKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "makerId": {
+            "type": "string"
+          },
+          "checkerId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "preparedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
-      "ApprovalList": { "type": "object", "required": ["approvals"], "properties": { "approvals": { "type": "array", "items": { "$ref": "#/components/schemas/ApprovalRequest" } } }, "additionalProperties": false },
+      "ApprovalList": {
+        "type": "object",
+        "required": [
+          "approvals"
+        ],
+        "properties": {
+          "approvals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "ApprovalPreparation": {
         "type": "object",
-        "required": ["kind", "amountXaf", "reason"],
+        "required": [
+          "kind",
+          "amountXaf",
+          "reason"
+        ],
         "properties": {
-          "kind": { "$ref": "#/components/schemas/ApprovalKind" },
-          "amountXaf": { "$ref": "#/components/schemas/Money" },
-          "reason": { "type": "string", "minLength": 10, "maxLength": 500 }
+          "kind": {
+            "$ref": "#/components/schemas/ApprovalKind"
+          },
+          "amountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          }
         },
         "additionalProperties": false
       },
       "ApprovalDecision": {
         "type": "object",
-        "required": ["decision", "reason"],
+        "required": [
+          "decision",
+          "reason"
+        ],
         "properties": {
-          "decision": { "type": "string", "enum": ["APPROVE", "REJECT"] },
-          "reason": { "type": "string", "minLength": 10, "maxLength": 500 }
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          }
         },
         "additionalProperties": false
       },
       "LedgerEntry": {
         "type": "object",
-        "required": ["seq", "entryId", "type", "recordedAt", "totalDebitXaf", "totalCreditXaf"],
+        "required": [
+          "seq",
+          "entryId",
+          "type",
+          "recordedAt",
+          "totalDebitXaf",
+          "totalCreditXaf"
+        ],
         "properties": {
-          "seq": { "type": "integer", "minimum": 1 },
-          "entryId": { "type": "string", "format": "uuid" },
-          "type": { "type": "string" },
-          "recordedAt": { "type": "string", "format": "date-time" },
-          "totalDebitXaf": { "$ref": "#/components/schemas/Money" },
-          "totalCreditXaf": { "$ref": "#/components/schemas/Money" }
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalDebitXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCreditXaf": {
+            "$ref": "#/components/schemas/Money"
+          }
         },
         "additionalProperties": false
       },
-      "LedgerEntryList": { "type": "object", "required": ["entries", "nextAfterSeq", "asOf"], "properties": { "entries": { "type": "array", "items": { "$ref": "#/components/schemas/LedgerEntry" } }, "nextAfterSeq": { "type": ["integer", "null"] }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
+      "LedgerEntryList": {
+        "type": "object",
+        "required": [
+          "entries",
+          "nextAfterSeq",
+          "asOf"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LedgerEntry"
+            }
+          },
+          "nextAfterSeq": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "AuditEvent": {
         "type": "object",
-        "required": ["seq", "eventId", "recordedAt", "eventType", "action", "outcome", "targetType", "targetId"],
+        "required": [
+          "seq",
+          "eventId",
+          "recordedAt",
+          "eventType",
+          "action",
+          "outcome",
+          "targetType",
+          "targetId"
+        ],
         "properties": {
-          "seq": { "type": "integer", "minimum": 1 },
-          "eventId": { "type": "string", "format": "uuid" },
-          "recordedAt": { "type": "string", "format": "date-time" },
-          "eventType": { "type": "string" },
-          "action": { "type": "string" },
-          "outcome": { "type": "string", "enum": ["SUCCESS", "DENIED", "ERROR"] },
-          "targetType": { "type": "string" },
-          "targetId": { "type": "string" }
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "DENIED",
+              "ERROR"
+            ]
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
-      "AuditEventList": { "type": "object", "required": ["events", "nextAfterSeq", "asOf"], "properties": { "events": { "type": "array", "items": { "$ref": "#/components/schemas/AuditEvent" } }, "nextAfterSeq": { "type": ["integer", "null"] }, "asOf": { "type": "string", "format": "date-time" } }, "additionalProperties": false },
-      "ReconciliationSummary": {
+      "AuditEventList": {
         "type": "object",
-        "required": ["asOf", "ledgerTotalXaf", "custodianBalanceXaf", "differenceXaf", "status", "openBreaks"],
+        "required": [
+          "events",
+          "nextAfterSeq",
+          "asOf"
+        ],
         "properties": {
-          "asOf": { "type": "string", "format": "date-time" },
-          "ledgerTotalXaf": { "$ref": "#/components/schemas/Money" },
-          "custodianBalanceXaf": { "$ref": "#/components/schemas/Money" },
-          "differenceXaf": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)$" },
-          "status": { "type": "string", "enum": ["OK", "BREAK", "UNKNOWN"] },
-          "openBreaks": { "type": "integer", "minimum": 0 }
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "nextAfterSeq": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
+      },
+      "ReconciliationSummary": {
+        "type": "object",
+        "required": [
+          "asOf",
+          "ledgerTotalXaf",
+          "custodianBalanceXaf",
+          "differenceXaf",
+          "status",
+          "openBreaks"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ledgerTotalXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "custodianBalanceXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "differenceXaf": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]*)$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "BREAK",
+              "UNKNOWN"
+            ]
+          },
+          "openBreaks": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataRightKind": {
+        "type": "string",
+        "enum": [
+          "ACCESS",
+          "RECTIFICATION",
+          "OBJECTION",
+          "ERASURE"
+        ]
+      },
+      "DataRightRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DataRightKind"
+          }
+        }
+      },
+      "DataRightReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requestId",
+          "kind",
+          "status",
+          "receivedAt"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DataRightKind"
+          },
+          "status": {
+            "type": "string",
+            "const": "RECEIVED"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DataRightHistory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextBefore",
+          "asOf"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/DataRightReceipt"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "responses": {
       "BadRequest": {
         "description": "Requête invalide",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "Unauthorized": {
         "description": "Authentification requise",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "Forbidden": {
         "description": "Action non autorisée",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "NotFound": {
         "description": "Ressource inconnue",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "Conflict": {
         "description": "Conflit d'état",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "Unprocessable": {
         "description": "Règle métier refusée",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       },
       "TooManyRequests": {
         "description": "Limite d'essais atteinte",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "Délai en secondes avant une nouvelle tentative, quand il est connu.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            }
+          }
+        }
       },
       "Unavailable": {
         "description": "Prestataire indisponible",
-        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } }
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       }
     }
   }

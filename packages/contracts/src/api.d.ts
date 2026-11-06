@@ -98,8 +98,65 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Fermer la session courante */
+        /**
+         * Fermer la session courante
+         * @description Révocation et audit atomiques. Après succès, le cookie invalidé ne peut plus authentifier un rejeu (401).
+         */
         post: operations["deleteSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulter ses appareils et sessions renouvelables */
+        get: operations["getAccountSecurity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/security/revoke-other-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fermer les autres sessions du compte */
+        post: operations["revokeOtherSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/security/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bloquer son compte depuis l'application
+         * @description Invalide appareils et sessions. Aucun déblocage ni ré-enrôlement fourni. Après commit, un rejeu avec le cookie invalidé répond 401/403.
+         */
+        post: operations["blockOwnAccount"];
         delete?: never;
         options?: never;
         head?: never;
@@ -465,6 +522,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/data-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique des demandes de droits du compte connecte
+         * @description Ordre decroissant (receivedAt, requestId), 50 maximum. before doit identifier une demande du compte ; curseur inconnu et etranger refusent REQUEST_INVALID. Aucune donnee libre ni export client. RECEIVED signifie uniquement demande enregistree.
+         */
+        get: operations["listOwnDataRights"];
+        put?: never;
+        /**
+         * Enregistrer une demande de droits sur ses donnees
+         * @description Compte deduit de la session. Recu immuable ; aucun effacement, rectification, export ni traitement humain execute par cette route. Cle idempotente par compte et route. Traitement complet F-ACC-005 restant a livrer. Aucun autre champ ni filtre accepte.
+         */
+        post: operations["submitOwnDataRight"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -589,6 +670,39 @@ export interface components {
             locale: "fr" | "en";
             /** Format: date-time */
             expiresAt: string;
+        };
+        AccountSecurity: {
+            /** Format: date-time */
+            asOf: string;
+            devices: {
+                /** Format: uuid */
+                deviceId: string;
+                name: string;
+                /** @enum {string} */
+                status: "ACTIVE" | "REVOKED";
+                /** Format: date-time */
+                registeredAt: string;
+                current: boolean;
+            }[];
+            sessions: {
+                /** Format: uuid */
+                sessionId: string;
+                deviceName: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                accessExpiresAt: string;
+                /** Format: date-time */
+                refreshExpiresAt: string;
+                current: boolean;
+            }[];
+        };
+        AccountSecurityMutation: {
+            /** @enum {string} */
+            action: "REVOKE_OTHERS" | "BLOCK";
+            affectedSessions: number;
+            /** Format: date-time */
+            occurredAt: string;
         };
         Account: {
             /** Format: uuid */
@@ -840,6 +954,27 @@ export interface components {
             status: "OK" | "BREAK" | "UNKNOWN";
             openBreaks: number;
         };
+        /** @enum {string} */
+        DataRightKind: "ACCESS" | "RECTIFICATION" | "OBJECTION" | "ERASURE";
+        DataRightRequest: {
+            kind: components["schemas"]["DataRightKind"];
+        };
+        DataRightReceipt: {
+            /** Format: uuid */
+            requestId: string;
+            kind: components["schemas"]["DataRightKind"];
+            /** @constant */
+            status: "RECEIVED";
+            /** Format: date-time */
+            receivedAt: string;
+        };
+        DataRightHistory: {
+            items: components["schemas"]["DataRightReceipt"][];
+            /** Format: uuid */
+            nextBefore: string | null;
+            /** Format: date-time */
+            asOf: string;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -899,6 +1034,8 @@ export interface components {
         /** @description Limite d'essais atteinte */
         TooManyRequests: {
             headers: {
+                /** @description Délai en secondes avant une nouvelle tentative, quand il est connu. */
+                "Retry-After"?: number;
                 [name: string]: unknown;
             };
             content: {
@@ -1092,11 +1229,102 @@ export interface operations {
             /** @description Session fermée */
             204: {
                 headers: {
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getAccountSecurity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sécurité du seul compte connecté, sans secrets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSecurity"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    revokeOtherSessions: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Autres sessions révoquées ; session courante conservée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSecurityMutation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    blockOwnAccount: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @constant */
+                    reason: "LOST_OR_STOLEN";
+                };
+            };
+        };
+        responses: {
+            /** @description Compte bloqué, toutes les sessions et appareils révoqués */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountSecurityMutation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     getCurrentAccount: {
@@ -1167,6 +1395,7 @@ export interface operations {
                     "application/json": components["schemas"]["Offer"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -1694,6 +1923,67 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listOwnDataRights: {
+        parameters: {
+            query?: {
+                before?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historique prive, page limitee a 50 */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRightHistory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    submitOwnDataRight: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataRightRequest"];
+            };
+        };
+        responses: {
+            /** @description Demande enregistree ; aucun droit execute automatiquement */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRightReceipt"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
         };
     };
 }

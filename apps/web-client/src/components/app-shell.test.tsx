@@ -14,6 +14,7 @@ for (const locale of ['fr', 'en'] as const) {
         </AppShell>,
       );
       expect(screen.getByRole('link', { name: dictionary.nav.goals })).toHaveAttribute('href', '/objectifs');
+      expect(screen.getByRole('link', { name: dictionary.nav.account })).toHaveAttribute('href', '/compte');
       expect(screen.getByRole('link', { name: dictionary.nav.skipToContent })).toHaveAttribute('href', '#main');
       expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
       expect(screen.getByRole('link', { name: locale === 'fr' ? 'English' : 'Français' })).toHaveAttribute('href', locale === 'fr' ? '/langue/en' : '/langue/fr');

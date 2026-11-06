@@ -7,8 +7,50 @@ import type { CatalogLabels } from './catalog-view';
 import { offerFixture, secondOffer } from '../test/fixtures';
 
 const labels: CatalogLabels = getDictionary('fr').catalog;
+const completeLabels = { ...labels, modelLabel: 'Formule', maxPriceLabel: 'Prix maximal (FCFA)',
+  priceHint: 'Montant entier, sans décimales.', partnerLabel: 'Partenaire', unavailablePartner: 'Partenaire indisponible' };
 
 describe('CatalogView', () => {
+  it('F-CAT-004 soumet les cinq filtres sans modifier le prix entier', () => {
+    const filters = { universe: 'TECHNOLOGY' as const, city: 'douala' as const, model: 'SAVE_THEN_BUY' as const,
+      maxPriceXaf: '9007199254740993', partnerId: 'merchant-1' };
+    const props = { offers: [], labels: completeLabels, filters, partners: [{ id: 'merchant-1', name: 'Marchand public' }] };
+    const { container } = render(<CatalogView {...props} />);
+    expect(screen.getByLabelText(completeLabels.modelLabel)).toHaveValue('SAVE_THEN_BUY');
+    const price = screen.getByLabelText(completeLabels.maxPriceLabel);
+    expect(price).toHaveValue('9007199254740993');
+    expect(price).toHaveAttribute('inputmode', 'numeric');
+    expect(price).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(completeLabels.partnerLabel)).toHaveValue('merchant-1');
+    expect(screen.getByRole('option', { name: 'Marchand public' })).toBeVisible();
+    const form = container.querySelector('form')!;
+    expect(Object.fromEntries(new FormData(form).entries())).toEqual(filters);
+    expect(form).toHaveAttribute('method', 'get');
+  });
+  it('F-CAT-004 conserve le partenaire devenu indisponible dans FormData', () => {
+    const props = { offers: [], labels: completeLabels, filters: { partnerId: 'merchant-gone' }, partners: [] };
+    const { container } = render(<CatalogView {...props} />);
+    const option = screen.getByRole('option', { name: completeLabels.unavailablePartner });
+    expect(option).not.toBeDisabled();
+    expect(new FormData(container.querySelector('form')!).getAll('partnerId')).toEqual(['merchant-gone']);
+    expect(container.textContent).not.toContain('merchant-gone');
+    expect(screen.getByRole('link', { name: labels.reset })).toHaveAttribute('href', '/');
+  });
+  it('NF-UX-001 conserve l’accessibilité des cinq champs, même sans offre', async () => {
+    const props = { offers: [], labels: completeLabels, filters: {}, partners: [{ id: 'merchant-1', name: 'Marchand public' }] };
+    const { container } = render(<CatalogView {...props} />);
+    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    await expectNoA11yViolations(container);
+  });
+  it('F-CAT-004 garde le formulaire corrigeable après un refus serveur sans afficher un faux résultat vide', () => {
+    const props = { offers: [], labels: completeLabels, filters: { maxPriceXaf: '999999999999999999999999' }, partners: [],
+      problem: { title: 'Prix invalide', detail: 'Vérifiez le prix maximal.' } };
+    render(<CatalogView {...props} />);
+    expect(screen.getByLabelText(completeLabels.maxPriceLabel)).toHaveValue('999999999999999999999999');
+    expect(screen.getByRole('heading', { name: 'Prix invalide' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: labels.emptyTitle })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: labels.apply })).toBeEnabled();
+  });
   it('affiche les offres avec leur prix serveur et un lien explicite', () => {
     const { container } = render(
       <CatalogView

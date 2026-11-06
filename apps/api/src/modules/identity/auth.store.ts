@@ -259,12 +259,14 @@ export async function rotateSessionFromStore(
   const previousHash = sessionTokenHash(input.refreshToken);
   const tokens = issueSessionTokens();
   const update = await client.query<SessionRow>(
-    `UPDATE identity.session s
+    `WITH rotation_clock AS MATERIALIZED (SELECT clock_timestamp() AS instant)
+     UPDATE identity.session s
         SET access_token_hash = $2,
             refresh_token_hash = $3,
-            access_issued_at = clock_timestamp(),
-            access_expires_at = clock_timestamp()
+            access_issued_at = rotation_clock.instant,
+            access_expires_at = rotation_clock.instant
               + make_interval(secs => $4::double precision / 1000)
+       FROM rotation_clock
       WHERE s.id = $1
         AND s.refresh_token_hash = $5
         AND s.revoked_at IS NULL

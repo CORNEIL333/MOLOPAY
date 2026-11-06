@@ -46,7 +46,15 @@ const TITLES: Readonly<Record<number, string>> = {
   404: 'Ressource introuvable',
   409: 'Conflit',
   422: 'Règle métier non respectée',
+  429: 'Trop de requêtes',
   500: 'Erreur interne',
+  503: 'Service indisponible',
+};
+
+// Le type d'un refus de débit reste générique : il ne décrit pas le mécanisme.
+const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
+  REQUEST_RATE_LIMITED: 'too-many-requests',
+  RATE_LIMIT_UNCONFIGURED: 'service-unavailable',
 };
 
 /** Statut HTTP d'un code métier ; tout code non classé est une règle métier (422). */
@@ -59,13 +67,15 @@ export function statusForCode(code: ErrorCode): number {
     return 400;
   }
   if (code === 'INTERNAL_ERROR') return 500;
+  if (code === 'REQUEST_RATE_LIMITED') return 429;
+  if (code === 'RATE_LIMIT_UNCONFIGURED') return 503;
   return 422;
 }
 
 function problem(code: ErrorCode, detail?: string): Problem {
   const status = statusForCode(code);
   return {
-    type: `urn:achat:problem:${code.toLowerCase().replaceAll('_', '-')}`,
+    type: `urn:achat:problem:${TYPE_SLUGS[code] ?? code.toLowerCase().replaceAll('_', '-')}`,
     title: TITLES[status] ?? 'Erreur',
     status,
     code,

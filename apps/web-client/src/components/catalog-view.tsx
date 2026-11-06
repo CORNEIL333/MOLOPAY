@@ -1,13 +1,21 @@
-import { Button, EmptyState } from '@achat/ui';
+import { Button, EmptyState, ErrorState } from '@achat/ui';
+import type { ProblemSummary } from '@achat/contracts/client';
 import type { ReactElement } from 'react';
 import type { City, Offer, OfferModel, Universe } from './offer-card';
 import { OfferCard } from './offer-card';
+import type { CatalogFilters, CatalogPartner } from '../lib/catalog-filters';
+export type { CatalogFilters } from '../lib/catalog-filters';
 
 export type CatalogLabels = {
   readonly title: string;
   readonly subtitle: string;
   readonly universeLabel: string;
   readonly cityLabel: string;
+  readonly modelLabel: string;
+  readonly maxPriceLabel: string;
+  readonly priceHint: string;
+  readonly partnerLabel: string;
+  readonly unavailablePartner: string;
   readonly all: string;
   readonly apply: string;
   readonly reset: string;
@@ -22,11 +30,6 @@ export type CatalogLabels = {
   readonly models: Readonly<Record<OfferModel, string>>;
 };
 
-export type CatalogFilters = {
-  readonly universe?: Universe;
-  readonly city?: City;
-};
-
 const UNIVERSES: readonly Universe[] = [
   'ESSENTIALS',
   'TECHNOLOGY',
@@ -39,10 +42,14 @@ export function CatalogView({
   offers,
   labels,
   filters,
+  partners = [],
+  problem,
 }: {
   readonly offers: readonly Offer[];
   readonly labels: CatalogLabels;
   readonly filters: CatalogFilters;
+  readonly partners?: readonly CatalogPartner[];
+  readonly problem?: ProblemSummary;
 }): ReactElement {
   return (
     <section aria-labelledby="catalog-title" className="catalog">
@@ -88,6 +95,30 @@ export function CatalogView({
             ))}
           </select>
         </div>
+        <div className="achat-field">
+          <label className="achat-field__label" htmlFor="filter-model">{labels.modelLabel}</label>
+          <select id="filter-model" name="model" className="achat-field__input" defaultValue={filters.model ?? ''}>
+            <option value="">{labels.all}</option>
+            {(['SAVE_THEN_BUY', 'FINANCED_PURCHASE', 'PLANNED_EXPENSE'] as const).map((model) => (
+              <option key={model} value={model}>{labels.models[model]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="achat-field">
+          <label className="achat-field__label" htmlFor="filter-max-price">{labels.maxPriceLabel}</label>
+          <input id="filter-max-price" name="maxPriceXaf" className="achat-field__input" type="text" inputMode="numeric"
+            pattern="(0|[1-9][0-9]*)" defaultValue={filters.maxPriceXaf ?? ''} aria-describedby="filter-price-hint" />
+          <span id="filter-price-hint" className="achat-field__hint">{labels.priceHint}</span>
+        </div>
+        <div className="achat-field">
+          <label className="achat-field__label" htmlFor="filter-partner">{labels.partnerLabel}</label>
+          <select id="filter-partner" name="partnerId" className="achat-field__input" defaultValue={filters.partnerId ?? ''}>
+            <option value="">{labels.all}</option>
+            {filters.partnerId !== undefined && !partners.some((partner) => partner.id === filters.partnerId)
+              ? <option value={filters.partnerId}>{labels.unavailablePartner}</option> : null}
+            {partners.map((partner) => <option key={partner.id} value={partner.id}>{partner.name}</option>)}
+          </select>
+        </div>
         <div className="catalog-filters__actions">
           <Button type="submit">{labels.apply}</Button>
           <a className="catalog-filters__reset" href="/">
@@ -96,7 +127,7 @@ export function CatalogView({
         </div>
       </form>
 
-      {offers.length === 0 ? (
+      {problem !== undefined ? <ErrorState problem={problem} /> : offers.length === 0 ? (
         <EmptyState
           title={labels.emptyTitle}
           description={labels.emptyDescription}

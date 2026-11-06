@@ -42,12 +42,15 @@ function requestHash(request: JsonValue): Buffer {
  */
 export async function runIdempotent(
   database: Database,
-  input: { readonly scope: string; readonly key: string; readonly request: JsonValue },
+  input: { readonly scope: string; readonly key: string; readonly request: JsonValue;
+    /** Réautorise sous verrou dans la transaction, y compris avant un rejeu. */
+    readonly authorize?: (client: PoolClient) => Promise<void> },
   command: (client: PoolClient) => Promise<CommandResult>,
 ): Promise<IdempotentResult> {
   const key = assertIdempotencyKey(input.key);
   const hash = requestHash(input.request);
   return withTransaction(database, async (client) => {
+    await input.authorize?.(client);
     const inserted = await client.query(
       `INSERT INTO api.idempotency_record (scope, idempotency_key, request_hash, created_at)
        VALUES ($1, $2, $3, now())

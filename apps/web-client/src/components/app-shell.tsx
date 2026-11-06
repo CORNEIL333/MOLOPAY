@@ -15,7 +15,7 @@ export function AppShell({ children, dictionary, locale }: {
           <nav aria-label={dictionary.appName}>
             <a href="/">{dictionary.nav.catalog}</a>
             <a href="/objectifs">{dictionary.nav.goals}</a>
-            <a href="/connexion">{dictionary.nav.account}</a>
+            <a href="/compte">{dictionary.nav.account}</a>
           </nav>
           <a className="locale-switch" href={locale === 'fr' ? '/langue/en' : '/langue/fr'} hrefLang={locale === 'fr' ? 'en' : 'fr'} lang={locale === 'fr' ? 'en' : 'fr'}>
             {locale === 'fr' ? 'English' : 'Français'}
