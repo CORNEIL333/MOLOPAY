@@ -204,3 +204,41 @@
 - **Manques constatés :** aucune couche HTTP authentifiée (seul `/health` existe) : pas de pool PostgreSQL dans Nest, pas de garde de session (`cookieAuth` / `client_session`), pas de store de tentatives PIN (verrouillage atomique).
 - **Recommandation :** (1) aligner le contrat sur CDC_05 (statuts du § 5.2 + booléen `locked`) ; (2) création en deux temps : `POST /v1/goals` crée un brouillon à partir du devis, puis `POST /v1/goals/{goalId}/activation` avec signature d'appareil + PIN ; idem `/cancellation` ; `/lock` ; (3) durée en **mois** comme le devis (tranche D27) ; (4) construire d'abord le socle HTTP (pool, garde de session, store PIN, erreurs RFC 9457, Idempotency-Key, contrôle d'origine) avant les routes.
 - **En attendant :** aucune route d'accord n'est exposée.
+
+### D33 · Rappels : réservation conservatrice et configuration (lot 17)
+- Contexte : F-NOT-003 impose horaires et fréquence ; aucun prestataire ni travailleur de livraison disponible.
+- Option appliquée : quota global par destinataire (tous projets/canaux), consommé à la réservation, y compris si un envoi ultérieur échoue. Clé UUID idempotente ; changer de canal sur une clé est refusé. Pas de politique par défaut. Configuration accessible au propriétaire de migration uniquement, aucun endpoint administratif ajouté.
+- Limites : ce mécanisme ne constitue ni une outbox ni une preuve de livraison ; le futur dispatch doit revérifier la plage horaire et coordonner réservation, tentatives et idempotence du prestataire. Aucun destinataire réel, texte libre, numéro ou jeton stocké. Le lien du destinataire au compte authentifié doit être imposé dans le futur câblage serveur.
+- À trancher : valeurs des horaires et plafonds, circuit administratif de configuration, politique de reprise/expiration des réservations et conservation. Une réservation existante ne doit pas autoriser seule un envoi différé.
+- Réversibilité : ne pas câbler le store ; modifier la politique par le circuit humain approuvé. Aucune donnée financière touchée, aucune suppression de migration proposée.
+
+### D34 · Consommation de notifications : reprise bornée, sans livraison (lot 17)
+- Contexte : NF-REL-005 impose reprise et suivi des échecs ; aucun adaptateur officiel ni contrat d'acquittement disponible dans le module.
+- Option prudente : aucun réglage de consommation par défaut, rôle travailleur séparé et non connecté ; bail exclusif avec identité de tentative renouvelée, délai de reprise et plafond explicites. Le plafond est mémorisé lors de la première prise : modifier max_attempts ne change pas les enveloppes déjà prises. Les enveloppes épuisées sont conservées, dénombrables, sans circuit automatique de remise en file. Aucun champ d'erreur libre ou contenu fournisseur stocké.
+- Liste blanche de prise : PAYMENT_CONFIRMED, GOAL_FUNDED, HANDOVER_READY, SETTLEMENT_CONFIRMED, DISPUTE_UPDATED. PAYMENT_REMINDER reste différé tant que la coordination à l'instant d'envoi de D33 n'est pas construite, même si une réservation existe déjà.
+- À décider : durées et plafond opérationnels, circuit de configuration et reprise manuelle, conservation, supervision effective et contrat d'idempotence/acquittement du prestataire officiel. Les bornes techniques de configuration ne sont pas des valeurs recommandées.
+- Limites : pas d'envoi, de clôture de succès ni de preuve de réception. Le futur travailleur doit commiter la prise avant tout effet externe et conserver la clé logique de notification auprès du prestataire ; un bail ne garantit pas l'absence d'envoi en double si un appel externe survit à son expiration.
+- Réversibilité : laisser la configuration vide et le rôle sans connexion ; aucun travailleur ou endpoint démarré par cette tranche. Aucune donnée financière touchée.
+- Suite diagnostic local : `pnpm notifications:check --max-pending N --max-deferred-reminders N` exige ses deux seuils. Épuisement toujours signalé, dépassement strict des seuils (égalité acceptée). Rôle observateur limité aux compteurs ; outil limité à la base molopay_test en boucle locale. Aucun ordonnanceur ni canal de transmission installé : le diagnostic ponctuel ne vaut pas supervision active. Seuils opérationnels, détection par âge et destinataire d'alerte restent à décider ; aucun envoi externe autorisé par cette commande.
+
+### D35 · Sécurité du compte : blocage APP et déblocage humain (lots 06/19)
+- Périmètre : consulter ses appareils et sessions, fermer les autres sessions, se déconnecter et bloquer son propre compte depuis une session valide. Le canal est APP : appareil enregistré ne signifie pas appareil attesté. Aucune attestation, récupération ou ré-enrôlement de confiance revendiqué.
+- Option prudente : blocage, révocation des appareils et sessions, audit et clé d'idempotence dans une même transaction. Le rôle applicatif perd le droit de modifier directement les champs de blocage ; aucune fonction ni route de déblocage n'est ajoutée.
+- À décider avant exploitation : procédure humaine de déblocage après vérification renforcée, ré-enrôlement, et autorisations des canaux support/USSD. Les contrôles de débit globaux restent à compléter au lot de durcissement ; cette tranche n'autorise aucun lancement public.
+- Limites : les routes nécessitent une session déjà valide. OTP/SMS et ouverture de nouvelle session ne sont pas implémentés par cette tranche. Après logout/blocage, un nouveau passage dans le garde refuse le cookie invalidé ; seuls des rejouages déjà authentifiés avant le commit peuvent récupérer le succès mémorisé.
+- Réversibilité : ne pas exposer les nouvelles routes avant revue humaine ; aucune réactivation automatique et aucune modification financière. F-ACC-006 reste partiel (APP uniquement, sans support/USSD ni ré-enrôlement).
+### D36 · F-ACC-005 : réception des demandes, traitement à compléter
+- Option appliquée : registre de réception immuable, quatre types fermés, historique privé paginé et reçu ; aucun texte libre, document, export incomplet ou effacement automatique. RECEIVED signifie seulement enregistré, pas pris en charge ni exécuté.
+- À décider/livrer : circuit humain habilité, échanges sécurisés pour préciser rectification/opposition, vérification d'identité adaptée, export complet en moins de 30 jours, règles de conservation et suite des événements de traitement. Cette réception seule ne satisfait pas F-ACC-005.
+- Aucun changement aux textes juridiques provisoires D23, aucune promesse de service opérationnel, aucune donnée financière modifiée. Pas d'exposition publique avant revue humaine et durcissement du débit.
+
+### D37 · Échec préexistant de rotation de session (6 novembre)
+- Preuve : première grappe PostgreSQL jetable 2dhkFP, identity.db.test.ts « fait tourner le refresh une seule fois » échoue avec 23514 / session_access_window ; 304 autres tests passent, quatre nouvelles routes échouent comme attendu avant code (404).
+- Cause lue : access_issued_at et access_expires_at calculés avec deux clock_timestamp() distincts ; quelques microsecondes peuvent dépasser la limite de quinze minutes.
+- Option prudente : test de durée exacte, puis instant SQL unique matérialisé pour la rotation ; aucune relaxation de contrainte ni modification des tests existants. Revue indépendante requise avec cette tranche.
+
+### D38 · Quotas des routes compte : valeurs et périmètre restant (SEC-API-003)
+- Option appliquée : aucune valeur d'exploitation inventée. Sans politique, les quatre routes répondent 503 ; seuls les tests posent des seuils. Une politique ne se modifie pas : une nouvelle version ouvre de nouveaux budgets.
+- Limites : compte et appareil seulement ; IP, numéro et partenaire non couverts. Les compteurs ne sont pas purgés (une ligne par action, version, dimension et sujet). Toute la consommation passe par le verrou du compte : le coût sous charge n'est pas mesuré.
+- À décider : fenêtres et plafonds par action, circuit d'insertion d'une politique, purge des compteurs, limites IP/numéro/partenaire.
+- Réversibilité : retirer le décorateur `CustomerQuota` d'une route ; aucune donnée financière touchée.
