@@ -22,7 +22,9 @@ import {
   getPaymentAttempt,
   recordWebhookReceipt,
 } from '../../src/modules/payments/attempt.store';
+import { createPlannedExpenseAgreement } from '../../src/modules/agreements/agreement.store';
 import { confirmPaymentAttempt } from '../../src/modules/payments/confirmation.store';
+import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import type { ProviderTransaction } from '../../src/modules/payments/provider';
 import { xaf } from '@achat/money';
 import { uuidv7 } from '../../src/modules/ledger/domain';
@@ -45,13 +47,14 @@ const MIGRATIONS = [
   'db/migrations/0015_partner_default_lift.sql',
   'db/migrations/0026_payments_attempts.sql',
   'db/migrations/0027_payments_confirmation.sql',
+  'db/migrations/0028_payments_entry_agreement.sql',
+  'db/migrations/0029_agreements_funded.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9200-0000-7000-8000-0000000000c1';
 const DEVICE_ID = '019a9200-0000-7000-8000-0000000000d1';
 const AGREEMENT_ID = '019a9200-0000-7000-8000-0000000000a1';
 const DRAFT_AGREEMENT_ID = '019a9200-0000-7000-8000-0000000000a2';
-const TERMS_HASH = Buffer.alloc(32, 7);
 const SIGNATURE = Buffer.alloc(64, 9);
 
 let container: TestDatabase;
@@ -147,16 +150,24 @@ async function validateBeneficiary(client: Client): Promise<void> {
   });
 }
 
+/** Accord C créé par le store (empreinte des conditions authentique). */
 async function insertAgreementC(client: Client, id: string): Promise<void> {
-  await client.query(
-    `INSERT INTO agreements.agreement
-       (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-        target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
-        terms_hash, created_at)
-     VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, 'landlord-1', 300000,
-             'plan-c', 'MONTHLY', 10000, 120, 'FULL_NO_FEE', $3, now())`,
-    [id, CUSTOMER_ID, TERMS_HASH],
-  );
+  await createPlannedExpenseAgreement(client, {
+    id,
+    customerId: CUSTOMER_ID,
+    beneficiaryId: 'landlord-1',
+    targetXaf: 300_000n,
+    plan: {
+      id: 'plan-c',
+      model: 'PLANNED_EXPENSE',
+      approved: true,
+      rhythm: 'MONTHLY',
+      minAmountXaf: 10_000n,
+      maxDurationDays: 180,
+    },
+    durationDays: 120,
+    createdAt: '2026-11-01T09:00:00.000Z',
+  });
 }
 
 /** Un accord C ACTIVE (signé) et un accord C resté en DRAFT. */
@@ -668,7 +679,7 @@ describe('I-6 imposé par la base, sans passer par le store', () => {
     const entry = await appendLedgerEntry(client, {
       id: uuidv7(),
       operationType: 'PAYMENT_CONFIRMED',
-      businessRefs: { payment_attempt_id: attemptId },
+      businessRefs: { payment_attempt_id: attemptId, agreement_id: AGREEMENT_ID },
       actorId: 'payments-worker',
       approvers: [],
       idemScope: 'tests-raw',
@@ -745,5 +756,106 @@ describe('D39 trop-perçu : une tentative ne dépasse pas le reste dû', () => {
     expect(over.message).toMatch(/^PAYMENT_EXCEEDS_REMAINING/);
     const exact = await createAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 10_000n });
     expect(exact.status).toBe('CREATED');
+  });
+});
+
+describe('F-SAV-002 / I-9 accord FUNDED dérivé du grand livre', () => {
+  async function confirmAndFund(attempt: StoredAttempt): Promise<Awaited<ReturnType<typeof confirmPaymentAndFundAgreement>>> {
+    return transact('app_rw', (client) =>
+      confirmPaymentAndFundAgreement(client, {
+        attemptId: attempt.id,
+        customerId: CUSTOMER_ID,
+        providerTransaction: succeeded(attempt),
+        actorId: 'payments-worker',
+      }),
+    );
+  }
+
+  async function agreementStatus(): Promise<string | undefined> {
+    const result = await admin.query<{ status: string }>(
+      'SELECT status FROM agreements.agreement_state WHERE id = $1',
+      [AGREEMENT_ID],
+    );
+    return result.rows[0]?.status;
+  }
+
+  it('un versement partiel laisse l’accord ACTIVE', async () => {
+    const result = await confirmAndFund(await pendingAttempt({ amountXaf: 100_000n }));
+    expect(result.agreementFunded).toBe(false);
+    expect(await agreementStatus()).toBe('ACTIVE');
+  });
+
+  it('le versement qui atteint 100 % passe l’accord à FUNDED dans la même transaction', async () => {
+    await confirmAndFund(await pendingAttempt({ amountXaf: 200_000n }));
+    const last = await confirmAndFund(await pendingAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 100_000n }));
+    expect(last.agreementFunded).toBe(true);
+    expect(await agreementStatus()).toBe('FUNDED');
+    const funds = await admin.query<{ funds: string }>(
+      'SELECT agreements.confirmed_funds_xaf($1)::text AS funds',
+      [AGREEMENT_ID],
+    );
+    expect(funds.rows[0]?.funds).toBe('300000');
+  });
+
+  it('un accord FUNDED n’accepte plus de tentative (PAYMENT_AGREEMENT_NOT_ACTIVE)', async () => {
+    await confirmAndFund(await pendingAttempt({ amountXaf: 300_000n }));
+    const result = await failure(() => createAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 1_000n }));
+    expect(result.message).toMatch(/^PAYMENT_AGREEMENT_NOT_ACTIVE/);
+  });
+
+  it('la confirmation rejouée ne refait pas la transition FUNDED', async () => {
+    const attempt = await pendingAttempt({ amountXaf: 300_000n });
+    await confirmAndFund(attempt);
+    const again = await confirmAndFund(attempt);
+    expect(again).toMatchObject({ agreementFunded: true });
+    const events = await admin.query(
+      `SELECT count(*)::int AS n FROM agreements.status_event WHERE agreement_id = $1 AND to_status = 'FUNDED'`,
+      [AGREEMENT_ID],
+    );
+    expect(events.rows[0]).toEqual({ n: 1 });
+  });
+
+  it('I-6 la base refuse FUNDED sans 100 % au grand livre (AGREEMENT_LEDGER_LINK_REQUIRED)', async () => {
+    await confirm(await pendingAttempt({ amountXaf: 299_999n }));
+    const result = await failure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO agreements.status_event
+             (agreement_id, seq, kind, from_status, to_status, device_id, signature, actor_id, created_at)
+           VALUES ($1, 2, 'TRANSITION', 'ACTIVE', 'FUNDED', NULL, NULL, 'payments-worker', now())`,
+          [AGREEMENT_ID],
+        ),
+      ),
+    );
+    expect(result.message).toMatch(/^AGREEMENT_LEDGER_LINK_REQUIRED/);
+  });
+
+  it('la base refuse une écriture de confirmation qui référence un autre accord (PAYMENT_LEDGER_LINK_REQUIRED)', async () => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() =>
+      transact('app_rw', async (client) => {
+        const account = await ensureClientFundsAccount(client, CUSTOMER_ID);
+        const entry = await appendLedgerEntry(client, {
+          id: uuidv7(),
+          operationType: 'PAYMENT_CONFIRMED',
+          businessRefs: { payment_attempt_id: attempt.id, agreement_id: DRAFT_AGREEMENT_ID },
+          actorId: 'payments-worker',
+          approvers: [],
+          idemScope: 'tests-raw',
+          idemKey: uuidv7(),
+          postings: [
+            { accountId: ACCOUNT_AGGREGATOR, direction: 'DEBIT', amount: xaf(10_000n) },
+            { accountId: account, direction: 'CREDIT', amount: xaf(10_000n) },
+          ],
+        });
+        await client.query(
+          `INSERT INTO payments.contribution
+             (id, attempt_id, channel, provider_tx_id, customer_id, amount_xaf, entry_id, confirmed_at)
+           VALUES ($1, $2, 'MTN_MOMO', 'tx-autre-accord', $3, 10000, $4, now())`,
+          [uuidv7(), attempt.id, CUSTOMER_ID, entry.id],
+        );
+      }),
+    );
+    expect(result.message).toMatch(/^PAYMENT_LEDGER_LINK_REQUIRED/);
   });
 });

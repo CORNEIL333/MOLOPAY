@@ -463,3 +463,37 @@ export async function listAgreementsAffectedByDefault(
     remedies: ['EQUIVALENT_ITEM', 'FULL_REFUND'],
   }));
 }
+
+/**
+ * F-SAV-002 : passe un accord ACTIVE à FUNDED quand les versements confirmés
+ * au grand livre atteignent la cible. Les fonds sont dérivés des écritures
+ * (agreements.confirmed_funds_xaf), jamais affirmés ; la base revérifie.
+ * Sans effet si l'accord n'est pas ACTIVE ou pas encore financé à 100 %.
+ */
+export async function markAgreementFundedIfComplete(
+  client: SqlClient,
+  input: { readonly agreementId: string; readonly actorId: string },
+): Promise<{ readonly agreement: StoredAgreement; readonly funded: boolean }> {
+  const actorId = assertActor(input.actorId);
+  const current = await reload(client, input.agreementId);
+  if (current.agreement.status === 'FUNDED') {
+    return { agreement: current, funded: true };
+  }
+  if (current.agreement.status !== 'ACTIVE') {
+    return { agreement: current, funded: false };
+  }
+  const result = await client.query<{ funds: string }>(
+    'SELECT agreements.confirmed_funds_xaf($1)::text AS funds',
+    [input.agreementId],
+  );
+  const funds = parseXaf(result.rows[0]?.funds ?? '0').amount;
+  if (funds < current.agreement.terms.targetXaf) {
+    return { agreement: current, funded: false };
+  }
+  const funded = await appendAgreementTransition(client, {
+    agreementId: input.agreementId,
+    to: 'FUNDED',
+    actorId,
+  });
+  return { agreement: funded, funded: true };
+}
