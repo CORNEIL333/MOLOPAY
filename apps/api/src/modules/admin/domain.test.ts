@@ -44,12 +44,16 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'PREPARE_FINANCIAL_SETTING',
     'APPROVE_FINANCIAL_SETTING',
     'APPROVE_LEDGER_REVERSAL',
+    // D26 (délégation du fondateur, 2026-11-10) : FINANCE prépare les plans.
+    'PREPARE_PAYMENT_PLAN',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
     'APPROVE_PARTNER',
     'DECLARE_MERCHANT_DEFAULT',
+    // D26 : COMPLIANCE approuve les plans (préparateur ≠ approbateur, I-7).
+    'APPROVE_PAYMENT_PLAN',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT'],
@@ -482,6 +486,29 @@ describe('maker-checker · cycle de vie', () => {
         '2026-10-26T09:00:00.000Z',
       );
     }, 'ADMIN_INVALID_REQUEST');
+  });
+
+  it('D26 un plan de paiement est préparé par FINANCE et approuvé par COMPLIANCE seulement', () => {
+    const finance = principal('fin-1', ['FINANCE']);
+    const otherFinance = principal('fin-2', ['FINANCE']);
+    const compliance = principal('comp-1', ['COMPLIANCE']);
+    const planInput = {
+      id: REQUEST_ID,
+      kind: 'PAYMENT_PLAN' as const,
+      payload: { plan_id: 'plan-c-mensuel' },
+      reason: 'Nouveau plan',
+      now: NOW,
+    };
+    const request = createApprovalRequest(planInput, finance, CONTEXT);
+    expect(
+      decideApprovalRequest(request, compliance, CONTEXT, 'APPROVED', undefined, '2026-10-26T09:00:00.000Z').status,
+    ).toBe('APPROVED');
+    expectCode(() => {
+      decideApprovalRequest(request, otherFinance, CONTEXT, 'APPROVED', undefined, '2026-10-26T09:00:00.000Z');
+    }, 'ADMIN_FORBIDDEN');
+    expectCode(() => {
+      createApprovalRequest(planInput, compliance, CONTEXT);
+    }, 'ADMIN_FORBIDDEN');
   });
 
   it('refuse un identifiant de décideur avec espaces de bord', () => {
