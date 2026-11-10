@@ -260,3 +260,8 @@
   - Point 4 : la confirmation des espèces est refusée (`PAYMENT_INVALID_REQUEST`) jusqu'à décision.
   - **Limite connue :** la base de `payments` impose « pas de contribution sans écriture conforme » et « pas de CONFIRMED sans contribution », mais pas « pas d'écriture PAYMENT_CONFIRMED sans contribution » : ce dernier contrôle exigerait un déclencheur sur les tables du grand livre, que `payments` ne doit pas modifier. Le store l'assure ; à couvrir par le rapprochement (lot 14) ou une règle du module ledger.
   - **Reste hors périmètre :** passage de l'accord à `FUNDED` à 100 % (lot 10/12), écriture 1100/1200 à réception des fonds sur le compte cantonné (lot 14), reçus numérotés (F-PAY-006).
+
+### D40 · Rapprochement, tranche 1 : contrôle de cantonnement (lot 14)
+- **Appliqué (INT-REC-002/004, sources suffisantes) :** migration 0030 ; la finance saisit le solde du relevé du compte cantonné et les règlements sortants en transit ; la base dérive du grand livre les fonds de tiers (Σ 2100 + 2200 + 2300) et les encaissements en transit (1200), calcule l'écart et ouvre un incident si l'écart ≠ 0 FCFA. Incidents non classés de plus de 48 h listés pour escalade.
+- **À trancher :** source et format des relevés (établissement de cantonnement, agrégateur) pour automatiser INT-REC-001 ; qui saisit et qui approuve le relevé (maker-checker ?) ; circuit de classement des écarts et des écritures de régularisation (INT-REC-003) ; destinataire des escalades (INT-REC-004) ; compte des règlements en transit (absent du plan minimal CDC_04 § 2.1, saisi à la main en attendant).
+- **Limite :** aucun compte 2200/2300 n'existe encore (lots 12/13) : leur inclusion dans la somme n'est vérifiée que par lecture du code.
