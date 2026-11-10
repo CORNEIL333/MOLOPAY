@@ -1591,6 +1591,235 @@
           }
         }
       }
+    },
+    "/v1/goals/{goalId}/signing-payload": {
+      "get": {
+        "operationId": "getGoalSigningPayload",
+        "summary": "Octets à signer par l'appareil (D28)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "name": "transition",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVATE",
+                "CANCEL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message à signer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalSigningPayload"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/activation": {
+      "post": {
+        "operationId": "activateGoal",
+        "summary": "Activer un brouillon (signature + PIN)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalSignedActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Objectif mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/cancellation": {
+      "post": {
+        "operationId": "cancelGoal",
+        "summary": "Annuler un objectif actif non verrouillé (signature + PIN)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalSignedActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Objectif mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/lock": {
+      "post": {
+        "operationId": "lockGoal",
+        "summary": "Verrouiller un objectif actif (PIN)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalPinActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Objectif mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3405,6 +3634,64 @@
             "format": "date-time"
           }
         }
+      },
+      "GoalSignedActionRequest": {
+        "type": "object",
+        "description": "SEC-AUTH-002 / INT-NR-001 : PIN et signature Ed25519 (base64) des octets de signing-payload",
+        "required": [
+          "pin",
+          "signature"
+        ],
+        "properties": {
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "signature": {
+            "type": "string",
+            "contentEncoding": "base64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GoalPinActionRequest": {
+        "type": "object",
+        "required": [
+          "pin"
+        ],
+        "properties": {
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GoalSigningPayload": {
+        "type": "object",
+        "required": [
+          "transition",
+          "payloadBase64",
+          "seq"
+        ],
+        "properties": {
+          "transition": {
+            "type": "string",
+            "enum": [
+              "ACTIVATE",
+              "CANCEL"
+            ]
+          },
+          "payloadBase64": {
+            "type": "string",
+            "contentEncoding": "base64"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
       }
     },
     "responses": {

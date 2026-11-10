@@ -7,6 +7,7 @@ import { ProblemFilter } from './http/problem.filter';
 import { CustomerSessionGuard } from './http/session.guard';
 import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
+import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
 import { PublicOfferController } from './modules/catalog/public-offer.controller';
 import { AccountSecurityController } from './modules/identity/account-security.controller';
 import { DataRightsController } from './modules/identity/data-rights.controller';
@@ -14,6 +15,8 @@ import { DataRightsController } from './modules/identity/data-rights.controller'
 export type AppDependencies = {
   readonly database: Database;
   readonly allowedOrigins: ReadonlySet<string>;
+  /** Poivre PIN (configuration) ; absent : les actions sous PIN répondent 503. */
+  readonly pinPepper?: Uint8Array | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -27,9 +30,10 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, AccountSecurityController, DataRightsController, GoalsController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
+        { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },

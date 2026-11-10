@@ -55,6 +55,7 @@ const TITLES: Readonly<Record<number, string>> = {
 const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   REQUEST_RATE_LIMITED: 'too-many-requests',
   RATE_LIMIT_UNCONFIGURED: 'service-unavailable',
+  PIN_UNCONFIGURED: 'service-unavailable',
 };
 
 /** Statut HTTP d'un code métier ; tout code non classé est une règle métier (422). */
@@ -68,7 +69,7 @@ export function statusForCode(code: ErrorCode): number {
   }
   if (code === 'INTERNAL_ERROR') return 500;
   if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED') return 503;
   return 422;
 }
 
