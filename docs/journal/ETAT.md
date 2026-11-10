@@ -7,7 +7,8 @@
 - Accord FUNDED à 100 % dérivé du grand livre (0028/0029), flux confirmation + FUNDED en une transaction.
 - Lot 14 tranche 1 : contrôle de l'invariant de cantonnement (0030), incidents et escalade 48 h (D40).
 - Détection des écritures de confirmation sans contribution et solde du suspens 2900 (0031).
-- **1062 unitaires, 421 PostgreSQL, 45 attaques, 1 E2E, `verify:ledger`, sécurité OK.** Revue indépendante non faite. Points ouverts : D39.
+- Lot 15 tranche 1 : réclamations numérotées, litiges qui suspendent l'accord, historique chronologique (0032, D41).
+- **1066 unitaires, 439 PostgreSQL, 45 attaques, 1 E2E, `verify:ledger`, sécurité OK.** Revue indépendante non faite. Points ouverts : D39.
 
 ## Fait · SEC-API-003 partiel, quotas des routes compte (L2)
 - Migration 0025 : politiques versionnées en ajout seul, sans valeur par défaut, compteurs accessibles uniquement par `identity.consume_customer_quota`. Tout ou rien sur compte et appareil, horloge serveur après attente du verrou, session revérifiée sous verrou.

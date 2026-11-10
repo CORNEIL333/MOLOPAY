@@ -497,3 +497,28 @@ export async function markAgreementFundedIfComplete(
   });
   return { agreement: funded, funded: true };
 }
+
+export type AgreementHistoryItem = {
+  readonly at: string;
+  readonly kind: 'AGREEMENT_STATUS' | 'AGREEMENT_LOCK';
+  readonly from: string;
+  readonly to: string;
+};
+
+/** F-SUP-003 : journal des statuts d'un accord, dans l'ordre de séquence. */
+export async function listAgreementEvents(
+  client: SqlClient,
+  agreementId: string,
+): Promise<AgreementHistoryItem[]> {
+  const result = await client.query<{ created_at: Date; kind: string; from_status: string; to_status: string }>(
+    `SELECT created_at, kind, from_status, to_status
+       FROM agreements.status_event WHERE agreement_id = $1 ORDER BY seq`,
+    [agreementId],
+  );
+  return result.rows.map((row) => ({
+    at: row.created_at.toISOString(),
+    kind: row.kind === 'LOCK' ? 'AGREEMENT_LOCK' : 'AGREEMENT_STATUS',
+    from: row.from_status,
+    to: row.to_status,
+  }));
+}

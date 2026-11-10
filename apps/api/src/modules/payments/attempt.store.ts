@@ -198,3 +198,56 @@ export async function recordWebhookReceipt(
     throw new BusinessError('WEBHOOK_REPLAYED', 'webhook déjà reçu');
   }
 }
+
+export type PaymentHistoryItem =
+  | {
+      readonly at: string;
+      readonly kind: 'PAYMENT_ATTEMPT';
+      readonly attemptId: string;
+      readonly channel: string;
+      readonly amountXaf: bigint;
+    }
+  | { readonly at: string; readonly kind: 'PAYMENT_STATUS'; readonly attemptId: string; readonly from: string; readonly to: string }
+  | { readonly at: string; readonly kind: 'PAYMENT_CONFIRMED'; readonly attemptId: string; readonly amountXaf: bigint };
+
+/** F-SUP-003 : tentatives, transitions et versements confirmés d'un accord. */
+export async function listPaymentHistory(client: SqlClient, agreementId: string): Promise<PaymentHistoryItem[]> {
+  const attempts = await client.query<{ id: string; created_at: Date; channel: string; amount_xaf: string }>(
+    'SELECT id, created_at, channel, amount_xaf::text FROM payments.payment_attempt WHERE agreement_id = $1',
+    [agreementId],
+  );
+  const events = await client.query<{ attempt_id: string; created_at: Date; from_status: string; to_status: string }>(
+    `SELECT e.attempt_id, e.created_at, e.from_status, e.to_status
+       FROM payments.attempt_event e JOIN payments.payment_attempt a ON a.id = e.attempt_id
+      WHERE a.agreement_id = $1`,
+    [agreementId],
+  );
+  const contributions = await client.query<{ attempt_id: string; confirmed_at: Date; amount_xaf: string }>(
+    `SELECT c.attempt_id, c.confirmed_at, c.amount_xaf::text
+       FROM payments.contribution c JOIN payments.payment_attempt a ON a.id = c.attempt_id
+      WHERE a.agreement_id = $1`,
+    [agreementId],
+  );
+  return [
+    ...attempts.rows.map((row): PaymentHistoryItem => ({
+      at: row.created_at.toISOString(),
+      kind: 'PAYMENT_ATTEMPT',
+      attemptId: row.id,
+      channel: row.channel,
+      amountXaf: parseXaf(row.amount_xaf).amount,
+    })),
+    ...events.rows.map((row): PaymentHistoryItem => ({
+      at: row.created_at.toISOString(),
+      kind: 'PAYMENT_STATUS',
+      attemptId: row.attempt_id,
+      from: row.from_status,
+      to: row.to_status,
+    })),
+    ...contributions.rows.map((row): PaymentHistoryItem => ({
+      at: row.confirmed_at.toISOString(),
+      kind: 'PAYMENT_CONFIRMED',
+      attemptId: row.attempt_id,
+      amountXaf: parseXaf(row.amount_xaf).amount,
+    })),
+  ];
+}
