@@ -8,7 +8,8 @@ const UUID_V7_PATTERN =
 const ISO_UTC_MS_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const REF_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
-const MAX_DURATION_DAYS = 3660;
+// D27 (délégation du fondateur, 2026-11-10) : durée en mois, 1 à 36.
+const MAX_DURATION_MONTHS = 36;
 
 // Lot 10 : modèles A et C. Le modèle B (achat financé) relève du lot 13.
 export const AGREEMENT_MODELS = ['SAVE_THEN_BUY', 'PLANNED_EXPENSE'] as const;
@@ -56,7 +57,7 @@ export type AgreementPlan = {
   readonly approved: boolean;
   readonly rhythm: string;
   readonly minAmountXaf: bigint;
-  readonly maxDurationDays: number;
+  readonly maxDurationMonths: number;
 };
 
 /** Bénéficiaire du modèle C, vérifié par la conformité (F-PLN-001). */
@@ -77,7 +78,7 @@ export type AgreementTerms = {
   readonly planId: string;
   readonly rhythm: Rhythm;
   readonly minAmountXaf: bigint;
-  readonly durationDays: number;
+  readonly durationMonths: number;
   readonly refundPolicy: RefundPolicy;
 };
 
@@ -100,7 +101,7 @@ export type CreateAgreementInput =
       readonly model: 'SAVE_THEN_BUY';
       readonly offer: OfferSnapshot;
       readonly plan: AgreementPlan;
-      readonly durationDays: number;
+      readonly durationMonths: number;
       readonly createdAt: string;
     }
   | {
@@ -110,7 +111,7 @@ export type CreateAgreementInput =
       readonly beneficiary: BeneficiarySnapshot;
       readonly targetXaf: bigint;
       readonly plan: AgreementPlan;
-      readonly durationDays: number;
+      readonly durationMonths: number;
       readonly createdAt: string;
     };
 
@@ -156,9 +157,9 @@ function assertDuration(value: unknown, field: string): number {
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
     value <= 0 ||
-    value > MAX_DURATION_DAYS
+    value > MAX_DURATION_MONTHS
   ) {
-    fail('AGREEMENT_INVALID_REQUEST', `${field} doit être un nombre de jours`);
+    fail('AGREEMENT_INVALID_REQUEST', `${field} doit être un nombre de mois entre 1 et 36`);
   }
   return value;
 }
@@ -166,7 +167,7 @@ function assertDuration(value: unknown, field: string): number {
 function assertPlan(
   plan: AgreementPlan,
   model: AgreementModel,
-  durationDays: number,
+  durationMonths: number,
 ): { readonly rhythm: Rhythm; readonly minAmountXaf: bigint } {
   const planId = assertRefId(plan.id, 'plan.id');
   if (plan.approved !== true || plan.model !== model) {
@@ -175,8 +176,8 @@ function assertPlan(
   if (!(RHYTHMS as readonly string[]).includes(plan.rhythm)) {
     fail('AGREEMENT_PLAN_MISMATCH', 'Rythme de plan inconnu');
   }
-  const maxDuration = assertDuration(plan.maxDurationDays, 'plan.maxDurationDays');
-  if (durationDays > maxDuration) {
+  const maxDuration = assertDuration(plan.maxDurationMonths, 'plan.maxDurationMonths');
+  if (durationMonths > maxDuration) {
     fail('AGREEMENT_PLAN_MISMATCH', 'Durée supérieure au maximum du plan');
   }
   return {
@@ -198,7 +199,7 @@ function termsToJson(terms: AgreementTerms): Parameters<typeof canonicalize>[0] 
     plan_id: terms.planId,
     rhythm: terms.rhythm,
     min_amount_xaf: toCanonicalString(xaf(terms.minAmountXaf)),
-    duration_days: terms.durationDays,
+    duration_months: terms.durationMonths,
     refund_policy: terms.refundPolicy,
   };
 }
@@ -222,8 +223,8 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
   if (!(AGREEMENT_MODELS as readonly string[]).includes(input.model)) {
     fail('AGREEMENT_INVALID_REQUEST', 'Modèle non pris en charge par ce lot');
   }
-  const durationDays = assertDuration(input.durationDays, 'durationDays');
-  const plan = assertPlan(input.plan, input.model, durationDays);
+  const durationMonths = assertDuration(input.durationMonths, 'durationMonths');
+  const plan = assertPlan(input.plan, input.model, durationMonths);
 
   let terms: AgreementTerms;
   if (input.model === 'SAVE_THEN_BUY') {
@@ -251,7 +252,7 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
       planId: input.plan.id,
       rhythm: plan.rhythm,
       minAmountXaf: plan.minAmountXaf,
-      durationDays,
+      durationMonths,
       refundPolicy: 'FULL_NO_FEE',
     };
   } else {
@@ -275,7 +276,7 @@ export function createAgreement(input: CreateAgreementInput): Agreement {
       planId: input.plan.id,
       rhythm: plan.rhythm,
       minAmountXaf: plan.minAmountXaf,
-      durationDays,
+      durationMonths,
       refundPolicy: 'FULL_NO_FEE',
     };
   }

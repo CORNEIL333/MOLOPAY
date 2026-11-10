@@ -33,6 +33,7 @@ import type { ProviderTransaction } from '../../src/modules/payments/provider';
 import { xaf } from '@achat/money';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendLedgerEntry, ensureClientFundsAccount } from '../../src/modules/ledger/entry.store';
+import { PLAN_C, seedPaymentPlan } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
@@ -49,6 +50,8 @@ const MIGRATIONS = [
   'db/migrations/0013_partner_type_beneficiary.sql',
   'db/migrations/0014_partner_incident.sql',
   'db/migrations/0015_partner_default_lift.sql',
+  'db/migrations/0033_payment_plans.sql',
+  'db/migrations/0034_agreements_plan_months.sql',
   'db/migrations/0026_payments_attempts.sql',
   'db/migrations/0027_payments_confirmation.sql',
   'db/migrations/0028_payments_entry_agreement.sql',
@@ -163,15 +166,8 @@ async function insertAgreementC(client: Client, id: string): Promise<void> {
     customerId: CUSTOMER_ID,
     beneficiaryId: 'landlord-1',
     targetXaf: 300_000n,
-    plan: {
-      id: 'plan-c',
-      model: 'PLANNED_EXPENSE',
-      approved: true,
-      rhythm: 'MONTHLY',
-      minAmountXaf: 10_000n,
-      maxDurationDays: 180,
-    },
-    durationDays: 120,
+    planId: PLAN_C.planId,
+    durationMonths: 4,
     createdAt: '2026-11-01T09:00:00.000Z',
   });
 }
@@ -179,6 +175,7 @@ async function insertAgreementC(client: Client, id: string): Promise<void> {
 /** Un accord C ACTIVE (signé) et un accord C resté en DRAFT. */
 async function seed(client: Client): Promise<void> {
   await validateBeneficiary(client);
+  await seedPaymentPlan(client, PLAN_C);
   await insertAgreementC(client, AGREEMENT_ID);
   await client.query(
     `INSERT INTO agreements.status_event

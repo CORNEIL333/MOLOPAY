@@ -5,6 +5,7 @@ import { parseXaf, toCanonicalString, xaf } from '@achat/money';
 import type { PoolClient } from 'pg';
 import { getCurrentOffer } from '../catalog/offer.store';
 import { getBeneficiary } from '../catalog/partner.store';
+import { getPaymentPlan } from '../catalog/payment-plan.store';
 import {
   AGREEMENT_MODELS,
   AGREEMENT_STATUSES,
@@ -65,7 +66,7 @@ type AgreementRow = {
   plan_id: string;
   rhythm: string;
   min_amount_xaf: string;
-  duration_days: number;
+  duration_months: number;
   refund_policy: string;
   terms_hash: Buffer;
   created_at: Date;
@@ -114,7 +115,7 @@ export function agreementFromRow(row: AgreementRow): StoredAgreement {
     planId: row.plan_id,
     rhythm: oneOf<Rhythm>(RHYTHMS, row.rhythm, 'rhythm'),
     minAmountXaf: amountFromText(row.min_amount_xaf, 'min_amount_xaf'),
-    durationDays: row.duration_days,
+    durationMonths: row.duration_months,
     refundPolicy: oneOf<RefundPolicy>(REFUND_POLICIES, row.refund_policy, 'refund_policy'),
   });
   const termsHash = agreementTermsHash(terms);
@@ -193,7 +194,7 @@ function assertCustomerSignature(
 const SELECT_AGREEMENT = `
   SELECT s.id, s.customer_id, s.model, s.offer_id, s.offer_version, s.partner_id,
          s.beneficiary_id, s.target_xaf, s.plan_id, s.rhythm, s.min_amount_xaf,
-         s.duration_days, s.refund_policy, s.terms_hash, s.created_at, s.status,
+         s.duration_months, s.refund_policy, s.terms_hash, s.created_at, s.status,
          s.locked,
          COALESCE((SELECT max(e.seq) FROM agreements.status_event e
                    WHERE e.agreement_id = s.id), 0) AS seq,
@@ -218,7 +219,7 @@ async function insertAgreement(client: SqlClient, agreement: Agreement): Promise
   await client.query(
     `INSERT INTO agreements.agreement
        (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-        target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+        target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
         terms_hash, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::bigint, $9, $10, $11::bigint, $12, $13,
              $14, $15)`,
@@ -234,12 +235,31 @@ async function insertAgreement(client: SqlClient, agreement: Agreement): Promise
       t.planId,
       t.rhythm,
       toCanonicalString(xaf(t.minAmountXaf)),
-      t.durationDays,
+      t.durationMonths,
       t.refundPolicy,
       Buffer.from(agreement.termsHash, 'hex'),
       agreement.createdAt,
     ],
   );
+}
+
+/**
+ * D26 : le plan est lu dans le registre des plans approuvés (maker-checker),
+ * jamais fourni par l'appelant. La base revérifie à l'insertion.
+ */
+async function approvedPlan(client: SqlClient, planId: string): Promise<AgreementPlan> {
+  const plan = await getPaymentPlan(client, planId);
+  if (plan === null) {
+    throw new BusinessError('AGREEMENT_PLAN_MISMATCH', `Plan ${planId} absent du registre`);
+  }
+  return {
+    id: plan.planId,
+    model: plan.model,
+    approved: true,
+    rhythm: plan.rhythm,
+    minAmountXaf: plan.minAmountXaf,
+    maxDurationMonths: plan.maxDurationMonths,
+  };
 }
 
 /**
@@ -252,8 +272,8 @@ export async function createSaveThenBuyAgreement(
     readonly id: string;
     readonly customerId: string;
     readonly offerId: string;
-    readonly plan: AgreementPlan;
-    readonly durationDays: number;
+    readonly planId: string;
+    readonly durationMonths: number;
     readonly createdAt: string;
   },
 ): Promise<StoredAgreement> {
@@ -274,8 +294,8 @@ export async function createSaveThenBuyAgreement(
       models: stored.offer.models,
       priceXaf: stored.offer.priceXaf,
     },
-    plan: input.plan,
-    durationDays: input.durationDays,
+    plan: await approvedPlan(client, input.planId),
+    durationMonths: input.durationMonths,
     createdAt: input.createdAt,
   });
   await insertAgreement(client, agreement);
@@ -293,8 +313,8 @@ export async function createPlannedExpenseAgreement(
     readonly customerId: string;
     readonly beneficiaryId: string;
     readonly targetXaf: bigint;
-    readonly plan: AgreementPlan;
-    readonly durationDays: number;
+    readonly planId: string;
+    readonly durationMonths: number;
     readonly createdAt: string;
   },
 ): Promise<StoredAgreement> {
@@ -311,8 +331,8 @@ export async function createPlannedExpenseAgreement(
     model: 'PLANNED_EXPENSE',
     beneficiary: { id: beneficiary.id, status: beneficiary.status },
     targetXaf: input.targetXaf,
-    plan: input.plan,
-    durationDays: input.durationDays,
+    plan: await approvedPlan(client, input.planId),
+    durationMonths: input.durationMonths,
     createdAt: input.createdAt,
   });
   await insertAgreement(client, agreement);

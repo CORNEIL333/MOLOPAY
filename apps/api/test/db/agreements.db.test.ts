@@ -25,6 +25,7 @@ import {
 } from '../../src/modules/agreements/agreement.store';
 import { agreementTermsHash } from '../../src/modules/agreements/domain';
 import { declareMerchantDefault } from '../../src/modules/agreements/merchant-default';
+import { PLAN_A, PLAN_C, seedPaymentPlan } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
@@ -40,6 +41,8 @@ const MIGRATIONS = [
   'db/migrations/0013_partner_type_beneficiary.sql',
   'db/migrations/0014_partner_incident.sql',
   'db/migrations/0015_partner_default_lift.sql',
+  'db/migrations/0033_payment_plans.sql',
+  'db/migrations/0034_agreements_plan_months.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const OFFER_ID = '019a9100-0000-7000-8000-0000000000f1';
@@ -169,6 +172,8 @@ async function validatePartner(
  * validé comme bénéficiaire (F-PLN-001).
  */
 async function seedCatalog(client: Client): Promise<void> {
+  await seedPaymentPlan(client, PLAN_A);
+  await seedPaymentPlan(client, PLAN_C);
   await validatePartner(client, {
     partnerId: 'partner-1',
     requestId: REQUEST_ID,
@@ -197,10 +202,10 @@ async function insertAgreementA(
   await client.query(
     `INSERT INTO agreements.agreement
        (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-        target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+        target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
         terms_hash, created_at)
      VALUES ($1, $2, 'SAVE_THEN_BUY', $3, $4, $5, NULL, $6::bigint, 'plan-a',
-             'WEEKLY', 5000, 90, 'FULL_NO_FEE', $7, '2000-01-01T00:00:00Z')`,
+             'WEEKLY', 5000, 3, 'FULL_NO_FEE', $7, '2000-01-01T00:00:00Z')`,
     [
       id,
       CUSTOMER_ID,
@@ -218,10 +223,10 @@ async function insertAgreementC(client: Client, id = uuid(2)): Promise<string> {
   await client.query(
     `INSERT INTO agreements.agreement
        (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-        target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+        target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
         terms_hash, created_at)
      VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, 'landlord-1', 300000,
-             'plan-c', 'MONTHLY', 10000, 120, 'FULL_NO_FEE', $3, now())`,
+             'plan-c', 'MONTHLY', 10000, 4, 'FULL_NO_FEE', $3, now())`,
     [id, CUSTOMER_ID, TERMS_HASH],
   );
   return id;
@@ -362,10 +367,10 @@ describe('F-CAT-003 · I-11 · prix figé imposé par la base (PostgreSQL réel)
         client.query(
           `INSERT INTO agreements.agreement
              (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-              target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+              target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
               terms_hash, created_at)
            VALUES ($1, $2, 'PLANNED_EXPENSE', $3, 1, 'partner-1', 'landlord-1', 300000,
-                   'plan-c', 'MONTHLY', 10000, 120, 'FULL_NO_FEE', $4, now())`,
+                   'plan-c', 'MONTHLY', 10000, 4, 'FULL_NO_FEE', $4, now())`,
           [uuid(5), CUSTOMER_ID, OFFER_ID, TERMS_HASH],
         ),
       ),
@@ -380,10 +385,10 @@ describe('F-CAT-003 · I-11 · prix figé imposé par la base (PostgreSQL réel)
         client.query(
           `INSERT INTO agreements.agreement
              (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-              target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+              target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
               terms_hash, created_at)
            VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, 'landlord-1', 300000,
-                   'plan-c', 'MONTHLY', 10000, 120, 'FEE_10_PERCENT', $3, now())`,
+                   'plan-c', 'MONTHLY', 10000, 4, 'FEE_10_PERCENT', $3, now())`,
           [uuid(6), CUSTOMER_ID, TERMS_HASH],
         ),
       ),
@@ -626,14 +631,6 @@ describe('CDC_05 § 5.2 · transitions imposées par la base (PostgreSQL réel)'
   );
 });
 
-const PLAN_A = {
-  id: 'plan-a',
-  model: 'SAVE_THEN_BUY',
-  approved: true,
-  rhythm: 'WEEKLY',
-  minAmountXaf: 5_000n,
-  maxDurationDays: 180,
-} as const;
 
 function deviceKeys(accountId = CUSTOMER_ID, status = 'ACTIVE'): {
   readonly device: SigningDevice;
@@ -670,8 +667,8 @@ async function createA(): Promise<StoredAgreement> {
       id: uuid(10),
       customerId: CUSTOMER_ID,
       offerId: OFFER_ID,
-      plan: PLAN_A,
-      durationDays: 90,
+      planId: PLAN_A.planId,
+      durationMonths: 3,
       createdAt: '2026-10-31T09:00:00.000Z',
     }),
   );
@@ -717,8 +714,8 @@ describe('F-SAV-001 · INT-NR-001 · store des accords (PostgreSQL réel)', () =
         customerId: CUSTOMER_ID,
         beneficiaryId: 'landlord-1',
         targetXaf: 300_000n,
-        plan: { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE' },
-        durationDays: 120,
+        planId: PLAN_C.planId,
+        durationMonths: 4,
         createdAt: '2026-10-31T09:00:00.000Z',
       }),
     );
@@ -881,10 +878,10 @@ describe('F-PLN-001 · bénéficiaire vérifié imposé (PostgreSQL réel)', () 
         client.query(
           `INSERT INTO agreements.agreement
              (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
-              target_xaf, plan_id, rhythm, min_amount_xaf, duration_days, refund_policy,
+              target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, refund_policy,
               terms_hash, created_at)
            VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, $3, 300000,
-                   'plan-c', 'MONTHLY', 10000, 120, 'FULL_NO_FEE', $4, now())`,
+                   'plan-c', 'MONTHLY', 10000, 4, 'FULL_NO_FEE', $4, now())`,
           [uuid(20), CUSTOMER_ID, beneficiaryId, TERMS_HASH],
         ),
       ),
@@ -926,8 +923,8 @@ describe('F-PLN-001 · bénéficiaire vérifié imposé (PostgreSQL réel)', () 
           customerId: CUSTOMER_ID,
           beneficiaryId,
           targetXaf: 300_000n,
-          plan: { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE' },
-          durationDays: 120,
+          planId: PLAN_C.planId,
+          durationMonths: 4,
           createdAt: '2026-10-31T09:00:00.000Z',
         }),
       ),
@@ -1237,5 +1234,84 @@ describe('D31 · déclaration, gel automatique et levée (PostgreSQL réel)', ()
       `SELECT in_default FROM catalog.partner_state WHERE partner_id = 'partner-1'`,
     );
     expect(row.rows[0]?.in_default).toBe(true);
+  });
+});
+
+describe('D26 / D27 accord adossé à un plan approuvé, durée en mois', () => {
+  async function rawC(
+    plan: string,
+    rhythm: string,
+    minAmount: number,
+    months: number | null,
+    days: number | null,
+  ): Promise<{ code: string | undefined; message: string }> {
+    return catchFailure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO agreements.agreement
+             (id, customer_id, model, offer_id, offer_version, partner_id, beneficiary_id,
+              target_xaf, plan_id, rhythm, min_amount_xaf, duration_months, duration_days,
+              refund_policy, terms_hash, created_at)
+           VALUES ($1, $2, 'PLANNED_EXPENSE', NULL, NULL, NULL, 'landlord-1', 300000,
+                   $3, $4, $5, $6, $7, 'FULL_NO_FEE', $8, now())`,
+          [uuid(77), CUSTOMER_ID, plan, rhythm, minAmount, months, days, TERMS_HASH],
+        ),
+      ),
+    );
+  }
+
+  it.each([
+    ['un plan absent du registre', 'plan-inconnu', 'MONTHLY', 10_000, 4, null],
+    ['un rythme différent du plan', 'plan-c', 'WEEKLY', 10_000, 4, null],
+    ['un minimum différent du plan', 'plan-c', 'MONTHLY', 5_000, 4, null],
+    ['une durée au-delà du plan', 'plan-c', 'MONTHLY', 10_000, 7, null],
+    ['une durée en jours', 'plan-c', 'MONTHLY', 10_000, null, 120],
+    ['un plan d’un autre modèle', 'plan-a', 'WEEKLY', 5_000, 4, null],
+  ] as const)('la base refuse %s (AGREEMENT_PLAN_MISMATCH)', async (_label, plan, rhythm, min, months, days) => {
+    const failure = await rawC(plan, rhythm, min, months, days);
+    expect(failure.message).toMatch(/^AGREEMENT_PLAN_MISMATCH/);
+  });
+
+  it('accepte un accord conforme au plan, durée en mois', async () => {
+    const id = await transact('app_rw', (client) => insertAgreementC(client, uuid(78)));
+    const row = await admin.query<{ duration_months: number; duration_days: number | null }>(
+      'SELECT duration_months, duration_days FROM agreements.agreement WHERE id = $1',
+      [id],
+    );
+    expect(row.rows[0]).toEqual({ duration_months: 4, duration_days: null });
+  });
+
+  it('le store refuse un plan absent du registre (AGREEMENT_PLAN_MISMATCH)', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        createPlannedExpenseAgreement(client, {
+          id: uuid(79),
+          customerId: CUSTOMER_ID,
+          beneficiaryId: 'landlord-1',
+          targetXaf: 300_000n,
+          planId: 'plan-inconnu',
+          durationMonths: 4,
+          createdAt: '2026-10-31T09:00:00.000Z',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_PLAN_MISMATCH');
+  });
+
+  it('le store refuse une durée au-delà du plan (AGREEMENT_PLAN_MISMATCH)', async () => {
+    const failure = await catchFailure(() =>
+      transact('app_rw', (client) =>
+        createPlannedExpenseAgreement(client, {
+          id: uuid(80),
+          customerId: CUSTOMER_ID,
+          beneficiaryId: 'landlord-1',
+          targetXaf: 300_000n,
+          planId: PLAN_C.planId,
+          durationMonths: 7,
+          createdAt: '2026-10-31T09:00:00.000Z',
+        }),
+      ),
+    );
+    expect(failure.code).toBe('AGREEMENT_PLAN_MISMATCH');
   });
 });

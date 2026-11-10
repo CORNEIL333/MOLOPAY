@@ -19,6 +19,8 @@ import {
   AGREEMENT_STACK_MIGRATIONS,
   AGREEMENT_STACK_SCHEMAS,
   createAgreementC,
+  PLAN_C,
+  seedPaymentPlan,
   seedLedgerGenesis,
   validateLandlord,
 } from './agreement-fixture';
@@ -115,6 +117,7 @@ beforeEach(async () => {
   }
   await transact('app_rw', async (client) => {
     await validateLandlord(client, uuidv7());
+    await seedPaymentPlan(client, PLAN_C);
     await createAgreementC(client, { id: AGREEMENT_ID, customerId: CUSTOMER_ID, active: true });
     await createAgreementC(client, { id: OTHER_AGREEMENT_ID, customerId: OTHER_CUSTOMER_ID, active: true });
   });

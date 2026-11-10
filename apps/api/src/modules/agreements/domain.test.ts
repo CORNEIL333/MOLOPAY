@@ -34,7 +34,7 @@ const PLAN_A = {
   approved: true,
   rhythm: 'WEEKLY',
   minAmountXaf: 5_000n,
-  maxDurationDays: 180,
+  maxDurationMonths: 6,
 } as const;
 
 const PLAN_C = { ...PLAN_A, id: 'plan-c', model: 'PLANNED_EXPENSE', rhythm: 'MONTHLY' };
@@ -46,7 +46,7 @@ function inputA(overrides: Partial<Extract<CreateAgreementInput, { model: 'SAVE_
     model: 'SAVE_THEN_BUY',
     offer: OFFER,
     plan: PLAN_A,
-    durationDays: 90,
+    durationMonths: 3,
     createdAt: CREATED_AT,
     ...overrides,
   };
@@ -60,7 +60,7 @@ function inputC(overrides: Partial<Extract<CreateAgreementInput, { model: 'PLANN
     beneficiary: { id: 'landlord-1', status: 'VERIFIED' },
     targetXaf: 300_000n,
     plan: PLAN_C,
-    durationDays: 120,
+    durationMonths: 4,
     createdAt: CREATED_AT,
     ...overrides,
   };
@@ -89,7 +89,7 @@ describe('F-SAV-001 · F-CAT-003 · création d’accord A', () => {
       offerVersion: 3,
       targetXaf: 150_000n,
       rhythm: 'WEEKLY',
-      durationDays: 90,
+      durationMonths: 3,
       refundPolicy: 'FULL_NO_FEE',
     });
     expect(agreement.termsHash).toMatch(/^[0-9a-f]{64}$/);
@@ -141,18 +141,19 @@ describe('F-SAV-001 · F-CAT-003 · création d’accord A', () => {
 
   it('F-SAV-001 refuse une durée supérieure au maximum du plan', () => {
     expectCode(
-      () => createAgreement(inputA({ durationDays: 181 })),
+      () => createAgreement(inputA({ durationMonths: 7 })),
       'AGREEMENT_PLAN_MISMATCH',
     );
-    expect(createAgreement(inputA({ durationDays: 180 })).terms.durationDays).toBe(180);
+    expect(createAgreement(inputA({ durationMonths: 6 })).terms.durationMonths).toBe(6);
   });
 
   it.each([
     ['identifiant non v7', { id: '019a9100-0000-4000-8000-000000000001' }],
     ['client invalide', { customerId: 'client-1' }],
     ['horodatage non ISO', { createdAt: '2026-10-31 09:00' }],
-    ['durée nulle', { durationDays: 0 }],
-    ['durée fractionnaire', { durationDays: 1.5 }],
+    ['durée nulle', { durationMonths: 0 }],
+    ['durée fractionnaire', { durationMonths: 1.5 }],
+    ['D27 durée au-delà de 36 mois', { durationMonths: 37 }],
     ['prix nul', { offer: { ...OFFER, priceXaf: 0n } }],
     ['version d’offre nulle', { offer: { ...OFFER, version: 0 } }],
   ])('F-SAV-001 refuse %s → AGREEMENT_INVALID_REQUEST', (_label, overrides) => {

@@ -4,6 +4,11 @@ import type { Client } from 'pg';
 import { createPlannedExpenseAgreement } from '../../src/modules/agreements/agreement.store';
 import { createPartnerDossier, partnerDossierHash } from '../../src/modules/catalog/partner';
 import { appendPartnerDossier, recordPartnerValidation } from '../../src/modules/catalog/partner.store';
+import {
+  paymentPlanApprovalPayload,
+  recordApprovedPaymentPlan,
+  type PaymentPlanTerms,
+} from '../../src/modules/catalog/payment-plan.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 
 /** Migrations nécessaires à un accord C, aux paiements et au grand livre. */
@@ -21,6 +26,8 @@ export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0013_partner_type_beneficiary.sql',
   'db/migrations/0014_partner_incident.sql',
   'db/migrations/0015_partner_default_lift.sql',
+  'db/migrations/0033_payment_plans.sql',
+  'db/migrations/0034_agreements_plan_months.sql',
   'db/migrations/0026_payments_attempts.sql',
   'db/migrations/0027_payments_confirmation.sql',
   'db/migrations/0028_payments_entry_agreement.sql',
@@ -28,6 +35,43 @@ export const AGREEMENT_STACK_MIGRATIONS = [
 ];
 
 export const AGREEMENT_STACK_SCHEMAS = ['payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger'];
+
+/** Plan C de test : mensuel, 10 000 FCFA minimum, 6 mois au plus. */
+export const PLAN_C: PaymentPlanTerms = {
+  planId: 'plan-c',
+  model: 'PLANNED_EXPENSE',
+  rhythm: 'MONTHLY',
+  minAmountXaf: 10_000n,
+  maxDurationMonths: 6,
+};
+
+/** Plan A de test : hebdomadaire, 5 000 FCFA minimum, 6 mois au plus. */
+export const PLAN_A: PaymentPlanTerms = {
+  planId: 'plan-a',
+  model: 'SAVE_THEN_BUY',
+  rhythm: 'WEEKLY',
+  minAmountXaf: 5_000n,
+  maxDurationMonths: 6,
+};
+
+/** D26 : inscrit un plan au registre par une demande PAYMENT_PLAN approuvée par un tiers. */
+export async function seedPaymentPlan(client: Client, terms: PaymentPlanTerms): Promise<void> {
+  const requestId = uuidv7();
+  const payload = paymentPlanApprovalPayload(terms);
+  const payloadHash = createHash('sha256').update(canonicalize(payload), 'utf8').digest();
+  await client.query(
+    `INSERT INTO admin.approval_request
+       (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
+     VALUES ($1, 'PAYMENT_PLAN', 'fin-1', $2::jsonb, $3, 'Plan de test', now(), now() + interval '1 day')`,
+    [requestId, JSON.stringify(payload), payloadHash],
+  );
+  await client.query(
+    `INSERT INTO admin.approval_decision (request_id, decision, decided_by, decided_at, decision_reason)
+     VALUES ($1, 'APPROVED', 'comp-1', now(), NULL)`,
+    [requestId],
+  );
+  await recordApprovedPaymentPlan(client, { terms, approvalRequestId: requestId });
+}
 
 /** Bailleur validé par maker-checker (même circuit que les tests du lot 10). */
 export async function validateLandlord(client: Client, requestId: string): Promise<void> {
@@ -92,15 +136,8 @@ export async function createAgreementC(
     customerId: options.customerId,
     beneficiaryId: 'landlord-1',
     targetXaf: 300_000n,
-    plan: {
-      id: 'plan-c',
-      model: 'PLANNED_EXPENSE',
-      approved: true,
-      rhythm: 'MONTHLY',
-      minAmountXaf: 10_000n,
-      maxDurationDays: 180,
-    },
-    durationDays: 120,
+    planId: PLAN_C.planId,
+    durationMonths: 4,
     createdAt: '2026-11-01T09:00:00.000Z',
   });
   if (options.active) {

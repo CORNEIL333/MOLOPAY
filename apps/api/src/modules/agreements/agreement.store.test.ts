@@ -21,9 +21,9 @@ const AGREEMENT = createAgreement({
     approved: true,
     rhythm: 'WEEKLY',
     minAmountXaf: 5_000n,
-    maxDurationDays: 180,
+    maxDurationMonths: 6,
   },
-  durationDays: 90,
+  durationMonths: 3,
   createdAt: '2026-10-31T09:00:00.000Z',
 });
 
@@ -41,7 +41,7 @@ function row(overrides: Record<string, unknown> = {}): Parameters<typeof agreeme
     plan_id: t.planId,
     rhythm: t.rhythm,
     min_amount_xaf: '5000',
-    duration_days: t.durationDays,
+    duration_months: t.durationMonths,
     refund_policy: t.refundPolicy,
     terms_hash: Buffer.from(AGREEMENT.termsHash, 'hex'),
     created_at: new Date('2026-10-31T09:00:01.234Z'),
@@ -68,7 +68,7 @@ describe('F-CAT-003 · relecture des accords stockés', () => {
 
   it.each([
     ['un prix modifié', { target_xaf: '1' }],
-    ['une durée modifiée', { duration_days: 91 }],
+    ['une durée modifiée', { duration_months: 4 }],
     ['une empreinte absente', { terms_hash: null }],
   ])('I-11 détecte %s → AGREEMENT_INVALID_REQUEST', (_label, overrides) => {
     expectCode(() => agreementFromRow(row(overrides)), 'AGREEMENT_INVALID_REQUEST');
