@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { BusinessError } from '@achat/contracts';
@@ -14,7 +14,17 @@ import { issueHandoverCode } from '../../src/modules/settlement/handover.store';
 import type { Payout } from '../../src/modules/settlement/payout.store';
 import { confirmHandoverAtPartner } from '../../src/workflows/handover';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
-import { decidePayout, preparePayout } from '../../src/workflows/settlement-payout';
+import {
+  decidePayout,
+  instructPayout,
+  preparePayout,
+  recordPayoutExecution,
+} from '../../src/workflows/settlement-payout';
+import {
+  listOverdueInstructions,
+  verifyPayoutInstruction,
+  type PayoutInstructionDocument,
+} from '../../src/modules/settlement/execution.store';
 import {
   AGREEMENT_STACK_MIGRATIONS,
   AGREEMENT_STACK_SCHEMAS,
@@ -37,6 +47,7 @@ const MIGRATIONS = [
   'db/migrations/0039_agreements_handover.sql',
   'db/migrations/0040_settlement_handover.sql',
   'db/migrations/0041_settlement_payout.sql',
+  'db/migrations/0042_settlement_execution.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9900-0000-7000-8000-0000000000c1';
@@ -380,6 +391,238 @@ describe('F-SET-003 décision maker-checker', () => {
     const prepared = await prepare();
     await decide(prepared.payoutId, FIN, 'APPROVED');
     for (const sql of ['UPDATE settlement.payout SET net_xaf = 1', 'DELETE FROM settlement.payout_decision']) {
+      const result = await failure(() => admin.query(sql));
+      expect(result.message, sql).toMatch(/^SETTLEMENT_APPEND_ONLY/);
+    }
+  });
+});
+
+describe('F-SET-004 instruction signée et exécution', () => {
+  const keys = generateKeyPairSync('ed25519');
+
+  async function approved(): Promise<Payout> {
+    await settings(250);
+    const prepared = await prepare();
+    await decide(prepared.payoutId, FIN, 'APPROVED');
+    return prepared;
+  }
+
+  async function instruct(
+    payoutId: string,
+    principal: AdminPrincipal = FIN,
+  ): Promise<{ readonly document: PayoutInstructionDocument; readonly signature: Buffer }> {
+    return transact('app_rw', (client) =>
+      instructPayout(client, { payoutId, principal, cityId: 'douala', signingKey: keys.privateKey, keyId: 'plateforme-test-1' }),
+    );
+  }
+
+  async function execute(
+    payoutId: string,
+    outcome: 'EXECUTED' | 'REJECTED',
+    principal: AdminPrincipal = FIN2,
+  ): Promise<{ readonly entryId: string | null }> {
+    return transact('app_rw', (client) =>
+      recordPayoutExecution(client, { payoutId, principal, cityId: 'douala', outcome, bankReference: 'ETAB-2026-000123' }),
+    );
+  }
+
+  it('émet une instruction canonique signée en Ed25519, vérifiable et infalsifiable', async () => {
+    const payout = await approved();
+    const instruction = await instruct(payout.payoutId);
+    expect(instruction.document).toEqual({
+      domain: 'payout-instruction-v1',
+      payout_id: payout.payoutId,
+      partner_id: 'merchant-1',
+      net_xaf: '151125',
+    });
+    expect(verifyPayoutInstruction(keys.publicKey, instruction.document, instruction.signature)).toBe(true);
+    expect(
+      verifyPayoutInstruction(keys.publicKey, { ...instruction.document, net_xaf: '151126' }, instruction.signature),
+    ).toBe(false);
+  });
+
+  it('refuse d’instruire un règlement non approuvé (SETTLEMENT_NOT_APPROVED)', async () => {
+    await settings();
+    const prepared = await prepare();
+    const pending = await failure(() => instruct(prepared.payoutId));
+    expect(pending.code).toBe('SETTLEMENT_NOT_APPROVED');
+    await decide(prepared.payoutId, FIN, 'REJECTED', 'Refus');
+    const rejected = await failure(() => instruct(prepared.payoutId));
+    expect(rejected.code).toBe('SETTLEMENT_NOT_APPROVED');
+  });
+
+  it('une seule instruction par règlement (SETTLEMENT_ALREADY_INSTRUCTED)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    const result = await failure(() => instruct(payout.payoutId));
+    expect(result.code).toBe('SETTLEMENT_ALREADY_INSTRUCTED');
+  });
+
+  it('la base refuse une instruction dont le montant diffère du net (SETTLEMENT_INSTRUCTION_MISMATCH)', async () => {
+    const payout = await approved();
+    const result = await failure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO settlement.payout_instruction
+             (payout_id, document, document_hash, signature, key_id, instructed_by, instructed_at)
+           VALUES ($1, $2::jsonb, $3, $4, 'k', 'fin-1', now())`,
+          [
+            payout.payoutId,
+            JSON.stringify({ domain: 'payout-instruction-v1', payout_id: payout.payoutId, partner_id: 'merchant-1', net_xaf: '1' }),
+            Buffer.alloc(32, 1),
+            Buffer.alloc(64, 2),
+          ],
+        ),
+      ),
+    );
+    expect(result.message).toMatch(/^SETTLEMENT_INSTRUCTION_MISMATCH/);
+  });
+
+  it('exécution confirmée : écriture SETTLEMENT_SENT 2200 → 1100, plus rien n’est dû au marchand', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    const done = await execute(payout.payoutId, 'EXECUTED');
+    const postings = await admin.query(
+      `SELECT a.code, p.direction, p.amount_xaf::text AS amount
+         FROM ledger.posting p JOIN ledger.account a ON a.id = p.account_id
+        WHERE p.entry_id = $1 ORDER BY p.ordinal`,
+      [done.entryId],
+    );
+    expect(postings.rows).toEqual([
+      { code: '2200', direction: 'D', amount: '151125' },
+      { code: '1100', direction: 'C', amount: '151125' },
+    ]);
+    expect(await partnerBalance()).toBe('0');
+  });
+
+  it('I-7 l’émetteur de l’instruction ne confirme pas son exécution (MAKER_CANNOT_APPROVE)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId, FIN);
+    const result = await failure(() => execute(payout.payoutId, 'EXECUTED', FIN));
+    expect(result.code).toBe('MAKER_CANNOT_APPROVE');
+  });
+
+  it('exécution refusée par l’établissement : aucune écriture, le net reste dû', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    const done = await execute(payout.payoutId, 'REJECTED');
+    expect(done.entryId).toBeNull();
+    expect(await partnerBalance()).toBe('151125');
+  });
+
+  it('une seule exécution par instruction (SETTLEMENT_ALREADY_EXECUTED)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    await execute(payout.payoutId, 'EXECUTED');
+    const result = await failure(() => execute(payout.payoutId, 'EXECUTED', { ...FIN2, actorId: 'fin-3' }));
+    expect(result.code).toBe('SETTLEMENT_ALREADY_EXECUTED');
+  });
+
+  it('I-6 la base refuse une exécution confirmée sans écriture (SETTLEMENT_INCOMPLETE)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    const result = await failure(() =>
+      transact('app_rw', (client) =>
+        client.query(
+          `INSERT INTO settlement.payout_execution
+             (payout_id, outcome, bank_reference, entry_id, recorded_by, recorded_at)
+           VALUES ($1, 'EXECUTED', 'ETAB-1', NULL, 'fin-2', now())`,
+          [payout.payoutId],
+        ),
+      ),
+    );
+    expect(result.message).toMatch(/^SETTLEMENT_INCOMPLETE/);
+  });
+
+  it('F-SET-004 une instruction non confirmée sous 24 h est signalée', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    const now = await transact('app_ro', (client) => listOverdueInstructions(client, new Date().toISOString()));
+    expect(now).toEqual([]);
+    const later = await transact('app_ro', (client) =>
+      listOverdueInstructions(client, new Date(Date.now() + 24 * 3_600_000 + 60_000).toISOString()),
+    );
+    expect(later.map((item) => item.payoutId)).toEqual([payout.payoutId]);
+  });
+
+  function rawInstruction(payoutId: string, net: string): Promise<unknown> {
+    return transact('app_rw', (client) =>
+      client.query(
+        `INSERT INTO settlement.payout_instruction
+           (payout_id, document, document_hash, signature, key_id, instructed_by, instructed_at)
+         VALUES ($1, $2::jsonb, $3, $4, 'k', 'fin-1', now())`,
+        [
+          payoutId,
+          JSON.stringify({ domain: 'payout-instruction-v1', payout_id: payoutId, partner_id: 'merchant-1', net_xaf: net }),
+          Buffer.alloc(32, 1),
+          Buffer.alloc(64, 2),
+        ],
+      ),
+    );
+  }
+
+  it('la base refuse une instruction sur un règlement non approuvé (SETTLEMENT_NOT_APPROVED)', async () => {
+    await settings(250);
+    const prepared = await prepare();
+    const result = await failure(() => rawInstruction(prepared.payoutId, prepared.netXaf.toString()));
+    expect(result.message).toMatch(/^SETTLEMENT_NOT_APPROVED/);
+  });
+
+  async function rawExecution(payoutId: string, recordedBy: string, credit: '1100' | '2900', net: bigint): Promise<void> {
+    await transact('app_rw', async (client) => {
+      const owner = await getPartnerLedgerOwner(client, 'merchant-1');
+      if (owner === null) {
+        throw new Error('identifiant comptable attendu');
+      }
+      const partnerAccount = await ensurePartnerFundsAccount(client, owner);
+      const target = await systemAccountId(client, credit);
+      const entry = await appendLedgerEntry(client, {
+        id: uuidv7(),
+        operationType: 'SETTLEMENT_SENT',
+        businessRefs: { payout_id: payoutId },
+        actorId: recordedBy,
+        approvers: [],
+        idemScope: 'tests-raw',
+        idemKey: uuidv7(),
+        postings: [
+          { accountId: partnerAccount, direction: 'DEBIT', amount: xaf(net) },
+          { accountId: target, direction: 'CREDIT', amount: xaf(net) },
+        ],
+      });
+      await client.query(
+        `INSERT INTO settlement.payout_execution (payout_id, outcome, bank_reference, entry_id, recorded_by, recorded_at)
+         VALUES ($1, 'EXECUTED', 'ETAB-1', $2, $3, now())`,
+        [payoutId, entry.id, recordedBy],
+      );
+    });
+  }
+
+  it('I-7 la base refuse une exécution confirmée par l’émetteur (MAKER_CANNOT_APPROVE)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId, FIN);
+    const result = await failure(() => rawExecution(payout.payoutId, 'fin-1', '1100', payout.netXaf));
+    expect(result.message).toMatch(/^MAKER_CANNOT_APPROVE/);
+  });
+
+  it('I-8 la base refuse une sortie qui ne débite pas le compte cantonné 1100 (SETTLEMENT_INCOMPLETE)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId, FIN);
+    const result = await failure(() => rawExecution(payout.payoutId, 'fin-2', '2900', payout.netXaf));
+    expect(result.message).toMatch(/^SETTLEMENT_INCOMPLETE/);
+  });
+
+  it('le chemin direct conforme est accepté par la base (contrôle positif)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId, FIN);
+    await rawExecution(payout.payoutId, 'fin-2', '1100', payout.netXaf);
+    expect(await partnerBalance()).toBe('0');
+  });
+
+  it('instructions et exécutions sont en ajout seul (SETTLEMENT_APPEND_ONLY)', async () => {
+    const payout = await approved();
+    await instruct(payout.payoutId);
+    await execute(payout.payoutId, 'EXECUTED');
+    for (const sql of ['UPDATE settlement.payout_instruction SET key_id = \'x\'', 'DELETE FROM settlement.payout_execution']) {
       const result = await failure(() => admin.query(sql));
       expect(result.message, sql).toMatch(/^SETTLEMENT_APPEND_ONLY/);
     }
