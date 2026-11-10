@@ -1,5 +1,11 @@
 # État du sprint — 2026-11-10
 
+## Décisions prises par délégation (D1–D44) et mise en œuvre
+- Compte rendu : `docs/journal/COMPTE_RENDU_DECISIONS_2026-11-10.md`.
+- D26 : type `PAYMENT_PLAN` (FINANCE prépare, COMPLIANCE approuve), registre des plans (0033). D27 : accords adossés au registre, durée en mois (0034).
+- **1086 unitaires, 464 PostgreSQL, 45 attaques, 1 E2E, `verify:ledger`, sécurité OK.** Revue indépendante non faite (L3).
+- Suite : D32 routes des objectifs, D42 + lot 12, D38 quotas, D43 plafonds KYC, D39 reçus.
+
 ## Fait · Lot 11 tranche 1, tentatives de paiement sans prestataire (L3)
 - Migration 0026 : tentatives immuables sur accord ACTIVE, clé d'idempotence unique, journal d'états CDC_05 § 5.1 en ajout seul, anti-rejeu des webhooks (nonce, ± 5 min). CONFIRMED et remboursement refusés en base jusqu'au lien grand livre (I-6).
 - Domaine : machine à états, HMAC-SHA256 en temps constant ; port `PaymentProvider` sans implémentation (zéro simulation).
