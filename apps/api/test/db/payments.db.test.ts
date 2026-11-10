@@ -23,6 +23,10 @@ import {
   recordWebhookReceipt,
 } from '../../src/modules/payments/attempt.store';
 import { createPlannedExpenseAgreement } from '../../src/modules/agreements/agreement.store';
+import {
+  listOrphanPaymentEntries,
+  readSuspenseBalance,
+} from '../../src/modules/reconciliation/ledger-links.store';
 import { confirmPaymentAttempt } from '../../src/modules/payments/confirmation.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import type { ProviderTransaction } from '../../src/modules/payments/provider';
@@ -49,6 +53,8 @@ const MIGRATIONS = [
   'db/migrations/0027_payments_confirmation.sql',
   'db/migrations/0028_payments_entry_agreement.sql',
   'db/migrations/0029_agreements_funded.sql',
+  'db/migrations/0030_reconciliation_segregation.sql',
+  'db/migrations/0031_reconciliation_ledger_links.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9200-0000-7000-8000-0000000000c1';
@@ -235,7 +241,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const schema of ['payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger']) {
+  for (const schema of ['reconciliation', 'payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger']) {
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
   for (const sql of migrationSql) {
@@ -857,5 +863,54 @@ describe('F-SAV-002 / I-9 accord FUNDED dérivé du grand livre', () => {
       }),
     );
     expect(result.message).toMatch(/^PAYMENT_LEDGER_LINK_REQUIRED/);
+  });
+});
+
+describe('INT-LED-008 / INT-REC-005 contrôles du rapprochement sur le grand livre', () => {
+  it('signale une écriture PAYMENT_CONFIRMED sans contribution (état absent)', async () => {
+    const attempt = await pendingAttempt();
+    const orphan = await transact('app_rw', async (client) => {
+      const account = await ensureClientFundsAccount(client, CUSTOMER_ID);
+      return appendLedgerEntry(client, {
+        id: uuidv7(),
+        operationType: 'PAYMENT_CONFIRMED',
+        businessRefs: { payment_attempt_id: attempt.id, agreement_id: AGREEMENT_ID },
+        actorId: 'payments-worker',
+        approvers: [],
+        idemScope: 'tests-raw',
+        idemKey: uuidv7(),
+        postings: [
+          { accountId: ACCOUNT_AGGREGATOR, direction: 'DEBIT', amount: xaf(10_000n) },
+          { accountId: account, direction: 'CREDIT', amount: xaf(10_000n) },
+        ],
+      });
+    });
+    const found = await transact('app_ro', (client) => listOrphanPaymentEntries(client));
+    expect(found.map((entry) => entry.entryId)).toEqual([orphan.id]);
+  });
+
+  it('une confirmation complète n’est pas signalée', async () => {
+    await confirm(await pendingAttempt());
+    expect(await transact('app_ro', (client) => listOrphanPaymentEntries(client))).toEqual([]);
+  });
+
+  it('INT-REC-005 lit le solde du compte de suspens 2900, dérivé des écritures', async () => {
+    expect(await transact('app_ro', (client) => readSuspenseBalance(client))).toBe(0n);
+    await transact('app_rw', (client) =>
+      appendLedgerEntry(client, {
+        id: uuidv7(),
+        operationType: 'TEST_UNIDENTIFIED_RECEIPT',
+        businessRefs: { test_ref: 'suspens' },
+        actorId: 'finance-1',
+        approvers: [],
+        idemScope: 'tests',
+        idemKey: uuidv7(),
+        postings: [
+          { accountId: ACCOUNT_AGGREGATOR, direction: 'DEBIT', amount: xaf(700n) },
+          { accountId: '019a0000-0000-7000-8000-000000002900', direction: 'CREDIT', amount: xaf(700n) },
+        ],
+      }),
+    );
+    expect(await transact('app_ro', (client) => readSuspenseBalance(client))).toBe(700n);
   });
 });
