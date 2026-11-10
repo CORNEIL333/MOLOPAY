@@ -176,3 +176,25 @@ export async function systemAccountId(client: SqlClient, code: '1100' | '1200' |
   }
   return row.id;
 }
+
+/** INT-LED-006 : compte 2200 « fonds dus au partenaire », créé une seule fois. */
+export async function ensurePartnerFundsAccount(client: SqlClient, ownerId: string): Promise<string> {
+  if (!UUID_PATTERN.test(ownerId)) {
+    invalid('identifiant comptable du partenaire : UUID attendu');
+  }
+  await client.query(
+    `INSERT INTO ledger.account (id, code, nature, owner_type, owner_id, name)
+     VALUES ($1, '2200', 'LIABILITY', 'PARTNER', $2, 'Fonds dus au partenaire')
+     ON CONFLICT ON CONSTRAINT account_unique_owner DO NOTHING`,
+    [uuidv7(), ownerId],
+  );
+  const result = await client.query<{ id: string }>(
+    `SELECT id FROM ledger.account WHERE code = '2200' AND owner_type = 'PARTNER' AND owner_id = $1`,
+    [ownerId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    invalid('compte partenaire introuvable après création');
+  }
+  return row.id;
+}
