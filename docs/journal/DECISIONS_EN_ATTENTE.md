@@ -270,3 +270,32 @@
 - **Appliqué (F-SUP-001/002/003) :** migration 0032 et module `disputes`. Réclamation numérotée au hasard (`R-` + 10 caractères Crockford, jamais séquentiel, AGENTS § 8), canal en liste blanche (application, rappel USSD, téléphone), heure de réception serveur. Litige ouvert sur une réclamation liée à un accord : l'accord passe à DISPUTED dans la même transaction (versements et annulation alors refusés) ; levée par une autre personne que l'ouverture (I-7), accord ramené à son état d'origine dans la même transaction. Historique chronologique d'un accord (statuts, tentatives, versements, réclamations, litiges), réservé au client de l'accord.
 - **Option prudente :** aucun texte libre ni pièce jointe dans une réclamation (données personnelles, D36) ; issue « remboursement » d'un litige non disponible (lot 12) ; un accord DISPUTED sans litige est détecté (`disputes.disputed_without_dispute`), pas bloqué, car `disputes` ne modifie pas les tables d'`agreements`.
 - **À trancher :** délai de réponse publié (F-SUP-001, REG-CON-003) ; contenu d'une réclamation (catégories, texte, pièces, conservation) ; rôles habilités à ouvrir et lever un litige (matrice admin, lot 08) ; échanges avec le support dans l'historique ; procédure de médiation et voies de recours publiées (REG-CON-003).
+
+### D42 · Comptes comptables des partenaires (lot 12)
+- **Constat :** `ledger.account.owner_id` est un UUID ; les partenaires ont un identifiant texte.
+- **Décision (2026-11-10, délégation) :** identifiant comptable UUID v7 immuable attribué à la première validation du partenaire, en ajout seul. Détail : compte rendu § D42.
+
+### D43 · Plafonds KYC par niveau (REG-LBC-001, lot 07)
+- **Décision (2026-11-10, délégation) :** valeurs de départ paramétrées (N1 200 000 FCFA détenus / 500 000 par mois ; N2 2 000 000 / 2 000 000 ; N3 10 000 000 / 10 000 000 ; au-delà examen COMPLIANCE). ⚖ À faire valider par l'établissement de cantonnement. Détail : compte rendu § D43.
+
+### D44 · Financeur du modèle B (lot 13)
+- **Décision (2026-11-10, délégation) :** B reste fermé sans convention signée ; critères de sélection fixés. ⚖ Choix et signature réservés au fondateur. Détail : compte rendu § D44.
+
+## 2026-11-10 · Décisions prises par délégation du fondateur
+
+> Le fondateur a délégué la décision des points ouverts. Aucune ne touche un invariant (§ 7) ni un interdit (§ 8). Justifications, recherches et sources : `docs/journal/COMPTE_RENDU_DECISIONS_2026-11-10.md`. « ⚖ » = à confirmer par un tiers (juriste, agrégateur, établissement, financeur).
+
+- **D1** Rust validé. **D4** signature SSH dès qu'une clé est fournie. **D6** TSA sous contrat en production ⚖. **D7** revue mensuelle des digests. **D9** extraction du vérificateur avant la recette. **D10** audit lisible par AUDIT et COMPLIANCE, conservation 10 ans. **D11** types d'écriture figés par ADR au lot 12. **D13** OIDC + MFA pour les agents internes. **D21** identifiants confirmés. **D22** nom de base `_test` obligatoire.
+- **D23, D25** textes juridiques ⚖ juriste ; revalidation d'un partenaire si règlement, représentant, identifiants légaux ou type changent.
+- **D26** type `PAYMENT_PLAN` ; FINANCE prépare, COMPLIANCE approuve ; plan = modèle, rythme, minimum, durée 1–36 mois ; aucun frais ; B fermé jusqu'au lot 13.
+- **D27** CDC_05 prévaut (annulation depuis ACTIVE) ; durée en mois ; barème unique 100 % sans frais ; PR de doc proposée pour `FUNDED → CANCELLED_BY_CUSTOMER` (C).
+- **D29** personne physique : pièce officielle + preuve du droit sur le bien + règlement à son nom ; NIU facultatif ⚖.
+- **D30** CI locale obligatoire jusqu'au déblocage GitHub.
+- **D32** contrat aligné sur CDC_05, création en deux temps (brouillon, activation signée + PIN), `durationMonths`.
+- **D33/D34** 8 h–20 h Douala ; 1 rappel/jour/projet, 3/semaine/client ; réservation 24 h ; 5 tentatives ; conservation 90 jours.
+- **D35** déblocage en maker-checker SUPPORT_N2 / COMPLIANCE après vérification renforcée. **D36** réponse sous 30 jours ⚖ loi 2024/017.
+- **D38** quotas v1 : SECURITY_READ 60/h ; REVOKE_OTHERS 5/h ; DATA_RIGHTS_READ 30/h ; DATA_RIGHTS_SUBMIT 5/24 h (compte et appareil).
+- **D39** NotchPay et CinetPay présélectionnés ⚖ KYB ; anti-rejeu adapté (signature + déduplication par transaction + confirmation API obligatoire) ; espèces reportées ; reçus numérotés par client + empreinte d'écriture ; nonces 90 jours.
+- **D40** relevés camt.053 ou CSV signé ⚖ ; relevé saisi en maker-checker ; écarts classés FINANCE/COMPLIANCE ; escalade direction + établissement.
+- **D41** R-2020/06 : réponse sous 15 jours visés, 45 jours max ; catégories fermées + texte limité ; SUPPORT_N2 ouvre, OPERATIONS/COMPLIANCE lève ; médiateur CNEF ; conservation 5 ans ⚖.
+- **D42, D43, D44** : voir ci-dessus.
