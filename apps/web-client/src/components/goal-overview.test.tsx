@@ -6,7 +6,18 @@ import { formatDate, formatDateTime } from '../lib/date';
 import { goalFixture } from '../test/fixtures';
 import { GoalOverview } from './goal-overview';
 
-const statuses = ['ACTIVE', 'LOCKED', 'COMPLETED', 'CANCELLED', 'FROZEN'] as const;
+const statuses = [
+  'DRAFT',
+  'ACTIVE',
+  'FUNDED',
+  'HANDED_OVER',
+  'PAID_TO_BENEFICIARY',
+  'CANCELLED_BY_CUSTOMER',
+  'DISPUTED',
+  'FROZEN',
+  'REFUNDED',
+  'CLOSED',
+] as const;
 
 for (const locale of LOCALES) {
   const labels = getDictionary(locale).goals;
@@ -20,13 +31,13 @@ for (const locale of LOCALES) {
 
       const heading = screen.getByRole('heading', {
         level: 2,
-        name: goal.offerTitle,
+        name: goal.offerTitle ?? '',
       });
       expect(within(heading).getByRole('link')).toHaveAttribute(
         'href',
         `/objectifs/${goal.goalId}`,
       );
-      expect(screen.getByText(goal.partnerName, { exact: true })).toBeVisible();
+      expect(screen.getByText(goal.partnerName ?? '', { exact: true })).toBeVisible();
       expect(screen.getByText(labels.statuses.ACTIVE, { exact: true })).toBeVisible();
       expect(screen.getByText(labels.target, { exact: true })).toBeVisible();
       expect(screen.getByText(labels.saved, { exact: true })).toBeVisible();
@@ -63,6 +74,17 @@ for (const locale of LOCALES) {
         'href',
         '/objectifs/projet%2F%C3%A9pargne%20%3F%23',
       );
+    });
+
+    it('D32 objectif C : titre générique, pas de marchand', () => {
+      render(
+        <GoalOverview
+          goal={goalFixture({ model: 'PLANNED_EXPENSE', offerId: null, offerTitle: null, partnerName: null, beneficiaryId: 'landlord-1' })}
+          labels={labels}
+          locale={locale}
+        />,
+      );
+      expect(screen.getByRole('heading', { level: 2, name: labels.plannedExpenseTitle })).toBeVisible();
     });
 
     it.each(statuses)('traduit exactement le statut %s', (status) => {

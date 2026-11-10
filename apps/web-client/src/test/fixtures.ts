@@ -37,6 +37,8 @@ export function quoteFixture(overrides: Partial<Quote> = {}): Quote {
     quoteId: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a60',
     offerId: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b',
     model: 'SAVE_THEN_BUY',
+    planId: 'plan-a',
+    durationMonths: 4,
     totalXaf: '260000',
     feesXaf: '10000',
     installments: [
@@ -55,10 +57,16 @@ export type Goal = components['schemas']['Goal'];
 export function goalFixture(overrides: Partial<Goal> = {}): Goal {
   return {
     goalId: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a80',
+    model: 'SAVE_THEN_BUY',
     offerId: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b',
     offerTitle: 'Réfrigérateur 220 L',
     partnerName: 'Maison Fraîche',
+    beneficiaryId: null,
+    planId: 'plan-a',
+    minAmountXaf: '65000',
+    durationMonths: 4,
     status: 'ACTIVE',
+    locked: false,
     targetXaf: '260000',
     savedXaf: '65000',
     progressBasisPoints: 2500,

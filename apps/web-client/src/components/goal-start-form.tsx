@@ -66,9 +66,16 @@ export function GoalStartForm({
     submitting.current = true;
     setPending(true);
     try {
+      if (quote.model !== 'SAVE_THEN_BUY') {
+        // Seul le modèle A part d'une offre ; B est fermé (D26), C part d'un bénéficiaire.
+        setProblem({ title: labels.startErrorTitle });
+        return;
+      }
       const input: GoalRequest = {
+        model: 'SAVE_THEN_BUY',
         offerId,
-        quoteId: quote.quoteId,
+        planId: quote.planId,
+        durationMonths: quote.durationMonths,
         acceptTermsVersion: TERMS_VERSION,
       };
       const outcome = createGoal === undefined

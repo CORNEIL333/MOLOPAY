@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -665,7 +665,7 @@
       },
       "post": {
         "operationId": "createGoal",
-        "summary": "Créer un objectif à partir d'un devis",
+        "summary": "Créer un objectif en brouillon (D32)",
         "tags": [
           "Objectifs"
         ],
@@ -691,7 +691,7 @@
         },
         "responses": {
           "201": {
-            "description": "Objectif créé",
+            "description": "Brouillon créé",
             "content": {
               "application/json": {
                 "schema": {
@@ -1966,7 +1966,9 @@
           "totalXaf",
           "feesXaf",
           "installments",
-          "expiresAt"
+          "expiresAt",
+          "planId",
+          "durationMonths"
         ],
         "properties": {
           "quoteId": {
@@ -1979,6 +1981,15 @@
           },
           "model": {
             "$ref": "#/components/schemas/OfferModel"
+          },
+          "planId": {
+            "type": "string",
+            "description": "Plan approuvé (D26) utilisé pour le devis"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36
           },
           "totalXaf": {
             "$ref": "#/components/schemas/Money"
@@ -2336,19 +2347,41 @@
       },
       "GoalRequest": {
         "type": "object",
+        "description": "D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte.",
         "required": [
-          "offerId",
-          "quoteId",
+          "model",
+          "planId",
+          "durationMonths",
           "acceptTermsVersion"
         ],
         "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "SAVE_THEN_BUY",
+              "PLANNED_EXPENSE"
+            ]
+          },
           "offerId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Modèle A uniquement"
           },
-          "quoteId": {
+          "beneficiaryId": {
             "type": "string",
-            "format": "uuid"
+            "description": "Modèle C uniquement"
+          },
+          "targetXaf": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Modèle C uniquement ; pour A, la cible est le prix figé de l'offre"
+          },
+          "planId": {
+            "type": "string"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36
           },
           "acceptTermsVersion": {
             "type": "string",
@@ -2361,14 +2394,20 @@
         "type": "object",
         "required": [
           "goalId",
+          "model",
+          "status",
+          "locked",
           "offerId",
           "offerTitle",
           "partnerName",
-          "status",
+          "beneficiaryId",
+          "planId",
+          "rhythm",
+          "minAmountXaf",
+          "durationMonths",
           "targetXaf",
           "savedXaf",
           "progressBasisPoints",
-          "rhythm",
           "createdAt",
           "updatedAt"
         ],
@@ -2377,31 +2416,77 @@
             "type": "string",
             "format": "uuid"
           },
-          "offerId": {
+          "model": {
             "type": "string",
-            "format": "uuid"
-          },
-          "offerTitle": {
-            "type": "string"
-          },
-          "partnerName": {
-            "type": "string"
+            "enum": [
+              "SAVE_THEN_BUY",
+              "PLANNED_EXPENSE"
+            ]
           },
           "status": {
             "type": "string",
+            "description": "CDC_05 § 5.2 ; « verrouillé » est l'attribut locked, pas un statut",
             "enum": [
+              "DRAFT",
               "ACTIVE",
-              "LOCKED",
-              "COMPLETED",
-              "CANCELLED",
-              "FROZEN"
+              "FUNDED",
+              "HANDED_OVER",
+              "PAID_TO_BENEFICIARY",
+              "CANCELLED_BY_CUSTOMER",
+              "DISPUTED",
+              "FROZEN",
+              "REFUNDED",
+              "CLOSED"
             ]
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "offerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "offerTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "partnerName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "beneficiaryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "rhythm": {
+            "$ref": "#/components/schemas/Rhythm"
+          },
+          "minAmountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36
           },
           "targetXaf": {
             "$ref": "#/components/schemas/Money"
           },
           "savedXaf": {
-            "$ref": "#/components/schemas/Money"
+            "$ref": "#/components/schemas/Money",
+            "description": "Versements confirmés, dérivés du grand livre"
           },
           "progressBasisPoints": {
             "type": "integer",
@@ -2410,9 +2495,6 @@
           },
           "installmentAmountXaf": {
             "$ref": "#/components/schemas/Money"
-          },
-          "rhythm": {
-            "$ref": "#/components/schemas/Rhythm"
           },
           "nextDueDate": {
             "type": "string",

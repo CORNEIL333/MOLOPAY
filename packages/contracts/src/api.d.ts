@@ -241,7 +241,7 @@ export interface paths {
         /** Lister les objectifs du client */
         get: operations["listGoals"];
         put?: never;
-        /** Créer un objectif à partir d'un devis */
+        /** Créer un objectif en brouillon (D32) */
         post: operations["createGoal"];
         delete?: never;
         options?: never;
@@ -619,6 +619,9 @@ export interface components {
             /** Format: uuid */
             offerId: string;
             model: components["schemas"]["OfferModel"];
+            /** @description Plan approuvé (D26) utilisé pour le devis */
+            planId: string;
+            durationMonths: number;
             totalXaf: components["schemas"]["Money"];
             feesXaf: components["schemas"]["Money"];
             downPaymentXaf?: components["schemas"]["Money"];
@@ -715,27 +718,48 @@ export interface components {
             /** @enum {string} */
             locale: "fr" | "en";
         };
+        /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
-            /** Format: uuid */
-            offerId: string;
-            /** Format: uuid */
-            quoteId: string;
+            /** @enum {string} */
+            model: "SAVE_THEN_BUY" | "PLANNED_EXPENSE";
+            /**
+             * Format: uuid
+             * @description Modèle A uniquement
+             */
+            offerId?: string;
+            /** @description Modèle C uniquement */
+            beneficiaryId?: string;
+            /** @description Modèle C uniquement ; pour A, la cible est le prix figé de l'offre */
+            targetXaf?: components["schemas"]["Money"];
+            planId: string;
+            durationMonths: number;
             acceptTermsVersion: string;
         };
         Goal: {
             /** Format: uuid */
             goalId: string;
-            /** Format: uuid */
-            offerId: string;
-            offerTitle: string;
-            partnerName: string;
             /** @enum {string} */
-            status: "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED" | "FROZEN";
+            model: "SAVE_THEN_BUY" | "PLANNED_EXPENSE";
+            /**
+             * @description CDC_05 § 5.2 ; « verrouillé » est l'attribut locked, pas un statut
+             * @enum {string}
+             */
+            status: "DRAFT" | "ACTIVE" | "FUNDED" | "HANDED_OVER" | "PAID_TO_BENEFICIARY" | "CANCELLED_BY_CUSTOMER" | "DISPUTED" | "FROZEN" | "REFUNDED" | "CLOSED";
+            locked: boolean;
+            /** Format: uuid */
+            offerId: string | null;
+            offerTitle: string | null;
+            partnerName: string | null;
+            beneficiaryId: string | null;
+            planId: string;
+            rhythm: components["schemas"]["Rhythm"];
+            minAmountXaf: components["schemas"]["Money"];
+            durationMonths: number;
             targetXaf: components["schemas"]["Money"];
+            /** @description Versements confirmés, dérivés du grand livre */
             savedXaf: components["schemas"]["Money"];
             progressBasisPoints: number;
             installmentAmountXaf?: components["schemas"]["Money"];
-            rhythm: components["schemas"]["Rhythm"];
             /** Format: date */
             nextDueDate?: string;
             handoverCodeAvailable?: boolean;
@@ -1468,7 +1492,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Objectif créé */
+            /** @description Brouillon créé */
             201: {
                 headers: {
                     [name: string]: unknown;

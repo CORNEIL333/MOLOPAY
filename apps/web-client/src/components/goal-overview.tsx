@@ -23,11 +23,11 @@ export function GoalOverview({
     <article className="achat-goal-card">
       <h2 className="achat-goal-card__title">
         <a href={`/objectifs/${encodeURIComponent(goal.goalId)}`}>
-          {goal.offerTitle}
+          {goal.offerTitle ?? labels.plannedExpenseTitle}
         </a>
       </h2>
       <div className="achat-goal-card__meta">
-        <span>{goal.partnerName}</span>
+        {goal.partnerName === null ? null : <span>{goal.partnerName}</span>}
         <span>{labels.statuses[goal.status]}</span>
       </div>
       <dl>

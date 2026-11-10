@@ -40,7 +40,7 @@ describe('GoalStartForm', () => {
     await expectNoA11yViolations(container);
   });
 
-  it('transmet uniquement l’offre, le devis et la version acceptée', async () => {
+  it('D32 transmet uniquement le modèle A, l’offre, le plan, la durée et la version acceptée', async () => {
     const labels = getDictionary('fr').offer;
     const input = inputFor();
     const goal = goalFixture({ offerId: input.offerId });
@@ -54,11 +54,31 @@ describe('GoalStartForm', () => {
     await userEvent.click(screen.getByRole('button', { name: labels.startButton }));
 
     expect(createGoal).toHaveBeenCalledExactlyOnceWith({
+      model: 'SAVE_THEN_BUY',
       offerId: input.offerId,
-      quoteId: input.quote.quoteId,
+      planId: input.quote.planId,
+      durationMonths: input.quote.durationMonths,
       acceptTermsVersion: '2026-10-26-v1',
     });
     expect(onComplete).toHaveBeenCalledExactlyOnceWith(goal);
+  });
+
+  it('D26 un devis du modèle B ne crée aucun objectif (B fermé)', async () => {
+    const labels = getDictionary('fr').offer;
+    const input = inputFor();
+    const createGoal = vi.fn<CreateGoal>();
+    render(
+      <GoalStartForm
+        {...input}
+        quote={{ ...input.quote, model: 'FINANCED_PURCHASE' }}
+        labels={labels}
+        createGoal={createGoal}
+      />,
+    );
+    await userEvent.click(screen.getByRole('checkbox', { name: labels.termsLabel }));
+    await userEvent.click(screen.getByRole('button', { name: labels.startButton }));
+    expect(createGoal).not.toHaveBeenCalled();
+    expect(screen.getByText(labels.startErrorTitle)).toBeVisible();
   });
 
   it('affiche le refus métier exact sans terminer', async () => {
