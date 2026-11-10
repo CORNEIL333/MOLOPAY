@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { canonicalize, type JsonValue } from '@achat/chain';
+import {
+  canonicalize,
+  computeEntryHash,
+  genesisPrevHash,
+  type EntryContent,
+  type JsonValue,
+} from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -16,9 +22,15 @@ import {
   getPaymentAttempt,
   recordWebhookReceipt,
 } from '../../src/modules/payments/attempt.store';
+import { confirmPaymentAttempt } from '../../src/modules/payments/confirmation.store';
+import type { ProviderTransaction } from '../../src/modules/payments/provider';
+import { xaf } from '@achat/money';
+import { uuidv7 } from '../../src/modules/ledger/domain';
+import { appendLedgerEntry, ensureClientFundsAccount } from '../../src/modules/ledger/entry.store';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
+  'db/migrations/0001_ledger.sql',
   'db/migrations/0002_audit.sql',
   'db/migrations/0005_audit_metadata.sql',
   'db/migrations/0010_audit_catalog.sql',
@@ -32,6 +44,7 @@ const MIGRATIONS = [
   'db/migrations/0014_partner_incident.sql',
   'db/migrations/0015_partner_default_lift.sql',
   'db/migrations/0026_payments_attempts.sql',
+  'db/migrations/0027_payments_confirmation.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9200-0000-7000-8000-0000000000c1';
@@ -211,13 +224,14 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const schema of ['payments', 'agreements', 'catalog', 'admin', 'audit']) {
+  for (const schema of ['payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger']) {
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
   for (const sql of migrationSql) {
     await admin.query(sql);
   }
   await transact('app_rw', seed);
+  await seedGenesis();
 });
 
 describe('F-PAY-001/002 création d’une tentative en base', () => {
@@ -471,5 +485,265 @@ describe('SEC-API-002 anti-rejeu des webhooks', () => {
       ),
     );
     expect(result.code).toBe('23514');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tranche 2 : confirmation liée au grand livre (I-6, CDC_04 § 2.2).
+// ---------------------------------------------------------------------------
+
+const ACCOUNT_AGGREGATOR = '019a0000-0000-7000-8000-000000001200';
+
+/** Genèse chaînée (INT-HASH-001) posée par l'administrateur de test. */
+async function seedGenesis(): Promise<void> {
+  const id = uuidv7();
+  const ts = '2026-11-01T00:00:00.000Z';
+  const content: EntryContent = {
+    seq: 1,
+    id,
+    ts,
+    type: 'GENESIS',
+    refs: { params_hash: 'parametres-v1-de-test' },
+    postings: [],
+    actor: 'system',
+    approvers: [],
+    idemScope: 'system',
+    idemKey: 'genesis',
+    reversesEntryId: null,
+  };
+  await admin.query(
+    `INSERT INTO ledger.journal_entry
+       (seq, id, recorded_at, operation_type, business_refs, actor_id, approvers,
+        idem_scope, idem_key, reverses_entry_id, prev_hash, entry_hash)
+     VALUES (1, $1, $2, 'GENESIS', $3::jsonb, 'system', '[]'::jsonb, 'system', 'genesis', NULL, $4, $5)`,
+    [id, ts, JSON.stringify(content.refs), genesisPrevHash(), computeEntryHash(genesisPrevHash(), content)],
+  );
+}
+
+async function pendingAttempt(
+  overrides: Partial<AttemptInput> = {},
+): Promise<StoredAttempt> {
+  const created = await createAttempt(overrides);
+  await transition(created.id, 'CREATED', 'PENDING', 1);
+  return created;
+}
+
+function succeeded(attempt: StoredAttempt, overrides: Partial<ProviderTransaction> = {}): ProviderTransaction {
+  return {
+    providerTxId: `tx-${attempt.id.slice(-12)}`,
+    attemptId: attempt.id,
+    amountXaf: attempt.amountXaf,
+    outcome: 'SUCCEEDED',
+    ...overrides,
+  };
+}
+
+async function confirm(
+  attempt: StoredAttempt,
+  overrides: Partial<ProviderTransaction> = {},
+  customerId = CUSTOMER_ID,
+): Promise<Awaited<ReturnType<typeof confirmPaymentAttempt>>> {
+  return transact('app_rw', (client) =>
+    confirmPaymentAttempt(client, {
+      attemptId: attempt.id,
+      customerId,
+      providerTransaction: succeeded(attempt, overrides),
+      actorId: 'payments-worker',
+    }),
+  );
+}
+
+async function counts(): Promise<{ entries: number; contributions: number }> {
+  const result = await admin.query<{ entries: number; contributions: number }>(
+    `SELECT (SELECT count(*)::int FROM ledger.journal_entry WHERE operation_type = 'PAYMENT_CONFIRMED') AS entries,
+            (SELECT count(*)::int FROM payments.contribution) AS contributions`,
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error('comptage impossible');
+  }
+  return row;
+}
+
+describe('F-SAV-002 / I-6 confirmation liée au grand livre', () => {
+  it('CDC_04 § 2.2 confirme : débit 1200, crédit 2100 du client, état CONFIRMED, même transaction', async () => {
+    const attempt = await pendingAttempt();
+    const confirmed = await confirm(attempt);
+    expect(confirmed.attempt.status).toBe('CONFIRMED');
+    expect(confirmed.replayed).toBe(false);
+    const postings = await admin.query<{ code: string; owner_id: string | null; direction: string; amount_xaf: string }>(
+      `SELECT a.code, a.owner_id, p.direction, p.amount_xaf::text
+         FROM ledger.posting p JOIN ledger.account a ON a.id = p.account_id
+        WHERE p.entry_id = $1 ORDER BY p.ordinal`,
+      [confirmed.entryId],
+    );
+    expect(postings.rows).toEqual([
+      { code: '1200', owner_id: null, direction: 'D', amount_xaf: '10000' },
+      { code: '2100', owner_id: CUSTOMER_ID, direction: 'C', amount_xaf: '10000' },
+    ]);
+    expect(await counts()).toEqual({ entries: 1, contributions: 1 });
+  });
+
+  it('I-9 le solde du client est dérivé des écritures', async () => {
+    await confirm(await pendingAttempt());
+    await confirm(await pendingAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 2_500n }));
+    const balance = await admin.query<{ credit: string }>(
+      `SELECT credit_total_xaf::text AS credit FROM ledger.account_balance
+        WHERE code = '2100' AND owner_type = 'CLIENT' AND owner_id = $1`,
+      [CUSTOMER_ID],
+    );
+    expect(balance.rows[0]?.credit).toBe('12500');
+  });
+
+  it('I-5 / F-PAY-002 une confirmation rejouée n’a d’effet qu’une fois', async () => {
+    const attempt = await pendingAttempt();
+    const first = await confirm(attempt);
+    const again = await confirm(attempt);
+    expect(again).toMatchObject({ entryId: first.entryId, replayed: true });
+    expect(await counts()).toEqual({ entries: 1, contributions: 1 });
+  });
+
+  it('INT-IDEM-005 deux confirmations concurrentes : une seule écriture', async () => {
+    const attempt = await pendingAttempt();
+    const results = await Promise.all([confirm(attempt), confirm(attempt), confirm(attempt)]);
+    expect(new Set(results.map((r) => r.entryId)).size).toBe(1);
+    expect(results.filter((r) => !r.replayed)).toHaveLength(1);
+    expect(await counts()).toEqual({ entries: 1, contributions: 1 });
+  });
+
+  it.each([
+    ['un échec chez le prestataire', { outcome: 'FAILED' as const }],
+    ['un paiement encore en attente', { outcome: 'PENDING' as const }],
+    ['un autre montant', { amountXaf: 9_999n }],
+    ['une autre tentative', { attemptId: uuid(99) }],
+  ])('F-PAY-003 refuse %s (PAYMENT_CONFIRMATION_UNVERIFIED), rien n’est écrit', async (_label, overrides) => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() => confirm(attempt, overrides));
+    expect(result.code).toBe('PAYMENT_CONFIRMATION_UNVERIFIED');
+    expect(await counts()).toEqual({ entries: 0, contributions: 0 });
+  });
+
+  it('refuse de confirmer une tentative pas encore PENDING (UNAUTHORIZED_TRANSITION)', async () => {
+    const created = await createAttempt();
+    const result = await failure(() => confirm(created));
+    expect(result.code).toBe('UNAUTHORIZED_TRANSITION');
+    expect(await counts()).toEqual({ entries: 0, contributions: 0 });
+  });
+
+  it('F-PAY-004 un message d’échec tardif ne fait pas régresser un paiement confirmé (PAYMENT_ALREADY_CONFIRMED)', async () => {
+    const attempt = await pendingAttempt();
+    await confirm(attempt);
+    const store = await failure(() => transition(attempt.id, 'CONFIRMED', 'FAILED', 3));
+    expect(store.code).toBe('PAYMENT_ALREADY_CONFIRMED');
+    const base = await failure(() => rawEvent(attempt.id, 3, 'CONFIRMED', 'FAILED'));
+    expect(base.message).toMatch(/^PAYMENT_ALREADY_CONFIRMED/);
+  });
+
+  it('INT-IDEM-002 un identifiant de transaction ne crédite qu’une tentative (23505), écriture annulée', async () => {
+    const first = await pendingAttempt();
+    await confirm(first, { providerTxId: 'tx-partage-0001' });
+    const second = await pendingAttempt({ id: uuid(2), idemKey: uuid(502) });
+    const result = await failure(() => confirm(second, { providerTxId: 'tx-partage-0001' }));
+    expect(result.code).toBe('23505');
+    expect(await counts()).toEqual({ entries: 1, contributions: 1 });
+  });
+
+  it('D39 les espèces ne se confirment pas par ce chemin (PAYMENT_INVALID_REQUEST)', async () => {
+    const attempt = await pendingAttempt({ channel: 'CASH' });
+    const result = await failure(() => confirm(attempt));
+    expect(result.code).toBe('PAYMENT_INVALID_REQUEST');
+    expect(await counts()).toEqual({ entries: 0, contributions: 0 });
+  });
+
+  it('refuse un client qui n’est pas celui de l’accord (PAYMENT_INVALID_REQUEST), rien n’est écrit', async () => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() => confirm(attempt, {}, uuid(888)));
+    expect(result.message).toMatch(/PAYMENT_INVALID_REQUEST/);
+    expect(await counts()).toEqual({ entries: 0, contributions: 0 });
+  });
+});
+
+describe('I-6 imposé par la base, sans passer par le store', () => {
+  async function rawEntry(client: Client, attemptId: string, creditAccount: string, amount: string): Promise<string> {
+    const entry = await appendLedgerEntry(client, {
+      id: uuidv7(),
+      operationType: 'PAYMENT_CONFIRMED',
+      businessRefs: { payment_attempt_id: attemptId },
+      actorId: 'payments-worker',
+      approvers: [],
+      idemScope: 'tests-raw',
+      idemKey: uuidv7(),
+      postings: [
+        { accountId: ACCOUNT_AGGREGATOR, direction: 'DEBIT', amount: xaf(BigInt(amount)) },
+        { accountId: creditAccount, direction: 'CREDIT', amount: xaf(BigInt(amount)) },
+      ],
+    });
+    return entry.id;
+  }
+
+  async function rawContribution(client: Client, attemptId: string, entryId: string): Promise<void> {
+    await client.query(
+      `INSERT INTO payments.contribution
+         (id, attempt_id, channel, provider_tx_id, customer_id, amount_xaf, entry_id, confirmed_at)
+       VALUES ($1, $2, 'MTN_MOMO', 'tx-brut-0001', $3, 10000, $4, now())`,
+      [uuidv7(), attemptId, CUSTOMER_ID, entryId],
+    );
+  }
+
+  it('refuse une contribution sans transition CONFIRMED dans la même transaction', async () => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() =>
+      transact('app_rw', async (client) => {
+        const account = await ensureClientFundsAccount(client, CUSTOMER_ID);
+        const entryId = await rawEntry(client, attempt.id, account, '10000');
+        await rawContribution(client, attempt.id, entryId);
+      }),
+    );
+    expect(result.message).toMatch(/^PAYMENT_CONFIRMATION_INCOMPLETE/);
+    expect(await counts()).toEqual({ entries: 0, contributions: 0 });
+  });
+
+  it('I-8 refuse une écriture qui ne crédite pas les fonds du client (PAYMENT_LEDGER_LINK_REQUIRED)', async () => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() =>
+      transact('app_rw', async (client) => {
+        const entryId = await rawEntry(client, attempt.id, '019a0000-0000-7000-8000-000000007100', '10000');
+        await rawContribution(client, attempt.id, entryId);
+      }),
+    );
+    expect(result.message).toMatch(/^PAYMENT_LEDGER_LINK_REQUIRED/);
+  });
+
+  it('refuse une écriture d’un autre montant que la tentative (PAYMENT_LEDGER_LINK_REQUIRED)', async () => {
+    const attempt = await pendingAttempt();
+    const result = await failure(() =>
+      transact('app_rw', async (client) => {
+        const account = await ensureClientFundsAccount(client, CUSTOMER_ID);
+        const entryId = await rawEntry(client, attempt.id, account, '9000');
+        await rawContribution(client, attempt.id, entryId);
+      }),
+    );
+    expect(result.message).toMatch(/^PAYMENT_LEDGER_LINK_REQUIRED/);
+  });
+
+  it('les contributions sont en ajout seul (PAYMENT_APPEND_ONLY)', async () => {
+    await confirm(await pendingAttempt());
+    const result = await failure(() => admin.query('UPDATE payments.contribution SET amount_xaf = 1'));
+    expect(result.message).toMatch(/^PAYMENT_APPEND_ONLY/);
+  });
+});
+
+describe('D39 trop-perçu : une tentative ne dépasse pas le reste dû', () => {
+  it('refuse une tentative supérieure à la cible (PAYMENT_EXCEEDS_REMAINING)', async () => {
+    const result = await failure(() => createAttempt({ amountXaf: 300_001n }));
+    expect(result.message).toMatch(/^PAYMENT_EXCEEDS_REMAINING/);
+  });
+
+  it('tient compte des versements déjà confirmés', async () => {
+    await confirm(await pendingAttempt({ amountXaf: 290_000n }));
+    const over = await failure(() => createAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 10_001n }));
+    expect(over.message).toMatch(/^PAYMENT_EXCEEDS_REMAINING/);
+    const exact = await createAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 10_000n });
+    expect(exact.status).toBe('CREATED');
   });
 });

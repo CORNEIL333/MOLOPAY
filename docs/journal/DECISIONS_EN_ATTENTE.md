@@ -254,3 +254,9 @@
   4. espèces (F-PAY-005) : partenaires habilités, reçu signé, rapprochement sous 24 h ;
   5. numérotation des reçus (F-PAY-006) ;
   6. durée de conservation des nonces (aujourd'hui conservés sans purge).
+- **Mise à jour (tranche 2, 10 novembre) :**
+  - Point 2 **réglé par les sources** : CDC_04 § 2.2 fixe l'écriture d'un versement (débit 1200, crédit 2100 du client). Appliqué par la migration 0027 ; la base vérifie comptes, sens et montant.
+  - Point 3, option prudente appliquée : une tentative supérieure au reste dû (cible − versements confirmés) est refusée (`PAYMENT_EXCEEDS_REMAINING`). Deux tentatives concurrentes encore en attente peuvent toutefois dépasser la cible : le trop-perçu sera remboursé (lot 12). Retour arrière : remplacer `payments.anchor_attempt`.
+  - Point 4 : la confirmation des espèces est refusée (`PAYMENT_INVALID_REQUEST`) jusqu'à décision.
+  - **Limite connue :** la base de `payments` impose « pas de contribution sans écriture conforme » et « pas de CONFIRMED sans contribution », mais pas « pas d'écriture PAYMENT_CONFIRMED sans contribution » : ce dernier contrôle exigerait un déclencheur sur les tables du grand livre, que `payments` ne doit pas modifier. Le store l'assure ; à couvrir par le rapprochement (lot 14) ou une règle du module ledger.
+  - **Reste hors périmètre :** passage de l'accord à `FUNDED` à 100 % (lot 10/12), écriture 1100/1200 à réception des fonds sur le compte cantonné (lot 14), reçus numérotés (F-PAY-006).

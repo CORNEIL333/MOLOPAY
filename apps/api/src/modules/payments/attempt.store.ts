@@ -129,19 +129,45 @@ export async function appendAttemptTransition(
     invalid('acteur invalide');
   }
   const next: PaymentAttemptStatus = transitionAttempt(input.from, input.to, {
-    // Aucune confirmation n'est possible dans cette tranche (pas d'adaptateur).
+    // CONFIRMED ne passe que par confirmPaymentAttempt (écriture du grand livre).
     providerTxVerified: false,
   });
+  return insertAttemptEvent(client, input.attemptId, input.seq, input.from, next, input.actorId);
+}
+
+async function insertAttemptEvent(
+  client: SqlClient,
+  attemptId: string,
+  seq: number,
+  from: PaymentAttemptStatus,
+  to: PaymentAttemptStatus,
+  actorId: string,
+): Promise<StoredPaymentAttempt> {
   await client.query(
     `INSERT INTO payments.attempt_event (attempt_id, seq, from_status, to_status, actor_id, created_at)
      VALUES ($1, $2, $3, $4, $5, now())`,
-    [input.attemptId, input.seq, input.from, next, input.actorId],
+    [attemptId, seq, from, to, actorId],
   );
-  const stored = await getPaymentAttempt(client, input.attemptId);
+  const stored = await getPaymentAttempt(client, attemptId);
   if (stored === null) {
     invalid('tentative introuvable');
   }
   return stored;
+}
+
+/**
+ * PENDING → CONFIRMED. Réservé à confirmPaymentAttempt : la base refuse cette
+ * transition si la contribution liée à l'écriture du grand livre n'existe pas.
+ */
+export async function appendConfirmedTransition(
+  client: SqlClient,
+  input: { readonly attemptId: string; readonly seq: number; readonly actorId: string },
+): Promise<StoredPaymentAttempt> {
+  if (!ACTOR_ID_PATTERN.test(input.actorId)) {
+    invalid('acteur invalide');
+  }
+  const next = transitionAttempt('PENDING', 'CONFIRMED', { providerTxVerified: true });
+  return insertAttemptEvent(client, input.attemptId, input.seq, 'PENDING', next, input.actorId);
 }
 
 /**
