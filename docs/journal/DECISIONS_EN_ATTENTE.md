@@ -299,3 +299,8 @@
 - **D40** relevés camt.053 ou CSV signé ⚖ ; relevé saisi en maker-checker ; écarts classés FINANCE/COMPLIANCE ; escalade direction + établissement.
 - **D41** R-2020/06 : réponse sous 15 jours visés, 45 jours max ; catégories fermées + texte limité ; SUPPORT_N2 ouvre, OPERATIONS/COMPLIANCE lève ; médiateur CNEF ; conservation 5 ans ⚖.
 - **D42, D43, D44** : voir ci-dessus.
+
+### D45 · Code de remise (F-SAV-004, F-SET-001, lot 12)
+- **Décision (2026-11-10, délégation du fondateur) :** code de 10 caractères Crockford (50 bits aléatoires), affiché en deux groupes (« ABCDE-12345 ») et en QR, montré une seule fois au client ; seule une empreinte HMAC-SHA256 poivrée est conservée (poivre fourni par la configuration, ≥ 32 octets, comme D14). Validité = paramètre versionné `handover_code_validity_days` (1 à 90 jours, FINANCIAL_SETTING en maker-checker), **fermé par défaut** ; valeur proposée : 30 jours. Un seul code valide à la fois ; nouveau code possible après expiration. Code inconnu et code d'un autre marchand renvoient la même erreur (aucun oracle).
+- **Remise :** saisie par le marchand de l'accord, avec latitude/longitude ; écriture HANDOVER débit 2100 du client / crédit 2200 du marchand au prix figé (CDC_04 § 2.2), remise et FUNDED → HANDED_OVER dans la même transaction, chacune refusée par la base sans les autres. Vérificateur Rust : type HANDOVER ajouté à la liste blanche (D11).
+- **Reste (lot 12, tranches suivantes) :** notification client et marchand (F-SAV-004, lot 17) ; limitation des essais de code par marchand (lot 24) ; trop-perçu restitué ; règlement net de commission après délai de contestation (F-SET-002) ; maker-checker et instruction signée (F-SET-003/004). Taux de commission et délai de contestation : à décider.

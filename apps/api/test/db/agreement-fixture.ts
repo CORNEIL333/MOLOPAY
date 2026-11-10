@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import { canonicalize, computeEntryHash, genesisPrevHash, type EntryContent, type JsonValue } from '@achat/chain';
 import type { Client } from 'pg';
-import { createPlannedExpenseAgreement } from '../../src/modules/agreements/agreement.store';
+import {
+  createPlannedExpenseAgreement,
+  createSaveThenBuyAgreement,
+} from '../../src/modules/agreements/agreement.store';
+import { createOffer, publishOffer } from '../../src/modules/catalog/domain';
+import { appendOfferVersion } from '../../src/modules/catalog/offer.store';
 import { createPartnerDossier, partnerDossierHash } from '../../src/modules/catalog/partner';
 import { appendPartnerDossier, recordPartnerValidation } from '../../src/modules/catalog/partner.store';
 import {
@@ -83,12 +88,26 @@ export async function seedPaymentPlan(client: Client, terms: PaymentPlanTerms): 
 
 /** Bailleur validé par maker-checker (même circuit que les tests du lot 10). */
 export async function validateLandlord(client: Client, requestId: string): Promise<void> {
+  await validatePartner(client, requestId, 'landlord-1', 'BENEFICIARY');
+}
+
+/** Marchand validé par maker-checker. */
+export async function validateMerchant(client: Client, requestId: string, partnerId = 'merchant-1'): Promise<void> {
+  await validatePartner(client, requestId, partnerId, 'MERCHANT');
+}
+
+async function validatePartner(
+  client: Client,
+  requestId: string,
+  partnerId: string,
+  partnerType: 'MERCHANT' | 'BENEFICIARY',
+): Promise<void> {
   const stored = await appendPartnerDossier(
     client,
     createPartnerDossier({
-      partnerId: 'landlord-1',
-      partnerType: 'BENEFICIARY',
-      beneficiaryKind: 'LANDLORD',
+      partnerId,
+      partnerType,
+      beneficiaryKind: partnerType === 'BENEFICIARY' ? 'LANDLORD' : null,
       legalName: 'Bailleur de test',
       rccm: 'RC/DLA/2024/B/0001',
       niu: 'M000000000000A',
@@ -98,7 +117,7 @@ export async function validateLandlord(client: Client, requestId: string): Promi
     'net-1',
   );
   const payload: Record<string, JsonValue> = {
-    partner_id: 'landlord-1',
+    partner_id: partnerId,
     dossier_hash: partnerDossierHash(stored.dossier).toString('hex'),
   };
   const payloadHash = createHash('sha256').update(canonicalize(payload), 'utf8').digest();
@@ -116,7 +135,7 @@ export async function validateLandlord(client: Client, requestId: string): Promi
     [requestId],
   );
   await recordPartnerValidation(client, {
-    partnerId: 'landlord-1',
+    partnerId,
     dossierVersion: stored.version,
     decision: {
       id: requestId,
@@ -223,5 +242,69 @@ export async function publishKycLimits(admin: Client, limits: KycLimits = D43_KY
      SELECT $1, COALESCE(max(version), 0) + 1, $2::jsonb, 'fin-1', now(), $3
        FROM admin.setting_version WHERE key = $1`,
     [KYC_LIMITS_SETTING_KEY, JSON.stringify(value), requestId],
+  );
+}
+
+/** Offre publiée du marchand, modèle A, au prix donné (version 1). */
+export async function publishOfferA(
+  client: Client,
+  options: { readonly offerId: string; readonly partnerId: string; readonly priceXaf: bigint },
+): Promise<void> {
+  const draft = createOffer({
+    id: options.offerId,
+    partner: { id: options.partnerId, status: 'VALIDATED' },
+    universe: 'TECHNOLOGY',
+    models: ['SAVE_THEN_BUY'],
+    cityIds: ['douala'],
+    priceXaf: options.priceXaf,
+    availability: { kind: 'IN_STOCK', units: 3 },
+    warranty: 'Garantie 12 mois',
+    discountTerms: 'Aucune remise',
+  });
+  await appendOfferVersion(client, publishOffer(draft), 'net-1');
+}
+
+/** Accord A sur l'offre courante, activé (signature d'appareil posée en base). */
+export async function createAgreementA(
+  client: Client,
+  options: { readonly id: string; readonly customerId: string; readonly offerId: string },
+): Promise<void> {
+  await createSaveThenBuyAgreement(client, {
+    id: options.id,
+    customerId: options.customerId,
+    offerId: options.offerId,
+    planId: PLAN_A.planId,
+    durationMonths: 3,
+    createdAt: '2026-11-01T09:00:00.000Z',
+  });
+  await client.query(
+    `INSERT INTO agreements.status_event
+       (agreement_id, seq, kind, from_status, to_status, device_id, signature, actor_id, created_at)
+     VALUES ($1, 1, 'TRANSITION', 'DRAFT', 'ACTIVE', $2, $3, 'client-1', now())`,
+    [options.id, uuidv7(), Buffer.alloc(64, 9)],
+  );
+}
+
+/** Publie un paramètre versionné par le circuit réel (FINANCIAL_SETTING, deux personnes). */
+export async function publishSetting(admin: Client, key: string, value: JsonValue): Promise<void> {
+  const requestId = uuidv7();
+  const payload = { key, value };
+  const payloadHash = createHash('sha256').update(canonicalize(payload), 'utf8').digest();
+  await admin.query(
+    `INSERT INTO admin.approval_request
+       (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
+     VALUES ($1, 'FINANCIAL_SETTING', 'fin-1', $2::jsonb, $3, 'Paramètre', now(), now() + interval '1 day')`,
+    [requestId, JSON.stringify(payload), payloadHash],
+  );
+  await admin.query(
+    `INSERT INTO admin.approval_decision (request_id, decision, decided_by, decided_at, decision_reason)
+     VALUES ($1, 'APPROVED', 'comp-1', now(), NULL)`,
+    [requestId],
+  );
+  await admin.query(
+    `INSERT INTO admin.setting_version (key, version, value, created_by, created_at, approval_request_id)
+     SELECT $1, COALESCE(max(version), 0) + 1, $2::jsonb, 'fin-1', now(), $3
+       FROM admin.setting_version WHERE key = $1`,
+    [key, JSON.stringify(value), requestId],
   );
 }

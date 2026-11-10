@@ -17,10 +17,12 @@ const MAX_ORDINAL: u32 = i16::MAX as u32;
 
 // Liste blanche : un type inconnu est refusé même si son hash est cohérent,
 // car le vérificateur ne peut pas savoir quelles règles métier il porte.
-const ALLOWED_ENTRY_TYPES: [&str; 8] = [
+// HANDOVER : remise au marchand (lot 12, migration 0040, D45).
+const ALLOWED_ENTRY_TYPES: [&str; 9] = [
     "ADJUSTMENT",
     "FEE_CHARGED",
     "GENESIS",
+    "HANDOVER",
     "PAYMENT_CONFIRMED",
     "PAYMENT_RECEIVED",
     "PAYMENT_REVERSED",
@@ -305,7 +307,7 @@ fn validate_entry(entry: &Entry) -> VerifyResult<()> {
             format!("séquence {} : champ texte vide", entry.seq),
         ));
     }
-    if !ALLOWED_ENTRY_TYPES.contains(&entry.kind.as_str()) {
+    if !is_allowed_entry_type(&entry.kind) {
         return Err(VerifyError::new(
             "ENTRY_INVALID",
             format!(
@@ -768,6 +770,10 @@ fn valid_iso_utc_ms(value: &str) -> bool {
     day >= 1 && day <= days
 }
 
+fn is_allowed_entry_type(kind: &str) -> bool {
+    ALLOWED_ENTRY_TYPES.contains(&kind)
+}
+
 #[cfg(test)]
 mod tests {
     use ed25519_dalek::VerifyingKey;
@@ -776,7 +782,7 @@ mod tests {
     use crate::hex;
     use crate::model::Export;
 
-    use super::verify;
+    use super::{is_allowed_entry_type, verify};
 
     const FIXTURE: &str = include_str!("../../../tests/fixtures/ledger-export.json");
     const PUBLIC_KEY: &str = include_str!("../../../tests/fixtures/ledger-public-key.txt");
@@ -825,5 +831,15 @@ mod tests {
         let export: Export = serde_json::from_value(value).expect("export");
         let error = verify(&export, &fixture_key()).expect_err("altération détectée");
         assert_eq!(error.code, "WITNESS_MISMATCH");
+    }
+
+    #[test]
+    fn liste_blanche_des_types_d_ecriture() {
+        for kind in ["GENESIS", "PAYMENT_CONFIRMED", "HANDOVER", "SETTLEMENT_SENT"] {
+            assert!(is_allowed_entry_type(kind), "{kind} doit être accepté");
+        }
+        for kind in ["", "handover", "PAYMENT", "TEST_TRANSFER"] {
+            assert!(!is_allowed_entry_type(kind), "{kind} doit être refusé");
+        }
     }
 }
