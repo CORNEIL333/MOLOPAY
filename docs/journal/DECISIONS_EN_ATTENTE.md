@@ -242,3 +242,15 @@
 - Limites : compte et appareil seulement ; IP, numéro et partenaire non couverts. Les compteurs ne sont pas purgés (une ligne par action, version, dimension et sujet). Toute la consommation passe par le verrou du compte : le coût sous charge n'est pas mesuré.
 - À décider : fenêtres et plafonds par action, circuit d'insertion d'une politique, purge des compteurs, limites IP/numéro/partenaire.
 - Réversibilité : retirer le décorateur `CustomerQuota` d'une route ; aucune donnée financière touchée.
+
+### D39 · Paiements, tranche 1 : points non tranchés par les sources (lot 11)
+- **Constat :** l'agrégateur n'est pas choisi ; aucune documentation officielle, aucun environnement de test ni identifiant n'est disponible. Les adaptateurs réels sont donc impossibles sans violer « zéro simulation » ou « pas de secret ».
+- **Option appliquée (la plus prudente, réversible) :** migration 0026 et module `payments` sans prestataire : tentatives immuables (accord ACTIVE exigé, clé d'idempotence unique, horloge serveur), journal d'états en liste blanche (CDC_05 § 5.1), anti-rejeu des webhooks par nonce et fenêtre ± 5 min imposés en base, vérification HMAC-SHA256 en temps constant côté domaine, port `PaymentProvider` sans implémentation. `CONFIRMED`, `REFUND_PENDING` et `REFUNDED` sont **refusés en base** (`PAYMENT_LEDGER_LINK_REQUIRED`) tant que la confirmation n'est pas liée à une écriture du grand livre (I-6).
+- **Lecture inter-modules :** la base de `payments` lit `agreements.agreement_state` pour refuser un paiement sur un accord non ACTIVE (contrôle restrictif). Le code TypeScript de `payments` n'importe pas `agreements` (frontières CDC_05 § 3 respectées).
+- **À trancher :**
+  1. agrégateur retenu (et donc format du message signé, en-têtes, nonce, liste d'IP) ;
+  2. plan de comptes de la confirmation (débit / crédit, compte cantonné, I-8) pour la tranche 2 ;
+  3. trop-perçu : refuser une tentative qui dépasse le reste dû, ou l'accepter et rembourser ;
+  4. espèces (F-PAY-005) : partenaires habilités, reçu signé, rapprochement sous 24 h ;
+  5. numérotation des reçus (F-PAY-006) ;
+  6. durée de conservation des nonces (aujourd'hui conservés sans purge).

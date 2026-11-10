@@ -1,4 +1,9 @@
-# État du sprint — 2026-11-07
+# État du sprint — 2026-11-10
+
+## Fait · Lot 11 tranche 1, tentatives de paiement sans prestataire (L3)
+- Migration 0026 : tentatives immuables sur accord ACTIVE, clé d'idempotence unique, journal d'états CDC_05 § 5.1 en ajout seul, anti-rejeu des webhooks (nonce, ± 5 min). CONFIRMED et remboursement refusés en base jusqu'au lien grand livre (I-6).
+- Domaine : machine à états, HMAC-SHA256 en temps constant ; port `PaymentProvider` sans implémentation (zéro simulation).
+- **1055 unitaires, 372 PostgreSQL, 38 attaques, 1 E2E, sécurité OK.** Revue indépendante non faite. Points ouverts : D39.
 
 ## Fait · SEC-API-003 partiel, quotas des routes compte (L2)
 - Migration 0025 : politiques versionnées en ajout seul, sans valeur par défaut, compteurs accessibles uniquement par `identity.consume_customer_quota`. Tout ou rien sur compte et appareil, horloge serveur après attente du verrou, session revérifiée sous verrou.
