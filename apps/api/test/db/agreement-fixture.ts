@@ -45,9 +45,11 @@ export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0028_payments_entry_agreement.sql',
   'db/migrations/0029_agreements_funded.sql',
   'db/migrations/0036_payments_kyc_limits.sql',
+  'db/migrations/0018_notification_reminder_reservation.sql',
+  'db/migrations/0019_notification_outbox.sql',
 ];
 
-export const AGREEMENT_STACK_SCHEMAS = ['payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+export const AGREEMENT_STACK_SCHEMAS = ['notifications', 'payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 
 /** Plan C de test : mensuel, 10 000 FCFA minimum, 6 mois au plus. */
 export const PLAN_C: PaymentPlanTerms = {

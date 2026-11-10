@@ -16,6 +16,7 @@ import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/m
 import { handoverCodeMac } from '../../src/modules/settlement/handover-code';
 import { issueHandoverCode } from '../../src/modules/settlement/handover.store';
 import { confirmHandoverAtPartner } from '../../src/workflows/handover';
+import { issueHandoverCodeAndNotify } from '../../src/workflows/handover-code';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import {
   AGREEMENT_STACK_MIGRATIONS,
@@ -440,5 +441,25 @@ describe('I-6 remise imposée par la base', () => {
       const result = await failure(() => admin.query(sql));
       expect(result.message, sql).toMatch(/^SETTLEMENT_APPEND_ONLY/);
     }
+  });
+});
+
+describe('F-SAV-004 / F-NOT-001 code de remise prêt', () => {
+  it('HANDOVER_READY est écrit avec le code, sans jamais contenir le code', async () => {
+    await fund();
+    const issued = await transact('app_rw', (client) =>
+      issueHandoverCodeAndNotify(client, { agreementId: AGREEMENT_ID, pepper: PEPPER, actorId: 'system-handover' }),
+    );
+    const rows = await admin.query<{ event_type: string; channel: string }>(
+      `SELECT event_type, channel FROM notifications.outbox
+        WHERE recipient_id = $1 AND event_type = 'HANDOVER_READY' ORDER BY channel`,
+      [CUSTOMER_ID],
+    );
+    expect(rows.rows).toEqual([
+      { event_type: 'HANDOVER_READY', channel: 'PUSH' },
+      { event_type: 'HANDOVER_READY', channel: 'SMS' },
+    ]);
+    const leak = await admin.query(`SELECT count(*)::int AS n FROM notifications.outbox WHERE row_to_json(outbox)::text LIKE '%' || $1 || '%'`, [issued.code]);
+    expect(leak.rows[0]).toEqual({ n: 0 });
   });
 });

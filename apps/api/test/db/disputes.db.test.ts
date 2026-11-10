@@ -14,6 +14,7 @@ import {
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { getAgreementHistory } from '../../src/workflows/agreement-history';
+import { openDisputeAndNotify, resolveDisputeAndNotify } from '../../src/workflows/dispute-notifications';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import {
   AGREEMENT_STACK_MIGRATIONS,
@@ -346,5 +347,20 @@ describe('F-SUP-003 historique chronologique d’un accord', () => {
       transact('app_ro', (client) => getAgreementHistory(client, { agreementId: AGREEMENT_ID, customerId: OTHER_CUSTOMER_ID })),
     );
     expect(result.code).toBe('AGREEMENT_NOT_FOUND');
+  });
+});
+
+describe('F-NOT-001 litige : DISPUTE_UPDATED dans la même transaction', () => {
+  it('ouverture puis levée : deux événements distincts par canal, aucun doublon au rejeu de lecture', async () => {
+    const recorded = await complaint();
+    const opened = await transact('app_rw', (client) =>
+      openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, actorId: 'support-1' }),
+    );
+    await transact('app_rw', (client) => resolveDisputeAndNotify(client, { disputeId: opened.disputeId, actorId: 'support-2' }));
+    const rows = await admin.query<{ event_type: string; n: number }>(
+      `SELECT event_type, count(*)::int AS n FROM notifications.outbox WHERE recipient_id = $1 GROUP BY event_type`,
+      [CUSTOMER_ID],
+    );
+    expect(rows.rows).toEqual([{ event_type: 'DISPUTE_UPDATED', n: 4 }]);
   });
 });

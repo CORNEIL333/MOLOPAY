@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { markAgreementFundedIfComplete } from '../modules/agreements/agreement.store';
 import { confirmPaymentAttempt, type ConfirmedPayment } from '../modules/payments/confirmation.store';
 import type { ProviderTransaction } from '../modules/payments/provider';
+import { notifyCustomer } from './notify';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
@@ -25,5 +26,18 @@ export async function confirmPaymentAndFundAgreement(
     agreementId: confirmed.attempt.agreementId,
     actorId: input.actorId,
   });
+  // F-NOT-001 : dans la même transaction ; clés déterministes (rejeu sans doublon).
+  await notifyCustomer(client, {
+    customerId: input.customerId,
+    event: 'PAYMENT_CONFIRMED',
+    eventKey: confirmed.contributionId,
+  });
+  if (funded) {
+    await notifyCustomer(client, {
+      customerId: input.customerId,
+      event: 'GOAL_FUNDED',
+      eventKey: confirmed.attempt.agreementId,
+    });
+  }
   return Object.freeze({ ...confirmed, agreementFunded: funded });
 }
