@@ -28,6 +28,7 @@ import {
   readSuspenseBalance,
 } from '../../src/modules/reconciliation/ledger-links.store';
 import { confirmPaymentAttempt } from '../../src/modules/payments/confirmation.store';
+import { listReceipts } from '../../src/modules/payments/receipt.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import type { ProviderTransaction } from '../../src/modules/payments/provider';
 import { xaf } from '@achat/money';
@@ -58,6 +59,7 @@ const MIGRATIONS = [
   'db/migrations/0028_payments_entry_agreement.sql',
   'db/migrations/0029_agreements_funded.sql',
   'db/migrations/0036_payments_kyc_limits.sql',
+  'db/migrations/0037_payments_receipts.sql',
   'db/migrations/0030_reconciliation_segregation.sql',
   'db/migrations/0031_reconciliation_ledger_links.sql',
 ].map((path) => resolve(process.cwd(), path));
@@ -987,5 +989,90 @@ describe('D43 / REG-LBC-001 plafonds par niveau KYC', () => {
     });
     const result = await failure(() => createAttempt({ amountXaf: 1_001n }));
     expect(result.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED/);
+  });
+});
+
+describe('F-PAY-006 / D39 reçus numérotés par client', () => {
+  it('numérote 1, 2, 3 les versements confirmés d’un client', async () => {
+    await confirm(await pendingAttempt({ amountXaf: 10_000n }));
+    await confirm(await pendingAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 20_000n }));
+    await confirm(await pendingAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 30_000n }));
+    const receipts = await transact('app_ro', (client) => listReceipts(client, CUSTOMER_ID));
+    expect(receipts.map((r) => [r.receiptNo, r.amountXaf])).toEqual([
+      [1, 10_000n],
+      [2, 20_000n],
+      [3, 30_000n],
+    ]);
+  });
+
+  it('confirmations concurrentes : numérotation continue, sans trou ni doublon', async () => {
+    const attempts = [
+      await pendingAttempt({ amountXaf: 10_000n }),
+      await pendingAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 10_000n }),
+      await pendingAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 10_000n }),
+      await pendingAttempt({ id: uuid(4), idemKey: uuid(504), amountXaf: 10_000n }),
+    ];
+    await Promise.all(attempts.map((attempt) => confirm(attempt)));
+    const receipts = await transact('app_ro', (client) => listReceipts(client, CUSTOMER_ID));
+    expect(receipts.map((r) => r.receiptNo)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('un rejeu de confirmation ne crée pas de second reçu', async () => {
+    const attempt = await pendingAttempt();
+    await confirm(attempt);
+    await confirm(attempt);
+    expect(await transact('app_ro', (client) => listReceipts(client, CUSTOMER_ID))).toHaveLength(1);
+  });
+
+  it('le reçu porte le début de l’empreinte de l’écriture du grand livre', async () => {
+    const confirmed = await confirm(await pendingAttempt());
+    const [receipt] = await transact('app_ro', (client) => listReceipts(client, CUSTOMER_ID));
+    const entry = await admin.query<{ hash: string }>(
+      "SELECT encode(entry_hash, 'hex') AS hash FROM ledger.journal_entry WHERE id = $1",
+      [confirmed.entryId],
+    );
+    expect(receipt?.entryHashPrefix).toMatch(/^[0-9a-f]{8}$/);
+    expect(entry.rows[0]?.hash.startsWith(receipt?.entryHashPrefix ?? 'x')).toBe(true);
+  });
+
+  it('AGENTS § 8 un client ne voit pas les reçus d’un autre ni un volume global', async () => {
+    await confirm(await pendingAttempt());
+    expect(await transact('app_ro', (client) => listReceipts(client, uuid(999)))).toEqual([]);
+  });
+
+  it('AGENTS § 8 chaque client a sa propre numérotation, qui commence à 1', async () => {
+    const other = uuid(950);
+    const otherAgreement = uuid(951);
+    await seedCustomerAccount(admin, other, 'STRONG');
+    await transact('app_rw', async (client) => {
+      await createPlannedExpenseAgreement(client, {
+        id: otherAgreement,
+        customerId: other,
+        beneficiaryId: 'landlord-1',
+        targetXaf: 300_000n,
+        planId: PLAN_C.planId,
+        durationMonths: 4,
+        createdAt: '2026-11-01T09:00:00.000Z',
+      });
+      await client.query(
+        `INSERT INTO agreements.status_event
+           (agreement_id, seq, kind, from_status, to_status, device_id, signature, actor_id, created_at)
+         VALUES ($1, 1, 'TRANSITION', 'DRAFT', 'ACTIVE', $2, $3, 'client-2', now())`,
+        [otherAgreement, DEVICE_ID, SIGNATURE],
+      );
+    });
+    await confirm(await pendingAttempt());
+    const otherAttempt = await pendingAttempt({ id: uuid(2), idemKey: uuid(502), agreementId: otherAgreement });
+    await confirm(otherAttempt, {}, other);
+    const mine = await transact('app_ro', (client) => listReceipts(client, CUSTOMER_ID));
+    const theirs = await transact('app_ro', (client) => listReceipts(client, other));
+    expect(mine.map((r) => r.receiptNo)).toEqual([1]);
+    expect(theirs.map((r) => r.receiptNo)).toEqual([1]);
+  });
+
+  it('le numéro est attribué par la base, pas par l’appelant', async () => {
+    await confirm(await pendingAttempt());
+    const row = await admin.query<{ receipt_no: number }>('SELECT receipt_no FROM payments.contribution');
+    expect(row.rows).toEqual([{ receipt_no: 1 }]);
   });
 });
