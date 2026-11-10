@@ -165,7 +165,10 @@ export async function ensureClientFundsAccount(client: SqlClient, customerId: st
 }
 
 /** Compte du plan sans propriétaire (CDC_04 § 2.1), lu par son code. */
-export async function systemAccountId(client: SqlClient, code: '1100' | '1200' | '2900'): Promise<string> {
+export async function systemAccountId(
+  client: SqlClient,
+  code: '1100' | '1200' | '2900' | '7100',
+): Promise<string> {
   const result = await client.query<{ id: string }>(
     'SELECT id FROM ledger.account WHERE code = $1 AND owner_type IS NULL',
     [code],
