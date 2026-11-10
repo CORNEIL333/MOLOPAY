@@ -10,11 +10,18 @@ import {
   type PaymentPlanTerms,
 } from '../../src/modules/catalog/payment-plan.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
+import {
+  D43_KYC_LIMITS,
+  KYC_LIMITS_SETTING_KEY,
+  kycLimitsSettingValue,
+  type KycLimits,
+} from '../../src/modules/payments/kyc-limits';
 
 /** Migrations nécessaires à un accord C, aux paiements et au grand livre. */
 export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0001_ledger.sql',
   'db/migrations/0002_audit.sql',
+  'db/migrations/0004_identity.sql',
   'db/migrations/0005_audit_metadata.sql',
   'db/migrations/0010_audit_catalog.sql',
   'db/migrations/0003_admin.sql',
@@ -32,9 +39,10 @@ export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0027_payments_confirmation.sql',
   'db/migrations/0028_payments_entry_agreement.sql',
   'db/migrations/0029_agreements_funded.sql',
+  'db/migrations/0036_payments_kyc_limits.sql',
 ];
 
-export const AGREEMENT_STACK_SCHEMAS = ['payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger'];
+export const AGREEMENT_STACK_SCHEMAS = ['payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 
 /** Plan C de test : mensuel, 10 000 FCFA minimum, 6 mois au plus. */
 export const PLAN_C: PaymentPlanTerms = {
@@ -173,5 +181,47 @@ export async function seedLedgerGenesis(admin: Client): Promise<void> {
         idem_scope, idem_key, reverses_entry_id, prev_hash, entry_hash)
      VALUES (1, $1, $2, 'GENESIS', $3::jsonb, 'system', '[]'::jsonb, 'system', 'genesis', NULL, $4, $5)`,
     [id, ts, JSON.stringify(content.refs), genesisPrevHash(), computeEntryHash(genesisPrevHash(), content)],
+  );
+}
+
+/** Compte client en base identité avec son niveau KYC (posé par l'administrateur). */
+export async function seedCustomerAccount(
+  admin: Client,
+  customerId: string,
+  kycLevel: 'NONE' | 'BASIC' | 'STRONG',
+): Promise<void> {
+  const suffix = customerId.replace(/-/g, '').slice(-8).replace(/[a-f]/g, '1');
+  await admin.query(
+    `INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level)
+     VALUES ($1, $2, now(), $3)`,
+    [customerId, `+2376${suffix}`, kycLevel],
+  );
+}
+
+/**
+ * D43 : publie les plafonds KYC par le circuit réel (FINANCIAL_SETTING
+ * préparé par fin-1, approuvé par comp-1, publié par le préparateur).
+ */
+export async function publishKycLimits(admin: Client, limits: KycLimits = D43_KYC_LIMITS): Promise<void> {
+  const requestId = uuidv7();
+  const value = kycLimitsSettingValue(limits);
+  const payload = { key: KYC_LIMITS_SETTING_KEY, value };
+  const payloadHash = createHash('sha256').update(canonicalize(payload), 'utf8').digest();
+  await admin.query(
+    `INSERT INTO admin.approval_request
+       (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
+     VALUES ($1, 'FINANCIAL_SETTING', 'fin-1', $2::jsonb, $3, 'Plafonds KYC', now(), now() + interval '1 day')`,
+    [requestId, JSON.stringify(payload), payloadHash],
+  );
+  await admin.query(
+    `INSERT INTO admin.approval_decision (request_id, decision, decided_by, decided_at, decision_reason)
+     VALUES ($1, 'APPROVED', 'comp-1', now(), NULL)`,
+    [requestId],
+  );
+  await admin.query(
+    `INSERT INTO admin.setting_version (key, version, value, created_by, created_at, approval_request_id)
+     SELECT $1, COALESCE(max(version), 0) + 1, $2::jsonb, 'fin-1', now(), $3
+       FROM admin.setting_version WHERE key = $1`,
+    [KYC_LIMITS_SETTING_KEY, JSON.stringify(value), requestId],
   );
 }

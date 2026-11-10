@@ -20,6 +20,8 @@ import {
   AGREEMENT_STACK_SCHEMAS,
   createAgreementC,
   PLAN_C,
+  publishKycLimits,
+  seedCustomerAccount,
   seedPaymentPlan,
   seedLedgerGenesis,
   validateLandlord,
@@ -122,6 +124,9 @@ beforeEach(async () => {
     await createAgreementC(client, { id: OTHER_AGREEMENT_ID, customerId: OTHER_CUSTOMER_ID, active: true });
   });
   await seedLedgerGenesis(admin);
+  await seedCustomerAccount(admin, CUSTOMER_ID, 'STRONG');
+  await seedCustomerAccount(admin, OTHER_CUSTOMER_ID, 'STRONG');
+  await publishKycLimits(admin);
 });
 
 describe('F-SUP-001 réclamations', () => {

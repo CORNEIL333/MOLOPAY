@@ -33,12 +33,13 @@ import type { ProviderTransaction } from '../../src/modules/payments/provider';
 import { xaf } from '@achat/money';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendLedgerEntry, ensureClientFundsAccount } from '../../src/modules/ledger/entry.store';
-import { PLAN_C, seedPaymentPlan } from './agreement-fixture';
+import { PLAN_C, publishKycLimits, seedCustomerAccount, seedPaymentPlan } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
   'db/migrations/0001_ledger.sql',
   'db/migrations/0002_audit.sql',
+  'db/migrations/0004_identity.sql',
   'db/migrations/0005_audit_metadata.sql',
   'db/migrations/0010_audit_catalog.sql',
   'db/migrations/0003_admin.sql',
@@ -56,6 +57,7 @@ const MIGRATIONS = [
   'db/migrations/0027_payments_confirmation.sql',
   'db/migrations/0028_payments_entry_agreement.sql',
   'db/migrations/0029_agreements_funded.sql',
+  'db/migrations/0036_payments_kyc_limits.sql',
   'db/migrations/0030_reconciliation_segregation.sql',
   'db/migrations/0031_reconciliation_ledger_links.sql',
 ].map((path) => resolve(process.cwd(), path));
@@ -238,7 +240,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const schema of ['reconciliation', 'payments', 'agreements', 'catalog', 'admin', 'audit', 'ledger']) {
+  for (const schema of ['reconciliation', 'payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger']) {
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
   for (const sql of migrationSql) {
@@ -246,6 +248,8 @@ beforeEach(async () => {
   }
   await transact('app_rw', seed);
   await seedGenesis();
+  await seedCustomerAccount(admin, CUSTOMER_ID, 'STRONG');
+  await publishKycLimits(admin);
 });
 
 describe('F-PAY-001/002 création d’une tentative en base', () => {
@@ -909,5 +913,79 @@ describe('INT-LED-008 / INT-REC-005 contrôles du rapprochement sur le grand liv
       }),
     );
     expect(await transact('app_ro', (client) => readSuspenseBalance(client))).toBe(700n);
+  });
+});
+
+describe('D43 / REG-LBC-001 plafonds par niveau KYC', () => {
+  async function resetCustomer(level: 'NONE' | 'BASIC' | 'STRONG' | null): Promise<void> {
+    await admin.query('DROP SCHEMA IF EXISTS reconciliation CASCADE');
+    for (const schema of ['payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger']) {
+      await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+    }
+    for (const sql of migrationSql) {
+      await admin.query(sql);
+    }
+    await transact('app_rw', seed);
+    await seedGenesis();
+    if (level !== null) {
+      await seedCustomerAccount(admin, CUSTOMER_ID, level);
+    }
+  }
+
+  it('fermé par défaut : sans plafonds publiés, aucun versement (PAYMENT_KYC_LIMITS_NOT_CONFIGURED)', async () => {
+    await resetCustomer('STRONG');
+    const result = await failure(() => createAttempt());
+    expect(result.message).toMatch(/^PAYMENT_KYC_LIMITS_NOT_CONFIGURED/);
+  });
+
+  it.each([
+    ['sans niveau KYC', 'NONE' as const],
+    ['sans compte identité', null],
+  ])('refuse un client %s (PAYMENT_KYC_LIMIT_EXCEEDED)', async (_label, level) => {
+    await resetCustomer(level);
+    await publishKycLimits(admin);
+    const result = await failure(() => createAttempt({ amountXaf: 1_000n }));
+    expect(result.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED: niveau BASIC requis/);
+  });
+
+  it('niveau 1 : 200 000 FCFA détenus au plus, tentatives en cours comprises', async () => {
+    await resetCustomer('BASIC');
+    await publishKycLimits(admin);
+    await createAttempt({ amountXaf: 150_000n });
+    const result = await failure(() => createAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 50_001n }));
+    expect(result.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED: niveau STRONG requis/);
+    const exact = await createAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 50_000n });
+    expect(exact.status).toBe('CREATED');
+  });
+
+  it('les fonds déjà confirmés comptent dans les fonds détenus', async () => {
+    await resetCustomer('BASIC');
+    await publishKycLimits(admin);
+    await confirm(await pendingAttempt({ amountXaf: 200_000n }));
+    const result = await failure(() => createAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 1n }));
+    expect(result.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED/);
+  });
+
+  it('plafond mensuel : les versements confirmés du mois comptent', async () => {
+    await resetCustomer('STRONG');
+    await publishKycLimits(admin, {
+      BASIC: { holdingXaf: 100_000n, monthlyXaf: 100_000n },
+      STRONG: { holdingXaf: 5_000_000n, monthlyXaf: 100_000n },
+    });
+    await confirm(await pendingAttempt({ amountXaf: 90_000n }));
+    const over = await failure(() => createAttempt({ id: uuid(2), idemKey: uuid(502), amountXaf: 10_001n }));
+    expect(over.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED: niveau ENHANCED requis/);
+    expect((await createAttempt({ id: uuid(3), idemKey: uuid(503), amountXaf: 10_000n })).status).toBe('CREATED');
+  });
+
+  it('la dernière version publiée des plafonds s’applique', async () => {
+    await resetCustomer('BASIC');
+    await publishKycLimits(admin);
+    await publishKycLimits(admin, {
+      BASIC: { holdingXaf: 1_000n, monthlyXaf: 1_000n },
+      STRONG: { holdingXaf: 2_000_000n, monthlyXaf: 2_000_000n },
+    });
+    const result = await failure(() => createAttempt({ amountXaf: 1_001n }));
+    expect(result.message).toMatch(/^PAYMENT_KYC_LIMIT_EXCEEDED/);
   });
 });
