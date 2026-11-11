@@ -37,6 +37,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | F-CAT-005 : réapprovisionnement, remplacement ou remboursement en cas de rupture | engagement commercial à décider |
 | DONE | Catalogue public : disponible affiché (D57) | contrôleur dans workflows |
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
+| DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
+| BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -50,4 +52,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-F-PLN-003 : reçu au client et au bénéficiaire après règlement C (inventaire de 0037 reçus de paiement) ; sinon lot 25 (jeu de données de recette généré, sans donnée réelle).
+Lot 25 : générateur de jeu de données de recette (aucune donnée personnelle réelle, montants entiers) via les flux réels sur la base de test ; ou client web : afficher le reçu C et les actions bénéficiaire.

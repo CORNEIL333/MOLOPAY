@@ -216,3 +216,43 @@ export async function insertBeneficiaryPayoutExecution(
   );
   return Object.freeze({ entryId });
 }
+
+export type BeneficiaryReceipt = {
+  readonly goalId: string;
+  readonly payoutId: string;
+  readonly beneficiaryId: string;
+  readonly amountXaf: bigint;
+  readonly executedAt: string;
+  readonly bankReference: string;
+  readonly entryHashPrefix: string;
+};
+
+/**
+ * F-PLN-003 / D58 : reçu du virement exécuté au bénéficiaire d'un objectif ;
+ * null tant qu'aucune exécution confirmée n'existe (refus ou attente).
+ */
+export async function getBeneficiaryReceipt(client: SqlClient, agreementId: string): Promise<BeneficiaryReceipt | null> {
+  const result = await client.query<{
+    payout_id: string; beneficiary_id: string; amount_xaf: string; recorded_at: Date; bank_reference: string; prefix: string;
+  }>(
+    `SELECT p.id AS payout_id, p.beneficiary_id, p.amount_xaf::text, x.recorded_at, x.bank_reference,
+            substr(encode(e.entry_hash, 'hex'), 1, 8) AS prefix
+       FROM settlement.beneficiary_payout p
+       JOIN settlement.beneficiary_payout_execution x ON x.payout_id = p.id AND x.outcome = 'EXECUTED'
+       JOIN ledger.journal_entry e ON e.id = x.entry_id
+      WHERE p.agreement_id = $1`,
+    [agreementId],
+  );
+  const row = result.rows[0];
+  return row === undefined
+    ? null
+    : Object.freeze({
+        goalId: agreementId,
+        payoutId: row.payout_id,
+        beneficiaryId: row.beneficiary_id,
+        amountXaf: parseXaf(row.amount_xaf).amount,
+        executedAt: row.recorded_at.toISOString(),
+        bankReference: row.bank_reference,
+        entryHashPrefix: row.prefix,
+      });
+}

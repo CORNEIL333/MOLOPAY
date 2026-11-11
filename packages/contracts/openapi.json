@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -1977,6 +1977,43 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/beneficiary-receipt": {
+      "get": {
+        "operationId": "getGoalBeneficiaryReceipt",
+        "summary": "Reçu du règlement au bénéficiaire (après exécution par l’établissement)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reçu de règlement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeneficiaryReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -3956,6 +3993,49 @@
               "PENDING"
             ],
             "description": "Examen en maker-checker par la conformité ; toujours PENDING au dépôt."
+          }
+        }
+      },
+      "BeneficiaryReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "F-PLN-003 / D58 : reçu du virement exécuté au bénéficiaire ; vérifiable au grand livre par l’empreinte de l’écriture.",
+        "required": [
+          "goalId",
+          "payoutId",
+          "beneficiaryId",
+          "amountXaf",
+          "executedAt",
+          "bankReference",
+          "entryHashPrefix"
+        ],
+        "properties": {
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beneficiaryId": {
+            "type": "string"
+          },
+          "amountXaf": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Montant entier en FCFA (chaîne)."
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bankReference": {
+            "type": "string"
+          },
+          "entryHashPrefix": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}$"
           }
         }
       }

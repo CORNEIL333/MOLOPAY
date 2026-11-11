@@ -17,6 +17,12 @@ import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { approveDocumentReview, proposeDocumentReview } from '../../src/workflows/beneficiary-payment';
+import {
+  decideBeneficiaryPayout,
+  instructBeneficiaryPayout,
+  prepareBeneficiaryPayout,
+  recordBeneficiaryPayoutExecution,
+} from '../../src/workflows/beneficiary-payout';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import {
   AGREEMENT_STACK_MIGRATIONS,
@@ -43,11 +49,17 @@ const MIGRATIONS = [
   'db/migrations/0040_settlement_handover.sql',
   'db/migrations/0043_settlement_beneficiary.sql',
   'db/migrations/0044_agreements_beneficiary_payment.sql',
+  'db/migrations/0041_settlement_payout.sql',
+  'db/migrations/0042_settlement_execution.sql',
+  'db/migrations/0045_settlement_refund.sql',
+  'db/migrations/0046_agreements_refunded.sql',
+  'db/migrations/0047_settlement_beneficiary_payout.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
 type BeneficiaryDocument = components['schemas']['BeneficiaryDocument'];
 type ProblemBody = { readonly code: string };
+type BeneficiaryReceipt = components['schemas']['BeneficiaryReceipt'];
 
 const ORIGIN = 'https://app.example.test';
 const A = '019a9e00-0000-7000-8000-0000000000c1';
@@ -56,6 +68,9 @@ const RENT = '019a9e00-0000-7000-8000-0000000000a1';
 const LEASE = createHash('sha256').update('bail signé — fichier de test HTTP').digest('hex');
 const COMP1: AdminPrincipal = { actorId: 'comp-1', roles: ['COMPLIANCE'] };
 const COMP2: AdminPrincipal = { actorId: 'comp-2', roles: ['COMPLIANCE'] };
+const FIN1: AdminPrincipal = { actorId: 'fin-1', roles: ['FINANCE'], maxAmountXaf: 1_000_000n };
+const FIN2: AdminPrincipal = { actorId: 'fin-2', roles: ['FINANCE'], maxAmountXaf: 1_000_000n };
+const PLATFORM_KEY = generateKeyPairSync('ed25519').privateKey;
 
 let db: TestDatabase;
 let admin: Client;
@@ -287,3 +302,53 @@ describe('F-PLN-003 / SEC-AUTH-002 règlement au bénéficiaire sous PIN', () =>
     expect(await count('SELECT count(*)::int AS n FROM settlement.beneficiary_payment')).toBe(0);
   });
 });
+
+describe('F-PLN-003 / D58 reçu de règlement consultable par le client', () => {
+  function receipt(cookie = cookies.A): request.Test {
+    return request(server()).get(`/v1/goals/${RENT}/beneficiary-receipt`).set('Cookie', cookie);
+  }
+
+  async function paidAndSent(outcome: 'EXECUTED' | 'REJECTED' = 'EXECUTED'): Promise<string> {
+    await fund();
+    const doc = await deposit({ kind: 'LEASE', sha256: LEASE }, 'benef-doc-receipt');
+    await validate((doc.body as BeneficiaryDocument).documentId);
+    expect((await payment({ pin: PIN }, 'benef-pay-receipt')).status).toBe(200);
+    const payout = await withTransaction(database, (client) => prepareBeneficiaryPayout(client, { id: uuidv7(), agreementId: RENT, principal: FIN1 }));
+    await withTransaction(database, (client) => decideBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN2, decision: 'APPROVED' }));
+    await withTransaction(database, (client) => instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN2, signingKey: PLATFORM_KEY, keyId: 'k1' }));
+    await withTransaction(database, (client) =>
+      recordBeneficiaryPayoutExecution(client, { payoutId: payout.payoutId, principal: FIN1, outcome, bankReference: 'ETAB-VIR-77' }),
+    );
+    return payout.payoutId;
+  }
+
+  it('après exécution par l’établissement : reçu avec montant, bénéficiaire, référence et empreinte de l’écriture', async () => {
+    const payoutId = await paidAndSent();
+    const response = await receipt();
+    expect(response.status).toBe(200);
+    const body = response.body as BeneficiaryReceipt;
+    expect(body).toMatchObject({ goalId: RENT, payoutId, beneficiaryId: 'landlord-1', amountXaf: '300000', bankReference: 'ETAB-VIR-77' });
+    expect(body.entryHashPrefix).toMatch(/^[0-9a-f]{8}$/);
+    const hash = await admin.query<{ prefix: string }>(
+      `SELECT substr(encode(e.entry_hash, 'hex'), 1, 8) AS prefix FROM settlement.beneficiary_payout_execution x
+         JOIN ledger.journal_entry e ON e.id = x.entry_id`,
+    );
+    expect(body.entryHashPrefix).toBe(hash.rows[0]?.prefix);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+  });
+
+  it('virement refusé par l’établissement ou pas encore exécuté : aucun reçu (404)', async () => {
+    await paidAndSent('REJECTED');
+    const response = await receipt();
+    expect(response.status).toBe(404);
+    expect((response.body as ProblemBody).code).toBe('SETTLEMENT_NOT_FOUND');
+  });
+
+  it('un autre client ne voit pas le reçu (AGREEMENT_NOT_FOUND)', async () => {
+    await paidAndSent();
+    const response = await receipt(cookies.B);
+    expect(response.status).toBe(404);
+    expect((response.body as ProblemBody).code).toBe('AGREEMENT_NOT_FOUND');
+  });
+});
+

@@ -665,6 +665,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/goals/{goalId}/beneficiary-receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reçu du règlement au bénéficiaire (après exécution par l’établissement) */
+        get: operations["getGoalBeneficiaryReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1163,6 +1180,20 @@ export interface components {
              * @enum {string}
              */
             reviewStatus: "PENDING";
+        };
+        /** @description F-PLN-003 / D58 : reçu du virement exécuté au bénéficiaire ; vérifiable au grand livre par l’empreinte de l’écriture. */
+        BeneficiaryReceipt: {
+            /** Format: uuid */
+            goalId: string;
+            /** Format: uuid */
+            payoutId: string;
+            beneficiaryId: string;
+            /** @description Montant entier en FCFA (chaîne). */
+            amountXaf: string;
+            /** Format: date-time */
+            executedAt: string;
+            bankReference: string;
+            entryHashPrefix: string;
         };
     };
     responses: {
@@ -2389,6 +2420,30 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+        };
+    };
+    getGoalBeneficiaryReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                goalId: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reçu de règlement */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeneficiaryReceipt"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

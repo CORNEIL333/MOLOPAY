@@ -1,4 +1,4 @@
-import { Body, Controller, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { JsonValue } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
 import { PG_POOL, withTransaction, type Database } from '../http/database';
@@ -10,6 +10,7 @@ import { goalFromStored } from '../modules/agreements/goal.api';
 import { verifyPinFromStore } from '../modules/identity/pin.store';
 import type { AuthenticatedCustomer } from '../modules/identity/session.store';
 import { uuidv7 } from '../modules/ledger/domain';
+import { getBeneficiaryReceipt } from '../modules/settlement/beneficiary-payout.store';
 import { payBeneficiaryForCustomer, submitBeneficiaryDocument } from './beneficiary-payment';
 import { PIN_PEPPER } from './goal-signing.controller';
 
@@ -91,6 +92,20 @@ export class BeneficiaryController {
       throw new BusinessError('INTERNAL_ERROR');
     }
     return result.body;
+  }
+
+  /** F-PLN-003 / D58 : reçu du virement exécuté au bénéficiaire (lecture seule). */
+  @Get('v1/goals/:goalId/beneficiary-receipt')
+  @Header('Cache-Control', 'private, no-store')
+  public receipt(@CurrentCustomer() actor: AuthenticatedCustomer, @Param('goalId') goalId: string): Promise<JsonValue> {
+    return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
+      await assertOwnGoal(client, actor.accountId, goalId);
+      const receipt = await getBeneficiaryReceipt(client, goalId);
+      if (receipt === null) {
+        throw new BusinessError('SETTLEMENT_NOT_FOUND', 'aucun virement exécuté pour cet objectif');
+      }
+      return { ...receipt, amountXaf: receipt.amountXaf.toString() };
+    });
   }
 
   @Post('v1/goals/:goalId/beneficiary-payment')
