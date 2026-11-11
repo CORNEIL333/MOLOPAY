@@ -104,6 +104,10 @@ export const fr = {
     dueDate: 'Échéance',
     expiresAt: 'Proposition valable jusqu’au',
     rhythmLabel: 'Rythme',
+    planLabel: 'Plan de paiement',
+    noPlans: 'Aucun plan de paiement n’est ouvert pour cette offre pour l’instant.',
+    planMaxSuffix: 'mois au plus',
+    planMinimum: 'Versement minimum',
     durationLabel: 'Durée (mois)',
     rhythms: {
       DAILY: 'Quotidien',

@@ -129,3 +129,19 @@ export async function getPaymentPlan(client: SqlClient, planId: string): Promise
     approvedAt: row.approved_at.toISOString(),
   });
 }
+
+/** D26 : plans approuvés, éventuellement filtrés par modèle, dans un ordre stable. */
+export async function listPaymentPlans(client: SqlClient, model: PlanModel | null): Promise<StoredPaymentPlan[]> {
+  const result = await client.query<{ id: string }>(
+    `SELECT id FROM catalog.payment_plan WHERE ($1::text IS NULL OR model = $1) ORDER BY model, id`,
+    [model],
+  );
+  const plans: StoredPaymentPlan[] = [];
+  for (const row of result.rows) {
+    const plan = await getPaymentPlan(client, row.id);
+    if (plan !== null) {
+      plans.push(plan);
+    }
+  }
+  return plans;
+}

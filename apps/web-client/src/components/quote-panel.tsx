@@ -14,6 +14,7 @@ import type { Offer, OfferModel } from './offer-card';
 type QuoteRequest = components['schemas']['QuoteRequest'];
 export type Quote = components['schemas']['Quote'];
 type Rhythm = components['schemas']['Rhythm'];
+export type PaymentPlan = components['schemas']['PaymentPlan'];
 
 export type QuoteOutcome =
   | { readonly ok: true; readonly quote: Quote }
@@ -33,6 +34,10 @@ export type QuoteLabels = {
   readonly dueDate: string;
   readonly expiresAt: string;
   readonly rhythmLabel: string;
+  readonly planLabel: string;
+  readonly noPlans: string;
+  readonly planMaxSuffix: string;
+  readonly planMinimum: string;
   readonly durationLabel: string;
   readonly startTitle: string;
   readonly termsLabel: string;
@@ -44,7 +49,6 @@ export type QuoteLabels = {
   readonly rhythms: Readonly<Record<Rhythm, string>>;
 };
 
-const RHYTHMS: readonly Rhythm[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'FREE'];
 const DURATION_MONTHS = /^(?:[1-9]|[12][0-9]|3[0-6])$/;
 
 async function requestDefaultQuote(
@@ -71,24 +75,27 @@ async function requestDefaultQuote(
 
 export function QuotePanel({
   offer,
+  plans,
   labels,
   locale,
   requestQuote,
 }: {
   readonly offer: Offer;
+  /** D26 : plans approuvés du modèle A, fournis par le serveur. */
+  readonly plans: readonly PaymentPlan[];
   readonly labels: QuoteLabels;
   readonly locale: Locale;
   readonly requestQuote?: (input: QuoteRequest) => Promise<QuoteOutcome>;
 }): ReactElement {
-  const initialModel = offer.models[0] ?? 'SAVE_THEN_BUY';
-  const [model, setModel] = useState<OfferModel>(initialModel);
-  const [rhythm, setRhythm] = useState<Rhythm>('MONTHLY');
-  const [duration, setDuration] = useState('12');
+  const [planId, setPlanId] = useState(plans[0]?.planId ?? '');
+  const plan = plans.find((candidate) => candidate.planId === planId);
+  const [duration, setDuration] = useState(String(Math.min(12, plans[0]?.maxDurationMonths ?? 12)));
   const [quote, setQuote] = useState<Quote | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
 
-  const durationValid = DURATION_MONTHS.test(duration);
+  const durationValid =
+    plan !== undefined && DURATION_MONTHS.test(duration) && Number(duration) <= plan.maxDurationMonths;
   const canSubmit = durationValid && !pending;
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -99,8 +106,7 @@ export function QuotePanel({
     setPending(true);
     setProblem(null);
     const input: QuoteRequest = {
-      model,
-      rhythm,
+      planId,
       durationMonths: Number(duration),
     };
     const outcome =
@@ -127,44 +133,31 @@ export function QuotePanel({
       </h2>
       <p className="page-subtitle">{labels.quoteDescription}</p>
 
+      {plans.length === 0 ? (
+        <p>{labels.noPlans}</p>
+      ) : (
       <form className="quote-form" onSubmit={(event) => void submit(event)}>
         <div className="achat-field">
-          <label className="achat-field__label" htmlFor="quote-model">
-            {labels.chooseModel}
+          <label className="achat-field__label" htmlFor="quote-plan">
+            {labels.planLabel}
           </label>
           <select
-            id="quote-model"
+            id="quote-plan"
             className="achat-field__input"
-            value={model}
-            onChange={(event) =>
-              setModel(event.currentTarget.value as OfferModel)
-            }
+            value={planId}
+            onChange={(event) => setPlanId(event.currentTarget.value)}
           >
-            {offer.models.map((option) => (
-              <option key={option} value={option}>
-                {labels.models[option]}
+            {plans.map((option) => (
+              <option key={option.planId} value={option.planId}>
+                {labels.rhythms[option.rhythm]} · {option.maxDurationMonths.toString()} {labels.planMaxSuffix}
               </option>
             ))}
           </select>
-        </div>
-        <div className="achat-field">
-          <label className="achat-field__label" htmlFor="quote-rhythm">
-            {labels.rhythmLabel}
-          </label>
-          <select
-            id="quote-rhythm"
-            className="achat-field__input"
-            value={rhythm}
-            onChange={(event) =>
-              setRhythm(event.currentTarget.value as Rhythm)
-            }
-          >
-            {RHYTHMS.map((option) => (
-              <option key={option} value={option}>
-                {labels.rhythms[option]}
-              </option>
-            ))}
-          </select>
+          {plan === undefined ? null : (
+            <p className="achat-field__hint">
+              {labels.planMinimum} <AmountXaf amount={plan.minAmountXaf} />
+            </p>
+          )}
         </div>
         <TextField
           id="quote-duration"
@@ -172,7 +165,7 @@ export function QuotePanel({
           type="number"
           inputMode="numeric"
           min={1}
-          max={36}
+          max={plan?.maxDurationMonths ?? 36}
           value={duration}
           onChange={(event) => setDuration(event.currentTarget.value)}
         />
@@ -180,6 +173,7 @@ export function QuotePanel({
           {labels.requestQuote}
         </Button>
       </form>
+      )}
 
       {problem === null ? null : (
         <ErrorState problem={problem} retryLabel={labels.requestQuote} />

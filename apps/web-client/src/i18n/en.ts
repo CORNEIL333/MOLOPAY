@@ -106,6 +106,10 @@ export const en: Dictionary = {
     dueDate: 'Due date',
     expiresAt: 'Offer valid until',
     rhythmLabel: 'Rhythm',
+    planLabel: 'Payment plan',
+    noPlans: 'No payment plan is open for this offer yet.',
+    planMaxSuffix: 'months at most',
+    planMinimum: 'Minimum payment',
     durationLabel: 'Duration (months)',
     rhythms: {
       DAILY: 'Daily',

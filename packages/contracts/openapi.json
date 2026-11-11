@@ -1820,6 +1820,45 @@
           }
         }
       }
+    },
+    "/v1/plans": {
+      "get": {
+        "operationId": "listPaymentPlans",
+        "summary": "Plans de paiement approuvés (D26)",
+        "tags": [
+          "Catalogue"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SAVE_THEN_BUY",
+                "PLANNED_EXPENSE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentPlanList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2146,25 +2185,19 @@
       },
       "QuoteRequest": {
         "type": "object",
+        "description": "D26/F-CAT-004 : plan approuvé et durée ; le modèle et le rythme viennent du plan",
         "required": [
-          "model",
-          "rhythm",
+          "planId",
           "durationMonths"
         ],
         "properties": {
-          "model": {
-            "$ref": "#/components/schemas/OfferModel"
-          },
-          "rhythm": {
-            "$ref": "#/components/schemas/Rhythm"
+          "planId": {
+            "type": "string"
           },
           "durationMonths": {
             "type": "integer",
             "minimum": 1,
             "maximum": 36
-          },
-          "downPaymentXaf": {
-            "$ref": "#/components/schemas/Money"
           }
         },
         "additionalProperties": false
@@ -2248,7 +2281,8 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Devis indicatif, non conservé : le prix est figé à la création de l'accord (I-11)"
       },
       "OtpChallengeRequest": {
         "type": "object",
@@ -3689,6 +3723,55 @@
           "seq": {
             "type": "integer",
             "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentPlan": {
+        "type": "object",
+        "required": [
+          "planId",
+          "model",
+          "rhythm",
+          "minAmountXaf",
+          "maxDurationMonths"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "SAVE_THEN_BUY",
+              "PLANNED_EXPENSE"
+            ]
+          },
+          "rhythm": {
+            "$ref": "#/components/schemas/Rhythm"
+          },
+          "minAmountXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "maxDurationMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 36
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentPlanList": {
+        "type": "object",
+        "required": [
+          "plans"
+        ],
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentPlan"
+            }
           }
         },
         "additionalProperties": false

@@ -614,6 +614,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans de paiement approuvés (D26) */
+        get: operations["listPaymentPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -670,17 +687,17 @@ export interface components {
             /** Format: date-time */
             asOf: string;
         };
+        /** @description D26/F-CAT-004 : plan approuvé et durée ; le modèle et le rythme viennent du plan */
         QuoteRequest: {
-            model: components["schemas"]["OfferModel"];
-            rhythm: components["schemas"]["Rhythm"];
+            planId: string;
             durationMonths: number;
-            downPaymentXaf?: components["schemas"]["Money"];
         };
         Installment: {
             /** Format: date */
             dueDate: string;
             amountXaf: components["schemas"]["Money"];
         };
+        /** @description Devis indicatif, non conservé : le prix est figé à la création de l'accord (I-11) */
         Quote: {
             /** Format: uuid */
             quoteId: string;
@@ -1080,6 +1097,17 @@ export interface components {
             transition: "ACTIVATE" | "CANCEL";
             payloadBase64: string;
             seq: number;
+        };
+        PaymentPlan: {
+            planId: string;
+            /** @enum {string} */
+            model: "SAVE_THEN_BUY" | "PLANNED_EXPENSE";
+            rhythm: components["schemas"]["Rhythm"];
+            minAmountXaf: components["schemas"]["Money"];
+            maxDurationMonths: number;
+        };
+        PaymentPlanList: {
+            plans: components["schemas"]["PaymentPlan"][];
         };
     };
     responses: {
@@ -2216,6 +2244,29 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+        };
+    };
+    listPaymentPlans: {
+        parameters: {
+            query?: {
+                model?: "SAVE_THEN_BUY" | "PLANNED_EXPENSE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plans */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentPlanList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
         };
     };
 }
