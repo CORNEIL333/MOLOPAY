@@ -1,11 +1,11 @@
-# État du sprint — 2026-11-10
+# État du sprint — 2026-11-11
 
-## Décisions prises par délégation (D1–D46) et mise en œuvre
+## Décisions prises par délégation (D1–D49) et mise en œuvre
 - Compte rendu : `docs/journal/COMPTE_RENDU_DECISIONS_2026-11-10.md` ; prompts mobiles : `PROMPT_STITCH_APP_MOBILE.md`, `PROMPT_CHATGPT_APP_MOBILE.md`.
-- Fait : D26 (plans approuvés, 0033), D27 (durée en mois, 0034), D38 (quotas, 0035), D43 (plafonds KYC, 0036), D39 (reçus par client, 0037), D42 (identifiant comptable partenaire, 0038), lot 12 (remise 0039/0040, règlement 0041, instruction signée et exécution 0042 ; D45, D46), D32 (contrat 0.3.0, lecture, brouillon, activation/annulation/verrou sous PIN et signature).
-- **1094 unitaires, 562 PostgreSQL (28 suites), 45 attaques, 1 E2E, 127 web, build Next, OpenAPI, `verify:ledger`, sécurité OK.** Revue indépendante non faite (L2/L3) ; revue humaine avant fusion.
+- Fait : D26 (plans approuvés, 0033), D27 (durée en mois, 0034), D38 (quotas, 0035), D43 (plafonds KYC, 0036), D39 (reçus par client, 0037), D42 (identifiant comptable partenaire, 0038), lot 12 (remise 0039/0040, règlement 0041, instruction signée et exécution 0042 ; D45, D46), D32 (contrat 0.3.0, lecture, brouillon, activation/annulation/verrou sous PIN et signature), D47 (notifications en outbox), plans et devis serveur, D48 (règlement C au bénéficiaire, 0043/0044), D49 (remboursement après annulation, 0045/0046).
+- **1130 unitaires, 612 PostgreSQL (31 suites), 45 attaques, 1 E2E, 128 web, 10 Rust, build Next, OpenAPI, `verify:ledger`, sécurité OK.** Revue indépendante non faite (L2/L3) ; revue humaine avant fusion.
 - Ouvert pour le fondateur : taux de commission et délai de contestation (D46), financeur B (D44), textes juridiques (D23), validations ⚖ du compte rendu.
-- Suite prévue : règlement C au bénéficiaire avec pièce vérifiée (F-PLN-002/003), remboursements et trop-perçu (lot 12), route des plans et devis serveur, notifications des nouveaux événements (lot 17), branchement de l'app mobile quand ChatGPT l'aura livrée.
+- Suite prévue : sortie des fonds vers le bénéficiaire C (instruction et exécution), routes HTTP (pièces et règlement C sous PIN, back-office remboursements), trop-perçu, notifications REFUND_SENT et marchand (lot 17), branchement de l'app mobile quand ChatGPT l'aura livrée.
 
 ## Fait · Lot 11 tranche 1, tentatives de paiement sans prestataire (L3)
 - Migration 0026 : tentatives immuables sur accord ACTIVE, clé d'idempotence unique, journal d'états CDC_05 § 5.1 en ajout seul, anti-rejeu des webhooks (nonce, ± 5 min). CONFIRMED et remboursement refusés en base jusqu'au lien grand livre (I-6).

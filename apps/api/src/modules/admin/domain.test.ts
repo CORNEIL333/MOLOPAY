@@ -36,6 +36,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'PREPARE_SETTLEMENT',
     'PREPARE_LEDGER_REVERSAL',
     'DECLARE_MERCHANT_DEFAULT',
+    // D49 : préparation des remboursements.
+    'PREPARE_REFUND',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -46,6 +48,9 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'APPROVE_LEDGER_REVERSAL',
     // D26 (délégation du fondateur, 2026-11-10) : FINANCE prépare les plans.
     'PREPARE_PAYMENT_PLAN',
+    // D49 : remboursements.
+    'PREPARE_REFUND',
+    'APPROVE_REFUND',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',

@@ -33,6 +33,8 @@ export const ADMIN_ACTIONS = [
   'PREPARE_PAYMENT_PLAN',
   'APPROVE_PAYMENT_PLAN',
   'REVIEW_BENEFICIARY_DOCUMENT',
+  'PREPARE_REFUND',
+  'APPROVE_REFUND',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -82,6 +84,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'PREPARE_SETTLEMENT',
     'PREPARE_LEDGER_REVERSAL',
     'DECLARE_MERCHANT_DEFAULT',
+    // D49 : préparation des remboursements.
+    'PREPARE_REFUND',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -92,6 +96,9 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'APPROVE_LEDGER_REVERSAL',
     // D26 : FINANCE prépare les plans de paiement.
     'PREPARE_PAYMENT_PLAN',
+    // D49 : remboursements (préparation, décision, instruction, exécution).
+    'PREPARE_REFUND',
+    'APPROVE_REFUND',
   ]),
   COMPLIANCE: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
@@ -144,6 +151,7 @@ const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
 
 const AMOUNT_LIMITED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'APPROVE_SETTLEMENT',
+  'APPROVE_REFUND',
   'APPROVE_LEDGER_REVERSAL',
 ]);
 
