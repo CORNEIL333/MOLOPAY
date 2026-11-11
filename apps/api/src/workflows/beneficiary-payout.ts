@@ -2,6 +2,7 @@ import type { KeyObject } from 'node:crypto';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
+import { getAgreement } from '../modules/agreements/agreement.store';
 import { getPartnerLedgerOwner } from '../modules/catalog/partner-ledger.store';
 import {
   getBeneficiaryPayout,
@@ -12,6 +13,7 @@ import {
   type BeneficiaryPayout,
   type BeneficiaryPayoutInstructionDocument,
 } from '../modules/settlement/beneficiary-payout.store';
+import { factKey, notifyCustomer } from './notify';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
@@ -67,11 +69,24 @@ export async function recordBeneficiaryPayoutExecution(
   if (owner === null) {
     throw new BusinessError('SETTLEMENT_INVALID_REQUEST', 'bénéficiaire sans identifiant comptable');
   }
-  return insertBeneficiaryPayoutExecution(client, {
+  const result = await insertBeneficiaryPayoutExecution(client, {
     payout,
     actorId: input.principal.actorId,
     outcome: input.outcome,
     bankReference: input.bankReference,
     beneficiaryLedgerOwnerId: owner,
   });
+  // F-NOT-001 / D52 : le client de l'objectif apprend que le bénéficiaire est effectivement réglé.
+  if (input.outcome === 'EXECUTED') {
+    const stored = await getAgreement(client, payout.agreementId);
+    if (stored === null) {
+      throw new BusinessError('AGREEMENT_NOT_FOUND', 'Objectif introuvable');
+    }
+    await notifyCustomer(client, {
+      customerId: stored.agreement.terms.customerId,
+      event: 'SETTLEMENT_CONFIRMED',
+      eventKey: factKey('SETTLEMENT_CONFIRMED', 'beneficiary-payout', payout.payoutId),
+    });
+  }
+  return result;
 }

@@ -25,8 +25,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | D32 objectifs HTTP, plans et devis, notifications outbox (D47) | |
 | DONE | Routes client C : dépôt de pièce, règlement au bénéficiaire sous PIN | contrat 0.4.0, 11 tests HTTP |
 | DONE | Trop-perçu restitué, nouvelle tentative de remboursement (D51) | 0048, 9 mutants tués |
-| IN_PROGRESS | Notifications des sorties de fonds au client (remboursement, trop-perçu, règlement C) | outbox, lot 17 |
-| READY | Lot 16 Risk : règles de fraude explicables sur données internes | |
+| DONE | Notifications des fonds sortis au client (D52) | SETTLEMENT_CONFIRMED, pas de nouveau type |
+| IN_PROGRESS | Lot 16 Risk : règles de fraude explicables | inventaire CDC_07 / SEC-FRD |
 | READY | Lot 14 : rapprochement — suite (réception 1200 → 1100) | sans relevé réel : tranche domaine seulement |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -41,4 +41,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Notifications : inventorier les types d'événement de l'outbox (0019) et `workflows/notify.ts`, ajouter REFUND_SENT (et PAID_TO_BENEFICIARY) écrits dans la transaction de l'exécution, tests d'idempotence.
+Lot 16 : lire SEC-FRD-* (CDC_03) et les scénarios de fraude de CDC_07, inventorier `apps/api/src/modules/risk` (absent ?) et le module notifications/monitor ; choisir une première règle explicable testable sur données internes.

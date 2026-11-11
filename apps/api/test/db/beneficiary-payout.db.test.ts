@@ -341,6 +341,15 @@ describe('INT-NR-002 / F-SET-004 instruction signée et exécution', () => {
     );
     expect(done.entryId).not.toBeNull();
     expect(await beneficiaryBalance()).toBe('0');
+    // F-NOT-001 / D52 : le client de l'objectif est notifié du règlement effectif.
+    const outbox = await admin.query(
+      `SELECT event_type, channel FROM notifications.outbox WHERE recipient_id = $1 AND event_type = 'SETTLEMENT_CONFIRMED' ORDER BY channel`,
+      [CUSTOMER_ID],
+    );
+    expect(outbox.rows).toEqual([
+      { event_type: 'SETTLEMENT_CONFIRMED', channel: 'PUSH' },
+      { event_type: 'SETTLEMENT_CONFIRMED', channel: 'SMS' },
+    ]);
   });
 
   it('exécution refusée : rien n’est écrit, le montant reste dû', async () => {
@@ -351,6 +360,7 @@ describe('INT-NR-002 / F-SET-004 instruction signée et exécution', () => {
     );
     expect(done.entryId).toBeNull();
     expect(await beneficiaryBalance()).toBe('300000');
+    expect((await admin.query(`SELECT 1 FROM notifications.outbox WHERE event_type = 'SETTLEMENT_CONFIRMED'`)).rowCount).toBe(0);
   });
 
   it('I-7 l’émetteur ne confirme pas l’exécution (store et base)', async () => {

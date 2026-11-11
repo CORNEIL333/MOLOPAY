@@ -12,6 +12,7 @@ import {
   type RefundKind,
   type RefundInstructionDocument,
 } from '../modules/settlement/refund.store';
+import { factKey, notifyCustomer } from './notify';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
@@ -59,5 +60,19 @@ export async function recordRefundExecution(
 ): Promise<{ readonly entryId: string | null }> {
   const refund = await load(client, input.refundId);
   assertAuthorized(input.principal, 'APPROVE_REFUND', { amountXaf: refund.amountXaf });
-  return insertRefundExecution(client, { refund, actorId: input.principal.actorId, outcome: input.outcome, bankReference: input.bankReference });
+  const result = await insertRefundExecution(client, {
+    refund,
+    actorId: input.principal.actorId,
+    outcome: input.outcome,
+    bankReference: input.bankReference,
+  });
+  // F-NOT-001 / D52 : fonds rendus = règlement confirmé au client, dans la même transaction.
+  if (input.outcome === 'EXECUTED') {
+    await notifyCustomer(client, {
+      customerId: refund.customerId,
+      event: 'SETTLEMENT_CONFIRMED',
+      eventKey: factKey('SETTLEMENT_CONFIRMED', 'refund', refund.refundId),
+    });
+  }
+  return result;
 }

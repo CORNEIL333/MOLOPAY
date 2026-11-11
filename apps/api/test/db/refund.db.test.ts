@@ -387,6 +387,32 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
     expect(otherType.message).toMatch(immediate);
   });
 
+  it('F-NOT-001 / D52 exécution confirmée : client notifié (SMS et push), une seule fois ; rien sur un refus', async () => {
+    await cancel();
+    const refundId = await approved();
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    const outbox = (): Promise<unknown[]> =>
+      admin
+        .query<{ event_type: string; channel: string }>(`SELECT event_type, channel FROM notifications.outbox WHERE recipient_id = $1 AND event_type = 'SETTLEMENT_CONFIRMED' ORDER BY channel`, [CUSTOMER_ID])
+        .then((result) => result.rows);
+    await transact('app_rw', (client) => recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-N1' }));
+    expect(await outbox()).toEqual([
+      { event_type: 'SETTLEMENT_CONFIRMED', channel: 'PUSH' },
+      { event_type: 'SETTLEMENT_CONFIRMED', channel: 'SMS' },
+    ]);
+    const leak = await admin.query(`SELECT count(*)::int AS n FROM notifications.outbox WHERE row_to_json(outbox)::text LIKE '%100000%'`);
+    expect(leak.rows[0]).toEqual({ n: 0 });
+  });
+
+  it('D52 exécution refusée par l’établissement : aucune notification', async () => {
+    await cancel();
+    const refundId = await approved();
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'REJECTED', bankReference: 'ETAB-REMB-N2' }));
+    const rows = await admin.query(`SELECT 1 FROM notifications.outbox WHERE event_type = 'SETTLEMENT_CONFIRMED'`);
+    expect(rows.rowCount).toBe(0);
+  });
+
   it('remboursements, décisions, instructions et exécutions sont en ajout seul', async () => {
     await cancel();
     const refundId = await approved();
