@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -1856,6 +1856,127 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/beneficiary-payment": {
+      "post": {
+        "operationId": "payGoalBeneficiary",
+        "summary": "Régler le bénéficiaire d’un objectif C financé (PIN, pièce validée si exigée)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalPinActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Objectif réglé au bénéficiaire",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/goals/{goalId}/beneficiary-documents": {
+      "post": {
+        "operationId": "submitBeneficiaryDocument",
+        "summary": "Déposer l’empreinte de la pièce du bénéficiaire (bail, titre foncier)",
+        "tags": [
+          "Objectifs"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GoalId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeneficiaryDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "201": {
+            "description": "Pièce déposée, en attente d’examen par la conformité",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeneficiaryDocument"
+                }
+              }
+            }
           }
         }
       }
@@ -3775,6 +3896,67 @@
           }
         },
         "additionalProperties": false
+      },
+      "BeneficiaryDocumentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "sha256"
+        ],
+        "description": "F-PLN-002 : seule l’empreinte SHA-256 du fichier est transmise et conservée (D48).",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "LEASE",
+              "LAND_TITLE"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "BeneficiaryDocument": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "documentId",
+          "goalId",
+          "kind",
+          "sha256",
+          "reviewStatus"
+        ],
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "LEASE",
+              "LAND_TITLE"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING"
+            ],
+            "description": "Examen en maker-checker par la conformité ; toujours PENDING au dépôt."
+          }
+        }
       }
     },
     "responses": {

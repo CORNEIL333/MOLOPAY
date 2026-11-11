@@ -8,6 +8,7 @@ import { CustomerSessionGuard } from './http/session.guard';
 import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
 import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
+import { BeneficiaryController } from './workflows/beneficiary.controller';
 import { PublicOfferController } from './modules/catalog/public-offer.controller';
 import { QuoteController } from './modules/catalog/quote.controller';
 import { AccountSecurityController } from './modules/identity/account-security.controller';
@@ -31,7 +32,7 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },

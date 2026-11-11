@@ -631,6 +631,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/goals/{goalId}/beneficiary-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Régler le bénéficiaire d’un objectif C financé (PIN, pièce validée si exigée) */
+        post: operations["payGoalBeneficiary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/goals/{goalId}/beneficiary-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Déposer l’empreinte de la pièce du bénéficiaire (bail, titre foncier) */
+        post: operations["submitBeneficiaryDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1108,6 +1142,26 @@ export interface components {
         };
         PaymentPlanList: {
             plans: components["schemas"]["PaymentPlan"][];
+        };
+        /** @description F-PLN-002 : seule l’empreinte SHA-256 du fichier est transmise et conservée (D48). */
+        BeneficiaryDocumentRequest: {
+            /** @enum {string} */
+            kind: "LEASE" | "LAND_TITLE";
+            sha256: string;
+        };
+        BeneficiaryDocument: {
+            /** Format: uuid */
+            documentId: string;
+            /** Format: uuid */
+            goalId: string;
+            /** @enum {string} */
+            kind: "LEASE" | "LAND_TITLE";
+            sha256: string;
+            /**
+             * @description Examen en maker-checker par la conformité ; toujours PENDING au dépôt.
+             * @enum {string}
+             */
+            reviewStatus: "PENDING";
         };
     };
     responses: {
@@ -2267,6 +2321,73 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    payGoalBeneficiary: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                goalId: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalPinActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Objectif réglé au bénéficiaire */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    submitBeneficiaryDocument: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                goalId: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeneficiaryDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Pièce déposée, en attente d’examen par la conformité */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeneficiaryDocument"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
         };
     };
 }
