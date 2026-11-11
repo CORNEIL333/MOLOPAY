@@ -14,8 +14,12 @@ const KEY_ID_PATTERN = /^[^\s]{1,100}$/;
 const BANK_REFERENCE_PATTERN = /^[A-Za-z0-9._:/-]{1,100}$/;
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
+/** D51 : annulation (tous les versements non encore rendus) ou trop-perçu (au-delà de la cible). */
+export type RefundKind = 'CANCELLATION' | 'SURPLUS';
+
 export type Refund = {
   readonly refundId: string;
+  readonly kind: RefundKind;
   readonly agreementId: string;
   readonly customerId: string;
   readonly amountXaf: bigint;
@@ -44,9 +48,9 @@ export function verifyRefundInstruction(publicKey: KeyObject, document: RefundIn
 
 export async function getRefund(client: SqlClient, refundId: string): Promise<Refund | null> {
   const result = await client.query<{
-    id: string; agreement_id: string; customer_id: string; amount_xaf: string; prepared_by: string; decision: 'APPROVED' | 'REJECTED' | null;
+    id: string; kind: RefundKind; agreement_id: string; customer_id: string; amount_xaf: string; prepared_by: string; decision: 'APPROVED' | 'REJECTED' | null;
   }>(
-    `SELECT r.id, r.agreement_id, r.customer_id, r.amount_xaf::text, r.prepared_by, d.decision
+    `SELECT r.id, r.kind, r.agreement_id, r.customer_id, r.amount_xaf::text, r.prepared_by, d.decision
        FROM settlement.refund r LEFT JOIN settlement.refund_decision d ON d.refund_id = r.id WHERE r.id = $1`,
     [refundId],
   );
@@ -55,6 +59,7 @@ export async function getRefund(client: SqlClient, refundId: string): Promise<Re
     ? null
     : Object.freeze({
         refundId: row.id,
+        kind: row.kind,
         agreementId: row.agreement_id,
         customerId: row.customer_id,
         amountXaf: parseXaf(row.amount_xaf).amount,
@@ -63,22 +68,36 @@ export async function getRefund(client: SqlClient, refundId: string): Promise<Re
       });
 }
 
-/** Préparation : la base vérifie l'état de l'objectif et calcule le montant (100 % des versements). */
+/**
+ * Préparation : la base vérifie l'état de l'objectif et calcule le montant
+ * (annulation : versements non encore rendus ; trop-perçu : au-delà de la
+ * cible). Un seul remboursement en cours par objectif ; un remboursement
+ * refusé (décision ou établissement) peut être préparé de nouveau (D51).
+ */
 export async function insertRefund(
   client: SqlClient,
-  input: { readonly id: string; readonly agreementId: string; readonly actorId: string },
+  input: { readonly id: string; readonly agreementId: string; readonly kind: RefundKind; readonly actorId: string },
 ): Promise<Refund> {
   if (!UUID_V7_PATTERN.test(input.id) || !ACTOR_PATTERN.test(input.actorId)) {
     invalid('identifiant ou acteur invalide');
   }
-  const existing = await client.query('SELECT 1 FROM settlement.refund WHERE agreement_id = $1', [input.agreementId]);
-  if ((existing.rowCount ?? 0) > 0) {
-    throw new BusinessError('REFUND_ALREADY_PREPARED', 'remboursement déjà préparé');
+  if (input.kind !== 'CANCELLATION' && input.kind !== 'SURPLUS') {
+    invalid('nature de remboursement inconnue');
+  }
+  const pending = await client.query(
+    `SELECT 1 FROM settlement.refund r
+      WHERE r.agreement_id = $1
+        AND NOT EXISTS (SELECT 1 FROM settlement.refund_decision d WHERE d.refund_id = r.id AND d.decision = 'REJECTED')
+        AND NOT EXISTS (SELECT 1 FROM settlement.refund_execution x WHERE x.refund_id = r.id)`,
+    [input.agreementId],
+  );
+  if ((pending.rowCount ?? 0) > 0) {
+    throw new BusinessError('REFUND_ALREADY_PREPARED', 'un remboursement est déjà en cours');
   }
   await client.query(
-    `INSERT INTO settlement.refund (id, agreement_id, customer_id, amount_xaf, prepared_by, prepared_at)
-     VALUES ($1, $2, gen_random_uuid(), 1, $3, now())`,
-    [input.id, input.agreementId, input.actorId],
+    `INSERT INTO settlement.refund (id, agreement_id, kind, customer_id, amount_xaf, prepared_by, prepared_at)
+     VALUES ($1, $2, $3, gen_random_uuid(), 1, $4, now())`,
+    [input.id, input.agreementId, input.kind, input.actorId],
   );
   const stored = await getRefund(client, input.id);
   if (stored === null) {
@@ -139,8 +158,9 @@ export async function insertRefundInstruction(
 
 /**
  * Exécution rapportée par l'établissement, enregistrée par une autre personne
- * que l'émetteur (I-7). EXECUTED : écriture REFUND_SENT 2100 → 1100 et
- * transition vers REFUNDED dans la même transaction ; REJECTED : rien.
+ * que l'émetteur (I-7). EXECUTED : écriture REFUND_SENT 2100 → 1100 et,
+ * pour une annulation, transition vers REFUNDED dans la même transaction ;
+ * REJECTED : rien (un nouveau remboursement peut être préparé).
  */
 export async function insertRefundExecution(
   client: SqlClient,
@@ -188,7 +208,8 @@ export async function insertRefundExecution(
      VALUES ($1, $2, $3, $4, $5, now())`,
     [refund.refundId, input.outcome, input.bankReference, entryId, input.actorId],
   );
-  if (input.outcome === 'EXECUTED') {
+  // Le trop-perçu ne change pas l'état de l'objectif (D51).
+  if (input.outcome === 'EXECUTED' && refund.kind === 'CANCELLATION') {
     await appendAgreementTransition(client, { agreementId: refund.agreementId, to: 'REFUNDED', actorId: input.actorId });
   }
   return Object.freeze({ entryId });

@@ -9,6 +9,7 @@ import {
   insertRefundExecution,
   insertRefundInstruction,
   type Refund,
+  type RefundKind,
   type RefundInstructionDocument,
 } from '../modules/settlement/refund.store';
 
@@ -22,13 +23,13 @@ async function load(client: SqlClient, refundId: string): Promise<Refund> {
   return refund;
 }
 
-/** D49 : préparation (PREPARE_REFUND). */
+/** D49 / D51 : préparation d'un remboursement d'annulation ou de trop-perçu (PREPARE_REFUND). */
 export async function prepareRefund(
   client: SqlClient,
-  input: { readonly id: string; readonly agreementId: string; readonly principal: AdminPrincipal },
+  input: { readonly id: string; readonly agreementId: string; readonly kind: RefundKind; readonly principal: AdminPrincipal },
 ): Promise<Refund> {
   assertAuthorized(input.principal, 'PREPARE_REFUND', {});
-  return insertRefund(client, { id: input.id, agreementId: input.agreementId, actorId: input.principal.actorId });
+  return insertRefund(client, { id: input.id, agreementId: input.agreementId, kind: input.kind, actorId: input.principal.actorId });
 }
 
 /** D49 / F-SET-003 : décision par une autre personne (APPROVE_REFUND, plafond). */

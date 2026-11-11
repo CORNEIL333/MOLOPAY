@@ -34,6 +34,7 @@ const MIGRATIONS = [
   'db/migrations/0044_agreements_beneficiary_payment.sql',
   'db/migrations/0045_settlement_refund.sql',
   'db/migrations/0046_agreements_refunded.sql',
+  'db/migrations/0048_settlement_refund_surplus.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9c00-0000-7000-8000-0000000000c1';
@@ -121,7 +122,7 @@ async function clientBalance(): Promise<string | undefined> {
 }
 
 async function prepare(principal: AdminPrincipal = OPS): Promise<Refund> {
-  return transact('app_rw', (client) => prepareRefund(client, { id: uuidv7(), agreementId: GOAL, principal }));
+  return transact('app_rw', (client) => prepareRefund(client, { id: uuidv7(), agreementId: GOAL, kind: 'CANCELLATION', principal }));
 }
 
 async function approved(): Promise<string> {
@@ -225,8 +226,8 @@ describe('F-PLN-004 / F-SAV-005 préparation et décision du remboursement', () 
     await cancel();
     await transact('app_rw', (client) =>
       client.query(
-        `INSERT INTO settlement.refund (id, agreement_id, customer_id, amount_xaf, prepared_by, prepared_at)
-         VALUES ($1, $2, $3, 1, 'ops-1', now())`,
+        `INSERT INTO settlement.refund (id, agreement_id, kind, customer_id, amount_xaf, prepared_by, prepared_at)
+         VALUES ($1, $2, 'CANCELLATION', $3, 1, 'ops-1', now())`,
         [uuidv7(), GOAL, CUSTOMER_ID],
       ),
     );
