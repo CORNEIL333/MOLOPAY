@@ -18,6 +18,7 @@ export type RecordedComplaint = {
 
 export type DisputeHistoryItem =
   | { readonly at: string; readonly kind: 'COMPLAINT'; readonly reference: string; readonly channel: string }
+  | { readonly at: string; readonly kind: 'COMPLAINT_CLOSED'; readonly reference: string; readonly outcome: string }
   | { readonly at: string; readonly kind: 'DISPUTE_OPENED'; readonly disputeId: string }
   | { readonly at: string; readonly kind: 'DISPUTE_RESOLVED'; readonly disputeId: string; readonly outcome: string };
 
@@ -176,8 +177,16 @@ export async function listDisputedAgreementsWithoutDispute(client: SqlClient): P
 
 /** F-SUP-003 : réclamations, ouvertures et levées de litige d'un accord. */
 export async function listDisputeHistory(client: SqlClient, agreementId: string): Promise<DisputeHistoryItem[]> {
-  const complaints = await client.query<{ received_at: Date; reference: string; channel: string }>(
-    'SELECT received_at, reference, channel FROM disputes.complaint WHERE agreement_id = $1',
+  const complaints = await client.query<{
+    received_at: Date;
+    reference: string;
+    channel: string;
+    closed_at: Date | null;
+    closure_outcome: string | null;
+  }>(
+    `SELECT c.received_at, c.reference, c.channel, x.closed_at, x.outcome AS closure_outcome
+       FROM disputes.complaint c LEFT JOIN disputes.complaint_closure x ON x.complaint_id = c.id
+      WHERE c.agreement_id = $1`,
     [agreementId],
   );
   const disputes = await client.query<{
@@ -191,12 +200,13 @@ export async function listDisputeHistory(client: SqlClient, agreementId: string)
       WHERE d.agreement_id = $1`,
     [agreementId],
   );
-  const items: DisputeHistoryItem[] = complaints.rows.map((row) => ({
-    at: row.received_at.toISOString(),
-    kind: 'COMPLAINT',
-    reference: row.reference,
-    channel: row.channel,
-  }));
+  const items: DisputeHistoryItem[] = [];
+  for (const row of complaints.rows) {
+    items.push({ at: row.received_at.toISOString(), kind: 'COMPLAINT', reference: row.reference, channel: row.channel });
+    if (row.closed_at !== null && row.closure_outcome !== null) {
+      items.push({ at: row.closed_at.toISOString(), kind: 'COMPLAINT_CLOSED', reference: row.reference, outcome: row.closure_outcome });
+    }
+  }
   for (const row of disputes.rows) {
     items.push({ at: row.opened_at.toISOString(), kind: 'DISPUTE_OPENED', disputeId: row.id });
     if (row.resolved_at !== null && row.outcome !== null) {

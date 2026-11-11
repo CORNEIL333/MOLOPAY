@@ -355,6 +355,16 @@ describe('F-SUP-003 historique chronologique d’un accord', () => {
     expect(confirmed?.amountXaf).toBe(50_000n);
   });
 
+  it('D56 la clôture d’une réclamation apparaît dans l’historique, avec son issue', async () => {
+    const recorded = await complaint();
+    await transact('app_rw', (client) => closeComplaintBySupport(client, { complaintId: recorded.id, outcome: 'WITHDRAWN', principal: SUPPORT2 }));
+    const history = await transact('app_ro', (client) => getAgreementHistory(client, { agreementId: AGREEMENT_ID, customerId: CUSTOMER_ID }));
+    const kinds = history.map((item) => item.kind);
+    expect(kinds).toContain('COMPLAINT_CLOSED');
+    expect(history.find((item) => item.kind === 'COMPLAINT_CLOSED')).toMatchObject({ reference: recorded.reference, outcome: 'WITHDRAWN' });
+    expect(kinds.indexOf('COMPLAINT')).toBeLessThan(kinds.indexOf('COMPLAINT_CLOSED'));
+  });
+
   it('un autre client ne voit pas l’historique (AGREEMENT_NOT_FOUND)', async () => {
     const result = await failure(() =>
       transact('app_ro', (client) => getAgreementHistory(client, { agreementId: AGREEMENT_ID, customerId: OTHER_CUSTOMER_ID })),
