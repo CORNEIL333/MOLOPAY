@@ -42,6 +42,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
+| DONE | Lot 25 : jeu de recette généré par les flux réels (`pnpm recette:generate`) | vérifié par `verify:ledger` |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -59,4 +60,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 25 : jeu de données de recette généré (aucune donnée personnelle réelle) par les flux réels, exporté et vérifié — réutiliser le scénario de `verifier-real-flows.db.test.ts` comme script `tools/`. Sinon : revue des points ouverts D41–D59 pour une fiche de décisions au fondateur.
+Presque tout le reste est BLOQUÉ par la fiche `FICHE_POINTS_OUVERTS_2026-11-11.md`. Travail encore possible : lot 25 (scripts de recette écrits pour les humains, dossier pour le pentest), durcissement lot 24 sur les routes existantes (limitation de débit des routes C, en-têtes). Commencer par la limitation de débit des routes `beneficiary-*` (SEC-API-003, quotas existants 0035).

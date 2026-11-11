@@ -20,6 +20,7 @@
     "test:tsa": "vitest run --config vitest.tsa.config.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "verify:ledger": "tsx tools/verify-ledger.ts",
+    "recette:generate": "tsx tools/generate-recette.ts",
     "openapi:check": "tsx tools/check-openapi.ts",
     "security:scan": "tsx tools/scan-secrets.ts && tsx tools/sca.ts",
     "ci:local": "tsx tools/ci-local.ts",

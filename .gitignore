@@ -12,3 +12,6 @@ sbom.json
 tools/verifier/target/
 tests/.tmp-verifier-*/
 .DS_Store
+
+# Jeux de recette générés localement (lot 25)
+tmp/
