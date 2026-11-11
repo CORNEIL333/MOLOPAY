@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { components } from '@achat/contracts/api';
 import type { JsonValue } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
@@ -72,6 +72,7 @@ export class QuoteController {
   @Post('v1/offers/:offerId/quotes')
   @UseGuards(CustomerSessionGuard)
   @HttpCode(201)
+  @Header('Cache-Control', 'private, no-store')
   public async quote(
     @CurrentCustomer() actor: AuthenticatedCustomer,
     @Param('offerId') rawOfferId: string,

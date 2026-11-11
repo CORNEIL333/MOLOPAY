@@ -45,6 +45,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Lot 25 : jeu de recette généré par les flux réels (`pnpm recette:generate`) | vérifié par `verify:ledger` |
 | DONE | Quotas des routes C (D60) | 0054 |
 | DONE | Quotas des routes d'objectifs (D61) | 0055 |
+| DONE | Lot 24 : politique de cache vérifiée sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -62,4 +63,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 24 (durcissement) : vérifier les en-têtes de sécurité HTTP de l'API (Cache-Control sur toutes les routes authentifiées, absence d'en-têtes révélant la pile) par un test qui parcourt toutes les routes déclarées ; sinon attendre les décisions de la fiche.
+Lot 24 suite : étendre `route-policy.test.ts` — toute route POST sous session exige `Idempotency-Key` et passe par la garde Origin (vérifier par requêtes HTTP réelles sur chaque route POST déclarée) ; puis attendre les décisions de la fiche.

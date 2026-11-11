@@ -160,6 +160,8 @@ describe('F-CAT-004 devis indicatif d’une offre A', () => {
   it('coût total = prix figé, sans frais, échéancier hebdomadaire du plan, somme exacte', async () => {
     const response = await quote({ planId: 'plan-a', durationMonths: 3 }, 'quote-ok-00000001');
     expect(response.status).toBe(201);
+    // Lot 24 : réponse liée à la session, jamais mise en cache.
+    expect(response.headers['cache-control']).toBe('private, no-store');
     const body = response.body as Quote;
     expect(body).toMatchObject({ offerId: OFFER_ID, model: 'SAVE_THEN_BUY', planId: 'plan-a', durationMonths: 3, totalXaf: '150000', feesXaf: '0', tegPercent: null });
     expect(body.installments.length).toBeGreaterThanOrEqual(12);
