@@ -56,6 +56,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     // D50 : virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
     'APPROVE_BENEFICIARY_PAYOUT',
+    // D54 : classement des écarts de rapprochement.
+    'CLASSIFY_RECONCILIATION_GAP',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',

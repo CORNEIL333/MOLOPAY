@@ -38,6 +38,7 @@ export const ADMIN_ACTIONS = [
   'PREPARE_BENEFICIARY_PAYOUT',
   'APPROVE_BENEFICIARY_PAYOUT',
   'DECIDE_RISK_ALERT',
+  'CLASSIFY_RECONCILIATION_GAP',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -107,6 +108,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D50 : virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
     'APPROVE_BENEFICIARY_PAYOUT',
+    // D54 / INT-REC-003 : classement des écarts (proposition puis validation par une autre personne).
+    'CLASSIFY_RECONCILIATION_GAP',
   ]),
   COMPLIANCE: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',

@@ -28,7 +28,9 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Notifications des fonds sortis au client (D52) | SETTLEMENT_CONFIRMED, pas de nouveau type |
 | DONE | Lot 16 Risk tranches 1–2 : règles explicables, alertes, décision tracée (D53) | 0049, 17 mutants tués |
 | BLOCKED | Lot 16 : comptes multiples par appareil ; changement de numéro suivi de retrait | attestation d'appareil (lot 19) ; historique des numéros absent |
-| IN_PROGRESS | Lot 14 Reconciliation : suite | inventaire 0030/0031 |
+| DONE | Lot 14 : classement des écarts en maker-checker, escalade 48 h (D54) | 0050, 8 mutants tués |
+| BLOCKED | Lot 14 : rapprochement à trois voies (INT-REC-001) | relevés réels agrégateur et établissement (accès humain) |
+| IN_PROGRESS | Lot 14 : suspens 2900 en fin de mois (INT-REC-005) | contrôle dérivé du grand livre |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -42,4 +44,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 14 : relire INT-REC-* (CDC_04), migrations 0030/0031 et `modules/reconciliation` ; identifier une tranche réalisable sans relevé réel de l'établissement (ex. invariant de cantonnement sur données internes, classement des écarts).
+INT-REC-005 : fonction de base listant les lignes non soldées du suspens 2900 à une date de clôture, justification ligne à ligne en maker-checker ; tests d'abord.
