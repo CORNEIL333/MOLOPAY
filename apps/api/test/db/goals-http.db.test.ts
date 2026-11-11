@@ -37,6 +37,10 @@ const MIGRATIONS = [
   'db/migrations/0017_api_idempotency.sql',
   'db/migrations/0022_catalog_public_presentation.sql',
   'db/migrations/0023_identity_account_security.sql',
+  'db/migrations/0025_identity_customer_quota.sql',
+  'db/migrations/0035_quota_policy_v1.sql',
+  'db/migrations/0054_identity_quota_beneficiary.sql',
+  'db/migrations/0055_identity_quota_goals.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
@@ -272,3 +276,18 @@ describe('D32 isolement et données dérivées', () => {
     expect(one.body).toMatchObject({ status: 'ACTIVE', savedXaf: '37500', progressBasisPoints: 2500 });
   });
 });
+
+describe('SEC-API-003 / D61 quota de création d’objectifs', () => {
+  it('au-delà de 20 créations par 24 h : 429 REQUEST_RATE_LIMITED, rien n’est créé', async () => {
+    for (let index = 0; index < 20; index += 1) {
+      expect((await post(GOAL_A, `goal-quota-${index.toString().padStart(4, '0')}`)).status).not.toBe(429);
+    }
+    const before = await admin.query<{ n: number }>('SELECT count(*)::int AS n FROM agreements.agreement');
+    const limited = await post(GOAL_A, 'goal-quota-limited');
+    expect(limited.status).toBe(429);
+    expect((limited.body as ProblemBody).code).toBe('REQUEST_RATE_LIMITED');
+    const after = await admin.query<{ n: number }>('SELECT count(*)::int AS n FROM agreements.agreement');
+    expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
+  });
+});
+

@@ -36,6 +36,10 @@ const MIGRATIONS = [
   'db/migrations/0017_api_idempotency.sql',
   'db/migrations/0022_catalog_public_presentation.sql',
   'db/migrations/0023_identity_account_security.sql',
+  'db/migrations/0025_identity_customer_quota.sql',
+  'db/migrations/0035_quota_policy_v1.sql',
+  'db/migrations/0054_identity_quota_beneficiary.sql',
+  'db/migrations/0055_identity_quota_goals.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
@@ -280,3 +284,17 @@ describe('D32 tranche 2 · fermé par défaut', () => {
     }
   });
 });
+
+describe('SEC-API-003 / D61 quota commun des actions signées', () => {
+  it('au-delà de 10 actions (activation, annulation, verrou) par heure : 429, sans transition', async () => {
+    const goalId = await draft();
+    for (let index = 0; index < 10; index += 1) {
+      expect((await act(goalId, 'lock', { pin: '000000' }, `goal-quota-lock-${index}`)).status).not.toBe(429);
+    }
+    const limited = await act(goalId, 'activation', await signedBody(goalId, 'ACTIVATE'), 'goal-quota-activate');
+    expect(limited.status).toBe(429);
+    expect((limited.body as ProblemBody).code).toBe('REQUEST_RATE_LIMITED');
+    expect(await eventCount(goalId)).toBe(0);
+  });
+});
+

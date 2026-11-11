@@ -27,6 +27,9 @@ export const CUSTOMER_QUOTA_ACTIONS = [
   // D60 : routes client du modèle C (le reçu, en lecture, n'est pas limité).
   'BENEFICIARY_DOCUMENT_SUBMIT',
   'BENEFICIARY_PAYMENT',
+  // D61 : création d'objectif ; activation, annulation et verrou (budget commun).
+  'GOAL_CREATE',
+  'GOAL_SIGNED_ACTION',
 ] as const;
 export type CustomerQuotaAction = (typeof CUSTOMER_QUOTA_ACTIONS)[number];
 

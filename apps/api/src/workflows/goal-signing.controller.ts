@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Query, Re
 import { createHash } from 'node:crypto';
 import type { JsonValue } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
+import { CustomerQuota } from '../http/customer-quota';
 import { PG_POOL, withTransaction, type Database } from '../http/database';
 import type { HttpRequest } from '../http/express-types';
 import { assertIdempotencyKey, runIdempotent } from '../http/idempotency';
@@ -98,6 +99,7 @@ export class GoalSigningController {
   }
 
   @Post('v1/goals/:goalId/activation')
+  @CustomerQuota('GOAL_SIGNED_ACTION')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
   public activate(@CurrentCustomer() actor: AuthenticatedCustomer, @Param('goalId') goalId: string, @Req() request: HttpRequest, @Body() body: unknown): Promise<JsonValue> {
@@ -105,6 +107,7 @@ export class GoalSigningController {
   }
 
   @Post('v1/goals/:goalId/cancellation')
+  @CustomerQuota('GOAL_SIGNED_ACTION')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
   public cancel(@CurrentCustomer() actor: AuthenticatedCustomer, @Param('goalId') goalId: string, @Req() request: HttpRequest, @Body() body: unknown): Promise<JsonValue> {
@@ -112,6 +115,7 @@ export class GoalSigningController {
   }
 
   @Post('v1/goals/:goalId/lock')
+  @CustomerQuota('GOAL_SIGNED_ACTION')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
   public lock(@CurrentCustomer() actor: AuthenticatedCustomer, @Param('goalId') goalId: string, @Req() request: HttpRequest, @Body() body: unknown): Promise<JsonValue> {

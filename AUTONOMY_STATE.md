@@ -44,7 +44,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
 | DONE | Lot 25 : jeu de recette généré par les flux réels (`pnpm recette:generate`) | vérifié par `verify:ledger` |
 | DONE | Quotas des routes C (D60) | 0054 |
-| READY | Quotas des routes d'objectifs (création, activation, annulation, verrou) | même méthode, valeurs à poser (D60 bis) |
+| DONE | Quotas des routes d'objectifs (D61) | 0055 |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -62,4 +62,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Quotas des routes d'objectifs : nouvelles actions GOAL_CREATE, GOAL_SIGNED_ACTION (activation, annulation, verrou), migration 0055 reprenant `consume_customer_quota` (dernière version : 0054), tests 429 sur `goals-http` et `goal-signing-http`.
+Lot 24 (durcissement) : vérifier les en-têtes de sécurité HTTP de l'API (Cache-Control sur toutes les routes authentifiées, absence d'en-têtes révélant la pile) par un test qui parcourt toutes les routes déclarées ; sinon attendre les décisions de la fiche.

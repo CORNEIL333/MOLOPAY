@@ -390,3 +390,8 @@
 - **Décision (11 novembre, délégation du fondateur, même méthode que D38) :** dépôt de pièce du bénéficiaire 10 par 24 h, règlement au bénéficiaire 5 par heure, par compte et par appareil ; le reçu (lecture) n'est pas limité. Au-delà : 429 `REQUEST_RATE_LIMITED` avec `Retry-After`, sans révéler compteur ni plafond. Le PIN garde en plus son propre verrouillage.
 - **Appliqué :** migration 0054 (liste blanche des actions élargie ; `identity.consume_customer_quota` repris de 0025, diff vérifié ; politique version 1). Décorateur retiré : test rouge.
 - **Reste :** quotas des routes d'objectifs (création, activation, annulation, verrou) ; limites par IP et par numéro (D38).
+
+### D61 · Quotas des routes d'objectifs (SEC-API-003)
+- **Décision (11 novembre, délégation du fondateur, méthode D38) :** création d'objectif 20 par 24 h ; activation, annulation et verrou sous PIN : budget commun de 10 par heure ; par compte et par appareil. Le PIN garde son verrouillage propre.
+- **Appliqué :** migration 0055 (fonction reprise de 0054, diff vérifié) ; décorateurs sur les quatre routes ; tests 429 ; retrait des décorateurs → tests rouges.
+- **Reste :** limites par IP et par numéro (D38) ; lectures non limitées (catalogue public, objectifs, devis).
