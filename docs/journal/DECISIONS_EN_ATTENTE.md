@@ -371,3 +371,8 @@
 - **Écart D46 traité :** une réclamation reçue après la remise ne bloque plus le règlement du marchand que tant qu'elle n'est pas close (`settlement.anchor_payout` repris de 0041, diff vérifié : seule la condition change).
 - **Appliqué :** migration 0052 ; 8 tests PostgreSQL ; 7 mutants tués.
 - **Reste :** notification de la clôture au client (fait DISPUTE_UPDATED) ; routes support (back-office, bloqué) ; texte de réponse et pièces (D41, à trancher).
+
+### D57 · Réservation du stock (F-CAT-005, lot 10)
+- **Décision (11 novembre, délégation du fondateur) :** une unité est réservée quand l'accord devient ACTIVE (engagement signé), pas au brouillon (sinon des brouillons pourraient épuiser le stock). Réservation dérivée des états (ACTIVE, FUNDED, DISPUTED, FROZEN) : annulation et remboursement la libèrent sans écriture supplémentaire. Disponible = stock déclaré par la dernière version publiée − réservations − remises postérieures à cette version ; précommande non limitée. Imposé par la base sous verrou par offre (`CATALOG_STOCK_UNAVAILABLE`).
+- **Appliqué :** migration 0053, fonction `agreements.available_stock` ; 8 tests PostgreSQL dont concurrence ; 7 mutants tués, 1 équivalent (retour anticipé en précommande : un stock NULL ne déclenche pas le refus).
+- **Reste (F-CAT-005) :** règle de réapprovisionnement quand l'objectif dure plus que la disponibilité, et proposition d'une offre de remplacement ou du remboursement intégral en cas de rupture (⚖ engagement commercial, à décider) ; affichage du disponible dans le catalogue public.

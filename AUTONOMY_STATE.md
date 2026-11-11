@@ -32,7 +32,10 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Lot 14 : rapprochement à trois voies (INT-REC-001) | relevés réels agrégateur et établissement (accès humain) |
 | DONE | Lot 14 : suspens 2900 soldé ou justifié en fin de mois (D55) | 0051, 7 mutants tués |
 | DONE | Lot 15 : clôture des réclamations, délai de réponse, rôles du litige, écart D46 (D56) | 0052, 7 mutants tués |
-| IN_PROGRESS | Notification de la clôture d'une réclamation au client | DISPUTE_UPDATED |
+| DONE | Notification de la clôture d'une réclamation (D56) | DISPUTE_UPDATED |
+| DONE | Réservation du stock à l'activation (F-CAT-005, D57) | 0053, 7/8 mutants (1 équivalent) |
+| BLOCKED | F-CAT-005 : réapprovisionnement, remplacement ou remboursement en cas de rupture | engagement commercial à décider |
+| IN_PROGRESS | Catalogue public : afficher le disponible | contrat OpenAPI + web |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -46,4 +49,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Notifier DISPUTE_UPDATED au client à la clôture de sa réclamation (`closeComplaintBySupport`), puis choisir le lot READY suivant (revue du backlog : portail partenaire, USSD, exports).
+Exposer `available_stock` dans la lecture publique de l'offre (contrat OpenAPI, `public-offer.store.ts`, client web), tests d'abord.
