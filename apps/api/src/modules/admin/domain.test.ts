@@ -38,6 +38,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'DECLARE_MERCHANT_DEFAULT',
     // D49 : préparation des remboursements.
     'PREPARE_REFUND',
+    // D50 : préparation des virements aux bénéficiaires C.
+    'PREPARE_BENEFICIARY_PAYOUT',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -51,6 +53,9 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     // D49 : remboursements.
     'PREPARE_REFUND',
     'APPROVE_REFUND',
+    // D50 : virements aux bénéficiaires C.
+    'PREPARE_BENEFICIARY_PAYOUT',
+    'APPROVE_BENEFICIARY_PAYOUT',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',

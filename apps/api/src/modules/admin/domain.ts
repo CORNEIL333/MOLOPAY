@@ -35,6 +35,8 @@ export const ADMIN_ACTIONS = [
   'REVIEW_BENEFICIARY_DOCUMENT',
   'PREPARE_REFUND',
   'APPROVE_REFUND',
+  'PREPARE_BENEFICIARY_PAYOUT',
+  'APPROVE_BENEFICIARY_PAYOUT',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -86,6 +88,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECLARE_MERCHANT_DEFAULT',
     // D49 : préparation des remboursements.
     'PREPARE_REFUND',
+    // D50 : préparation des virements aux bénéficiaires C.
+    'PREPARE_BENEFICIARY_PAYOUT',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -99,6 +103,9 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D49 : remboursements (préparation, décision, instruction, exécution).
     'PREPARE_REFUND',
     'APPROVE_REFUND',
+    // D50 : virements aux bénéficiaires C.
+    'PREPARE_BENEFICIARY_PAYOUT',
+    'APPROVE_BENEFICIARY_PAYOUT',
   ]),
   COMPLIANCE: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
@@ -152,6 +159,7 @@ const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
 const AMOUNT_LIMITED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'APPROVE_SETTLEMENT',
   'APPROVE_REFUND',
+  'APPROVE_BENEFICIARY_PAYOUT',
   'APPROVE_LEDGER_REVERSAL',
 ]);
 
