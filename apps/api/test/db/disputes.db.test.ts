@@ -440,6 +440,19 @@ describe('F-SUP-001 / D56 clôture des réclamations et délai de réponse', () 
     expect(await overdue(46)).toEqual([]);
   });
 
+  it('F-NOT-001 la clôture notifie le client (DISPUTE_UPDATED, SMS et push) ; réclamation sans accord aussi', async () => {
+    const recorded = await complaint(null);
+    await close(recorded.id);
+    const rows = await admin.query(
+      `SELECT event_type, channel FROM notifications.outbox WHERE recipient_id = $1 ORDER BY channel`,
+      [CUSTOMER_ID],
+    );
+    expect(rows.rows).toEqual([
+      { event_type: 'DISPUTE_UPDATED', channel: 'PUSH' },
+      { event_type: 'DISPUTE_UPDATED', channel: 'SMS' },
+    ]);
+  });
+
   it('clôtures en ajout seul', async () => {
     const recorded = await complaint();
     await close(recorded.id);

@@ -50,11 +50,19 @@ export async function resolveDisputeAndNotify(
   return resolved;
 }
 
-/** F-SUP-001 / D56 : clôture d'une réclamation par le support (CLOSE_COMPLAINT). */
+/**
+ * F-SUP-001 / D56 : clôture d'une réclamation par le support (CLOSE_COMPLAINT)
+ * et notification DISPUTE_UPDATED au client, même transaction.
+ */
 export async function closeComplaintBySupport(
   client: SqlClient,
   input: { readonly complaintId: string; readonly outcome: 'ANSWERED' | 'WITHDRAWN'; readonly principal: AdminPrincipal },
 ): Promise<void> {
   assertAuthorized(input.principal, 'CLOSE_COMPLAINT', {});
   await closeComplaint(client, { complaintId: input.complaintId, outcome: input.outcome, actorId: input.principal.actorId });
+  const owner = await client.query<{ customer_id: string }>('SELECT customer_id FROM disputes.complaint WHERE id = $1', [input.complaintId]);
+  const customerId = owner.rows[0]?.customer_id;
+  if (customerId !== undefined) {
+    await notifyCustomer(client, { customerId, event: 'DISPUTE_UPDATED', eventKey: factKey('complaint-closed', input.complaintId) });
+  }
 }
