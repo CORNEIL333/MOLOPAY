@@ -30,7 +30,7 @@ const CONTEXT: AuthorizationContext = {
 
 const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = {
   SUPPORT_N1: [],
-  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY'],
+  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT'],
   OPERATIONS: [
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
@@ -40,6 +40,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'PREPARE_REFUND',
     // D50 : préparation des virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
+    // D56 : levée des litiges.
+    'RESOLVE_DISPUTE',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -70,6 +72,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'REVIEW_BENEFICIARY_DOCUMENT',
     // D53 : décision sur une alerte de fraude.
     'DECIDE_RISK_ALERT',
+    // D56 : levée des litiges.
+    'RESOLVE_DISPUTE',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT'],

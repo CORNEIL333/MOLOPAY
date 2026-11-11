@@ -365,3 +365,9 @@
 - **Décision (11 novembre) :** à une date de clôture, si le solde du suspens 2900 n'est pas nul, chaque écriture l'ayant mouvementé jusqu'à cette date doit être justifiée ; justification proposée par une personne de FINANCE, validée par une autre (`CLASSIFY_RECONCILIATION_GAP`, I-7 en base), uniquement sur une écriture touchant 2900. Lecture : solde à la date et lignes non justifiées.
 - **Appliqué :** migration 0051 ; 8 tests PostgreSQL ; 7 mutants tués.
 - **Reste :** ordonnanceur de fin de mois et escalade si des lignes restent non justifiées (exploitation) ; écriture de régularisation qui solde le suspens (circuit de contre-passation).
+
+### D56 · Clôture des réclamations, délai de réponse, rôles du litige (F-SUP-001/002, lot 15)
+- **Décision (11 novembre, application de D41) :** actions `OPEN_DISPUTE` et `CLOSE_COMPLAINT` (SUPPORT_N2), `RESOLVE_DISPUTE` (OPERATIONS, COMPLIANCE) ; I-7 inchangé (la levée exige une autre personne que l'ouverture). Clôture d'une réclamation : issue en liste fermée (`ANSWERED`, `WITHDRAWN`), sans texte libre, refusée tant qu'un litige ouvert sur elle n'est pas levé (store et base). Délai : réclamations non closes après 15 jours listées, dépassement du maximum de 45 jours signalé (valeurs D41, ⚖ R-2020/06).
+- **Écart D46 traité :** une réclamation reçue après la remise ne bloque plus le règlement du marchand que tant qu'elle n'est pas close (`settlement.anchor_payout` repris de 0041, diff vérifié : seule la condition change).
+- **Appliqué :** migration 0052 ; 8 tests PostgreSQL ; 7 mutants tués.
+- **Reste :** notification de la clôture au client (fait DISPUTE_UPDATED) ; routes support (back-office, bloqué) ; texte de réponse et pièces (D41, à trancher).

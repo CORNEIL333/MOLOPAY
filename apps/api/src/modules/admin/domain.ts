@@ -39,6 +39,9 @@ export const ADMIN_ACTIONS = [
   'APPROVE_BENEFICIARY_PAYOUT',
   'DECIDE_RISK_ALERT',
   'CLASSIFY_RECONCILIATION_GAP',
+  'OPEN_DISPUTE',
+  'RESOLVE_DISPUTE',
+  'CLOSE_COMPLAINT',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -82,6 +85,9 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
   SUPPORT_N2: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
+    // D41 / D56 : le support de niveau 2 ouvre les litiges et clôt les réclamations.
+    'OPEN_DISPUTE',
+    'CLOSE_COMPLAINT',
   ]),
   OPERATIONS: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -92,6 +98,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'PREPARE_REFUND',
     // D50 : préparation des virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
+    // D41 / D56 : levée des litiges (autre personne que l'ouverture, I-7).
+    'RESOLVE_DISPUTE',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -122,6 +130,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'REVIEW_BENEFICIARY_DOCUMENT',
     // D53 / SEC-FRD-002 : décision tracée sur une alerte de fraude (Conformité/Risque).
     'DECIDE_RISK_ALERT',
+    // D41 / D56 : levée des litiges.
+    'RESOLVE_DISPUTE',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',

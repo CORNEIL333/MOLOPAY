@@ -3,9 +3,11 @@ import { resolve } from 'node:path';
 import { BusinessError } from '@achat/contracts';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { AdminPrincipal } from '../../src/modules/admin/domain';
 import { COMPLAINT_REFERENCE_PATTERN } from '../../src/modules/disputes/domain';
 import {
   listDisputedAgreementsWithoutDispute,
+  listOverdueComplaints,
   openDispute,
   recordComplaint,
   resolveDispute,
@@ -14,7 +16,7 @@ import {
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { getAgreementHistory } from '../../src/workflows/agreement-history';
-import { openDisputeAndNotify, resolveDisputeAndNotify } from '../../src/workflows/dispute-notifications';
+import { closeComplaintBySupport, openDisputeAndNotify, resolveDisputeAndNotify } from '../../src/workflows/dispute-notifications';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import {
   AGREEMENT_STACK_MIGRATIONS,
@@ -29,13 +31,24 @@ import {
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
-const MIGRATIONS = [...AGREEMENT_STACK_MIGRATIONS, 'db/migrations/0032_disputes.sql'].map((path) =>
+const MIGRATIONS = [
+  ...AGREEMENT_STACK_MIGRATIONS,
+  'db/migrations/0032_disputes.sql',
+  'db/migrations/0038_partner_ledger_identity.sql',
+  'db/migrations/0039_agreements_handover.sql',
+  'db/migrations/0040_settlement_handover.sql',
+  'db/migrations/0041_settlement_payout.sql',
+  'db/migrations/0052_disputes_complaint_closure.sql',
+].map((path) =>
   resolve(process.cwd(), path),
 );
 const CUSTOMER_ID = '019a9500-0000-7000-8000-0000000000c1';
 const OTHER_CUSTOMER_ID = '019a9500-0000-7000-8000-0000000000c2';
 const AGREEMENT_ID = '019a9500-0000-7000-8000-0000000000a1';
 const OTHER_AGREEMENT_ID = '019a9500-0000-7000-8000-0000000000a2';
+const SUPPORT2: AdminPrincipal = { actorId: 'support-1', roles: ['SUPPORT_N2'] };
+const OPS: AdminPrincipal = { actorId: 'ops-1', roles: ['OPERATIONS'] };
+const SUPPORT1: AdminPrincipal = { actorId: 'support-9', roles: ['SUPPORT_N1'] };
 
 let container: TestDatabase;
 let admin: Client;
@@ -112,7 +125,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const schema of ['disputes', ...AGREEMENT_STACK_SCHEMAS]) {
+  for (const schema of ['settlement', 'disputes', ...AGREEMENT_STACK_SCHEMAS]) {
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
   for (const sql of migrationSql) {
@@ -354,9 +367,9 @@ describe('F-NOT-001 litige : DISPUTE_UPDATED dans la même transaction', () => {
   it('ouverture puis levée : deux événements distincts par canal, aucun doublon au rejeu de lecture', async () => {
     const recorded = await complaint();
     const opened = await transact('app_rw', (client) =>
-      openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, actorId: 'support-1' }),
+      openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, principal: SUPPORT2 }),
     );
-    await transact('app_rw', (client) => resolveDisputeAndNotify(client, { disputeId: opened.disputeId, actorId: 'support-2' }));
+    await transact('app_rw', (client) => resolveDisputeAndNotify(client, { disputeId: opened.disputeId, principal: OPS }));
     const rows = await admin.query<{ event_type: string; n: number }>(
       `SELECT event_type, count(*)::int AS n FROM notifications.outbox WHERE recipient_id = $1 GROUP BY event_type`,
       [CUSTOMER_ID],
@@ -364,3 +377,75 @@ describe('F-NOT-001 litige : DISPUTE_UPDATED dans la même transaction', () => {
     expect(rows.rows).toEqual([{ event_type: 'DISPUTE_UPDATED', n: 4 }]);
   });
 });
+
+describe('D56 / SEC-AUTHZ-001 rôles du circuit de litige', () => {
+  it('SUPPORT_N1 n’ouvre pas de litige ; le support N2 ne lève pas ; OPERATIONS lève', async () => {
+    const recorded = await complaint();
+    expect((await failure(() => transact('app_rw', (client) => openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, principal: SUPPORT1 })))).code).toBe('ADMIN_FORBIDDEN');
+    const opened = await transact('app_rw', (client) => openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, principal: SUPPORT2 }));
+    const support = { ...SUPPORT2, actorId: 'support-3' };
+    expect((await failure(() => transact('app_rw', (client) => resolveDisputeAndNotify(client, { disputeId: opened.disputeId, principal: support })))).code).toBe('ADMIN_FORBIDDEN');
+    await transact('app_rw', (client) => resolveDisputeAndNotify(client, { disputeId: opened.disputeId, principal: OPS }));
+    expect(await agreementStatus()).toBe('ACTIVE');
+  });
+});
+
+describe('F-SUP-001 / D56 clôture des réclamations et délai de réponse', () => {
+  async function close(complaintId: string, outcome: 'ANSWERED' | 'WITHDRAWN' = 'ANSWERED', principal = SUPPORT2): Promise<void> {
+    await transact('app_rw', (client) => closeComplaintBySupport(client, { complaintId, outcome, principal }));
+  }
+
+  async function overdue(daysLater: number): Promise<readonly { complaintId: string; beyondMaximum: boolean }[]> {
+    return transact('app_ro', (client) => listOverdueComplaints(client, new Date(Date.now() + daysLater * 86_400_000)));
+  }
+
+  it('clôture tracée, une seule fois ; rôle requis', async () => {
+    const recorded = await complaint();
+    expect((await failure(() => close(recorded.id, 'ANSWERED', OPS))).code).toBe('ADMIN_FORBIDDEN');
+    await close(recorded.id);
+    const row = await admin.query('SELECT outcome, closed_by FROM disputes.complaint_closure');
+    expect(row.rows).toEqual([{ outcome: 'ANSWERED', closed_by: 'support-1' }]);
+    expect((await failure(() => close(recorded.id, 'WITHDRAWN'))).code).toBe('COMPLAINT_ALREADY_CLOSED');
+    expect((await failure(() => close(uuidv7()))).code).toBe('COMPLAINT_NOT_FOUND');
+  });
+
+  it('refuse de clore une réclamation dont le litige est ouvert (store et base) ; possible après levée', async () => {
+    const recorded = await complaint();
+    const opened = await open(recorded.id);
+    expect((await failure(() => close(recorded.id))).code).toBe('DISPUTE_OPEN');
+    const base = await failure(() =>
+      admin.query(`INSERT INTO disputes.complaint_closure (complaint_id, outcome, closed_by, closed_at) VALUES ($1, 'ANSWERED', 'support-1', now())`, [recorded.id]),
+    );
+    expect(base.message).toMatch(/^DISPUTE_OPEN/);
+    await transact('app_rw', (client) => resolveDispute(client, { disputeId: opened.disputeId, actorId: 'ops-1' }));
+    await close(recorded.id);
+  });
+
+  it('issue en liste fermée (23514)', async () => {
+    const recorded = await complaint();
+    const result = await failure(() =>
+      admin.query(`INSERT INTO disputes.complaint_closure (complaint_id, outcome, closed_by, closed_at) VALUES ($1, 'REMBOURSE', 'support-1', now())`, [recorded.id]),
+    );
+    expect(result.code).toBe('23514');
+  });
+
+  it('délai : listée après 15 jours si non close, dépassement signalé après 45 jours ; close, elle disparaît', async () => {
+    const recorded = await complaint();
+    expect(await overdue(14)).toEqual([]);
+    expect((await overdue(16)).map((item) => ({ complaintId: item.complaintId, beyondMaximum: item.beyondMaximum }))).toEqual([
+      { complaintId: recorded.id, beyondMaximum: false },
+    ]);
+    expect((await overdue(46))[0]?.beyondMaximum).toBe(true);
+    await close(recorded.id);
+    expect(await overdue(46)).toEqual([]);
+  });
+
+  it('clôtures en ajout seul', async () => {
+    const recorded = await complaint();
+    await close(recorded.id);
+    for (const sql of ["UPDATE disputes.complaint_closure SET outcome = 'WITHDRAWN'", 'DELETE FROM disputes.complaint_closure']) {
+      expect((await failure(() => admin.query(sql))).message, sql).toMatch(/^DISPUTE_APPEND_ONLY/);
+    }
+  });
+});
+

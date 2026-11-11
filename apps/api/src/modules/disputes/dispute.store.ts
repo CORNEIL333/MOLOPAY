@@ -210,3 +210,56 @@ export async function listDisputeHistory(client: SqlClient, agreementId: string)
   }
   return items;
 }
+
+/**
+ * F-SUP-001 / D56 : clôture d'une réclamation (issue en liste fermée, sans
+ * texte libre). Refusée tant qu'un litige ouvert sur elle n'est pas levé.
+ */
+export async function closeComplaint(
+  client: SqlClient,
+  input: { readonly complaintId: string; readonly outcome: 'ANSWERED' | 'WITHDRAWN'; readonly actorId: string },
+): Promise<void> {
+  assertUuid(input.complaintId, 'réclamation');
+  assertActor(input.actorId);
+  if (input.outcome !== 'ANSWERED' && input.outcome !== 'WITHDRAWN') {
+    invalid('issue ANSWERED ou WITHDRAWN attendue');
+  }
+  const state = await client.query<{ closed: boolean; open_dispute: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM disputes.complaint_closure x WHERE x.complaint_id = c.id) AS closed,
+            EXISTS (SELECT 1 FROM disputes.dispute d WHERE d.complaint_id = c.id
+                      AND NOT EXISTS (SELECT 1 FROM disputes.dispute_resolution r WHERE r.dispute_id = d.id)) AS open_dispute
+       FROM disputes.complaint c WHERE c.id = $1`,
+    [input.complaintId],
+  );
+  const row = state.rows[0];
+  if (row === undefined) {
+    throw new BusinessError('COMPLAINT_NOT_FOUND', 'réclamation introuvable');
+  }
+  if (row.closed) {
+    throw new BusinessError('COMPLAINT_ALREADY_CLOSED', 'réclamation déjà close');
+  }
+  if (row.open_dispute) {
+    throw new BusinessError('DISPUTE_OPEN', 'litige ouvert à lever avant la clôture');
+  }
+  await client.query(
+    'INSERT INTO disputes.complaint_closure (complaint_id, outcome, closed_by, closed_at) VALUES ($1, $2, $3, now())',
+    [input.complaintId, input.outcome, input.actorId],
+  );
+}
+
+/** F-SUP-001 / D41 : réclamations non closes au-delà de 15 jours (45 jours : maximum dépassé). */
+export async function listOverdueComplaints(
+  client: SqlClient,
+  at: Date,
+): Promise<readonly { readonly complaintId: string; readonly reference: string; readonly receivedAt: string; readonly beyondMaximum: boolean }[]> {
+  const result = await client.query<{ complaint_id: string; reference: string; received_at: Date; beyond_maximum: boolean }>(
+    'SELECT complaint_id, reference, received_at, beyond_maximum FROM disputes.overdue_complaints($1)',
+    [at],
+  );
+  return result.rows.map((row) => ({
+    complaintId: row.complaint_id,
+    reference: row.reference,
+    receivedAt: row.received_at.toISOString(),
+    beyondMaximum: row.beyond_maximum,
+  }));
+}

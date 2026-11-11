@@ -48,6 +48,7 @@ const MIGRATIONS = [
   'db/migrations/0040_settlement_handover.sql',
   'db/migrations/0041_settlement_payout.sql',
   'db/migrations/0042_settlement_execution.sql',
+  'db/migrations/0052_disputes_complaint_closure.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 const CUSTOMER_ID = '019a9900-0000-7000-8000-0000000000c1';
@@ -228,6 +229,22 @@ describe('F-SET-002 préparation du règlement', () => {
     );
     const result = await failure(() => prepare());
     expect(result.message).toMatch(/SETTLEMENT_BLOCKED/);
+  });
+
+  it('D56 la réclamation close ne bloque plus le règlement', async () => {
+    await settings();
+    const complaintId = uuidv7();
+    await admin.query(
+      `INSERT INTO disputes.complaint (id, reference, customer_id, agreement_id, channel, received_at)
+       VALUES ($1, 'R-0000000002', $2, $3, 'APP', now())`,
+      [complaintId, CUSTOMER_ID, AGREEMENT_ID],
+    );
+    await admin.query(
+      `INSERT INTO disputes.complaint_closure (complaint_id, outcome, closed_by, closed_at) VALUES ($1, 'ANSWERED', 'support-1', now())`,
+      [complaintId],
+    );
+    const payout = await prepare();
+    expect(payout.grossXaf).toBeGreaterThan(0n);
   });
 
   it('un seul règlement par remise (SETTLEMENT_ALREADY_PREPARED)', async () => {

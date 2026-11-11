@@ -31,7 +31,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Lot 14 : classement des écarts en maker-checker, escalade 48 h (D54) | 0050, 8 mutants tués |
 | BLOCKED | Lot 14 : rapprochement à trois voies (INT-REC-001) | relevés réels agrégateur et établissement (accès humain) |
 | DONE | Lot 14 : suspens 2900 soldé ou justifié en fin de mois (D55) | 0051, 7 mutants tués |
-| IN_PROGRESS | Lot 15 Disputes : suite (litige après remise, clôture des réclamations) | écart signalé en D46 |
+| DONE | Lot 15 : clôture des réclamations, délai de réponse, rôles du litige, écart D46 (D56) | 0052, 7 mutants tués |
+| IN_PROGRESS | Notification de la clôture d'une réclamation au client | DISPUTE_UPDATED |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -45,4 +46,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 15 : relire F-SUP-*, migration 0032 et `modules/disputes` ; traiter l'écart D46 (réclamation après remise bloquant le règlement) et la clôture des réclamations.
+Notifier DISPUTE_UPDATED au client à la clôture de sa réclamation (`closeComplaintBySupport`), puis choisir le lot READY suivant (revue du backlog : portail partenaire, USSD, exports).
