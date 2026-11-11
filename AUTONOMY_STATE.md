@@ -30,7 +30,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Lot 16 : comptes multiples par appareil ; changement de numéro suivi de retrait | attestation d'appareil (lot 19) ; historique des numéros absent |
 | DONE | Lot 14 : classement des écarts en maker-checker, escalade 48 h (D54) | 0050, 8 mutants tués |
 | BLOCKED | Lot 14 : rapprochement à trois voies (INT-REC-001) | relevés réels agrégateur et établissement (accès humain) |
-| IN_PROGRESS | Lot 14 : suspens 2900 en fin de mois (INT-REC-005) | contrôle dérivé du grand livre |
+| DONE | Lot 14 : suspens 2900 soldé ou justifié en fin de mois (D55) | 0051, 7 mutants tués |
+| IN_PROGRESS | Lot 15 Disputes : suite (litige après remise, clôture des réclamations) | écart signalé en D46 |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -44,4 +45,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-INT-REC-005 : fonction de base listant les lignes non soldées du suspens 2900 à une date de clôture, justification ligne à ligne en maker-checker ; tests d'abord.
+Lot 15 : relire F-SUP-*, migration 0032 et `modules/disputes` ; traiter l'écart D46 (réclamation après remise bloquant le règlement) et la clôture des réclamations.

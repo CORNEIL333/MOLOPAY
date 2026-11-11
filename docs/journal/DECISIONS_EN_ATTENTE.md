@@ -360,3 +360,8 @@
 - **Interprétation prudente d'INT-REC-004 :** un écart de plus de 48 h reste escaladé tant qu'il n'a pas de classe validée **autre que « inconnu »**.
 - **Appliqué :** migration 0050 ; 8 tests PostgreSQL ; 8 mutants tués.
 - **Reste :** correction par écriture de régularisation approuvée (circuit de contre-passation existant, à relier à l'écart) ; relevés réels de l'agrégateur et du compte cantonné (INT-REC-001, bloqué : accès humain) ; solde du suspens 2900 en fin de mois (INT-REC-005).
+
+### D55 · Suspens 2900 en fin de mois (INT-REC-005, lot 14)
+- **Décision (11 novembre) :** à une date de clôture, si le solde du suspens 2900 n'est pas nul, chaque écriture l'ayant mouvementé jusqu'à cette date doit être justifiée ; justification proposée par une personne de FINANCE, validée par une autre (`CLASSIFY_RECONCILIATION_GAP`, I-7 en base), uniquement sur une écriture touchant 2900. Lecture : solde à la date et lignes non justifiées.
+- **Appliqué :** migration 0051 ; 8 tests PostgreSQL ; 7 mutants tués.
+- **Reste :** ordonnanceur de fin de mois et escalade si des lignes restent non justifiées (exploitation) ; écriture de régularisation qui solde le suspens (circuit de contre-passation).

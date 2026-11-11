@@ -7,6 +7,7 @@ import {
   proposeClassification,
   type GapClassification,
 } from '../modules/reconciliation/classification.store';
+import { approveSuspenseJustification, proposeSuspenseJustification } from '../modules/reconciliation/suspense.store';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
@@ -36,4 +37,22 @@ export async function decideGapClassification(
     throw new BusinessError('RECONCILIATION_NOT_FOUND', 'proposition introuvable');
   }
   await decideClassification(client, { proposal, decision: input.decision, reason: input.reason, actorId: input.principal.actorId });
+}
+
+/** D55 / INT-REC-005 : justification d'une écriture du suspens 2900 (proposition). */
+export async function proposeSuspenseLineJustification(
+  client: SqlClient,
+  input: { readonly entryId: string; readonly explanation: string; readonly principal: AdminPrincipal },
+): Promise<void> {
+  assertAuthorized(input.principal, 'CLASSIFY_RECONCILIATION_GAP', {});
+  await proposeSuspenseJustification(client, { entryId: input.entryId, explanation: input.explanation, actorId: input.principal.actorId });
+}
+
+/** D55 / INT-REC-005 / I-7 : validation par une autre personne. */
+export async function approveSuspenseLineJustification(
+  client: SqlClient,
+  input: { readonly entryId: string; readonly principal: AdminPrincipal },
+): Promise<void> {
+  assertAuthorized(input.principal, 'CLASSIFY_RECONCILIATION_GAP', {});
+  await approveSuspenseJustification(client, { entryId: input.entryId, actorId: input.principal.actorId });
 }

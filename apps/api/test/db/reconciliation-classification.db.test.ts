@@ -13,17 +13,25 @@ import {
   recordSegregationCheck,
   type SegregationCheckResult,
 } from '../../src/modules/reconciliation/segregation.store';
-import { decideGapClassification, proposeGapClassification } from '../../src/workflows/reconciliation-classification';
+import { readMonthEndSuspense } from '../../src/modules/reconciliation/suspense.store';
+import {
+  approveSuspenseLineJustification,
+  decideGapClassification,
+  proposeGapClassification,
+  proposeSuspenseLineJustification,
+} from '../../src/workflows/reconciliation-classification';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
   'db/migrations/0001_ledger.sql',
   'db/migrations/0030_reconciliation_segregation.sql',
   'db/migrations/0050_reconciliation_classification.sql',
+  'db/migrations/0051_reconciliation_suspense.sql',
 ].map(
   (path) => resolve(process.cwd(), path),
 );
 const ACCOUNT_AGGREGATOR = '019a0000-0000-7000-8000-000000001200';
+const ACCOUNT_SUSPENSE = '019a0000-0000-7000-8000-000000002900';
 const CUSTOMER_ID = '019a9400-0000-7000-8000-0000000000c1';
 const FIN1: AdminPrincipal = { actorId: 'fin-1', roles: ['FINANCE'] };
 const FIN2: AdminPrincipal = { actorId: 'fin-2', roles: ['FINANCE'] };
@@ -276,3 +284,91 @@ describe('INT-REC-003 / D54 classement des écarts en maker-checker', () => {
     }
   });
 });
+
+describe('INT-REC-005 / D55 suspens 2900 soldé ou justifié ligne à ligne en fin de mois', () => {
+  const closing = (): Date => new Date(Date.now() + 60_000);
+
+  async function suspenseEntry(): Promise<string> {
+    await post(ACCOUNT_AGGREGATOR, ACCOUNT_SUSPENSE, 7_000n, 'SUSPENSE_IN');
+    const row = await admin.query<{ id: string }>(
+      `SELECT e.id FROM ledger.journal_entry e WHERE e.operation_type = 'SUSPENSE_IN' ORDER BY e.seq DESC LIMIT 1`,
+    );
+    return row.rows[0]!.id;
+  }
+
+  async function justify(entryId: string, maker = FIN1, checker = FIN2): Promise<void> {
+    await transact('app_rw', (client) => proposeSuspenseLineJustification(client, { entryId, explanation: 'versement non identifié du 9, réclamé à l’agrégateur', principal: maker }));
+    await transact('app_rw', (client) => approveSuspenseLineJustification(client, { entryId, principal: checker }));
+  }
+
+  it('suspens non soldé : chaque ligne non justifiée est listée avec le solde', async () => {
+    const entryId = await suspenseEntry();
+    const result = await transact('app_ro', (client) => readMonthEndSuspense(client, closing()));
+    expect(result.balanceXaf).toBe(7_000n);
+    expect(result.unjustified.map((line) => ({ entryId: line.entryId, direction: line.direction, amountXaf: line.amountXaf }))).toEqual([
+      { entryId, direction: 'C', amountXaf: 7_000n },
+    ]);
+  });
+
+  it('suspens soldé : rien à justifier', async () => {
+    await suspenseEntry();
+    await post(ACCOUNT_SUSPENSE, ACCOUNT_AGGREGATOR, 7_000n, 'SUSPENSE_OUT');
+    const result = await transact('app_ro', (client) => readMonthEndSuspense(client, closing()));
+    expect(result).toEqual({ balanceXaf: 0n, unjustified: [] });
+  });
+
+  it('justification validée par une autre personne : la ligne sort de la liste ; le solde reste affiché', async () => {
+    const entryId = await suspenseEntry();
+    await transact('app_rw', (client) => proposeSuspenseLineJustification(client, { entryId, explanation: 'en attente du relevé', principal: FIN1 }));
+    expect((await transact('app_ro', (client) => readMonthEndSuspense(client, closing()))).unjustified).toHaveLength(1);
+    await transact('app_rw', (client) => approveSuspenseLineJustification(client, { entryId, principal: FIN2 }));
+    expect(await transact('app_ro', (client) => readMonthEndSuspense(client, closing()))).toEqual({ balanceXaf: 7_000n, unjustified: [] });
+  });
+
+  it('solde non nul à la clôture : seules les lignes antérieures sont listées', async () => {
+    const before = await suspenseEntry();
+    const cut = (await admin.query<{ at: Date }>('SELECT clock_timestamp() AS at')).rows[0]!.at;
+    await suspenseEntry();
+    const result = await transact('app_ro', (client) => readMonthEndSuspense(client, cut));
+    expect(result.balanceXaf).toBe(7_000n);
+    expect(result.unjustified.map((line) => line.entryId)).toEqual([before]);
+  });
+
+  it('écritures postérieures à la clôture ignorées', async () => {
+    await suspenseEntry();
+    expect(await transact('app_ro', (client) => readMonthEndSuspense(client, new Date(Date.now() - 86_400_000)))).toEqual({
+      balanceXaf: 0n,
+      unjustified: [],
+    });
+  });
+
+  it('I-7 le proposant ne valide pas (store et base) ; rôle et doublon refusés', async () => {
+    const entryId = await suspenseEntry();
+    expect((await failure(() => transact('app_rw', (client) => proposeSuspenseLineJustification(client, { entryId, explanation: 'x', principal: OPS })))).code).toBe('ADMIN_FORBIDDEN');
+    await transact('app_rw', (client) => proposeSuspenseLineJustification(client, { entryId, explanation: 'x', principal: FIN1 }));
+    expect((await failure(() => transact('app_rw', (client) => proposeSuspenseLineJustification(client, { entryId, explanation: 'y', principal: FIN2 })))).code).toBe('RECONCILIATION_ALREADY_CLASSIFIED');
+    expect((await failure(() => transact('app_rw', (client) => approveSuspenseLineJustification(client, { entryId, principal: FIN1 })))).code).toBe('MAKER_CANNOT_APPROVE');
+    const base = await failure(() =>
+      admin.query(`INSERT INTO reconciliation.suspense_justification_approval (entry_id, approved_by, approved_at) VALUES ($1, 'fin-1', now())`, [entryId]),
+    );
+    expect(base.message).toMatch(/^MAKER_CANNOT_APPROVE/);
+  });
+
+  it('la base refuse de justifier une écriture qui ne touche pas le suspens', async () => {
+    await post(ACCOUNT_AGGREGATOR, await clientAccount(), 1_000n);
+    const other = (await admin.query<{ id: string }>(`SELECT id FROM ledger.journal_entry WHERE operation_type = 'PAYMENT_CONFIRMED'`)).rows[0]!.id;
+    const result = await failure(() =>
+      admin.query(`INSERT INTO reconciliation.suspense_justification (entry_id, explanation, proposed_by, proposed_at) VALUES ($1, 'x', 'fin-1', now())`, [other]),
+    );
+    expect(result.message).toMatch(/^RECONCILIATION_INVALID_REQUEST/);
+  });
+
+  it('justifications en ajout seul', async () => {
+    const entryId = await suspenseEntry();
+    await justify(entryId);
+    for (const sql of ['UPDATE reconciliation.suspense_justification SET explanation = explanation', 'DELETE FROM reconciliation.suspense_justification_approval']) {
+      expect((await failure(() => admin.query(sql))).message, sql).toMatch(/^RECONCILIATION_APPEND_ONLY/);
+    }
+  });
+});
+
