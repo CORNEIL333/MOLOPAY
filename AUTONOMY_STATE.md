@@ -47,7 +47,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Quotas des routes d'objectifs (D61) | 0055 |
 | DONE | Lot 24 : cache, garde Origin et Idempotency-Key vérifiés sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
-| BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
+| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranche 1 faite (vérification pure) ; à valider par le fondateur |
+| BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
 | BLOCKED | Taux de commission, délai de contestation | décision du fondateur (D46) |
@@ -63,4 +64,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Le backlog réalisable sans décision humaine est épuisé. À chaque reprise : vérifier si `FICHE_POINTS_OUVERTS_2026-11-11.md` ou de nouveaux commits apportent des réponses ; si oui, débloquer les lots correspondants (priorité : authentification du personnel → routes back-office) ; sinon, ne pas inventer de travail.
+Lot 21 tranche 2 : migration 0056 `admin.staff_account` (création en maker-checker, rôles et périmètres), `admin.staff_credential` (clé WebAuthn), `admin.staff_challenge` (usage unique, 5 min), `admin.staff_session` (15 min d'inactivité, révocable) ; tests base d'abord.

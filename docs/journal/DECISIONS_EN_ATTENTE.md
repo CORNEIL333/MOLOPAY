@@ -395,3 +395,9 @@
 - **Décision (11 novembre, délégation du fondateur, méthode D38) :** création d'objectif 20 par 24 h ; activation, annulation et verrou sous PIN : budget commun de 10 par heure ; par compte et par appareil. Le PIN garde son verrouillage propre.
 - **Appliqué :** migration 0055 (fonction reprise de 0054, diff vérifié) ; décorateurs sur les quatre routes ; tests 429 ; retrait des décorateurs → tests rouges.
 - **Reste :** limites par IP et par numéro (D38) ; lectures non limitées (catalogue public, objectifs, devis).
+
+### D62 · Authentification du personnel par WebAuthn (SEC-AUTH-004/005, lot 21) — ADR-0007 proposé
+- **Option appliquée (régime sprint, la plus prudente et réversible, en attente d'approbation) :** WebAuthn vérifié par l'API elle-même (`node:crypto`, aucune dépendance ajoutée) ; TOTP et OTP écartés car non résistants à l'hameçonnage (SEC-AUTH-004). Détails, points ouverts et alternative (fournisseur OIDC) dans `docs/04_annexes/adr/ADR-0007-authentification-personnel-webauthn.md`.
+- **Tranche 1 appliquée :** `modules/admin/webauthn.ts`, vérification pure de l'inscription et de l'assertion : ES256 et EdDSA, UP et UV exigés, défi ≥ 16 octets comparé en temps constant, origine et RP ID en liste blanche, inter-origines refusé, compteur strictement croissant, code unique `STAFF_AUTH_INVALID`. 9 tests avec un authentificateur logiciel conforme à la spécification (vraies clés) ; 14 mutants tués.
+- **⚖ À trancher :** attestation matérielle (AAL3 : liste des modèles de clés autorisés) ; réseau isolé ; préférence éventuelle pour un fournisseur d'identité.
+- **Suite :** comptes du personnel et rôles en base (maker-checker), défis à usage unique, sessions de 15 min, garde HTTP reconstruisant l'`AdminPrincipal`, puis routes du back-office.
