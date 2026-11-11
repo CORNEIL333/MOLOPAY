@@ -44,6 +44,8 @@ const MIGRATIONS = [
   'db/migrations/0017_api_idempotency.sql',
   'db/migrations/0022_catalog_public_presentation.sql',
   'db/migrations/0023_identity_account_security.sql',
+  'db/migrations/0025_identity_customer_quota.sql',
+  'db/migrations/0035_quota_policy_v1.sql',
   'db/migrations/0038_partner_ledger_identity.sql',
   'db/migrations/0039_agreements_handover.sql',
   'db/migrations/0040_settlement_handover.sql',
@@ -54,6 +56,7 @@ const MIGRATIONS = [
   'db/migrations/0045_settlement_refund.sql',
   'db/migrations/0046_agreements_refunded.sql',
   'db/migrations/0047_settlement_beneficiary_payout.sql',
+  'db/migrations/0054_identity_quota_beneficiary.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
@@ -292,6 +295,19 @@ describe('F-PLN-003 / SEC-AUTH-002 règlement au bénéficiaire sous PIN', () =>
     const response = await payment({ pin: PIN }, 'benef-pay-other01', cookies.B);
     expect(response.status).toBe(404);
     expect((response.body as ProblemBody).code).toBe('AGREEMENT_NOT_FOUND');
+    expect(await count('SELECT count(*)::int AS n FROM settlement.beneficiary_payment')).toBe(0);
+  });
+
+  it('SEC-API-003 / D60 au-delà de 5 demandes de règlement par heure : 429 REQUEST_RATE_LIMITED, avec Retry-After', async () => {
+    await fund();
+    for (let index = 0; index < 5; index += 1) {
+      const response = await payment({ pin: '000000' }, `benef-pay-quota-${index}`);
+      expect(response.status).not.toBe(429);
+    }
+    const limited = await payment({ pin: PIN }, 'benef-pay-quota-x');
+    expect(limited.status).toBe(429);
+    expect((limited.body as ProblemBody).code).toBe('REQUEST_RATE_LIMITED');
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
     expect(await count('SELECT count(*)::int AS n FROM settlement.beneficiary_payment')).toBe(0);
   });
 

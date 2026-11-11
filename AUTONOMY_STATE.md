@@ -43,6 +43,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
 | DONE | Lot 25 : jeu de recette généré par les flux réels (`pnpm recette:generate`) | vérifié par `verify:ledger` |
+| DONE | Quotas des routes C (D60) | 0054 |
+| READY | Quotas des routes d'objectifs (création, activation, annulation, verrou) | même méthode, valeurs à poser (D60 bis) |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -60,4 +62,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Presque tout le reste est BLOQUÉ par la fiche `FICHE_POINTS_OUVERTS_2026-11-11.md`. Travail encore possible : lot 25 (scripts de recette écrits pour les humains, dossier pour le pentest), durcissement lot 24 sur les routes existantes (limitation de débit des routes C, en-têtes). Commencer par la limitation de débit des routes `beneficiary-*` (SEC-API-003, quotas existants 0035).
+Quotas des routes d'objectifs : nouvelles actions GOAL_CREATE, GOAL_SIGNED_ACTION (activation, annulation, verrou), migration 0055 reprenant `consume_customer_quota` (dernière version : 0054), tests 429 sur `goals-http` et `goal-signing-http`.

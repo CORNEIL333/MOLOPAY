@@ -24,6 +24,9 @@ export const CUSTOMER_QUOTA_ACTIONS = [
   'REVOKE_OTHERS',
   'DATA_RIGHTS_READ',
   'DATA_RIGHTS_SUBMIT',
+  // D60 : routes client du modèle C (le reçu, en lecture, n'est pas limité).
+  'BENEFICIARY_DOCUMENT_SUBMIT',
+  'BENEFICIARY_PAYMENT',
 ] as const;
 export type CustomerQuotaAction = (typeof CUSTOMER_QUOTA_ACTIONS)[number];
 

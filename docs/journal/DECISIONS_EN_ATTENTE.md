@@ -385,3 +385,8 @@
 - **Appliqué :** `ledger/export.store.ts` exporte toutes les écritures au format du vérificateur (contenu haché exact). Test d'intégration : grand livre produit par les flux réels (versements, règlement au bénéficiaire, virement, remboursement), lot Merkle et tête signée Ed25519 (clé de test générée), vérifié par le binaire Rust réel (équilibre, chaîne, Merkle, signature, témoin) ; une altération de montant est détectée.
 - **Constat :** `pnpm verify:ledger` réutilise un binaire release existant sans le recompiler ; un binaire antérieur à une modification de la liste blanche pourrait être utilisé. Le nouveau test recompile (incrémental) avant usage. **À décider (outillage) :** recompiler systématiquement dans `verify:ledger`.
 - **Reste (lot 23) :** export signé périodique et envoi aux témoins réels (canal authentifié, conventions) ; clé de journal de production (HSM, D5).
+
+### D60 · Quotas des routes client du modèle C (SEC-API-003)
+- **Décision (11 novembre, délégation du fondateur, même méthode que D38) :** dépôt de pièce du bénéficiaire 10 par 24 h, règlement au bénéficiaire 5 par heure, par compte et par appareil ; le reçu (lecture) n'est pas limité. Au-delà : 429 `REQUEST_RATE_LIMITED` avec `Retry-After`, sans révéler compteur ni plafond. Le PIN garde en plus son propre verrouillage.
+- **Appliqué :** migration 0054 (liste blanche des actions élargie ; `identity.consume_customer_quota` repris de 0025, diff vérifié ; politique version 1). Décorateur retiré : test rouge.
+- **Reste :** quotas des routes d'objectifs (création, activation, annulation, verrou) ; limites par IP et par numéro (D38).

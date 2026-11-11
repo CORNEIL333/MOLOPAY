@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { JsonValue } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
+import { CustomerQuota } from '../http/customer-quota';
 import { PG_POOL, withTransaction, type Database } from '../http/database';
 import type { HttpRequest } from '../http/express-types';
 import { assertIdempotencyKey, runIdempotent } from '../http/idempotency';
@@ -60,6 +61,7 @@ export class BeneficiaryController {
   ) {}
 
   @Post('v1/goals/:goalId/beneficiary-documents')
+  @CustomerQuota('BENEFICIARY_DOCUMENT_SUBMIT')
   @HttpCode(201)
   @Header('Cache-Control', 'private, no-store')
   public async submitDocument(
@@ -109,6 +111,7 @@ export class BeneficiaryController {
   }
 
   @Post('v1/goals/:goalId/beneficiary-payment')
+  @CustomerQuota('BENEFICIARY_PAYMENT')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
   public async pay(
