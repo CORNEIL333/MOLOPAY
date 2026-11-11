@@ -51,7 +51,8 @@ async function offer(id = ID, options: { title?: boolean; published?: boolean; p
 beforeAll(async () => {
   migrations = await Promise.all(['0003_admin.sql','0006_admin_clock.sql','0008_catalog_partner.sql','0009_catalog_offer.sql',
     '0011_agreements.sql','0012_agreements_customer_signature.sql','0013_partner_type_beneficiary.sql',
-    '0014_partner_incident.sql','0015_partner_default_lift.sql','0022_catalog_public_presentation.sql']
+    '0014_partner_incident.sql','0015_partner_default_lift.sql','0022_catalog_public_presentation.sql',
+    '0053_agreements_stock_reservation.sql']
     .map((name) => readFile(resolve('db/migrations', name), 'utf8')));
   db = await startTestDatabase(); admin = new Client({ connectionString: db.getConnectionUri() }); await admin.connect();
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });

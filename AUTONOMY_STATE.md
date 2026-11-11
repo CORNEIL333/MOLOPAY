@@ -35,7 +35,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Notification de la clôture d'une réclamation (D56) | DISPUTE_UPDATED |
 | DONE | Réservation du stock à l'activation (F-CAT-005, D57) | 0053, 7/8 mutants (1 équivalent) |
 | BLOCKED | F-CAT-005 : réapprovisionnement, remplacement ou remboursement en cas de rupture | engagement commercial à décider |
-| IN_PROGRESS | Catalogue public : afficher le disponible | contrat OpenAPI + web |
+| DONE | Catalogue public : disponible affiché (D57) | contrôleur dans workflows |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -49,4 +49,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Exposer `available_stock` dans la lecture publique de l'offre (contrat OpenAPI, `public-offer.store.ts`, client web), tests d'abord.
+Revoir le backlog READY : F-SUP-003 (clôture dans l'historique de l'accord), F-PLN-003 (reçu au bénéficiaire), lot 23 (exports signés internes), lot 25 (jeux de données de recette générés).

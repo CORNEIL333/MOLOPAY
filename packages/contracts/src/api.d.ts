@@ -695,6 +695,7 @@ export interface components {
         StockAvailability: {
             /** @constant */
             kind: "IN_STOCK";
+            /** @description F-CAT-005 / D57 : unités encore disponibles (stock déclaré − réservations − remises depuis la version) ; 0 = rupture. */
             units: number;
         } | {
             /** @constant */

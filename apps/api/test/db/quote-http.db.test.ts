@@ -16,6 +16,7 @@ import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { appendOfferPresentation } from '../../src/modules/catalog/public-offer.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import {
+  createAgreementA,
   AGREEMENT_STACK_MIGRATIONS,
   AGREEMENT_STACK_SCHEMAS,
   PLAN_A,
@@ -36,6 +37,7 @@ const MIGRATIONS = [
   'db/migrations/0017_api_idempotency.sql',
   'db/migrations/0022_catalog_public_presentation.sql',
   'db/migrations/0023_identity_account_security.sql',
+  'db/migrations/0053_agreements_stock_reservation.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Quote = components['schemas']['Quote'];
@@ -189,3 +191,24 @@ describe('F-CAT-004 devis indicatif d’une offre A', () => {
     expect((response.body as ProblemBody).code).toBe('CATALOG_QUOTE_BELOW_MINIMUM');
   });
 });
+
+describe('F-CAT-005 / D57 le catalogue public affiche le disponible, pas le déclaré', () => {
+  type Offer = components['schemas']['Offer'];
+  async function detail(): Promise<Offer> {
+    const response = await request(server()).get(`/v1/offers/${OFFER_ID}`);
+    expect(response.status).toBe(200);
+    return response.body as Offer;
+  }
+
+  it('3 déclarées, 2 réservées : 1 disponible ; 3 réservées : rupture (0), liste et détail cohérents', async () => {
+    expect((await detail()).availability).toEqual({ kind: 'IN_STOCK', units: 3 });
+    await createAgreementA(admin, { id: '019a9a00-0000-7000-8000-0000000000d1', customerId: A, offerId: OFFER_ID });
+    await createAgreementA(admin, { id: '019a9a00-0000-7000-8000-0000000000d2', customerId: B, offerId: OFFER_ID });
+    expect((await detail()).availability).toEqual({ kind: 'IN_STOCK', units: 1 });
+    await createAgreementA(admin, { id: '019a9a00-0000-7000-8000-0000000000d3', customerId: A, offerId: OFFER_ID });
+    expect((await detail()).availability).toEqual({ kind: 'IN_STOCK', units: 0 });
+    const list = await request(server()).get('/v1/offers');
+    expect((list.body as { offers: Offer[] }).offers.map((offer) => offer.availability)).toEqual([{ kind: 'IN_STOCK', units: 0 }]);
+  });
+});
+

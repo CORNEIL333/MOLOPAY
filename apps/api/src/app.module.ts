@@ -9,7 +9,7 @@ import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
 import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
 import { BeneficiaryController } from './workflows/beneficiary.controller';
-import { PublicOfferController } from './modules/catalog/public-offer.controller';
+import { PublicOfferController } from './workflows/public-offer.controller';
 import { QuoteController } from './modules/catalog/quote.controller';
 import { AccountSecurityController } from './modules/identity/account-security.controller';
 import { DataRightsController } from './modules/identity/data-rights.controller';

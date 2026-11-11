@@ -2194,7 +2194,8 @@
               },
               "units": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "description": "F-CAT-005 / D57 : unités encore disponibles (stock déclaré − réservations − remises depuis la version) ; 0 = rupture."
               }
             },
             "additionalProperties": false
