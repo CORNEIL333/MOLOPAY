@@ -37,6 +37,7 @@ export const ADMIN_ACTIONS = [
   'APPROVE_REFUND',
   'PREPARE_BENEFICIARY_PAYOUT',
   'APPROVE_BENEFICIARY_PAYOUT',
+  'DECIDE_RISK_ALERT',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -116,11 +117,15 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'APPROVE_PAYMENT_PLAN',
     // D48 / F-PLN-002 : examen des pièces des bénéficiaires (proposition puis confirmation).
     'REVIEW_BENEFICIARY_DOCUMENT',
+    // D53 / SEC-FRD-002 : décision tracée sur une alerte de fraude (Conformité/Risque).
+    'DECIDE_RISK_ALERT',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
     'MANAGE_RISK_ALERT',
     'DECLARE_MERCHANT_DEFAULT',
+    // D53 / SEC-FRD-002 : décision tracée sur une alerte de fraude.
+    'DECIDE_RISK_ALERT',
   ]),
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.

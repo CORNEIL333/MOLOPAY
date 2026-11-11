@@ -31,6 +31,7 @@ import {
   seedPaymentPlan,
   validateMerchant,
 } from './agreement-fixture';
+import { listHandoversSince } from '../../src/modules/settlement/risk-facts.store';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 const MIGRATIONS = [
@@ -461,5 +462,20 @@ describe('F-SAV-004 / F-NOT-001 code de remise prêt', () => {
     ]);
     const leak = await admin.query(`SELECT count(*)::int AS n FROM notifications.outbox WHERE row_to_json(outbox)::text LIKE '%' || $1 || '%'`, [issued.code]);
     expect(leak.rows[0]).toEqual({ n: 0 });
+  });
+});
+
+describe('SEC-FRD-001 / D53 faits de remise pour la détection de fraude', () => {
+  it('liste la remise de la boutique depuis l’instant donné, pas avant', async () => {
+    await fund();
+    const { code } = await issue();
+    const before = new Date(Date.now() - 60_000);
+    await handover(code);
+    const facts = await transact('app_ro', (client) => listHandoversSince(client, before));
+    expect(facts.map((fact) => ({ partnerId: fact.partnerId, agreementId: fact.agreementId }))).toEqual([
+      { partnerId: 'merchant-1', agreementId: AGREEMENT_ID },
+    ]);
+    const later = await transact('app_ro', (client) => listHandoversSince(client, new Date(Date.now() + 60_000)));
+    expect(later).toEqual([]);
   });
 });

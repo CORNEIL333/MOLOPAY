@@ -26,8 +26,9 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Routes client C : dépôt de pièce, règlement au bénéficiaire sous PIN | contrat 0.4.0, 11 tests HTTP |
 | DONE | Trop-perçu restitué, nouvelle tentative de remboursement (D51) | 0048, 9 mutants tués |
 | DONE | Notifications des fonds sortis au client (D52) | SETTLEMENT_CONFIRMED, pas de nouveau type |
-| IN_PROGRESS | Lot 16 Risk : règles de fraude explicables | inventaire CDC_07 / SEC-FRD |
-| READY | Lot 14 : rapprochement — suite (réception 1200 → 1100) | sans relevé réel : tranche domaine seulement |
+| DONE | Lot 16 Risk tranches 1–2 : règles explicables, alertes, décision tracée (D53) | 0049, 17 mutants tués |
+| BLOCKED | Lot 16 : comptes multiples par appareil ; changement de numéro suivi de retrait | attestation d'appareil (lot 19) ; historique des numéros absent |
+| IN_PROGRESS | Lot 14 Reconciliation : suite | inventaire 0030/0031 |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -41,4 +42,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 16 : lire SEC-FRD-* (CDC_03) et les scénarios de fraude de CDC_07, inventorier `apps/api/src/modules/risk` (absent ?) et le module notifications/monitor ; choisir une première règle explicable testable sur données internes.
+Lot 14 : relire INT-REC-* (CDC_04), migrations 0030/0031 et `modules/reconciliation` ; identifier une tranche réalisable sans relevé réel de l'établissement (ex. invariant de cantonnement sur données internes, classement des écarts).

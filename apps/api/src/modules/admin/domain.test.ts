@@ -66,9 +66,11 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'APPROVE_PAYMENT_PLAN',
     // D48 : examen des pièces des bénéficiaires.
     'REVIEW_BENEFICIARY_DOCUMENT',
+    // D53 : décision sur une alerte de fraude.
+    'DECIDE_RISK_ALERT',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
-  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT'],
+  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT'],
   PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT'],
   AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
