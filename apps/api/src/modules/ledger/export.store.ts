@@ -31,10 +31,12 @@ export async function exportLedgerEntries(client: SqlClient): Promise<readonly E
     actor_id: string; approvers: string[]; idem_scope: string; idem_key: string; reverses_entry_id: string | null;
     prev_hash: Buffer; entry_hash: Buffer;
   }>(
-    `SELECT seq::text, id, to_char(recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS ts,
+    `SELECT e.seq::text AS seq, id, to_char(recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS ts,
             operation_type, business_refs, actor_id, approvers, idem_scope, idem_key, reverses_entry_id,
             prev_hash, entry_hash
-       FROM ledger.journal_entry ORDER BY seq`,
+       FROM ledger.journal_entry e
+      -- Tri sur la colonne bigint, pas sur l'alias texte (où '10' < '2').
+      ORDER BY e.seq`,
   );
   const postings = await client.query<{ entry_id: string; account_id: string; amount_xaf: string; direction: 'D' | 'C'; ordinal: number }>(
     'SELECT entry_id, account_id, amount_xaf::text, direction, ordinal FROM ledger.posting ORDER BY entry_id, ordinal',

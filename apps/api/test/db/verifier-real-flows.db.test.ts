@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -10,6 +10,7 @@ import type { AdminPrincipal } from '../../src/modules/admin/domain';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { exportLedgerEntries, type ExportedEntry } from '../../src/modules/ledger/export.store';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
+import { issueHandoverCode } from '../../src/modules/settlement/handover.store';
 import { payBeneficiaryForCustomer } from '../../src/workflows/beneficiary-payment';
 import {
   decideBeneficiaryPayout,
@@ -17,16 +18,23 @@ import {
   prepareBeneficiaryPayout,
   recordBeneficiaryPayoutExecution,
 } from '../../src/workflows/beneficiary-payout';
+import { confirmHandoverAtPartner } from '../../src/workflows/handover';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
+import { decidePayout, instructPayout, preparePayout, recordPayoutExecution } from '../../src/workflows/settlement-payout';
 import { decideRefund, instructRefund, prepareRefund, recordRefundExecution } from '../../src/workflows/refund';
 import {
+  createAgreementA,
   createAgreementC,
+  PLAN_A,
   PLAN_C,
   publishKycLimits,
+  publishOfferA,
+  publishSetting,
   seedCustomerAccount,
   seedLedgerGenesis,
   seedPaymentPlan,
   validateBeneficiary,
+  validateMerchant,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
@@ -43,6 +51,9 @@ const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments',
 const CUSTOMER_ID = '019aa200-0000-7000-8000-0000000000c1';
 const PAID_GOAL = '019aa200-0000-7000-8000-0000000000a1';
 const REFUNDED_GOAL = '019aa200-0000-7000-8000-0000000000a2';
+const PURCHASE = '019aa200-0000-7000-8000-0000000000a3';
+const OFFER_ID = '019aa200-0000-7000-8000-0000000000f1';
+const PEPPER = randomBytes(32);
 const OPS: AdminPrincipal = { actorId: 'ops-1', roles: ['OPERATIONS'] };
 const FIN: AdminPrincipal = { actorId: 'fin-1', roles: ['FINANCE'], maxAmountXaf: 1_000_000n };
 const FIN2: AdminPrincipal = { actorId: 'fin-2', roles: ['FINANCE'], maxAmountXaf: 1_000_000n };
@@ -74,12 +85,17 @@ async function transact<T>(role: 'app_rw' | 'app_ro' | null, action: (client: Cl
   }
 }
 
-async function pay(agreementId: string, amount: bigint): Promise<void> {
+async function pending(agreementId: string, amount: bigint): Promise<string> {
   const attemptId = uuidv7();
   await transact('app_rw', async (client) => {
     await createStoredPaymentAttempt(client, { id: attemptId, agreementId, channel: 'MTN_MOMO', amountXaf: amount, idemKey: uuidv7() });
     await appendAttemptTransition(client, { attemptId, from: 'CREATED', to: 'PENDING', seq: 1, actorId: 'payments-worker' });
   });
+  return attemptId;
+}
+
+async function pay(agreementId: string, amount: bigint, attempt?: string): Promise<void> {
+  const attemptId = attempt ?? (await pending(agreementId, amount));
   await transact('app_rw', (client) =>
     confirmPaymentAndFundAgreement(client, {
       attemptId,
@@ -137,7 +153,11 @@ beforeAll(async () => {
   }
   await transact('app_rw', async (client) => {
     await validateBeneficiary(client, uuidv7(), 'school-1', 'SCHOOL');
+    await validateMerchant(client, uuidv7());
     await seedPaymentPlan(client, PLAN_C);
+    await seedPaymentPlan(client, PLAN_A);
+    await publishOfferA(client, { offerId: OFFER_ID, partnerId: 'merchant-1', priceXaf: 150_000n });
+    await createAgreementA(client, { id: PURCHASE, customerId: CUSTOMER_ID, offerId: OFFER_ID });
     await createAgreementC(client, { id: PAID_GOAL, customerId: CUSTOMER_ID, active: true, beneficiaryId: 'school-1' });
     await createAgreementC(client, { id: REFUNDED_GOAL, customerId: CUSTOMER_ID, active: true, beneficiaryId: 'school-1' });
   });
@@ -173,6 +193,36 @@ beforeAll(async () => {
     recordRefundExecution(client, { refundId: refund.refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-1' }),
   );
 
+  // Achat A : trop-perçu (deux tentatives concurrentes), restitution du surplus,
+  // remise en boutique, commission et règlement net du marchand.
+  await publishSetting(admin, 'handover_code_validity_days', 30);
+  await publishSetting(admin, 'merchant_commission_bps', 250);
+  await publishSetting(admin, 'settlement_contestation_days', 0);
+  const first = await pending(PURCHASE, 100_000n);
+  const second = await pending(PURCHASE, 100_000n);
+  await pay(PURCHASE, 100_000n, first);
+  await pay(PURCHASE, 100_000n, second);
+  const surplus = await transact('app_rw', (client) => prepareRefund(client, { id: uuidv7(), agreementId: PURCHASE, kind: 'SURPLUS', principal: OPS }));
+  await transact('app_rw', (client) => decideRefund(client, { refundId: surplus.refundId, principal: FIN, decision: 'APPROVED' }));
+  await transact('app_rw', (client) => instructRefund(client, { refundId: surplus.refundId, principal: FIN, signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+  await transact('app_rw', (client) =>
+    recordRefundExecution(client, { refundId: surplus.refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-2' }),
+  );
+  const { code } = await transact('app_rw', (client) => issueHandoverCode(client, { agreementId: PURCHASE, pepper: PEPPER, actorId: 'system-handover' }));
+  await transact('app_rw', (client) =>
+    confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: 'vendeur-1', latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
+  );
+  const settlement = await transact('app_rw', (client) => preparePayout(client, { id: uuidv7(), agreementId: PURCHASE, cityId: 'douala', principal: { ...OPS, cityIds: ['douala'] } }));
+  await transact('app_rw', (client) =>
+    decidePayout(client, { payoutId: settlement.payoutId, principal: { ...FIN, cityIds: ['douala'] }, decision: 'APPROVED', cityId: 'douala' }),
+  );
+  await transact('app_rw', (client) =>
+    instructPayout(client, { payoutId: settlement.payoutId, principal: { ...FIN, cityIds: ['douala'] }, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }),
+  );
+  await transact('app_rw', (client) =>
+    recordPayoutExecution(client, { payoutId: settlement.payoutId, principal: { ...FIN2, cityIds: ['douala'] }, cityId: 'douala', outcome: 'EXECUTED', bankReference: 'ETAB-REG-1' }),
+  );
+
   entries = await transact('app_ro', (client) => exportLedgerEntries(client));
 }, 600_000);
 
@@ -192,6 +242,12 @@ describe('INT-VER-001/003 vérificateur indépendant sur un grand livre produit 
       'SETTLEMENT_SENT',
       'PAYMENT_CONFIRMED',
       'REFUND_SENT',
+      'PAYMENT_CONFIRMED',
+      'PAYMENT_CONFIRMED',
+      'REFUND_SENT',
+      'HANDOVER',
+      'FEE_CHARGED',
+      'SETTLEMENT_SENT',
     ]);
   });
 

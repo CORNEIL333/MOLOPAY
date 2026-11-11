@@ -56,4 +56,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Étendre le test du vérificateur aux flux A (remise HANDOVER, règlement marchand FEE_CHARGED/SETTLEMENT_SENT) et au trop-perçu ; puis lot 25 (jeu de données de recette).
+Lot 25 : jeu de données de recette généré (aucune donnée personnelle réelle) par les flux réels, exporté et vérifié — réutiliser le scénario de `verifier-real-flows.db.test.ts` comme script `tools/`. Sinon : revue des points ouverts D41–D59 pour une fiche de décisions au fondateur.
