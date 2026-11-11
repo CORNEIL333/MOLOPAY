@@ -54,6 +54,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'DECLARE_MERCHANT_DEFAULT',
     // D26 : COMPLIANCE approuve les plans (préparateur ≠ approbateur, I-7).
     'APPROVE_PAYMENT_PLAN',
+    // D48 : examen des pièces des bénéficiaires.
+    'REVIEW_BENEFICIARY_DOCUMENT',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT'],

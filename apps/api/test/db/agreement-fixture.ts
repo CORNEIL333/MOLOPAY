@@ -98,18 +98,29 @@ export async function validateMerchant(client: Client, requestId: string, partne
   await validatePartner(client, requestId, partnerId, 'MERCHANT');
 }
 
+/** Bénéficiaire validé d'une catégorie donnée (F-PLN-001). */
+export async function validateBeneficiary(
+  client: Client,
+  requestId: string,
+  partnerId: string,
+  kind: 'LANDLORD' | 'AGENCY' | 'SCHOOL' | 'MATERIALS_SELLER' | 'LAND_SELLER',
+): Promise<void> {
+  await validatePartner(client, requestId, partnerId, 'BENEFICIARY', kind);
+}
+
 async function validatePartner(
   client: Client,
   requestId: string,
   partnerId: string,
   partnerType: 'MERCHANT' | 'BENEFICIARY',
+  kind: 'LANDLORD' | 'AGENCY' | 'SCHOOL' | 'MATERIALS_SELLER' | 'LAND_SELLER' = 'LANDLORD',
 ): Promise<void> {
   const stored = await appendPartnerDossier(
     client,
     createPartnerDossier({
       partnerId,
       partnerType,
-      beneficiaryKind: partnerType === 'BENEFICIARY' ? 'LANDLORD' : null,
+      beneficiaryKind: partnerType === 'BENEFICIARY' ? kind : null,
       legalName: 'Bailleur de test',
       rccm: 'RC/DLA/2024/B/0001',
       niu: 'M000000000000A',
@@ -158,12 +169,12 @@ async function validatePartner(
  */
 export async function createAgreementC(
   client: Client,
-  options: { readonly id: string; readonly customerId: string; readonly active: boolean },
+  options: { readonly id: string; readonly customerId: string; readonly active: boolean; readonly beneficiaryId?: string },
 ): Promise<void> {
   await createPlannedExpenseAgreement(client, {
     id: options.id,
     customerId: options.customerId,
-    beneficiaryId: 'landlord-1',
+    beneficiaryId: options.beneficiaryId ?? 'landlord-1',
     targetXaf: 300_000n,
     planId: PLAN_C.planId,
     durationMonths: 4,

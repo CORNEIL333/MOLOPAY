@@ -18,8 +18,10 @@ const MAX_ORDINAL: u32 = i16::MAX as u32;
 // Liste blanche : un type inconnu est refusé même si son hash est cohérent,
 // car le vérificateur ne peut pas savoir quelles règles métier il porte.
 // HANDOVER : remise au marchand (lot 12, migration 0040, D45).
-const ALLOWED_ENTRY_TYPES: [&str; 9] = [
+// BENEFICIARY_PAYMENT : règlement au bénéficiaire C (migration 0043, D48).
+const ALLOWED_ENTRY_TYPES: [&str; 10] = [
     "ADJUSTMENT",
+    "BENEFICIARY_PAYMENT",
     "FEE_CHARGED",
     "GENESIS",
     "HANDOVER",
@@ -835,7 +837,7 @@ mod tests {
 
     #[test]
     fn liste_blanche_des_types_d_ecriture() {
-        for kind in ["GENESIS", "PAYMENT_CONFIRMED", "HANDOVER", "SETTLEMENT_SENT"] {
+        for kind in ["GENESIS", "PAYMENT_CONFIRMED", "HANDOVER", "BENEFICIARY_PAYMENT", "SETTLEMENT_SENT"] {
             assert!(is_allowed_entry_type(kind), "{kind} doit être accepté");
         }
         for kind in ["", "handover", "PAYMENT", "TEST_TRANSFER"] {

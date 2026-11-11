@@ -32,6 +32,7 @@ export const ADMIN_ACTIONS = [
   'APPROVE_PARTNER',
   'PREPARE_PAYMENT_PLAN',
   'APPROVE_PAYMENT_PLAN',
+  'REVIEW_BENEFICIARY_DOCUMENT',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -99,6 +100,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECLARE_MERCHANT_DEFAULT',
     // D26 : COMPLIANCE approuve les plans (préparateur ≠ approbateur, I-7).
     'APPROVE_PAYMENT_PLAN',
+    // D48 / F-PLN-002 : examen des pièces des bénéficiaires (proposition puis confirmation).
+    'REVIEW_BENEFICIARY_DOCUMENT',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
