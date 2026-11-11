@@ -380,3 +380,8 @@
 ### D58 · Reçu de règlement au bénéficiaire C (F-PLN-003)
 - **Appliqué :** `GET /v1/goals/{goalId}/beneficiary-receipt` (client de l'objectif, session) : montant, bénéficiaire, date d'exécution, référence de l'établissement et 8 premiers caractères hexadécimaux de l'empreinte de l'écriture (vérifiable au grand livre, comme D39) ; disponible seulement après exécution confirmée (404 `SETTLEMENT_NOT_FOUND` sinon). Contrat 0.5.0. Le client est aussi notifié (D52).
 - **Bloqué :** envoi du reçu au bénéficiaire : l'outbox n'adresse que des clients (D47) ; canal partenaire à concevoir avec le portail partenaire (lot 20).
+
+### D59 · Export du grand livre et vérification indépendante sur flux réels (INT-VER-001/003, lot 23)
+- **Appliqué :** `ledger/export.store.ts` exporte toutes les écritures au format du vérificateur (contenu haché exact). Test d'intégration : grand livre produit par les flux réels (versements, règlement au bénéficiaire, virement, remboursement), lot Merkle et tête signée Ed25519 (clé de test générée), vérifié par le binaire Rust réel (équilibre, chaîne, Merkle, signature, témoin) ; une altération de montant est détectée.
+- **Constat :** `pnpm verify:ledger` réutilise un binaire release existant sans le recompiler ; un binaire antérieur à une modification de la liste blanche pourrait être utilisé. Le nouveau test recompile (incrémental) avant usage. **À décider (outillage) :** recompiler systématiquement dans `verify:ledger`.
+- **Reste (lot 23) :** export signé périodique et envoi aux témoins réels (canal authentifié, conventions) ; clé de journal de production (HSM, D5).

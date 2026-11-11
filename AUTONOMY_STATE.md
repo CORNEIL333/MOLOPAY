@@ -41,6 +41,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
+| DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
+| BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | BLOCKED | Routes HTTP back-office (remboursements, virements, règlements) | aucune authentification du personnel (lot 21, réseau isolé, MFA) : décision d'architecture à prendre ; préparer le contrat seulement |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -54,4 +56,4 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 25 : générateur de jeu de données de recette (aucune donnée personnelle réelle) rejouant les flux réels sur la base de test ; puis `pnpm verify:ledger` sur ce jeu.
+Étendre le test du vérificateur aux flux A (remise HANDOVER, règlement marchand FEE_CHARGED/SETTLEMENT_SENT) et au trop-perçu ; puis lot 25 (jeu de données de recette).
