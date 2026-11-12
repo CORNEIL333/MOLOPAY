@@ -18,6 +18,9 @@ const UNAUTHORIZED: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'PERMISSION_DENIED',
   'ADMIN_FORBIDDEN',
+  // Refus d'autorisation du back-office : hors périmètre (ville, partenaire) ou au-delà du plafond.
+  'ADMIN_SCOPE_DENIED',
+  'ADMIN_AMOUNT_LIMIT',
   'ORIGIN_FORBIDDEN',
   'MAKER_CANNOT_APPROVE',
   'IDENTITY_ACCOUNT_BLOCKED',

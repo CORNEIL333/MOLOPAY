@@ -67,6 +67,10 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/complaints/${GOAL}/disputes`]: {},
   [`/v1/backoffice/disputes/${GOAL}/resolution`]: {},
   [`/v1/backoffice/complaints/${GOAL}/closure`]: { outcome: 'ANSWERED' },
+  '/v1/backoffice/settlements': { agreementId: GOAL, cityId: 'douala' },
+  [`/v1/backoffice/settlements/${GOAL}/decision`]: { decision: 'APPROVED', cityId: 'douala' },
+  [`/v1/backoffice/settlements/${GOAL}/instruction`]: { cityId: 'douala' },
+  [`/v1/backoffice/settlements/${GOAL}/execution`]: { outcome: 'EXECUTED', bankReference: 'ETAB-1', cityId: 'douala' },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
