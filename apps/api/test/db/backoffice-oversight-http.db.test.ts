@@ -184,3 +184,29 @@ describe('D54 / D55 rapprochement au back-office', () => {
     expect((await post(`/v1/backoffice/reconciliation/suspense/${entry.id}/approval`, cookies.finTwo, {})).status).toBe(200);
   });
 });
+
+describe('F-BO-003 / D62 file de travail du back-office', () => {
+  it('liste l’alerte ouverte et l’écart à traiter, sans donnée personnelle ; refusée sans droit de lecture financière', async () => {
+    await publishSetting(admin, RISK_THRESHOLDS_KEY, {
+      PAYMENT_VELOCITY: { maxCount: 3, windowMinutes: 60 },
+      REPEATED_CANCELLATIONS: { maxCount: 2, windowMinutes: 43_200 },
+      HANDOVER_SPIKE: { maxCount: 20, windowMinutes: 1440 },
+    });
+    for (let index = 0; index < 4; index += 1) {
+      await pay(10_000n);
+    }
+    await withTransaction(database, (client) => runRiskDetection(client, { now: new Date(), actorId: 'risk-detector' }));
+    const read = (cookie: string, reason = 'revue quotidienne des files'): request.Test =>
+      request(server()).get('/v1/backoffice/queue').query({ reason }).set('Cookie', cookie);
+    expect((await request(server()).get('/v1/backoffice/queue').set('Cookie', cookies.finOne)).status).toBe(400);
+    expect((await read(cookies.supportN1)).status).toBe(403);
+    const response = await read(cookies.finOne);
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    const queue = response.body as { openRiskAlerts: { rule: string }[]; refunds: unknown[]; overdueComplaints: unknown[] };
+    expect(queue.openRiskAlerts.map((alert) => alert.rule)).toEqual(['PAYMENT_VELOCITY']);
+    expect(queue.refunds).toEqual([]);
+    expect(JSON.stringify(response.body)).not.toMatch(/\+237|phone|login/i);
+  });
+});
+

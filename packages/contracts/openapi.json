@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -3533,6 +3533,57 @@
           }
         }
       }
+    },
+    "/v1/backoffice/queue": {
+      "get": {
+        "operationId": "getBackofficeQueue",
+        "summary": "File de travail du back-office (consultation motivée, journalisée)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "description": "Motif de consultation (F-BO-004), inscrit à l’audit."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File de travail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackofficeQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6043,6 +6094,75 @@
               "yaounde",
               "douala"
             ]
+          }
+        }
+      },
+      "BackofficeQueue": {
+        "type": "object",
+        "description": "F-BO-003 : actions en attente (identifiants internes, montants, états ; aucune donnée personnelle).",
+        "required": [
+          "asOf",
+          "refunds",
+          "beneficiaryPayouts",
+          "settlements",
+          "overdueInstructions",
+          "gapsToEscalate",
+          "unjustifiedSuspense",
+          "openRiskAlerts",
+          "overdueComplaints"
+        ],
+        "properties": {
+          "refunds": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "beneficiaryPayouts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "settlements": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "overdueInstructions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "gapsToEscalate": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "unjustifiedSuspense": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "openRiskAlerts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "overdueComplaints": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

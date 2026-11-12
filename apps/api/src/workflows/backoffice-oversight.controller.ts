@@ -1,7 +1,7 @@
-import { Body, Controller, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import type { JsonValue } from '@achat/chain';
-import { PG_POOL, type Database } from '../http/database';
+import { PG_POOL, withTransaction, type Database } from '../http/database';
 import type { HttpRequest } from '../http/express-types';
 import { assertIdempotencyKey, runIdempotent } from '../http/idempotency';
 import { CurrentStaff, StaffSessionGuard } from '../http/staff-session.guard';
@@ -15,6 +15,7 @@ import {
   proposeGapClassification,
   proposeSuspenseLineJustification,
 } from './reconciliation-classification';
+import { readBackofficeQueue } from './backoffice-queue';
 import { decideRiskAlert } from './risk-detection';
 
 type Result = { readonly status: number; readonly body: JsonValue };
@@ -34,6 +35,15 @@ export class BackofficeOversightController {
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
     const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `${scope}:${staff.actorId}`, key, request: fingerprint }, command);
     return result.body;
+  }
+
+  /** F-BO-003 / D62 : file de travail (lecture seule, instantané unique). */
+  @Get('queue')
+  @Header('Cache-Control', 'private, no-store')
+  public queue(@CurrentStaff() staff: AdminPrincipal, @Query() query: unknown): Promise<unknown> {
+    const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
+    // app_rw : la consultation est inscrite à l'audit chaîné dans la même transaction (F-BO-004).
+    return withTransaction({ ...this.database, role: 'app_rw' }, (client) => readBackofficeQueue(client, staff, reason));
   }
 
   // --- Rapprochement (D54, D55) ---
