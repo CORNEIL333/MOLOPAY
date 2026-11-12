@@ -59,6 +59,14 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/beneficiary-payouts/${GOAL}/decision`]: { decision: 'APPROVED' },
   [`/v1/backoffice/beneficiary-payouts/${GOAL}/instruction`]: {},
   [`/v1/backoffice/beneficiary-payouts/${GOAL}/execution`]: { outcome: 'EXECUTED', bankReference: 'ETAB-1' },
+  [`/v1/backoffice/reconciliation/incidents/${GOAL}/classifications`]: { classification: 'FEES', explanation: 'frais' },
+  [`/v1/backoffice/reconciliation/classifications/${GOAL}/decision`]: { decision: 'APPROVED' },
+  [`/v1/backoffice/reconciliation/suspense/${GOAL}/justification`]: { explanation: 'versement non identifié' },
+  [`/v1/backoffice/reconciliation/suspense/${GOAL}/approval`]: {},
+  [`/v1/backoffice/risk/alerts/${GOAL}/decision`]: { decision: 'DISMISSED', reason: 'faux positif' },
+  [`/v1/backoffice/complaints/${GOAL}/disputes`]: {},
+  [`/v1/backoffice/disputes/${GOAL}/resolution`]: {},
+  [`/v1/backoffice/complaints/${GOAL}/closure`]: { outcome: 'ANSWERED' },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
@@ -121,7 +129,7 @@ function declaredPostRoutes(): string[] {
       }
       const path = (Reflect.getMetadata(PATH_METADATA, handler) as string | undefined) ?? '';
       const joined = `/${[base, path].filter((part) => part !== '' && part !== '/').join('/')}`.replace(/\/+/g, '/');
-      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL).replace(':refundId', GOAL).replace(':payoutId', GOAL));
+      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL).replace(':refundId', GOAL).replace(':payoutId', GOAL).replace(/:[A-Za-z]+Id/g, GOAL));
     }
   }
   return paths.sort();

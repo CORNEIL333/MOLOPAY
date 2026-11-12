@@ -47,7 +47,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Quotas des routes d'objectifs (D61) | 0055 |
 | DONE | Lot 24 : cache, garde Origin et Idempotency-Key vérifiés sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
-| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–4 faites (vérification, 0056, garde, connexion, remboursements et virements C complets) ; fermé par défaut, à valider par le fondateur |
+| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–5 faites (vérification, 0056, garde, connexion, sorties de fonds, contrôle et conformité) ; fermé par défaut, à valider par le fondateur |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -64,4 +64,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 21 tranche 5 : routes du back-office pour le classement des écarts et le suspens (D54, D55), les alertes de fraude (D53) et les litiges/réclamations (D56), sur le même modèle (`StaffSessionGuard`, liste blanche, Idempotency-Key, contrat) ; puis règlements marchands (ville en contexte).
+Lot 21 tranche 6 : règlements marchands au back-office (préparation, décision, instruction, exécution ; ville du principal en contexte, `assertCityOfAgreement`), puis lectures du back-office (files à traiter : remboursements, virements, écarts, alertes, réclamations en retard), puis demandes ROLE_GRANT et paramètres financiers en HTTP.

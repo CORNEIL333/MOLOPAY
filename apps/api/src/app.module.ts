@@ -9,6 +9,7 @@ import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
 import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
 import { BeneficiaryController } from './workflows/beneficiary.controller';
+import { BackofficeOversightController } from './workflows/backoffice-oversight.controller';
 import { BackofficeRefundController, PLATFORM_SIGNING_KEY, type PlatformSigningKey } from './workflows/backoffice-refund.controller';
 import { StaffAuthController } from './modules/admin/staff.controller';
 import { STAFF_RP, StaffSessionGuard } from './http/staff-session.guard';
@@ -40,7 +41,7 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
