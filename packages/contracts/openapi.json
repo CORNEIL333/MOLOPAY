@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -2017,6 +2017,200 @@
           }
         }
       }
+    },
+    "/v1/staff/login-challenges": {
+      "post": {
+        "operationId": "createStaffLoginChallenge",
+        "summary": "Défi de connexion WebAuthn du personnel (D62)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffLoginChallengeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Défi émis (indiscernable pour un identifiant inconnu)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffLoginChallenge"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
+      }
+    },
+    "/v1/staff/sessions": {
+      "post": {
+        "operationId": "createStaffSession",
+        "summary": "Connexion du personnel par assertion WebAuthn (D62)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session ouverte (cookie staff_session à la première exécution ; un rejeu renvoie le corps sans cookie)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
+      }
+    },
+    "/v1/staff/sessions/current": {
+      "delete": {
+        "operationId": "deleteStaffSession",
+        "summary": "Déconnexion du personnel (révocation immédiate)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session révoquée"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ]
+      }
+    },
+    "/v1/backoffice/refunds/{refundId}/decision": {
+      "post": {
+        "operationId": "decideRefund",
+        "summary": "Décision sur un remboursement préparé, par une autre personne (D49, I-7)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Décision enregistrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2035,6 +2229,12 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "admin_session"
+      },
+      "staffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "staff_session",
+        "description": "D62 / ADR-0007 (proposé) : session WebAuthn du personnel, 15 min au plus."
       }
     },
     "parameters": {
@@ -4036,6 +4236,131 @@
           "entryHashPrefix": {
             "type": "string",
             "pattern": "^[0-9a-f]{8}$"
+          }
+        }
+      },
+      "StaffLoginChallengeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "login"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{2,63}$"
+          }
+        }
+      },
+      "StaffLoginChallenge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challengeId",
+          "challenge",
+          "rpId"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challenge": {
+            "type": "string",
+            "description": "Défi base64url, usage unique, 5 min."
+          },
+          "rpId": {
+            "type": "string"
+          }
+        }
+      },
+      "StaffSessionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challengeId",
+          "credentialId",
+          "clientDataJSON",
+          "authenticatorData",
+          "signature"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentialId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "clientDataJSON": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "authenticatorData": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          }
+        },
+        "description": "Assertion WebAuthn (navigator.credentials.get), champs en base64url."
+      },
+      "StaffSession": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expiresAt"
+        ],
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Le jeton est posé en cookie httpOnly, jamais dans le corps."
+      },
+      "RefundDecisionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "RefundDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refundId",
+          "decision"
+        ],
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
           }
         }
       }

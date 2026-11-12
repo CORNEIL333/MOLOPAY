@@ -9,6 +9,10 @@ import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
 import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
 import { BeneficiaryController } from './workflows/beneficiary.controller';
+import { BackofficeRefundController } from './workflows/backoffice-refund.controller';
+import { StaffAuthController } from './modules/admin/staff.controller';
+import { STAFF_RP, StaffSessionGuard } from './http/staff-session.guard';
+import type { RelyingParty } from './modules/admin/webauthn';
 import { PublicOfferController } from './workflows/public-offer.controller';
 import { QuoteController } from './modules/catalog/quote.controller';
 import { AccountSecurityController } from './modules/identity/account-security.controller';
@@ -19,6 +23,8 @@ export type AppDependencies = {
   readonly allowedOrigins: ReadonlySet<string>;
   /** Poivre PIN (configuration) ; absent : les actions sous PIN répondent 503. */
   readonly pinPepper?: Uint8Array | null;
+  /** Partie de confiance WebAuthn du back-office (D62) ; absente : routes du personnel fermées (503). */
+  readonly staffRp?: RelyingParty | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -32,15 +38,17 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
+        { provide: STAFF_RP, useValue: deps.staffRp ?? null },
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },
         CustomerSessionGuard,
         CustomerQuotaGuard,
+        StaffSessionGuard,
       ],
     };
   }

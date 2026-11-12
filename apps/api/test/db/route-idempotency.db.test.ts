@@ -16,6 +16,7 @@ import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { seedCustomerAccount } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
 /**
  * Lot 24 / INT-IDEM-001 : chaque route d'écriture déclarée exige l'en-tête
@@ -46,6 +47,23 @@ const CASES: Readonly<Record<string, object | undefined>> = {
   [`/v1/goals/${GOAL}/lock`]: { pin: PIN },
   [`/v1/goals/${GOAL}/beneficiary-documents`]: { kind: 'LEASE', sha256: 'a'.repeat(64) },
   [`/v1/goals/${GOAL}/beneficiary-payment`]: { pin: PIN },
+};
+
+/** Routes du back-office : session du personnel (D62) au lieu de la session client. */
+const STAFF_CASES: Readonly<Record<string, object>> = {
+  [`/v1/backoffice/refunds/${GOAL}/decision`]: { decision: 'APPROVED' },
+};
+
+/** Routes de connexion du personnel : sans session, corps valide (D62). */
+const STAFF_LOGIN_CASES: Readonly<Record<string, object>> = {
+  '/v1/staff/login-challenges': { login: 'fin.idem' },
+  '/v1/staff/sessions': {
+    challengeId: GOAL,
+    credentialId: 'AAAA',
+    clientDataJSON: 'AAAA',
+    authenticatorData: 'AAAA',
+    signature: 'AAAA',
+  },
 };
 
 let db: TestDatabase;
@@ -96,7 +114,7 @@ function declaredPostRoutes(): string[] {
       }
       const path = (Reflect.getMetadata(PATH_METADATA, handler) as string | undefined) ?? '';
       const joined = `/${[base, path].filter((part) => part !== '' && part !== '/').join('/')}`.replace(/\/+/g, '/');
-      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL));
+      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL).replace(':refundId', GOAL));
     }
   }
   return paths.sort();
@@ -115,7 +133,7 @@ beforeAll(async () => {
   await seedCustomerAccount(admin, ACCOUNT, 'STRONG');
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN]), pinPepper: PEPPER })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();
@@ -130,7 +148,7 @@ afterAll(async () => {
 
 describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’écriture', () => {
   it('les cas couvrent exactement les routes POST déclarées', () => {
-    expect(declaredPostRoutes()).toEqual(Object.keys(CASES).sort());
+    expect(declaredPostRoutes()).toEqual([...Object.keys(CASES), ...Object.keys(STAFF_CASES), ...Object.keys(STAFF_LOGIN_CASES)].sort());
   });
 
   it('corps valide, session et Origin valides, sans clé : 400 REQUEST_INVALID pour la clé, sur chaque route', async () => {
@@ -141,6 +159,21 @@ describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’éc
       const { cookie } = await session(ACCOUNT);
       const call = request(server).post(path).set('Cookie', cookie).set('Origin', ORIGIN);
       const response = await (body === undefined ? call : call.send(body));
+      const problem = response.body as { code?: string; detail?: string };
+      if (response.status !== 400 || problem.code !== 'REQUEST_INVALID' || !(problem.detail ?? '').includes('Idempotency-Key')) {
+        failures.push(`${path} → ${response.status} ${problem.code ?? ''} ${problem.detail ?? ''}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('routes du back-office : session du personnel et Origin valides, sans clé : 400 REQUEST_INVALID pour la clé', async () => {
+    const server = app.getHttpServer() as Server;
+    const { key } = await createStaffWithKey(db.getConnectionUri(), { login: 'fin.idem', roles: ['FINANCE'], maxAmountXaf: 1_000_000n });
+    const cookie = staffCookie(await loginOverHttp(server, 'fin.idem', key, 1));
+    const failures: string[] = [];
+    for (const [path, body] of [...Object.entries(STAFF_CASES), ...Object.entries(STAFF_LOGIN_CASES)]) {
+      const response = await request(server).post(path).set('Cookie', cookie).set('Origin', [...STAFF_RP_TEST.origins][0] ?? '').send(body);
       const problem = response.body as { code?: string; detail?: string };
       if (response.status !== 400 || problem.code !== 'REQUEST_INVALID' || !(problem.detail ?? '').includes('Idempotency-Key')) {
         failures.push(`${path} → ${response.status} ${problem.code ?? ''} ${problem.detail ?? ''}`);

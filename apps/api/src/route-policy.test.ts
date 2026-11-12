@@ -3,6 +3,7 @@ import { GUARDS_METADATA, HEADERS_METADATA, METHOD_METADATA, PATH_METADATA } fro
 import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { CustomerSessionGuard } from './http/session.guard';
+import { StaffSessionGuard } from './http/staff-session.guard';
 
 /**
  * Lot 24 / SEC-API : politique transversale des routes, vérifiée sur TOUTES
@@ -27,7 +28,7 @@ function routes(): Route[] {
       const headers = (Reflect.getMetadata(HEADERS_METADATA, handler) ?? []) as { name: string; value: string }[];
       found.push({
         name: `${controller.name}.${key}`,
-        authenticated: [...classGuards, ...methodGuards].includes(CustomerSessionGuard),
+        authenticated: [...classGuards, ...methodGuards].some((guard) => guard === CustomerSessionGuard || guard === StaffSessionGuard),
         cacheControl: headers.find((header) => header.name.toLowerCase() === 'cache-control')?.value,
         method: Reflect.getMetadata(METHOD_METADATA, handler) as number,
       });

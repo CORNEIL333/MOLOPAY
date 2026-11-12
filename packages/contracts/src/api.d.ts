@@ -682,6 +682,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/staff/login-challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Défi de connexion WebAuthn du personnel (D62) */
+        post: operations["createStaffLoginChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/staff/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connexion du personnel par assertion WebAuthn (D62) */
+        post: operations["createStaffSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/staff/sessions/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Déconnexion du personnel (révocation immédiate) */
+        delete: operations["deleteStaffSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/refunds/{refundId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Décision sur un remboursement préparé, par une autre personne (D49, I-7) */
+        post: operations["decideRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1194,6 +1262,41 @@ export interface components {
             executedAt: string;
             bankReference: string;
             entryHashPrefix: string;
+        };
+        StaffLoginChallengeRequest: {
+            login: string;
+        };
+        StaffLoginChallenge: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @description Défi base64url, usage unique, 5 min. */
+            challenge: string;
+            rpId: string;
+        };
+        /** @description Assertion WebAuthn (navigator.credentials.get), champs en base64url. */
+        StaffSessionRequest: {
+            /** Format: uuid */
+            challengeId: string;
+            credentialId: string;
+            clientDataJSON: string;
+            authenticatorData: string;
+            signature: string;
+        };
+        /** @description Le jeton est posé en cookie httpOnly, jamais dans le corps. */
+        StaffSession: {
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RefundDecisionRequest: {
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            reason?: string;
+        };
+        RefundDecision: {
+            /** Format: uuid */
+            refundId: string;
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
         };
     };
     responses: {
@@ -2444,6 +2547,122 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    createStaffLoginChallenge: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffLoginChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description Défi émis (indiscernable pour un identifiant inconnu) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffLoginChallenge"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    createStaffSession: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Session ouverte (cookie staff_session à la première exécution ; un rejeu renvoie le corps sans cookie) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    deleteStaffSession: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session révoquée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    decideRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Décision enregistrée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundDecision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
         };
     };
 }

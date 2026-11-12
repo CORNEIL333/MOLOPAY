@@ -25,7 +25,7 @@
 
 | Point | Bloque | Question |
 |---|---|---|
-| Authentification du personnel (lot 21) | toutes les routes back-office : remboursements, virements, règlements, litiges, classement des écarts, alertes de fraude | Fournisseur d'identité, MFA, réseau isolé : quel choix (ADR à approuver) ? Tous les flux existent déjà côté serveur, avec leurs contrôles de rôles. |
+| Authentification du personnel (lot 21) | mise en service du back-office | **ADR-0007 proposé** (WebAuthn vérifié par l'API ; implémenté, testé, fermé par défaut). Approuver, ou préférer un fournisseur d'identité ? Fixer RP ID, origine, modèles de clés matérielles, réseau isolé. |
 | Canal partenaire (lot 20) | reçus et notifications aux marchands et bénéficiaires (D47, D58) | Portail partenaire et authentification des partenaires : priorité ? |
 | Agrégateur de paiement (lot 11) | tout encaissement réel | Agrégateur retenu et identifiants de l'environnement de test officiel. |
 | Établissement de cantonnement | instructions signées réelles, relevés (INT-REC-001) | Format et canal des instructions ; accès aux relevés. |

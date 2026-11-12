@@ -47,7 +47,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Quotas des routes d'objectifs (D61) | 0055 |
 | DONE | Lot 24 : cache, garde Origin et Idempotency-Key vérifiés sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
-| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–2 faites (vérification pure ; comptes, rôles, clés, sessions 0056) ; à valider par le fondateur |
+| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–3 faites (vérification, 0056, garde, connexion, décision de remboursement) ; fermé par défaut, à valider par le fondateur |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -64,4 +64,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 21 tranche 3 : `StaffSessionGuard` (cookie httpOnly distinct du client, origine back-office en liste blanche), routes `POST /v1/staff/login-challenges`, `/v1/staff/sessions`, `DELETE` session ; puis première route back-office (décision de remboursement) branchée sur `decideRefund` avec le principal reconstruit. Tests HTTP d'abord.
+Lot 21 tranche 4 : brancher les autres flux du back-office sur `StaffSessionGuard` (remboursement : préparation, instruction, exécution ; virements C ; règlements marchands avec ville ; classement des écarts ; alertes de fraude ; litiges), une route à la fois, tests HTTP d'abord, contrat à jour. Tout reste fermé par défaut tant qu'ADR-0007 n'est pas approuvé.
