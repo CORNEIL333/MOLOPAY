@@ -9,7 +9,7 @@ import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
 import { GoalSigningController, PIN_PEPPER } from './workflows/goal-signing.controller';
 import { BeneficiaryController } from './workflows/beneficiary.controller';
-import { BackofficeRefundController } from './workflows/backoffice-refund.controller';
+import { BackofficeRefundController, PLATFORM_SIGNING_KEY, type PlatformSigningKey } from './workflows/backoffice-refund.controller';
 import { StaffAuthController } from './modules/admin/staff.controller';
 import { STAFF_RP, StaffSessionGuard } from './http/staff-session.guard';
 import type { RelyingParty } from './modules/admin/webauthn';
@@ -25,6 +25,8 @@ export type AppDependencies = {
   readonly pinPepper?: Uint8Array | null;
   /** Partie de confiance WebAuthn du back-office (D62) ; absente : routes du personnel fermées (503). */
   readonly staffRp?: RelyingParty | null;
+  /** Clé de signature des instructions (D5) ; absente : instructions refusées (503). */
+  readonly platformSigningKey?: PlatformSigningKey | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -43,6 +45,7 @@ export class AppModule {
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
         { provide: STAFF_RP, useValue: deps.staffRp ?? null },
+        { provide: PLATFORM_SIGNING_KEY, useValue: deps.platformSigningKey ?? null },
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },

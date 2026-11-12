@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { generateKeyPairSync } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { resolve } from 'node:path';
@@ -12,8 +13,10 @@ import { createDatabase, withTransaction, type Database } from '../../src/http/d
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
+import { verifyRefundInstruction, type RefundInstructionDocument } from '../../src/modules/settlement/refund.store';
+import { payBeneficiaryForCustomer } from '../../src/workflows/beneficiary-payment';
 import { prepareRefund } from '../../src/workflows/refund';
-import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateLandlord } from './agreement-fixture';
+import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateBeneficiary, validateLandlord } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginBody, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie, type StaffKey } from './staff-fixture';
 
@@ -22,12 +25,15 @@ const DIRECTORY = resolve(process.cwd(), 'db/migrations');
 const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER = '019aa500-0000-7000-8000-0000000000c1';
 const GOAL = '019aa500-0000-7000-8000-0000000000a1';
+const SCHOOL_GOAL = '019aa500-0000-7000-8000-0000000000a2';
+const PLATFORM = generateKeyPairSync('ed25519');
 
 let db: TestDatabase;
 let admin: Client;
 let database: Database;
 let app: INestApplication;
 let closed: INestApplication;
+let unsigned: INestApplication;
 let migrations: string[];
 let finOne: StaffKey;
 let finTwo: StaffKey;
@@ -37,7 +43,7 @@ function server(target: INestApplication = app): Server {
   return target.getHttpServer() as Server;
 }
 
-async function prepareRefundAsFinOne(): Promise<string> {
+async function fundAndCancel(): Promise<void> {
   const attemptId = uuidv7();
   await withTransaction(database, async (client) => {
     await createStoredPaymentAttempt(client, { id: attemptId, agreementId: GOAL, channel: 'MTN_MOMO', amountXaf: 50_000n, idemKey: uuidv7() });
@@ -56,6 +62,10 @@ async function prepareRefundAsFinOne(): Promise<string> {
      SELECT $1, max(seq) + 1, 'TRANSITION', 'ACTIVE', 'CANCELLED_BY_CUSTOMER', $2, $3, 'client-1', now() FROM agreements.status_event WHERE agreement_id = $1`,
     [GOAL, uuidv7(), Buffer.alloc(64, 9)],
   );
+}
+
+async function prepareRefundAsFinOne(): Promise<string> {
+  await fundAndCancel();
   const refund = await withTransaction(database, (client) =>
     prepareRefund(client, { id: uuidv7(), agreementId: GOAL, kind: 'CANCELLATION', principal: { actorId: 'fin.un', roles: ['FINANCE'] } }),
   );
@@ -73,17 +83,23 @@ beforeAll(async () => {
   admin = new Client({ connectionString: db.getConnectionUri() });
   await admin.connect();
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
-  const open = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST })] }).compile();
+  const open = await Test.createTestingModule({
+    imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, platformSigningKey: { key: PLATFORM.privateKey, keyId: 'plateforme-test-1' } })],
+  }).compile();
   app = open.createNestApplication({ logger: false });
   await app.init();
   const shut = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]) })] }).compile();
   closed = shut.createNestApplication({ logger: false });
   await closed.init();
+  const noKey = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST })] }).compile();
+  unsigned = noKey.createNestApplication({ logger: false });
+  await unsigned.init();
 }, 300_000);
 
 afterAll(async () => {
   await app.close();
   await closed.close();
+  await unsigned.close();
   await database.pool.end();
   await admin.end();
   await db.stop();
@@ -208,3 +224,84 @@ describe('D49 / D62 back-office : décision de remboursement', () => {
     expect((await decide(refundId, 'client_session=abc.def')).status).toBe(401);
   });
 });
+
+describe('D49 / D50 / D62 back-office : circuits complets de sortie de fonds en HTTP', () => {
+  function post(target: INestApplication, path: string, cookie: string, body: object): request.Test {
+    return request(server(target)).post(path).set('Origin', STAFF_ORIGIN).set('Cookie', cookie).set('Idempotency-Key', `bo-${uuidv7()}`).send(body);
+  }
+
+  it('remboursement : préparation (opérations), décision et instruction signée (finance), exécution (autre personne) → REFUNDED', async () => {
+    await fundAndCancel();
+    const opsCookie = staffCookie(await loginOverHttp(server(), 'ops.un', ops, 1));
+    const finOneCookie = staffCookie(await loginOverHttp(server(), 'fin.un', finOne, 1));
+    const finTwoCookie = staffCookie(await loginOverHttp(server(), 'fin.deux', finTwo, 1));
+    const prepared = await post(app, '/v1/backoffice/refunds', opsCookie, { agreementId: GOAL, kind: 'CANCELLATION' });
+    expect(prepared.status).toBe(201);
+    const { refundId, amountXaf } = prepared.body as { refundId: string; amountXaf: string };
+    expect(amountXaf).toBe('50000');
+    expect((await post(app, `/v1/backoffice/refunds/${refundId}/decision`, finOneCookie, { decision: 'APPROVED' })).status).toBe(200);
+    const instruction = await post(app, `/v1/backoffice/refunds/${refundId}/instruction`, finOneCookie, {});
+    expect(instruction.status).toBe(201);
+    const signed = instruction.body as { document: RefundInstructionDocument; signature: string };
+    expect(verifyRefundInstruction(PLATFORM.publicKey, signed.document, Buffer.from(signed.signature, 'base64'))).toBe(true);
+    const sameIssuer = await post(app, `/v1/backoffice/refunds/${refundId}/execution`, finOneCookie, { outcome: 'EXECUTED', bankReference: 'ETAB-REMB-9' });
+    expect(sameIssuer.status).toBe(403);
+    const executed = await post(app, `/v1/backoffice/refunds/${refundId}/execution`, finTwoCookie, { outcome: 'EXECUTED', bankReference: 'ETAB-REMB-9' });
+    expect(executed.status).toBe(200);
+    expect((executed.body as { entryId: string | null }).entryId).not.toBeNull();
+    const state = await admin.query('SELECT status FROM agreements.agreement_state WHERE id = $1', [GOAL]);
+    expect(state.rows).toEqual([{ status: 'REFUNDED' }]);
+  });
+
+  it('virement C : préparation, décision, instruction, exécution par des personnes distinctes', async () => {
+    await withTransaction(database, async (client) => {
+      await validateBeneficiary(client, uuidv7(), 'school-1', 'SCHOOL');
+      await createAgreementC(client, { id: SCHOOL_GOAL, customerId: CUSTOMER, active: true, beneficiaryId: 'school-1' });
+    });
+    const attemptId = uuidv7();
+    await withTransaction(database, async (client) => {
+      await createStoredPaymentAttempt(client, { id: attemptId, agreementId: SCHOOL_GOAL, channel: 'MTN_MOMO', amountXaf: 300_000n, idemKey: uuidv7() });
+      await appendAttemptTransition(client, { attemptId, from: 'CREATED', to: 'PENDING', seq: 1, actorId: 'payments-worker' });
+    });
+    await withTransaction(database, (client) =>
+      confirmPaymentAndFundAgreement(client, {
+        attemptId,
+        customerId: CUSTOMER,
+        providerTransaction: { providerTxId: `tx-${attemptId.slice(-12)}`, attemptId, amountXaf: 300_000n, outcome: 'SUCCEEDED' },
+        actorId: 'payments-worker',
+      }),
+    );
+    await withTransaction(database, (client) => payBeneficiaryForCustomer(client, { agreementId: SCHOOL_GOAL, customerId: CUSTOMER }));
+    const opsCookie = staffCookie(await loginOverHttp(server(), 'ops.un', ops, 1));
+    const finOneCookie = staffCookie(await loginOverHttp(server(), 'fin.un', finOne, 1));
+    const finTwoCookie = staffCookie(await loginOverHttp(server(), 'fin.deux', finTwo, 1));
+    const prepared = await post(app, '/v1/backoffice/beneficiary-payouts', opsCookie, { agreementId: SCHOOL_GOAL });
+    expect(prepared.status).toBe(201);
+    const { payoutId } = prepared.body as { payoutId: string };
+    expect((await post(app, `/v1/backoffice/beneficiary-payouts/${payoutId}/decision`, finOneCookie, { decision: 'APPROVED' })).status).toBe(200);
+    expect((await post(app, `/v1/backoffice/beneficiary-payouts/${payoutId}/instruction`, finOneCookie, {})).status).toBe(201);
+    const executed = await post(app, `/v1/backoffice/beneficiary-payouts/${payoutId}/execution`, finTwoCookie, { outcome: 'EXECUTED', bankReference: 'ETAB-VIR-9' });
+    expect(executed.status).toBe(200);
+    const sent = await admin.query(`SELECT 1 FROM ledger.journal_entry WHERE operation_type = 'SETTLEMENT_SENT'`);
+    expect(sent.rowCount).toBe(1);
+  });
+
+  it('sans clé de signature configurée : instruction refusée (503 SIGNING_UNCONFIGURED), rien n’est instruit', async () => {
+    const refundId = await prepareRefundAsFinOne();
+    const finTwoCookie = staffCookie(await loginOverHttp(server(unsigned), 'fin.deux', finTwo, 1));
+    expect((await post(unsigned, `/v1/backoffice/refunds/${refundId}/decision`, finTwoCookie, { decision: 'APPROVED' })).status).toBe(200);
+    const response = await post(unsigned, `/v1/backoffice/refunds/${refundId}/instruction`, finTwoCookie, {});
+    expect(response.status).toBe(503);
+    expect((response.body as { code: string }).code).toBe('SIGNING_UNCONFIGURED');
+    expect((await admin.query('SELECT 1 FROM settlement.refund_instruction')).rowCount).toBe(0);
+  });
+
+  it('SEC-AUTHZ-002 corps hors liste blanche refusé (champ montant injecté)', async () => {
+    await fundAndCancel();
+    const opsCookie = staffCookie(await loginOverHttp(server(), 'ops.un', ops, 1));
+    const response = await post(app, '/v1/backoffice/refunds', opsCookie, { agreementId: GOAL, kind: 'CANCELLATION', amountXaf: '1' });
+    expect(response.status).toBe(400);
+    expect((await admin.query('SELECT 1 FROM settlement.refund')).rowCount).toBe(0);
+  });
+});
+

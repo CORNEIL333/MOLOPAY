@@ -58,6 +58,7 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   RATE_LIMIT_UNCONFIGURED: 'service-unavailable',
   PIN_UNCONFIGURED: 'service-unavailable',
   STAFF_AUTH_UNCONFIGURED: 'service-unavailable',
+  SIGNING_UNCONFIGURED: 'service-unavailable',
 };
 
 /** Statut HTTP d'un code métier ; tout code non classé est une règle métier (422). */
@@ -71,7 +72,7 @@ export function statusForCode(code: ErrorCode): number {
   }
   if (code === 'INTERNAL_ERROR') return 500;
   if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
   return 422;
 }
 

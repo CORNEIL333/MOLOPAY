@@ -51,7 +51,14 @@ const CASES: Readonly<Record<string, object | undefined>> = {
 
 /** Routes du back-office : session du personnel (D62) au lieu de la session client. */
 const STAFF_CASES: Readonly<Record<string, object>> = {
+  '/v1/backoffice/refunds': { agreementId: GOAL, kind: 'CANCELLATION' },
   [`/v1/backoffice/refunds/${GOAL}/decision`]: { decision: 'APPROVED' },
+  [`/v1/backoffice/refunds/${GOAL}/instruction`]: {},
+  [`/v1/backoffice/refunds/${GOAL}/execution`]: { outcome: 'EXECUTED', bankReference: 'ETAB-1' },
+  '/v1/backoffice/beneficiary-payouts': { agreementId: GOAL },
+  [`/v1/backoffice/beneficiary-payouts/${GOAL}/decision`]: { decision: 'APPROVED' },
+  [`/v1/backoffice/beneficiary-payouts/${GOAL}/instruction`]: {},
+  [`/v1/backoffice/beneficiary-payouts/${GOAL}/execution`]: { outcome: 'EXECUTED', bankReference: 'ETAB-1' },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
@@ -114,7 +121,7 @@ function declaredPostRoutes(): string[] {
       }
       const path = (Reflect.getMetadata(PATH_METADATA, handler) as string | undefined) ?? '';
       const joined = `/${[base, path].filter((part) => part !== '' && part !== '/').join('/')}`.replace(/\/+/g, '/');
-      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL).replace(':refundId', GOAL));
+      paths.push(joined.replace(':offerId', OFFER).replace(':goalId', GOAL).replace(':refundId', GOAL).replace(':payoutId', GOAL));
     }
   }
   return paths.sort();
@@ -133,7 +140,7 @@ beforeAll(async () => {
   await seedCustomerAccount(admin, ACCOUNT, 'STRONG');
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'k1' } })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -2211,6 +2211,485 @@
           }
         }
       }
+    },
+    "/v1/backoffice/refunds": {
+      "post": {
+        "operationId": "prepareRefund",
+        "summary": "Préparer un remboursement (D49, D51)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundPrepareRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Préparer un remboursement (D49, D51)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedRefund"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/refunds/{refundId}/instruction": {
+      "post": {
+        "operationId": "instructRefund",
+        "summary": "Instruction signée du remboursement",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instruction signée du remboursement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedInstruction"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/refunds/{refundId}/execution": {
+      "post": {
+        "operationId": "recordRefundExecution",
+        "summary": "Exécution rapportée par l’établissement (autre personne que l’émetteur)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "refundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exécution rapportée par l’établissement (autre personne que l’émetteur)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordedExecution"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/beneficiary-payouts": {
+      "post": {
+        "operationId": "prepareBeneficiaryPayout",
+        "summary": "Préparer un virement au bénéficiaire C (D50)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeneficiaryPayoutPrepareRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Préparer un virement au bénéficiaire C (D50)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedBeneficiaryPayout"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/decision": {
+      "post": {
+        "operationId": "decideBeneficiaryPayout",
+        "summary": "Décision sur un virement, par une autre personne (I-7)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Décision sur un virement, par une autre personne (I-7)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/instruction": {
+      "post": {
+        "operationId": "instructBeneficiaryPayout",
+        "summary": "Instruction signée du virement",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instruction signée du virement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedInstruction"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/execution": {
+      "post": {
+        "operationId": "recordBeneficiaryPayoutExecution",
+        "summary": "Exécution du virement rapportée par l’établissement",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exécution du virement rapportée par l’établissement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordedExecution"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4361,6 +4840,190 @@
               "APPROVED",
               "REJECTED"
             ]
+          }
+        }
+      },
+      "RefundPrepareRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "agreementId",
+          "kind"
+        ],
+        "properties": {
+          "agreementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CANCELLATION",
+              "SURPLUS"
+            ]
+          }
+        }
+      },
+      "PreparedRefund": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refundId",
+          "kind",
+          "amountXaf"
+        ],
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CANCELLATION",
+              "SURPLUS"
+            ]
+          },
+          "amountXaf": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Calculé par la base."
+          }
+        }
+      },
+      "BeneficiaryPayoutPrepareRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "agreementId"
+        ],
+        "properties": {
+          "agreementId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PreparedBeneficiaryPayout": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "payoutId",
+          "beneficiaryId",
+          "amountXaf"
+        ],
+        "properties": {
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beneficiaryId": {
+            "type": "string"
+          },
+          "amountXaf": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          }
+        }
+      },
+      "PayoutDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "payoutId",
+          "decision"
+        ],
+        "properties": {
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
+          }
+        }
+      },
+      "EmptyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "SignedInstruction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document",
+          "signature",
+          "keyId"
+        ],
+        "properties": {
+          "document": {
+            "type": "object",
+            "description": "Document canonique (JCS) signé Ed25519 par la plateforme."
+          },
+          "signature": {
+            "type": "string",
+            "description": "Signature Ed25519 en base64."
+          },
+          "keyId": {
+            "type": "string"
+          }
+        }
+      },
+      "ExecutionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "bankReference"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "EXECUTED",
+              "REJECTED"
+            ]
+          },
+          "bankReference": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:/-]{1,100}$"
+          }
+        }
+      },
+      "RecordedExecution": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "entryId"
+        ],
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "EXECUTED",
+              "REJECTED"
+            ]
+          },
+          "entryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           }
         }
       }

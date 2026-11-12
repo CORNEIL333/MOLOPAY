@@ -750,6 +750,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Préparer un remboursement (D49, D51) */
+        post: operations["prepareRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/refunds/{refundId}/instruction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Instruction signée du remboursement */
+        post: operations["instructRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/refunds/{refundId}/execution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exécution rapportée par l’établissement (autre personne que l’émetteur) */
+        post: operations["recordRefundExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/beneficiary-payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Préparer un virement au bénéficiaire C (D50) */
+        post: operations["prepareBeneficiaryPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Décision sur un virement, par une autre personne (I-7) */
+        post: operations["decideBeneficiaryPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/instruction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Instruction signée du virement */
+        post: operations["instructBeneficiaryPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/beneficiary-payouts/{payoutId}/execution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exécution du virement rapportée par l’établissement */
+        post: operations["recordBeneficiaryPayoutExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1297,6 +1416,59 @@ export interface components {
             refundId: string;
             /** @enum {string} */
             decision: "APPROVED" | "REJECTED";
+        };
+        RefundPrepareRequest: {
+            /** Format: uuid */
+            agreementId: string;
+            /** @enum {string} */
+            kind: "CANCELLATION" | "SURPLUS";
+        };
+        PreparedRefund: {
+            /** Format: uuid */
+            refundId: string;
+            /** @enum {string} */
+            kind: "CANCELLATION" | "SURPLUS";
+            /** @description Calculé par la base. */
+            amountXaf: string;
+        };
+        BeneficiaryPayoutPrepareRequest: {
+            /** Format: uuid */
+            agreementId: string;
+        };
+        PreparedBeneficiaryPayout: {
+            /** Format: uuid */
+            payoutId: string;
+            beneficiaryId: string;
+            amountXaf: string;
+        };
+        PayoutDecision: {
+            /** Format: uuid */
+            payoutId: string;
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+        };
+        EmptyRequest: Record<string, never>;
+        SignedInstruction: {
+            /** @description Document canonique (JCS) signé Ed25519 par la plateforme. */
+            document: Record<string, never>;
+            /** @description Signature Ed25519 en base64. */
+            signature: string;
+            keyId: string;
+        };
+        ExecutionRequest: {
+            /** @enum {string} */
+            outcome: "EXECUTED" | "REJECTED";
+            bankReference: string;
+        };
+        RecordedExecution: {
+            /** Format: uuid */
+            refundId?: string;
+            /** Format: uuid */
+            payoutId?: string;
+            /** @enum {string} */
+            outcome: "EXECUTED" | "REJECTED";
+            /** Format: uuid */
+            entryId: string | null;
         };
     };
     responses: {
@@ -2654,6 +2826,247 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefundDecision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    prepareRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Préparer un remboursement (D49, D51) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreparedRefund"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    instructRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Instruction signée du remboursement */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedInstruction"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    recordRefundExecution: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Exécution rapportée par l’établissement (autre personne que l’émetteur) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordedExecution"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    prepareBeneficiaryPayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeneficiaryPayoutPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Préparer un virement au bénéficiaire C (D50) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreparedBeneficiaryPayout"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    decideBeneficiaryPayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Décision sur un virement, par une autre personne (I-7) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutDecision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    instructBeneficiaryPayout: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Instruction signée du virement */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedInstruction"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    recordBeneficiaryPayoutExecution: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                payoutId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Exécution du virement rapportée par l’établissement */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordedExecution"];
                 };
             };
             400: components["responses"]["BadRequest"];
