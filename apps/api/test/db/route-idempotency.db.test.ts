@@ -71,6 +71,13 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/settlements/${GOAL}/decision`]: { decision: 'APPROVED', cityId: 'douala' },
   [`/v1/backoffice/settlements/${GOAL}/instruction`]: { cityId: 'douala' },
   [`/v1/backoffice/settlements/${GOAL}/execution`]: { outcome: 'EXECUTED', bankReference: 'ETAB-1', cityId: 'douala' },
+  '/v1/backoffice/admin/approvals': { id: GOAL, kind: 'ROLE_GRANT', payload: { operation: 'CREATE_STAFF' }, reason: 'arrivée' },
+  [`/v1/backoffice/admin/approvals/${GOAL}/decision`]: { decision: 'APPROVED' },
+  '/v1/backoffice/admin/staff': { staffId: GOAL, login: 'nouvel.agent', approvalRequestId: GOAL },
+  [`/v1/backoffice/admin/staff/${GOAL}/roles`]: { roles: ['SUPPORT_N1'], cityIds: [], maxAmountXaf: null, approvalRequestId: GOAL },
+  [`/v1/backoffice/admin/staff/${GOAL}/disable`]: { reason: 'départ' },
+  [`/v1/backoffice/admin/staff/${GOAL}/enrollments`]: {},
+  '/v1/backoffice/admin/settings': { key: 'merchant_commission_bps', value: 250, approvalRequestId: GOAL },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
@@ -188,7 +195,7 @@ describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’éc
 
   it('routes du back-office : session du personnel et Origin valides, sans clé : 400 REQUEST_INVALID pour la clé', async () => {
     const server = app.getHttpServer() as Server;
-    const { key } = await createStaffWithKey(db.getConnectionUri(), { login: 'fin.idem', roles: ['FINANCE'], maxAmountXaf: 1_000_000n });
+    const { key } = await createStaffWithKey(db.getConnectionUri(), { login: 'fin.idem', roles: ['FINANCE', 'TECH_ADMIN'], maxAmountXaf: 1_000_000n });
     const cookie = staffCookie(await loginOverHttp(server, 'fin.idem', key, 1));
     const failures: string[] = [];
     for (const [path, body] of [...Object.entries(STAFF_CASES), ...Object.entries(STAFF_LOGIN_CASES)]) {

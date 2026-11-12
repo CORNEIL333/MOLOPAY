@@ -39,4 +39,7 @@
 
 ## 5. Ce qui avance sans vous
 
+Back-office (sous ADR-0007 proposé, fermé par défaut) : connexion WebAuthn, remboursements, virements, règlements, contrôle, litiges, file de travail et administration (comptes, rôles, paramètres financiers en maker-checker) sont implémentés et testés en HTTP.
+
+
 Tous les flux serveur décrits ci-dessus existent et sont testés : base garante, mutations des règles de base, vérificateur Rust sur des flux réels. Ils seront branchés dès que les points 1 à 3 seront levés.
