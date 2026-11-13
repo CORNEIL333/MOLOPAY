@@ -47,7 +47,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Quotas des routes d'objectifs (D61) | 0055 |
 | DONE | Lot 24 : cache, garde Origin et Idempotency-Key vérifiés sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
-| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–11 faites (serveur complet ; web : connexion par clé, file de travail, actions sur sorties de fonds et contrôle) ; fermé par défaut, à valider par le fondateur |
+| IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–12 faites (serveur complet ; web : connexion par clé, file, actions, administration) ; fermé par défaut, à valider par le fondateur |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -64,4 +64,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 21 tranche 12 : écrans d'administration (demandes ROLE_GRANT : création d'agent, rôles ; paramètres financiers : préparation, décision, publication ; désactivation ; émission du jeton d'enrôlement affiché une seule fois), ports injectés, tests d'abord. Ensuite : test E2E Playwright du back-office avec authentificateur virtuel WebAuthn (CDP) contre l'API réelle.
+Test E2E Playwright du back-office : API réelle (base jetable, toutes migrations), application Next en production locale, authentificateur virtuel WebAuthn du navigateur (CDP `WebAuthn.addVirtualAuthenticator`, protocole réel, aucun service simulé côté serveur) : enrôlement, connexion, file avec motif, décision d'un remboursement. Vérifier d'abord la configuration Playwright existante (`pnpm test:e2e`).

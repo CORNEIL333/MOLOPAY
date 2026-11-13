@@ -1,5 +1,6 @@
 import { createApiClient } from '@achat/contracts/client';
 import type { StaffLoginPorts } from '../components/staff-login';
+import type { AdminPort } from '../components/admin-panel';
 import type { FundsActionPort } from '../components/funds-action';
 import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
@@ -82,4 +83,20 @@ export const browserWorkQueuePorts: WorkQueuePorts = {
     const result = await api().GET('/v1/backoffice/queue', { params: { query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, queue: result.data };
   },
+};
+
+/** Administration : routes réelles `/v1/backoffice/admin/`, corps de réponse rendu à l'écran (jeton affiché une fois, jamais stocké ici). */
+export const browserAdminPort: AdminPort = async ({ path, body }) => {
+  if (!path.startsWith('/v1/backoffice/admin/')) {
+    throw new Error('ROUTE_NOT_ALLOWED');
+  }
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+    body: JSON.stringify(body),
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  return response.ok ? { ok: true, body: json } : { ok: false, problem: problemOf(json, response.status) };
 };
