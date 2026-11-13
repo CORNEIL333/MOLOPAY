@@ -1857,14 +1857,30 @@ export interface components {
         };
         /** @description F-BO-003 : actions en attente (identifiants internes, montants, états ; aucune donnée personnelle). */
         BackofficeQueue: {
-            refunds: Record<string, never>[];
-            beneficiaryPayouts: Record<string, never>[];
-            settlements: Record<string, never>[];
-            overdueInstructions: Record<string, never>[];
-            gapsToEscalate: Record<string, never>[];
-            unjustifiedSuspense: Record<string, never>[];
-            openRiskAlerts: Record<string, never>[];
-            overdueComplaints: Record<string, never>[];
+            refunds: {
+                [key: string]: string | boolean | null;
+            }[];
+            beneficiaryPayouts: {
+                [key: string]: string | boolean | null;
+            }[];
+            settlements: {
+                [key: string]: string | boolean | null;
+            }[];
+            overdueInstructions: {
+                [key: string]: string | boolean | null;
+            }[];
+            gapsToEscalate: {
+                [key: string]: string | boolean | null;
+            }[];
+            unjustifiedSuspense: {
+                [key: string]: string | boolean | null;
+            }[];
+            openRiskAlerts: {
+                [key: string]: string | boolean | null;
+            }[];
+            overdueComplaints: {
+                [key: string]: string | boolean | null;
+            }[];
             /** Format: date-time */
             asOf: string;
         };

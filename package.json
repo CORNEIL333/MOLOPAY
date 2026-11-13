@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "eslint . && tsx tools/boundaries.ts",
-    "typecheck": "tsc -p tsconfig.json && tsc -p packages/ui/tsconfig.json && tsc -p apps/web-client/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p packages/ui/tsconfig.json && tsc -p apps/web-client/tsconfig.json && tsc -p apps/back-office/tsconfig.json",
     "test:web": "vitest run --config vitest.web.config.ts",
     "openapi:types": "openapi-typescript packages/contracts/openapi.json -o packages/contracts/src/api.d.ts",
     "test": "vitest run --config vitest.config.ts",
