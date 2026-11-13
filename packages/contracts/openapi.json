@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.12.0",
+    "version": "0.13.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4102,6 +4102,68 @@
           }
         }
       }
+    },
+    "/v1/backoffice/goals/{goalId}/history": {
+      "get": {
+        "operationId": "getGoalHistoryForStaff",
+        "summary": "Historique d’un objectif pour le support (F-SUP-003, consultation motivée et journalisée)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "goalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffGoalHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6915,6 +6977,34 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,8192}$",
             "description": "Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url."
+          }
+        }
+      },
+      "StaffGoalHistory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "goalId",
+          "items"
+        ],
+        "properties": {
+          "goalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "boolean",
+                  "null"
+                ]
+              },
+              "description": "Événement daté (statut, versement, réclamation, litige) ; montants en chaînes d’entiers."
+            }
           }
         }
       }

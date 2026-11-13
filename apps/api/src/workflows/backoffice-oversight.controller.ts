@@ -15,6 +15,7 @@ import {
   proposeGapClassification,
   proposeSuspenseLineJustification,
 } from './reconciliation-classification';
+import { getAgreementHistoryForStaff } from './agreement-history';
 import { readBackofficeQueue } from './backoffice-queue';
 import { decideRiskAlert } from './risk-detection';
 
@@ -44,6 +45,21 @@ export class BackofficeOversightController {
     const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
     // app_rw : la consultation est inscrite à l'audit chaîné dans la même transaction (F-BO-004).
     return withTransaction({ ...this.database, role: 'app_rw' }, (client) => readBackofficeQueue(client, staff, reason));
+  }
+
+  /** F-SUP-003 / D62 : historique d'un objectif pour le support (consultation motivée, journalisée). */
+  @Get('goals/:goalId/history')
+  @Header('Cache-Control', 'private, no-store')
+  public history(@CurrentStaff() staff: AdminPrincipal, @Param('goalId') goalId: string, @Query() query: unknown): Promise<unknown> {
+    const id = requiredText(goalId, UUID_PATTERN);
+    const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
+    return withTransaction({ ...this.database, role: 'app_rw' }, async (client) => ({
+      goalId: id,
+      // Montants XAF en chaînes d'entiers (NF-FUN-001) : jamais de nombre flottant à la frontière.
+      items: (await getAgreementHistoryForStaff(client, { agreementId: id, principal: staff, reason })).map((item) =>
+        Object.fromEntries(Object.entries(item).map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value])),
+      ),
+    }));
   }
 
   // --- Rapprochement (D54, D55) ---

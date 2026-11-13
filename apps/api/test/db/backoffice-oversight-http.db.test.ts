@@ -210,3 +210,22 @@ describe('F-BO-003 / D62 file de travail du back-office', () => {
   });
 });
 
+describe('F-SUP-003 / D62 historique d’un objectif pour le support', () => {
+  it('motif obligatoire ; historique chronologique ; consultation journalisée avec l’identifiant du client ; droit requis', async () => {
+    await pay(10_000n);
+    const path = `/v1/backoffice/goals/${GOAL}/history`;
+    expect((await request(server()).get(path).set('Cookie', cookies.support)).status).toBe(400);
+    expect((await request(server()).get(path).query({ reason: 'appel du client' }).set('Cookie', cookies.supportN1)).status).toBe(403);
+    const response = await request(server()).get(path).query({ reason: 'appel du client' }).set('Cookie', cookies.support);
+    expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    const kinds = (response.body as { items: { kind: string }[] }).items.map((item) => item.kind);
+    expect(kinds).toContain('PAYMENT_ATTEMPT');
+    const attempt = (response.body as { items: { kind: string; amountXaf?: unknown }[] }).items.find((item) => item.kind === 'PAYMENT_ATTEMPT');
+    expect(attempt?.amountXaf).toBe('10000');
+    const audit = await admin.query(`SELECT actor_id, reason, refs ->> 'client_id' AS client FROM audit.event WHERE target_type = 'AGREEMENT' AND target_id = $1`, [GOAL]);
+    expect(audit.rows).toEqual([{ actor_id: 'sup.deux', reason: 'appel du client', client: CUSTOMER }]);
+    expect((await request(server()).get(`/v1/backoffice/goals/${uuidv7()}/history`).query({ reason: 'appel' }).set('Cookie', cookies.support)).status).toBe(404);
+  });
+});
+

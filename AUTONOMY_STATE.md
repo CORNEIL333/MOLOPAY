@@ -64,4 +64,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Revue d'ensemble des points restants : (1) lectures détaillées du back-office (historique d'un objectif pour le support, F-SUP-003, motif journalisé) ; (2) partenaires (lot 20 : portail, authentification des vendeurs SEC-AUTH-006, remises au comptoir) — vérifier d'abord ce qui est décidé ; (3) sinon, signaler l'épuisement du travail autonome.
+Lot 20 (partenaires) : vérifier les décisions et exigences (F-PRT-*, SEC-AUTH-006 : gérant MFA, vendeurs TOTP ou WebAuthn) ; la confirmation de remise au comptoir (`confirmHandoverAtPartner`) n'a pas de route HTTP authentifiée. Proposer une option prudente (WebAuthn pour le gérant, réutilisation de 0056 avec un espace partenaire distinct) avant d'implémenter, et la consigner (D63).
