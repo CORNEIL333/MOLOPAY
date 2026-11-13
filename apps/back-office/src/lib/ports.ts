@@ -2,6 +2,7 @@ import { createApiClient } from '@achat/contracts/client';
 import type { StaffLoginPorts } from '../components/staff-login';
 import type { AdminPort } from '../components/admin-panel';
 import type { FundsActionPort } from '../components/funds-action';
+import type { StaffEnrollmentPorts } from '../components/staff-enrollment';
 import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
 
@@ -99,4 +100,44 @@ export const browserAdminPort: AdminPort = async ({ path, body }) => {
   });
   const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   return response.ok ? { ok: true, body: json } : { ok: false, problem: problemOf(json, response.status) };
+};
+
+/** Enrôlement : création de la clé par l'authentificateur (ES256 ou EdDSA, vérification exigée) et route réelle. */
+export const browserStaffEnrollmentPorts: StaffEnrollmentPorts = {
+  async createCredential({ challenge, login }) {
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: new Uint8Array(challenge),
+        rp: { id: window.location.hostname, name: 'Back-office MoloPay' },
+        user: { id: new TextEncoder().encode(login), name: login, displayName: login },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -8 }],
+        authenticatorSelection: { userVerification: 'required', residentKey: 'preferred' },
+        attestation: 'none',
+        timeout: 60_000,
+      },
+    });
+    if (!(credential instanceof PublicKeyCredential) || !(credential.response instanceof AuthenticatorAttestationResponse)) {
+      throw new Error('CREDENTIAL_MISSING');
+    }
+    const publicKey = credential.response.getPublicKey();
+    if (publicKey === null) {
+      throw new Error('PUBLIC_KEY_MISSING');
+    }
+    return {
+      credentialId: new Uint8Array(credential.rawId),
+      clientDataJSON: new Uint8Array(credential.response.clientDataJSON),
+      authenticatorData: new Uint8Array(credential.response.getAuthenticatorData()),
+      publicKeySpki: new Uint8Array(publicKey),
+    };
+  },
+  async register(body) {
+    const response = await fetch('/v1/staff/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    return response.ok ? { ok: true } : { ok: false, problem: problemOf(await response.json().catch(() => ({})), response.status) };
+  },
 };

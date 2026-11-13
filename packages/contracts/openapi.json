@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.11.0",
+    "version": "0.12.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4054,6 +4054,54 @@
           }
         }
       }
+    },
+    "/v1/staff/credentials": {
+      "post": {
+        "operationId": "enrollStaffCredential",
+        "summary": "Enrôler une clé de sécurité avec le jeton remis (D62)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffCredentialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clé enregistrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackofficeAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6827,6 +6875,46 @@
           "approvalRequestId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "StaffCredentialRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challengeId",
+          "enrollmentToken",
+          "credentialId",
+          "clientDataJSON",
+          "authenticatorData",
+          "publicKeySpki"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enrollmentToken": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "description": "Jeton remis en main propre ; jamais conservé en clair."
+          },
+          "credentialId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "clientDataJSON": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "authenticatorData": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "publicKeySpki": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$",
+            "description": "Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url."
           }
         }
       }

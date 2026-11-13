@@ -75,4 +75,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Back-office de bout en bout (D62) : Chromium de la version épinglée de Playwright.
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

@@ -5,7 +5,7 @@ import { PG_POOL, type Database } from '../../http/database';
 import { assertIdempotencyKey, runIdempotent } from '../../http/idempotency';
 import type { HttpRequest } from '../../http/express-types';
 import { readStaffCookie, STAFF_COOKIE, STAFF_RP } from '../../http/staff-session.guard';
-import { issueLoginChallenge, loginStaff, revokeStaffSession } from './staff.store';
+import { issueLoginChallenge, loginStaff, registerStaffCredential, revokeStaffSession } from './staff.store';
 import type { RelyingParty } from './webauthn';
 
 type CookieResponse = { cookie(name: string, value: string, options: Record<string, unknown>): void; clearCookie(name: string, options: Record<string, unknown>): void };
@@ -72,6 +72,40 @@ export class StaffAuthController {
       const issued = await issueLoginChallenge(client, login);
       return { status: 201, body: { challengeId: issued.challengeId, challenge: issued.challenge.toString('base64url'), rpId: rp.rpId } };
     });
+    return result.body;
+  }
+
+  /**
+   * D62 : enrôlement d'une clé par l'agent, sans session — le jeton remis en
+   * main propre fait office de preuve. Le jeton n'entre jamais dans
+   * l'empreinte ni dans la réponse mémorisée.
+   */
+  @Post('credentials')
+  @HttpCode(201)
+  @Header('Cache-Control', 'no-store')
+  public async enroll(@Req() request: HttpRequest, @Body() body: unknown): Promise<unknown> {
+    const rp = this.relyingParty();
+    const value = only(body, ['challengeId', 'enrollmentToken', 'credentialId', 'clientDataJSON', 'authenticatorData', 'publicKeySpki']);
+    const challengeId = value['challengeId'];
+    const enrollmentToken = value['enrollmentToken'];
+    if (typeof challengeId !== 'string' || !UUID.test(challengeId) || typeof enrollmentToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(enrollmentToken)) {
+      invalid();
+    }
+    const credential = {
+      credentialId: bytes(value['credentialId']),
+      clientDataJSON: bytes(value['clientDataJSON']),
+      authenticatorData: bytes(value['authenticatorData']),
+      publicKeySpki: bytes(value['publicKeySpki']),
+    };
+    const key = assertIdempotencyKey(request.headers['idempotency-key']);
+    const result = await runIdempotent(
+      { ...this.database, role: 'app_rw' },
+      { scope: `staff-credential:${challengeId}`, key, request: { challengeId, credentialId: credential.credentialId.toString('base64url') } },
+      async (client) => {
+        await registerStaffCredential(client, { rp, challengeId, enrollmentToken, ...credential });
+        return { status: 201, body: { enrolled: true } };
+      },
+    );
     return result.body;
   }
 

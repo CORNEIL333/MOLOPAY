@@ -170,7 +170,10 @@ export function AdminPanel({ post }: { readonly post: AdminPort }): ReactElement
     setError(undefined);
     void send(`/v1/backoffice/admin/staff/${staffId}/enrollments`, {}, (response) => {
       const issued = response['enrollmentToken'];
-      setToken(typeof issued === 'string' ? issued : null);
+      const challengeId = response['challengeId'];
+      const challenge = response['challenge'];
+      // Code unique à remettre en main propre : seul le jeton est secret.
+      setToken(typeof issued === 'string' && typeof challengeId === 'string' && typeof challenge === 'string' ? `${challengeId}.${challenge}.${issued}` : null);
     });
   }
 
@@ -182,7 +185,7 @@ export function AdminPanel({ post }: { readonly post: AdminPort }): ReactElement
       {error === undefined ? null : <p role="alert">{error}</p>}
       {token === null ? null : (
         <div role="status">
-          <p>Jeton d’enrôlement à remettre en main propre à l’agent ; il ne sera plus affiché :</p>
+          <p>Code d’enrôlement à remettre en main propre à l’agent (valable 5 minutes) ; il ne sera plus affiché :</p>
           <p><code>{token}</code></p>
         </div>
       )}

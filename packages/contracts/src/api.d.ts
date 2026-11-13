@@ -1209,6 +1209,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/staff/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enrôler une clé de sécurité avec le jeton remis (D62) */
+        post: operations["enrollStaffCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1914,6 +1931,17 @@ export interface components {
             value: unknown;
             /** Format: uuid */
             approvalRequestId: string;
+        };
+        StaffCredentialRequest: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @description Jeton remis en main propre ; jamais conservé en clair. */
+            enrollmentToken: string;
+            credentialId: string;
+            clientDataJSON: string;
+            authenticatorData: string;
+            /** @description Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url. */
+            publicKeySpki: string;
         };
     };
     responses: {
@@ -4204,6 +4232,36 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    enrollStaffCredential: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description Clé enregistrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackofficeAck"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             503: components["responses"]["Unavailable"];
         };
     };

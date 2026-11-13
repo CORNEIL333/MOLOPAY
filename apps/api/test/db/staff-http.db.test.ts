@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { generateKeyPairSync } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { resolve } from 'node:path';
@@ -13,6 +13,7 @@ import { createDatabase, withTransaction, type Database } from '../../src/http/d
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
+import { issueEnrollment } from '../../src/modules/admin/staff.store';
 import { verifyRefundInstruction, type RefundInstructionDocument } from '../../src/modules/settlement/refund.store';
 import { payBeneficiaryForCustomer } from '../../src/workflows/beneficiary-payment';
 import { prepareRefund } from '../../src/workflows/refund';
@@ -177,6 +178,33 @@ describe('D62 / SEC-AUTH-004/005 connexion WebAuthn du personnel', () => {
     expect(sessions.rows[0]?.n).toBe(1);
     const stored = await admin.query<{ body: string }>("SELECT response_body::text AS body FROM api.idempotency_record WHERE scope LIKE 'staff-session:%'");
     expect(stored.rows[0]?.body).not.toContain(staffCookie(first).split('=')[1]);
+  });
+
+  it('enrôlement par HTTP avec le jeton remis : clé enregistrée, connexion possible ; jeton erroné refusé', async () => {
+    const staffId = (await admin.query<{ id: string }>("SELECT id FROM admin.staff_account WHERE login = 'ops.un'")).rows[0]!.id;
+    const enrollment = await withTransaction(database, (client) => issueEnrollment(client, { staffId, actorId: 'tech-1' }));
+    const pair = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const credentialId = randomBytes(32);
+    const length = Buffer.alloc(2);
+    length.writeUInt16BE(32);
+    const body = {
+      challengeId: enrollment.challengeId,
+      enrollmentToken: enrollment.enrollmentToken,
+      credentialId: credentialId.toString('base64url'),
+      clientDataJSON: Buffer.from(JSON.stringify({ type: 'webauthn.create', challenge: enrollment.challenge.toString('base64url'), origin: STAFF_ORIGIN, crossOrigin: false })).toString('base64url'),
+      authenticatorData: Buffer.concat([createHash('sha256').update(STAFF_RP_TEST.rpId).digest(), Buffer.from([0x45]), Buffer.alloc(4), Buffer.alloc(16), length, credentialId, Buffer.from([0xa0])]).toString('base64url'),
+      publicKeySpki: pair.publicKey.export({ type: 'spki', format: 'der' }).toString('base64url'),
+    };
+    const send = (payload: object, key: string): request.Test =>
+      request(server()).post('/v1/staff/credentials').set('Origin', STAFF_ORIGIN).set('Idempotency-Key', key).send(payload);
+    const wrong = await send({ ...body, enrollmentToken: 'a'.repeat(43) }, 'staff-enroll-wrong-01');
+    expect(wrong.status).toBe(401);
+    const enrolled = await send(body, 'staff-enroll-ok-0001');
+    expect(enrolled.status).toBe(201);
+    const stored = await admin.query<{ body: string }>("SELECT response_body::text AS body FROM api.idempotency_record WHERE scope LIKE 'staff-credential:%'");
+    expect(stored.rows[0]?.body ?? '').not.toContain(enrollment.enrollmentToken);
+    const login = await loginOverHttp(server(), 'ops.un', { privateKey: pair.privateKey, spki: Buffer.from(body.publicKeySpki, 'base64url'), credentialId }, 1);
+    expect(login.status).toBe(201);
   });
 
   it('mauvaise clé : 401 STAFF_AUTH_INVALID, sans cookie', async () => {

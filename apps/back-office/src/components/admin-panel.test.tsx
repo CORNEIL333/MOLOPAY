@@ -54,15 +54,16 @@ describe('SEC-AUTHZ-003 / D62 écrans d’administration', () => {
   it('jeton d’enrôlement affiché une seule fois, effacé à l’action suivante ; structure accessible', async () => {
     const user = userEvent.setup();
     const post = port({ challengeId: 'c', challenge: 'x', enrollmentToken: 'jeton-de-test' });
+    // Code remis à l'agent : défi, challenge et jeton réunis.
     const { container } = render(<AdminPanel post={post} />);
     await user.type(screen.getByLabelText('Agent à enrôler'), STAFF);
     await user.click(screen.getByRole('button', { name: 'Émettre un jeton d’enrôlement' }));
-    expect(await screen.findByText('jeton-de-test')).toBeVisible();
+    expect(await screen.findByText('c.x.jeton-de-test')).toBeVisible();
     expect(screen.getByText(/ne sera plus affiché/)).toBeVisible();
     await expectNoA11yViolations(container);
     await user.type(screen.getByLabelText('Identifiant de la demande'), REQUEST);
     await user.click(screen.getByRole('button', { name: 'Approuver la demande' }));
-    expect(screen.queryByText('jeton-de-test')).not.toBeInTheDocument();
+    expect(screen.queryByText('c.x.jeton-de-test')).not.toBeInTheDocument();
   });
 
   it('finaliser la création, attribuer des rôles depuis une demande approuvée, désactiver avec motif', async () => {

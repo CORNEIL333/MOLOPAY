@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
   headers() {
     return Promise.resolve([{ source: '/:path*', headers: securityHeaders }]);
   },
+  // Exploitation : les réécritures sont figées au build ; API_INTERNAL_URL doit
+  // être défini AU MOMENT DE `next build` (et non seulement au démarrage).
   rewrites() {
     const apiUrl = process.env['API_INTERNAL_URL'] ?? 'http://127.0.0.1:3000';
     return Promise.resolve([{ source: '/v1/:path*', destination: `${apiUrl}/v1/:path*` }]);

@@ -82,6 +82,14 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
 const STAFF_LOGIN_CASES: Readonly<Record<string, object>> = {
+  '/v1/staff/credentials': {
+    challengeId: GOAL,
+    enrollmentToken: 'a'.repeat(43),
+    credentialId: 'AAAA',
+    clientDataJSON: 'AAAA',
+    authenticatorData: 'AAAA',
+    publicKeySpki: 'AAAA',
+  },
   '/v1/staff/login-challenges': { login: 'fin.idem' },
   '/v1/staff/sessions': {
     challengeId: GOAL,
