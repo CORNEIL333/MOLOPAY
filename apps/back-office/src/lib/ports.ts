@@ -1,6 +1,7 @@
 import { createApiClient } from '@achat/contracts/client';
 import type { StaffLoginPorts } from '../components/staff-login';
 import type { FundsActionPort } from '../components/funds-action';
+import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
@@ -53,9 +54,12 @@ export const browserStaffLoginPorts: StaffLoginPorts = {
   },
 };
 
-/** Action maker-checker : routes réelles du back-office, une clé d'idempotence par intention. */
-const act: FundsActionPort = async ({ flow, id, step, body }) => {
-  const response = await fetch(`/v1/backoffice/${flow}/${encodeURIComponent(id)}/${step}`, {
+/** POST vers une route réelle du back-office (même origine), une clé d'idempotence par intention. */
+async function postAction(path: string, body: Readonly<Record<string, string>>): Promise<{ readonly ok: true } | { readonly ok: false; readonly problem: { readonly title: string; readonly detail?: string; readonly status: number } }> {
+  if (!path.startsWith('/v1/backoffice/')) {
+    throw new Error('ROUTE_NOT_ALLOWED');
+  }
+  const response = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
     body: JSON.stringify(body),
@@ -66,10 +70,14 @@ const act: FundsActionPort = async ({ flow, id, step, body }) => {
     return { ok: true };
   }
   return { ok: false, problem: problemOf(await response.json().catch(() => ({})), response.status) };
-};
+}
+
+const act: FundsActionPort = ({ flow, id, step, body }) => postAction(`/v1/backoffice/${flow}/${encodeURIComponent(id)}/${step}`, body);
+const oversee: OversightPort = ({ path, body }) => postAction(path, body);
 
 export const browserWorkQueuePorts: WorkQueuePorts = {
   act,
+  oversee,
   async loadQueue(reason) {
     const result = await api().GET('/v1/backoffice/queue', { params: { query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, queue: result.data };

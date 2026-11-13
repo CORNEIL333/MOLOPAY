@@ -5,6 +5,7 @@ import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { FundsAction, type FundsActionPort, type FundsFlow } from './funds-action';
+import { OversightAction, type OversightKind, type OversightPort } from './oversight-action';
 
 type Queue = components['schemas']['BackofficeQueue'];
 type Item = Readonly<Record<string, unknown>>;
@@ -13,6 +14,15 @@ export type WorkQueuePorts = {
   readonly loadQueue: (reason: string) => Promise<{ readonly ok: true; readonly queue: Queue } | { readonly ok: false; readonly problem: ProblemSummary }>;
   /** Action maker-checker (absente : file en lecture seule). */
   readonly act?: FundsActionPort;
+  /** Action de contrôle (alertes, écarts, suspens, réclamations). */
+  readonly oversee?: OversightPort;
+};
+
+const OVERSIGHT: Readonly<Partial<Record<keyof Omit<Queue, 'asOf'>, { readonly kind: OversightKind; readonly idKey: string }>>> = {
+  openRiskAlerts: { kind: 'alert', idKey: 'alertId' },
+  gapsToEscalate: { kind: 'gap', idKey: 'incidentId' },
+  unjustifiedSuspense: { kind: 'suspense', idKey: 'entryId' },
+  overdueComplaints: { kind: 'complaint', idKey: 'complaintId' },
 };
 
 /** Sections dont les éléments portent une action, et leur identifiant. */
@@ -110,11 +120,16 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
                   {items.map((item, index) => {
                     const actionable = ACTIONABLE[key];
                     const itemId = actionable === undefined ? undefined : item[actionable.idKey];
+                    const oversight = OVERSIGHT[key];
+                    const oversightId = oversight === undefined ? undefined : item[oversight.idKey];
                     return (
                       <li key={`${key}-${index.toString()}`}>
                         {typeof item['stage'] === 'string' ? <strong>{STAGES[item['stage']] ?? item['stage']}</strong> : null} {describe(item)}
                         {actionable !== undefined && ports.act !== undefined && typeof itemId === 'string' && typeof item['stage'] === 'string' ? (
                           <FundsAction flow={actionable.flow} id={itemId} stage={item['stage']} act={ports.act} onDone={() => void refresh()} />
+                        ) : null}
+                        {oversight !== undefined && ports.oversee !== undefined && typeof oversightId === 'string' ? (
+                          <OversightAction kind={oversight.kind} id={oversightId} act={ports.oversee} onDone={() => void refresh()} />
                         ) : null}
                       </li>
                     );
