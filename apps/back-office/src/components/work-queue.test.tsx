@@ -42,6 +42,27 @@ describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
     await expectNoA11yViolations(container);
   });
 
+  it('session expirée (401) : invite à se reconnecter', async () => {
+    const user = userEvent.setup();
+    const loadQueue = vi.fn<WorkQueuePorts['loadQueue']>(() => Promise.resolve({ ok: false, problem: { title: 'Authentification requise', status: 401 } }));
+    render(<WorkQueue ports={{ loadQueue }} />);
+    await user.type(screen.getByLabelText('Motif de consultation'), 'revue');
+    await user.click(screen.getByRole('button', { name: 'Afficher la file' }));
+    await waitFor(() => { expect(screen.getByRole('link', { name: 'Se reconnecter' })).toHaveAttribute('href', '/'); });
+  });
+
+  it('les éléments en attente portent leur action, et la file est relue après une action', async () => {
+    const user = userEvent.setup();
+    const loadQueue = vi.fn<WorkQueuePorts['loadQueue']>(() => Promise.resolve({ ok: true, queue: QUEUE }));
+    const act = vi.fn<NonNullable<WorkQueuePorts['act']>>(() => Promise.resolve({ ok: true }));
+    render(<WorkQueue ports={{ loadQueue, act }} />);
+    await user.type(screen.getByLabelText('Motif de consultation'), 'revue');
+    await user.click(screen.getByRole('button', { name: 'Afficher la file' }));
+    await user.click(await screen.findByRole('button', { name: 'Approuver' }));
+    await waitFor(() => { expect(loadQueue).toHaveBeenCalledTimes(2); });
+    expect(act).toHaveBeenCalledWith({ flow: 'refunds', id: QUEUE.refunds[0]!['refundId'], step: 'decision', body: { decision: 'APPROVED' } });
+  });
+
   it('affiche le problème renvoyé (droit de lecture absent)', async () => {
     const user = userEvent.setup();
     const loadQueue = vi.fn<WorkQueuePorts['loadQueue']>(() => Promise.resolve({ ok: false, problem: { title: 'Action interdite', detail: 'Action non autorisée' } }));

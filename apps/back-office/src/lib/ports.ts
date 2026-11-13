@@ -1,5 +1,6 @@
 import { createApiClient } from '@achat/contracts/client';
 import type { StaffLoginPorts } from '../components/staff-login';
+import type { FundsActionPort } from '../components/funds-action';
 import type { WorkQueuePorts } from '../components/work-queue';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
@@ -7,10 +8,11 @@ function api(): ReturnType<typeof createApiClient> {
   return createApiClient({ baseUrl: '' });
 }
 
-function problemOf(error: unknown, status: number): { readonly title: string; readonly detail?: string } {
+function problemOf(error: unknown, status: number): { readonly title: string; readonly detail?: string; readonly status: number } {
   const body = (typeof error === 'object' && error !== null ? error : {}) as { title?: unknown; detail?: unknown };
   return {
     title: typeof body.title === 'string' ? body.title : `Erreur ${status.toString()}`,
+    status,
     ...(typeof body.detail === 'string' ? { detail: body.detail } : {}),
   };
 }
@@ -51,7 +53,23 @@ export const browserStaffLoginPorts: StaffLoginPorts = {
   },
 };
 
+/** Action maker-checker : routes réelles du back-office, une clé d'idempotence par intention. */
+const act: FundsActionPort = async ({ flow, id, step, body }) => {
+  const response = await fetch(`/v1/backoffice/${flow}/${encodeURIComponent(id)}/${step}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+    body: JSON.stringify(body),
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  if (response.ok) {
+    return { ok: true };
+  }
+  return { ok: false, problem: problemOf(await response.json().catch(() => ({})), response.status) };
+};
+
 export const browserWorkQueuePorts: WorkQueuePorts = {
+  act,
   async loadQueue(reason) {
     const result = await api().GET('/v1/backoffice/queue', { params: { query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, queue: result.data };
