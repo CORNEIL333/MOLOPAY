@@ -1,4 +1,12 @@
 export const fr = {
+  legalName: {
+    title: 'Mon identité', description: 'Indiquez votre nom complet, tel qu’il figure sur votre pièce d’identité. Il est exigé par la réglementation pour ouvrir le premier niveau de votre compte.',
+    label: 'Nom complet (tel qu’inscrit sur votre pièce d’identité)', submit: 'Enregistrer mon nom', back: 'Mon compte',
+    invalid: 'Indiquez votre nom complet (au moins 2 caractères, 200 au plus).',
+    completed: 'Votre nom est enregistré. Le premier niveau de votre compte est ouvert.',
+    inProgress: 'Votre nom est enregistré ; sa vérification est en cours. Vous serez informé dans l’application.',
+    error: 'Enregistrement non confirmé', network: 'Connexion interrompue. Réessayez.',
+  },
   dataRights: {
     title: 'Mes données personnelles', description: 'Enregistrez une demande concernant vos données et conservez son reçu.',
     limitation: 'Ce service enregistre votre demande. Il ne réalise ni export, ni modification, ni suppression de vos données. Le traitement et les échanges complémentaires restent à mettre en place.',

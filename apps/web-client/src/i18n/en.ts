@@ -1,6 +1,14 @@
 import type { Dictionary } from './fr';
 
 export const en: Dictionary = {
+  legalName: {
+    title: 'My identity', description: 'Enter your full name as shown on your ID document. Regulations require it to open the first level of your account.',
+    label: 'Full name (as on your ID document)', submit: 'Save my name', back: 'My account',
+    invalid: 'Enter your full name (at least 2 characters, at most 200).',
+    completed: 'Your name is saved. The first level of your account is open.',
+    inProgress: 'Your name is saved; its verification is in progress. You will be informed in the app.',
+    error: 'Not confirmed', network: 'Connection interrupted. Please try again.',
+  },
   dataRights: {
     title: 'My personal data', description: 'Record a request about your data and keep its receipt.',
     limitation: 'This service records your request. It does not export, change or erase your data. Processing and further secure exchanges still need to be set up.',

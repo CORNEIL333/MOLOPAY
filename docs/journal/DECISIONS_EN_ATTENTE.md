@@ -489,3 +489,4 @@
   - un faux positif examiné débloque le niveau (même transaction que l'examen).
   - Contrat 0.23.0. 7 tests PostgreSQL, 3 tests HTTP ; 10 mutants tués, 1 équivalent (la base refuse déjà l'élévation après correspondance confirmée).
 - **⚖ À trancher :** quota de la route (méthode D60 : proposé 3 par 24 h et par compte) ; effet d'une nouvelle déclaration correspondant à la liste chez un client déjà `BASIC` (aujourd'hui : niveau conservé, examen en attente — rétrograder ? geler ?) ; déclaration à l'ANIF en cas de correspondance confirmée (juridique) ; écran client (web) pour la déclaration.
+- **Mise à jour D68 (écran client) :** page `/compte/identite` du client web (FR/EN), lien depuis « Mon compte » : saisie du nom complet, résultat neutre (« niveau ouvert » ou « vérification en cours », jamais de détail). 5 tests de composants (accessibilité comprise) ; 4 mutants tués. Non compilé (D64).

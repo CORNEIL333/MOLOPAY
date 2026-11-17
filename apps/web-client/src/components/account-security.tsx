@@ -62,6 +62,7 @@ export function AccountSecurityView({ security, locale }: { security: components
   return <section aria-busy={pending}>
     <h1 className="page-title">{labels.title}</h1><p className="page-subtitle">{labels.description}</p>
     <a href="/compte/donnees">{dictionary.dataRights.title}</a>
+    <a href="/compte/identite">{dictionary.legalName.title}</a>
     <h2>{labels.devices}</h2>
     <ul>{security.devices.map((device) => <li key={device.deviceId}>
       <strong>{device.name}</strong>{' · '}{device.status === 'ACTIVE' ? labels.active : labels.revoked}{device.current ? ` · ${labels.current}` : ''}

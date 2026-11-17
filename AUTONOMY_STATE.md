@@ -52,7 +52,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–14 faites (serveur complet ; web : enrôlement, connexion par clé, file, actions, administration ; bout en bout réel) ; fermé par défaut, à valider par le fondateur |
 | DONE | Lot 21 : tableau de bord agrégé F-BO-003 (D65) | API, contrat 0.21.0, écran `/tableau-de-bord` |
 | IN_PROGRESS | Lot 07 : filtrage ONU (REG-LBC-002, D66) | tranches 1–2 : 0059, liste réelle, import, filtrage, examen, routes back-office, écran `/conformite`, contrat 0.22.0 ; reste : import en exploitation et validation conditionnée (⚖ D66) |
-| DONE | Lot 07 : niveau KYC 1 (nom déclaré + filtrage ONU, D68) | 0060, route client, contrat 0.23.0 ; quota et écran client à faire |
+| DONE | Lot 07 : niveau KYC 1 (nom déclaré + filtrage ONU, D68) | 0060, route client, écran `/compte/identite`, contrat 0.23.0 ; quota à valider |
 | BLOCKED | Lot 07 : PPE, listes nationales, niveaux 2–3 (pièce + vivacité : prestataire) | source PPE et listes CEMAC à décider (D66) ; prestataire de vivacité (zéro simulation) |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -71,4 +71,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Écran client web (`apps/web-client`) : déclaration du nom légal sur la page compte (« Vérification en cours » ou niveau 1 obtenu, jamais de détail), FR/EN, tests de composants d'abord. Puis quota de la route (D68, méthode D60) si validé, sinon chercher le lot READY suivant.
+Analyser les lots READY restants (tout le reste est bloqué par une décision ou un accès externe, voir la fiche) : candidats — journal de session `docs/journal/2026-11-17.md` et mise à jour d'`ETAT.md` (en retard depuis le 11) ; revue de cohérence des contrats OpenAPI (schémas inutilisés du brouillon) ; lot 25 : régénérer le jeu de recette avec les nouveaux flux (partenaires, KYC) et le vérifier par `verify:ledger`.
