@@ -326,7 +326,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Connexion du portail partenaire */
+        /** Connexion du portail partenaire par assertion WebAuthn (D63, SEC-AUTH-006) */
         post: operations["createPartnerSession"];
         delete?: never;
         options?: never;
@@ -360,7 +360,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Valider un code de remise en boutique */
+        /** Confirmer une remise au comptoir (F-SET-001, D63) */
         post: operations["validateHandover"];
         delete?: never;
         options?: never;
@@ -1243,6 +1243,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/partner/login-challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Défi de connexion WebAuthn du partenaire (D63) */
+        post: operations["createPartnerLoginChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/partner/sessions/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Déconnexion du partenaire (révocation immédiate) */
+        delete: operations["deletePartnerSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/partner/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enrôler une clé de sécurité avec le jeton remis (D63) */
+        post: operations["enrollPartnerCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1506,15 +1557,21 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @description Assertion WebAuthn (navigator.credentials.get), champs en base64url. */
         PartnerSessionRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
+            /** Format: uuid */
+            challengeId: string;
+            credentialId: string;
+            clientDataJSON: string;
+            authenticatorData: string;
+            signature: string;
         };
+        /** @description D63 : partenaire et rôle reconstruits en base depuis la session ; jamais fournis par le client. */
         PartnerSessionSummary: {
             partnerId: string;
-            displayName: string;
-            roles: ("MANAGER" | "SELLER")[];
+            login: string;
+            /** @enum {string} */
+            role: "MANAGER" | "SELLER";
             /** Format: date-time */
             expiresAt: string;
         };
@@ -1533,18 +1590,16 @@ export interface components {
             /** Format: date-time */
             asOf: string;
         };
+        /** @description D63 : ni partenaire ni vendeur dans le corps ; ils viennent de la session. */
         HandoverValidationRequest: {
+            /** @description Code de remise (D45) : 10 caractères Crockford, tirets et espaces tolérés. */
             code: string;
-            storeId: string;
-            latitude: number;
-            longitude: number;
+            latitude: string;
+            longitude: string;
         };
         HandoverReceipt: {
             /** Format: uuid */
-            handoverId: string;
-            /** Format: uuid */
-            orderId: string;
-            customerDisplayName?: string;
+            agreementId: string;
             /** Format: date-time */
             validatedAt: string;
         };
@@ -1966,6 +2021,27 @@ export interface components {
             items: {
                 [key: string]: string | boolean | null;
             }[];
+        };
+        PartnerLoginChallengeRequest: {
+            login: string;
+        };
+        PartnerLoginChallenge: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @description Défi base64url, usage unique, 5 min. */
+            challenge: string;
+            rpId: string;
+        };
+        PartnerCredentialRequest: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @description Jeton remis en main propre ; jamais conservé en clair. */
+            enrollmentToken: string;
+            credentialId: string;
+            clientDataJSON: string;
+            authenticatorData: string;
+            /** @description Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url. */
+            publicKeySpki: string;
         };
     };
     responses: {
@@ -2595,19 +2671,19 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Session partenaire ouverte */
-            200: {
+            /** @description Session ouverte (cookie partner_session à la première exécution ; un rejeu renvoie le corps sans cookie) */
+            201: {
                 headers: {
-                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["PartnerSessionSummary"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
-            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
         };
     };
     listPartnerOffers: {
@@ -2650,6 +2726,7 @@ export interface operations {
             /** @description Remise validée */
             201: {
                 headers: {
+                    "Cache-Control"?: "no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -2661,6 +2738,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
         };
     };
     listPartnerOrders: {
@@ -4315,6 +4393,87 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    createPartnerLoginChallenge: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLoginChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description Défi émis (indiscernable pour un identifiant inconnu) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerLoginChallenge"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    deletePartnerSession: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session révoquée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    enrollPartnerCredential: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCredentialRequest"];
+            };
+        };
+        responses: {
+            /** @description Clé enregistrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackofficeAck"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             503: components["responses"]["Unavailable"];
         };
     };

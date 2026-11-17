@@ -73,7 +73,7 @@ export async function confirmHandover(
     readonly longitude: string;
     readonly pepper: Uint8Array;
   },
-): Promise<{ readonly agreementId: string; readonly entryId: string }> {
+): Promise<{ readonly agreementId: string; readonly entryId: string; readonly handedOverAt: string }> {
   if (!PARTNER_PATTERN.test(input.partnerId) || !ACTOR_PATTERN.test(input.partnerUserId)) {
     invalid('partenaire ou vendeur invalide');
   }
@@ -120,10 +120,11 @@ export async function confirmHandover(
   if (entry.replayed) {
     throw new BusinessError('HANDOVER_CODE_USED', 'code de remise déjà utilisé');
   }
-  await client.query(
+  const handover = await client.query<{ used_at: Date }>(
     `INSERT INTO settlement.handover
        (agreement_id, code_seq, partner_id, partner_user_id, latitude, longitude, entry_id, used_at)
-     VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7, now())`,
+     VALUES ($1, $2, $3, $4, $5::numeric, $6::numeric, $7, now())
+     RETURNING used_at`,
     [issued.agreement_id, issued.seq, input.partnerId, input.partnerUserId, latitude, longitude, entry.id],
   );
   await appendAgreementTransition(client, {
@@ -131,5 +132,5 @@ export async function confirmHandover(
     to: 'HANDED_OVER',
     actorId: input.partnerUserId,
   });
-  return Object.freeze({ agreementId: issued.agreement_id, entryId: entry.id });
+  return Object.freeze({ agreementId: issued.agreement_id, entryId: entry.id, handedOverAt: (handover.rows[0]?.used_at ?? new Date(0)).toISOString() });
 }

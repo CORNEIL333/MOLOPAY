@@ -20,7 +20,7 @@ export async function confirmHandoverAtPartner(
     readonly longitude: string;
     readonly pepper: Uint8Array;
   },
-): Promise<{ readonly agreementId: string; readonly entryId: string }> {
+): Promise<{ readonly agreementId: string; readonly entryId: string; readonly handedOverAt: string }> {
   const owner = await getPartnerLedgerOwner(client, input.partnerId);
   if (owner === null) {
     throw new BusinessError('HANDOVER_CODE_INVALID', 'code de remise invalide');

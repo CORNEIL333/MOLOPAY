@@ -10,12 +10,13 @@ import { Client } from 'pg';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module';
-import { createDatabase, type Database } from '../../src/http/database';
+import { createDatabase, withTransaction, type Database } from '../../src/http/database';
 import { hashPin, issueSessionTokens } from '../../src/modules/identity/domain';
 import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
-import { seedCustomerAccount } from './agreement-fixture';
+import { seedCustomerAccount, validateMerchant } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerLoginBody } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
 /**
@@ -100,6 +101,16 @@ const STAFF_LOGIN_CASES: Readonly<Record<string, object>> = {
   },
 };
 
+/** Routes du portail partenaire (D63) : connexion sans session, remise avec session partenaire. */
+const PARTNER_LOGIN_CASES: Readonly<Record<string, object>> = {
+  '/v1/partner/credentials': STAFF_LOGIN_CASES['/v1/staff/credentials'] ?? {},
+  '/v1/partner/login-challenges': { login: 'vendeur.idem' },
+  '/v1/partner/sessions': STAFF_LOGIN_CASES['/v1/staff/sessions'] ?? {},
+};
+const PARTNER_CASES: Readonly<Record<string, object>> = {
+  '/v1/partner/handovers': { code: 'ABCDE-12345', latitude: '4.051056', longitude: '9.767869' },
+};
+
 let db: TestDatabase;
 let admin: Client;
 let database: Database;
@@ -167,7 +178,7 @@ beforeAll(async () => {
   await seedCustomerAccount(admin, ACCOUNT, 'STRONG');
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'k1' } })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins, PARTNER_ORIGIN]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, partnerRp: PARTNER_RP_TEST, handoverPepper: PEPPER, platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'k1' } })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();
@@ -182,7 +193,7 @@ afterAll(async () => {
 
 describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’écriture', () => {
   it('les cas couvrent exactement les routes POST déclarées', () => {
-    expect(declaredPostRoutes()).toEqual([...Object.keys(CASES), ...Object.keys(STAFF_CASES), ...Object.keys(STAFF_LOGIN_CASES)].sort());
+    expect(declaredPostRoutes()).toEqual([...Object.keys(CASES), ...Object.keys(STAFF_CASES), ...Object.keys(STAFF_LOGIN_CASES), ...Object.keys(PARTNER_LOGIN_CASES), ...Object.keys(PARTNER_CASES)].sort());
   });
 
   it('corps valide, session et Origin valides, sans clé : 400 REQUEST_INVALID pour la clé, sur chaque route', async () => {
@@ -208,6 +219,23 @@ describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’éc
     const failures: string[] = [];
     for (const [path, body] of [...Object.entries(STAFF_CASES), ...Object.entries(STAFF_LOGIN_CASES)]) {
       const response = await request(server).post(path).set('Cookie', cookie).set('Origin', [...STAFF_RP_TEST.origins][0] ?? '').send(body);
+      const problem = response.body as { code?: string; detail?: string };
+      if (response.status !== 400 || problem.code !== 'REQUEST_INVALID' || !(problem.detail ?? '').includes('Idempotency-Key')) {
+        failures.push(`${path} → ${response.status} ${problem.code ?? ''} ${problem.detail ?? ''}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('routes du portail partenaire : session partenaire et Origin valides, sans clé : 400 REQUEST_INVALID pour la clé', async () => {
+    const server = app.getHttpServer() as Server;
+    await validateMerchant(admin, uuidv7(), 'merchant-idem');
+    const counter = await createPartnerStaff((action) => withTransaction(database, action), { partnerId: 'merchant-idem', managerLogin: 'gerant.idem', sellerLogin: 'vendeur.idem' });
+    const body = await partnerLoginBody(server, 'vendeur.idem', counter.sellerKey, 1);
+    const cookie = partnerCookie(await request(server).post('/v1/partner/sessions').set('Origin', PARTNER_ORIGIN).set('Idempotency-Key', `p-${uuidv7()}`).send(body));
+    const failures: string[] = [];
+    for (const [path, payload] of [...Object.entries(PARTNER_CASES), ...Object.entries(PARTNER_LOGIN_CASES)]) {
+      const response = await request(server).post(path).set('Cookie', cookie).set('Origin', PARTNER_ORIGIN).send(payload);
       const problem = response.body as { code?: string; detail?: string };
       if (response.status !== 400 || problem.code !== 'REQUEST_INVALID' || !(problem.detail ?? '').includes('Idempotency-Key')) {
         failures.push(`${path} → ${response.status} ${problem.code ?? ''} ${problem.detail ?? ''}`);

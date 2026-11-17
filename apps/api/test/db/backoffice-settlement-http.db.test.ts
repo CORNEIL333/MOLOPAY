@@ -27,6 +27,7 @@ import {
   validateMerchant,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { createPartnerStaff } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
 /** D46 / D62 : règlements des marchands au back-office, ville du périmètre de l'agent comprise. */
@@ -124,8 +125,9 @@ beforeEach(async () => {
 async function handedOver(): Promise<void> {
   await pay(150_000n);
   const { code } = await withTransaction(database, (client) => issueHandoverCode(client, { agreementId: GOAL, pepper: PEPPER, actorId: 'system-handover' }));
+  const counter = await createPartnerStaff((action) => withTransaction(database, action), { partnerId: 'merchant-1', managerLogin: 'awa.gerant', sellerLogin: 'paul.vendeur' });
   await withTransaction(database, (client) =>
-    confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: 'vendeur-1', latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
+    confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: counter.seller.userId, latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
   );
 }
 

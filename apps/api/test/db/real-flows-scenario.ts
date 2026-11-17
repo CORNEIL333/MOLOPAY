@@ -33,6 +33,7 @@ import {
   validateBeneficiary,
   validateMerchant,
 } from './agreement-fixture';
+import { createPartnerStaff } from './partner-fixture';
 
 /**
  * Lot 25 / D59 : scénario de recette rejoué par les flux réels de l'API sur
@@ -161,8 +162,9 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
     recordRefundExecution(client, { refundId: surplus.refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-2' }),
   );
   const { code } = await transact(uri, 'app_rw', (client) => issueHandoverCode(client, { agreementId: PURCHASE, pepper: PEPPER, actorId: 'system-handover' }));
+  const counter = await createPartnerStaff((action) => transact(uri, 'app_rw', action), { partnerId: 'merchant-1', managerLogin: 'recette.gerant', sellerLogin: 'recette.vendeur' });
   await transact(uri, 'app_rw', (client) =>
-    confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: 'vendeur-1', latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
+    confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: counter.seller.userId, latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
   );
   const settlement = await transact(uri, 'app_rw', (client) => preparePayout(client, { id: uuidv7(), agreementId: PURCHASE, cityId: 'douala', principal: { ...OPS, cityIds: ['douala'] } }));
   await transact(uri, 'app_rw', (client) =>

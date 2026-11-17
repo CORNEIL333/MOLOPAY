@@ -15,6 +15,8 @@ import { BackofficeRefundController, PLATFORM_SIGNING_KEY, type PlatformSigningK
 import { StaffAuthController } from './modules/admin/staff.controller';
 import { AdminController } from './modules/admin/admin.controller';
 import { STAFF_RP, StaffSessionGuard } from './http/staff-session.guard';
+import { PARTNER_RP, PartnerSessionGuard } from './http/partner-session.guard';
+import { HANDOVER_PEPPER, PartnerAuthController, PartnerHandoverController } from './workflows/partner.controller';
 import type { RelyingParty } from './modules/admin/webauthn';
 import { PublicOfferController } from './workflows/public-offer.controller';
 import { QuoteController } from './modules/catalog/quote.controller';
@@ -28,6 +30,10 @@ export type AppDependencies = {
   readonly pinPepper?: Uint8Array | null;
   /** Partie de confiance WebAuthn du back-office (D62) ; absente : routes du personnel fermées (503). */
   readonly staffRp?: RelyingParty | null;
+  /** Partie de confiance WebAuthn du portail partenaire (D63) ; absente : routes partenaires fermées (503). */
+  readonly partnerRp?: RelyingParty | null;
+  /** Poivre des codes de remise (D45) ; absent : remise au comptoir fermée (503). */
+  readonly handoverPepper?: Uint8Array | null;
   /** Clé de signature des instructions (D5) ; absente : instructions refusées (503). */
   readonly platformSigningKey?: PlatformSigningKey | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
@@ -43,11 +49,13 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
         { provide: STAFF_RP, useValue: deps.staffRp ?? null },
+        { provide: PARTNER_RP, useValue: deps.partnerRp ?? null },
+        { provide: HANDOVER_PEPPER, useValue: deps.handoverPepper ?? null },
         { provide: PLATFORM_SIGNING_KEY, useValue: deps.platformSigningKey ?? null },
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
         { provide: APP_FILTER, useClass: ProblemFilter },
@@ -55,6 +63,7 @@ export class AppModule {
         CustomerSessionGuard,
         CustomerQuotaGuard,
         StaffSessionGuard,
+        PartnerSessionGuard,
       ],
     };
   }

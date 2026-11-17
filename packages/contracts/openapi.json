@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.13.0",
+    "version": "0.14.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -893,7 +893,7 @@
     "/v1/partner/sessions": {
       "post": {
         "operationId": "createPartnerSession",
-        "summary": "Connexion du portail partenaire",
+        "summary": "Connexion du portail partenaire par assertion WebAuthn (D63, SEC-AUTH-006)",
         "tags": [
           "Partenaire"
         ],
@@ -914,15 +914,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Session partenaire ouverte",
-            "headers": {
-              "Set-Cookie": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
+          "201": {
+            "description": "Session ouverte (cookie partner_session à la première exécution ; un rejeu renvoie le corps sans cookie)",
             "content": {
               "application/json": {
                 "schema": {
@@ -931,14 +924,17 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -978,7 +974,7 @@
     "/v1/partner/handovers": {
       "post": {
         "operationId": "validateHandover",
-        "summary": "Valider un code de remise en boutique",
+        "summary": "Confirmer une remise au comptoir (F-SET-001, D63)",
         "tags": [
           "Partenaire"
         ],
@@ -1011,6 +1007,14 @@
                   "$ref": "#/components/schemas/HandoverReceipt"
                 }
               }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
             }
           },
           "400": {
@@ -1027,6 +1031,9 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -4164,6 +4171,129 @@
           }
         }
       }
+    },
+    "/v1/partner/login-challenges": {
+      "post": {
+        "operationId": "createPartnerLoginChallenge",
+        "summary": "Défi de connexion WebAuthn du partenaire (D63)",
+        "tags": [
+          "Partenaire"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerLoginChallengeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Défi émis (indiscernable pour un identifiant inconnu)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerLoginChallenge"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/partner/sessions/current": {
+      "delete": {
+        "operationId": "deletePartnerSession",
+        "summary": "Déconnexion du partenaire (révocation immédiate)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session révoquée"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/partner/credentials": {
+      "post": {
+        "operationId": "enrollPartnerCredential",
+        "summary": "Enrôler une clé de sécurité avec le jeton remis (D63)",
+        "tags": [
+          "Partenaire"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerCredentialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clé enregistrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackofficeAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5243,53 +5373,67 @@
       },
       "PartnerSessionRequest": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
-          "email",
-          "password"
+          "challengeId",
+          "credentialId",
+          "clientDataJSON",
+          "authenticatorData",
+          "signature"
         ],
         "properties": {
-          "email": {
+          "challengeId": {
             "type": "string",
-            "format": "email"
+            "format": "uuid"
           },
-          "password": {
+          "credentialId": {
             "type": "string",
-            "minLength": 12
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "clientDataJSON": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "authenticatorData": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
           }
         },
-        "additionalProperties": false
+        "description": "Assertion WebAuthn (navigator.credentials.get), champs en base64url."
       },
       "PartnerSessionSummary": {
         "type": "object",
         "required": [
           "partnerId",
-          "displayName",
-          "roles",
+          "login",
+          "role",
           "expiresAt"
         ],
         "properties": {
           "partnerId": {
             "type": "string"
           },
-          "displayName": {
+          "login": {
             "type": "string"
           },
-          "roles": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "MANAGER",
-                "SELLER"
-              ]
-            }
+          "role": {
+            "type": "string",
+            "enum": [
+              "MANAGER",
+              "SELLER"
+            ]
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "D63 : partenaire et rôle reconstruits en base depuis la session ; jamais fournis par le client."
       },
       "PartnerOffer": {
         "type": "object",
@@ -5349,50 +5493,37 @@
         "type": "object",
         "required": [
           "code",
-          "storeId",
           "latitude",
           "longitude"
         ],
         "properties": {
           "code": {
             "type": "string",
-            "pattern": "^[0-9]{6}$"
-          },
-          "storeId": {
-            "type": "string",
-            "minLength": 1
+            "pattern": "^[0-9A-Za-z -]{10,16}$",
+            "description": "Code de remise (D45) : 10 caractères Crockford, tirets et espaces tolérés."
           },
           "latitude": {
-            "type": "number",
-            "minimum": -90,
-            "maximum": 90
+            "type": "string",
+            "pattern": "^-?\\d{1,3}(\\.\\d{1,6})?$"
           },
           "longitude": {
-            "type": "number",
-            "minimum": -180,
-            "maximum": 180
+            "type": "string",
+            "pattern": "^-?\\d{1,3}(\\.\\d{1,6})?$"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "D63 : ni partenaire ni vendeur dans le corps ; ils viennent de la session."
       },
       "HandoverReceipt": {
         "type": "object",
         "required": [
-          "handoverId",
-          "orderId",
+          "agreementId",
           "validatedAt"
         ],
         "properties": {
-          "handoverId": {
+          "agreementId": {
             "type": "string",
             "format": "uuid"
-          },
-          "orderId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "customerDisplayName": {
-            "type": "string"
           },
           "validatedAt": {
             "type": "string",
@@ -7005,6 +7136,81 @@
               },
               "description": "Événement daté (statut, versement, réclamation, litige) ; montants en chaînes d’entiers."
             }
+          }
+        }
+      },
+      "PartnerLoginChallengeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "login"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{2,63}$"
+          }
+        }
+      },
+      "PartnerLoginChallenge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challengeId",
+          "challenge",
+          "rpId"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challenge": {
+            "type": "string",
+            "description": "Défi base64url, usage unique, 5 min."
+          },
+          "rpId": {
+            "type": "string"
+          }
+        }
+      },
+      "PartnerCredentialRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challengeId",
+          "enrollmentToken",
+          "credentialId",
+          "clientDataJSON",
+          "authenticatorData",
+          "publicKeySpki"
+        ],
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enrollmentToken": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "description": "Jeton remis en main propre ; jamais conservé en clair."
+          },
+          "credentialId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "clientDataJSON": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "authenticatorData": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$"
+          },
+          "publicKeySpki": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,8192}$",
+            "description": "Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url."
           }
         }
       }

@@ -39,7 +39,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranche 1 faite (0057, store, flux, 19 tests, 16 mutants) ; suite : routes de connexion et remise au comptoir |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–2 faites (0057, 0058, connexion WebAuthn et remise au comptoir en HTTP, contrat 0.14.0, fermé par défaut) ; suite : gestion des vendeurs par le gérant |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -54,6 +54,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
 | BLOCKED | Taux de commission, délai de contestation | décision du fondateur (D46) |
 | BLOCKED | Textes juridiques, version des conditions | D23 |
+| BLOCKED | E2E back-office : build Next.js refusé (16.4.3 vulnérable, D64) | montée épinglée 16.4.5 à revoir par un humain |
 | BLOCKED | App mobile Flutter | livrée par ChatGPT selon `PROMPT_CHATGPT_APP_MOBILE.md`, branchement ensuite |
 
 ## Décisions humaines attendues
@@ -65,4 +66,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 2 (D63) : `PartnerSessionGuard` (cookie `partner_session` distinct, partie de confiance partenaire fermée par défaut → 503 `PARTNER_AUTH_UNCONFIGURED`) ; routes `POST /v1/partner/login-challenges`, `POST /v1/partner/sessions`, `POST /v1/partner/credentials`, `DELETE /v1/partner/sessions/current` ; route `POST /v1/partner/handovers` (partenaire et vendeur imposés par la session) ; migration 0058 : la base vérifie que `settlement.handover.partner_user_id` est un compte actif du partenaire. Tests HTTP d'abord, contrat OpenAPI.
+Lot 20, tranche 3 (D63) : gestion des vendeurs par le gérant en HTTP — `POST /v1/partner/sellers` (création, gérant uniquement), `POST /v1/partner/sellers/{id}/enrollments` (code d'enrôlement rendu une seule fois), `POST /v1/partner/sellers/{id}/disable` (motif) ; vendeur → 403 `PARTNER_ROLE_DENIED` ; autre partenaire → même refus. Tests HTTP d'abord, contrat 0.15.0.

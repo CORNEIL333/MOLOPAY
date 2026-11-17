@@ -65,6 +65,7 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   PIN_UNCONFIGURED: 'service-unavailable',
   STAFF_AUTH_UNCONFIGURED: 'service-unavailable',
   PARTNER_AUTH_UNCONFIGURED: 'service-unavailable',
+  HANDOVER_UNCONFIGURED: 'service-unavailable',
   SIGNING_UNCONFIGURED: 'service-unavailable',
 };
 
@@ -79,7 +80,7 @@ export function statusForCode(code: ErrorCode): number {
   }
   if (code === 'INTERNAL_ERROR') return 500;
   if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
   return 422;
 }
 
