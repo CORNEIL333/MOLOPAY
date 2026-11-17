@@ -517,3 +517,4 @@
 
 ### D73 · Détail d'une réclamation au back-office (F-SUP-001, F-BO-004)
 - **Appliqué :** `GET /v1/backoffice/complaints/{complaintId}?reason=…` : même règle d'accès que l'historique d'un objectif (`READ_FINANCIAL_HISTORY`, motif obligatoire), consultation inscrite à l'audit chaîné avec l'identifiant du client (jamais renvoyé dans la réponse) ; référence, canal, objectif, réception, motif et description du client (nuls pour une réclamation téléphonique sans détail), réclamation close, litige ouvert. Contrat 0.27.0. 2 tests HTTP ; 5 mutants tués.
+- **Mise à jour D73 (écran) :** page `/reclamations` du back-office (identifiant, motif de consultation obligatoire, détail : canal, réception, objectif, motif lisible, description ou « aucune description saisie », litige ouvert, close). 6 tests de composants ; 5 mutants tués. Non compilé (D64).

@@ -5,6 +5,7 @@ import type { FundsActionPort } from '../components/funds-action';
 import type { StaffEnrollmentPorts } from '../components/staff-enrollment';
 import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
+import type { ComplaintPorts as ComplaintPort } from '../components/complaint-detail';
 import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
 
@@ -169,5 +170,13 @@ export const browserSanctionsPorts: SanctionsPort = {
       cache: 'no-store',
     });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+};
+
+/** F-SUP-001 / D73 : détail d'une réclamation (route réelle ; le motif est inscrit à l'audit). */
+export const browserComplaintPorts: ComplaintPort = {
+  async load(complaintId, reason) {
+    const result = await api().GET('/v1/backoffice/complaints/{complaintId}', { params: { path: { complaintId }, query: { reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, complaint: result.data };
   },
 };
