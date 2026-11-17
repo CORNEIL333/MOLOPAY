@@ -67,7 +67,7 @@ async function start(deps: Partial<AppDependencies>): Promise<INestApplication> 
   return started;
 }
 
-type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[]; orders?: Record<string, unknown>[]; payouts?: Record<string, unknown>[]; asOf?: string };
+type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[]; orders?: Record<string, unknown>[]; payouts?: Record<string, unknown>[]; offers?: Record<string, unknown>[]; asOf?: string };
 function payload(response: request.Response): Body {
   return response.body as Body;
 }
@@ -520,5 +520,42 @@ describe('F-PRT-003/004 règlements du partenaire, gérant uniquement (D63)', ()
     const foreign = await payouts(partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1)));
     expect(foreign.status).toBe(200);
     expect(payload(foreign).payouts).toEqual([]);
+  });
+});
+
+describe('F-PRT-002 offres du partenaire en lecture (D63)', () => {
+  function offers(cookie: string): request.Test {
+    return request(server()).get('/v1/partner/offers').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie);
+  }
+
+  it('sans présentation (titre) l’offre publiée reste invisible du public', async () => {
+    const cookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    expect((payload(await offers(cookie)).offers ?? [])[0]).toMatchObject({ offerId: OFFER, title: null, publiclyVisible: false });
+  });
+
+  it('offres du seul partenaire, version courante, prix figé, stock disponible et visibilité publique', async () => {
+    await admin.query('INSERT INTO catalog.offer_presentation VALUES ($1, 1, $2, $3, now())', [OFFER, 'Réfrigérateur 200 L', 'net-1']);
+    const cookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    const listed = await offers(cookie);
+    expect(listed.status).toBe(200);
+    expect(listed.headers['cache-control']).toBe('private, no-store');
+    const [offer] = payload(listed).offers ?? [];
+    expect(offer).toMatchObject({ offerId: OFFER, version: 1, title: 'Réfrigérateur 200 L', state: 'PUBLISHED', priceXaf: '150000', publiclyVisible: true });
+    const stock = (await admin.query<{ kind: string; units: number | null }>('SELECT availability_kind AS kind, stock_units AS units FROM catalog.offer_version WHERE offer_id = $1', [OFFER])).rows[0];
+    expect(offer).toMatchObject({ availabilityKind: stock?.kind, stockUnits: stock?.units, availableUnits: stock?.kind === 'IN_STOCK' ? (stock.units ?? 0) - 1 : null });
+    expect(Object.keys(offer ?? {}).sort()).toEqual(['availabilityKind', 'availableUnits', 'offerId', 'priceXaf', 'publiclyVisible', 'state', 'stockUnits', 'title', 'updatedAt', 'version']);
+    expect(Number.isNaN(Date.parse(payload(listed).asOf ?? ''))).toBe(false);
+  });
+
+  it('un autre partenaire ne voit pas ces offres', async () => {
+    const foreignCookie = partnerCookie(await login('max.vendeur', otherSeller.sellerKey, 1));
+    expect(payload(await offers(foreignCookie)).offers).toEqual([]);
+  });
+
+  it('marchand déclaré défaillant : offre toujours listée au partenaire mais invisible du public', async () => {
+    await admin.query('INSERT INTO catalog.offer_presentation VALUES ($1, 1, $2, $3, now())', [OFFER, 'Réfrigérateur 200 L', 'net-1']);
+    await admin.query(`INSERT INTO catalog.partner_incident (id, partner_id, kind, reason, reported_by, created_at) VALUES ($1, 'merchant-1', 'MERCHANT_DEFAULT', 'test', 'risk-1', now())`, [uuidv7()]);
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    expect((payload(await offers(cookie)).offers ?? [])[0]).toMatchObject({ offerId: OFFER, publiclyVisible: false });
   });
 });

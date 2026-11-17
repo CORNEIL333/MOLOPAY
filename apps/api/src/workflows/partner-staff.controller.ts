@@ -13,6 +13,7 @@ import {
   listPartnerUsers,
   type PartnerPrincipal,
 } from '../modules/catalog/partner-user.store';
+import { listPartnerOffers } from '../modules/agreements/partner-offers.store';
 import { listPartnerOrders } from '../modules/agreements/partner-orders.store';
 import { ordersCsv } from './partner-csv';
 import { uuidv7 } from '../modules/ledger/domain';
@@ -78,6 +79,16 @@ export class PartnerStaffController {
     return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
       const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
       return { orders: await listPartnerOrders(client, partner.partnerId), asOf: asOf.toISOString() };
+    });
+  }
+
+  /** F-PRT-002 : offres du seul partenaire, en lecture (gérant et vendeur). */
+  @Get('offers')
+  @Header('Cache-Control', 'private, no-store')
+  public async offers(@CurrentPartner() partner: PartnerPrincipal): Promise<unknown> {
+    return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
+      const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
+      return { offers: await listPartnerOffers(client, partner.partnerId), asOf: asOf.toISOString() };
     });
   }
 

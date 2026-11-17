@@ -38,8 +38,9 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Catalogue public : disponible affiché (D57) | contrôleur dans workflows |
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
-| BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, contrat 0.18.0, fermé par défaut) ; suite : offres du partenaire (F-PRT-002) |
+| BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | canal partenaire : portail en lecture disponible ; envoi actif (courriel/SMS) à décider |
+| BLOCKED | F-PRT-002 écriture du catalogue par le partenaire | décision du fondateur (D63) |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut) ; suite : écrans du portail partenaire |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -66,4 +67,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 7 (D63, F-PRT-002) : `GET /v1/partner/offers` — offres du seul partenaire de la session (toutes versions courantes, publiées ou non, stock disponible D57), lecture pour gérant et vendeur ; vérifier le schéma `PartnerOffer` du brouillon de contrat avant. La modification du catalogue par le partenaire reste à trancher (aujourd'hui publiée par le personnel). Tests HTTP d'abord.
+Lot 20, tranche 8 (D63) : application web `apps/partner-portal` (Next.js, mêmes dépendances épinglées que le back-office, aucune nouvelle) : connexion par clé (`navigator.credentials.get`), enrôlement (`/enrolement`), remise au comptoir (code + position), commandes, règlements (gérant), vendeurs (gérant) ; tests de composants d'abord. Attention : le build Next.js 16.4.3 est refusé (D64) — composants testés sans build tant que la montée n'est pas approuvée.

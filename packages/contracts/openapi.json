@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.18.0",
+    "version": "0.19.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -942,7 +942,7 @@
     "/v1/partner/offers": {
       "get": {
         "operationId": "listPartnerOffers",
-        "summary": "Catalogue du partenaire connecté",
+        "summary": "Offres du partenaire, en lecture (F-PRT-002, D63)",
         "tags": [
           "Partenaire"
         ],
@@ -960,6 +960,14 @@
                   "$ref": "#/components/schemas/PartnerOfferList"
                 }
               }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
             }
           },
           "401": {
@@ -967,6 +975,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -5766,28 +5777,65 @@
         "type": "object",
         "required": [
           "offerId",
+          "version",
           "title",
-          "status",
+          "state",
           "priceXaf",
+          "availabilityKind",
+          "stockUnits",
+          "availableUnits",
+          "publiclyVisible",
           "updatedAt"
         ],
+        "description": "F-PRT-002 / D63 : version courante de l'offre, en lecture ; publication par le personnel en maker-checker.",
         "properties": {
           "offerId": {
             "type": "string",
             "format": "uuid"
           },
-          "title": {
-            "type": "string"
+          "version": {
+            "type": "integer",
+            "minimum": 1
           },
-          "status": {
-            "$ref": "#/components/schemas/OfferStatus"
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED"
+            ]
           },
           "priceXaf": {
             "$ref": "#/components/schemas/Money"
           },
+          "availabilityKind": {
+            "type": "string",
+            "enum": [
+              "IN_STOCK",
+              "PREORDER"
+            ]
+          },
           "stockUnits": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0
+          },
+          "availableUnits": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "publiclyVisible": {
+            "type": "boolean"
           },
           "updatedAt": {
             "type": "string",

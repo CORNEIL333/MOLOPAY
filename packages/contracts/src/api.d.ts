@@ -341,7 +341,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Catalogue du partenaire connecté */
+        /** Offres du partenaire, en lecture (F-PRT-002, D63) */
         get: operations["listPartnerOffers"];
         put?: never;
         post?: never;
@@ -1660,13 +1660,20 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        /** @description F-PRT-002 / D63 : version courante de l'offre, en lecture ; publication par le personnel en maker-checker. */
         PartnerOffer: {
             /** Format: uuid */
             offerId: string;
-            title: string;
-            status: components["schemas"]["OfferStatus"];
+            version: number;
+            title: string | null;
+            /** @enum {string} */
+            state: "DRAFT" | "PUBLISHED";
             priceXaf: components["schemas"]["Money"];
-            stockUnits?: number;
+            /** @enum {string} */
+            availabilityKind: "IN_STOCK" | "PREORDER";
+            stockUnits: number | null;
+            availableUnits: number | null;
+            publiclyVisible: boolean;
             /** Format: date-time */
             updatedAt: string;
         };
@@ -2829,6 +2836,7 @@ export interface operations {
             /** @description Offres du partenaire */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -2837,6 +2845,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
         };
     };
     validateHandover: {
