@@ -5,6 +5,7 @@ import type { FundsActionPort } from '../components/funds-action';
 import type { StaffEnrollmentPorts } from '../components/staff-enrollment';
 import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
+import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -139,5 +140,13 @@ export const browserStaffEnrollmentPorts: StaffEnrollmentPorts = {
       cache: 'no-store',
     });
     return response.ok ? { ok: true } : { ok: false, problem: problemOf(await response.json().catch(() => ({})), response.status) };
+  },
+};
+
+/** F-BO-003 / D65 : tableau de bord agrégé (route réelle ; le motif est inscrit à l'audit). */
+export const browserDashboardPorts: DashboardPort = {
+  async load(reason) {
+    const result = await api().GET('/v1/backoffice/dashboard', { params: { query: { reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, board: result.data };
   },
 };

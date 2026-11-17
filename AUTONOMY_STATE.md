@@ -50,7 +50,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Lot 24 : cache, garde Origin et Idempotency-Key vérifiés sur toutes les routes | défaut corrigé sur le devis |
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–14 faites (serveur complet ; web : enrôlement, connexion par clé, file, actions, administration ; bout en bout réel) ; fermé par défaut, à valider par le fondateur |
-| DONE | Lot 21 : tableau de bord agrégé F-BO-003 (D65) | API, contrat 0.21.0 ; écran web à faire |
+| DONE | Lot 21 : tableau de bord agrégé F-BO-003 (D65) | API, contrat 0.21.0, écran `/tableau-de-bord` |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -68,4 +68,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 21 (D65) : écran `/tableau-de-bord` du back-office (motif obligatoire, tableaux accords par modèle/univers/villes/état, règlements par état, compteurs), tests de composants d'abord, mutations. Ensuite : chercher un autre lot READY (ex. lot 24 : en-têtes et limitation de débit des routes partenaires/back-office ; lot 17 : gabarits FR/EN sans envoi).
+Chercher le lot READY suivant : lot 24 (durcissement) — vérifier que les nouvelles routes partenaires (GET) et le tableau de bord ont `Cache-Control: private, no-store`, que les routes partenaires sont couvertes par le test d'origine et d'idempotence ; puis lot 17 (gabarits FR/EN de notification sans envoi, F-NOT-001/002) si non fait.
