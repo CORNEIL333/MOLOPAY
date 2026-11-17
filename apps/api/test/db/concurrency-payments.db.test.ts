@@ -98,7 +98,7 @@ describe('CDC_07 concurrence : 1 000 versements simultanés sur un objectif', ()
       ),
     );
     const settled = await Promise.allSettled(confirmations);
-    expect(settled.filter((result) => result.status === 'rejected').map((result) => String((result as PromiseRejectedResult).reason))).toEqual([]);
+    expect(settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => String(result.reason))).toEqual([]);
 
     const funds = await admin.query<{ funds: string }>('SELECT agreements.confirmed_funds_xaf($1)::text AS funds', [GOAL]);
     expect(funds.rows[0]?.funds).toBe((AMOUNT * BigInt(COUNT)).toString());
