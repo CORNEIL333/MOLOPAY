@@ -8,6 +8,7 @@ import {
   type ApprovalDecision,
   type ApprovalKind,
   type ApprovalRequest,
+  type AuthorizationContext,
 } from './domain';
 
 type SqlClient = Pick<PoolClient, 'query'>;
@@ -19,12 +20,12 @@ type SqlClient = Pick<PoolClient, 'query'>;
  */
 export async function prepareApproval(
   client: SqlClient,
-  input: { readonly id: string; readonly kind: ApprovalKind; readonly payload: Readonly<Record<string, JsonValue>>; readonly reason: string; readonly principal: AdminPrincipal },
+  input: { readonly id: string; readonly kind: ApprovalKind; readonly payload: Readonly<Record<string, JsonValue>>; readonly reason: string; readonly principal: AdminPrincipal; readonly context?: AuthorizationContext },
 ): Promise<ApprovalRequest> {
   const now = (await client.query<{ now: string }>(
     `SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS now`,
   )).rows[0]?.now ?? '';
-  const request = createApprovalRequest({ id: input.id, kind: input.kind, payload: input.payload, reason: input.reason, now }, input.principal, {});
+  const request = createApprovalRequest({ id: input.id, kind: input.kind, payload: input.payload, reason: input.reason, now }, input.principal, input.context ?? {});
   await client.query(
     `INSERT INTO admin.approval_request (id, kind, maker_id, payload, payload_hash, reason, prepared_at, expires_at)
      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)`,
@@ -35,7 +36,7 @@ export async function prepareApproval(
 
 export async function decideApproval(
   client: SqlClient,
-  input: { readonly requestId: string; readonly principal: AdminPrincipal; readonly decision: ApprovalDecision; readonly reason?: string | undefined },
+  input: { readonly requestId: string; readonly principal: AdminPrincipal; readonly decision: ApprovalDecision; readonly reason?: string | undefined; readonly context?: AuthorizationContext },
 ): Promise<void> {
   const row = (await client.query<{
     id: string; kind: ApprovalKind; maker_id: string; payload: Record<string, JsonValue>; payload_hash: Buffer; reason: string;
@@ -56,7 +57,7 @@ export async function decideApproval(
     id: row.id, kind: row.kind, makerId: row.maker_id, payload: row.payload, payloadHash: row.payload_hash, reason: row.reason,
     preparedAt: row.prepared_at, expiresAt: row.expires_at, status: 'PENDING', checkerId: null, decidedAt: null, decisionReason: null,
   };
-  const decided = decideApprovalRequest(pending, input.principal, {}, input.decision, input.reason, row.now);
+  const decided = decideApprovalRequest(pending, input.principal, input.context ?? {}, input.decision, input.reason, row.now);
   await client.query(
     `INSERT INTO admin.approval_decision (request_id, decision, decided_by, decided_at, decision_reason) VALUES ($1, $2, $3, $4, $5)`,
     [decided.id, input.decision, input.principal.actorId, row.now, decided.decisionReason],

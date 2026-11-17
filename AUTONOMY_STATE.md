@@ -39,6 +39,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranche 1 faite (0057, store, flux, 19 tests, 16 mutants) ; suite : routes de connexion et remise au comptoir |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -64,4 +65,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20 (partenaires) : vérifier les décisions et exigences (F-PRT-*, SEC-AUTH-006 : gérant MFA, vendeurs TOTP ou WebAuthn) ; la confirmation de remise au comptoir (`confirmHandoverAtPartner`) n'a pas de route HTTP authentifiée. Proposer une option prudente (WebAuthn pour le gérant, réutilisation de 0056 avec un espace partenaire distinct) avant d'implémenter, et la consigner (D63).
+Lot 20, tranche 2 (D63) : `PartnerSessionGuard` (cookie `partner_session` distinct, partie de confiance partenaire fermée par défaut → 503 `PARTNER_AUTH_UNCONFIGURED`) ; routes `POST /v1/partner/login-challenges`, `POST /v1/partner/sessions`, `POST /v1/partner/credentials`, `DELETE /v1/partner/sessions/current` ; route `POST /v1/partner/handovers` (partenaire et vendeur imposés par la session) ; migration 0058 : la base vérifie que `settlement.handover.partner_user_id` est un compte actif du partenaire. Tests HTTP d'abord, contrat OpenAPI.

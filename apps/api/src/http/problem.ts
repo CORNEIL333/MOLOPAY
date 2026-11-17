@@ -12,6 +12,7 @@ export type Problem = {
 const UNAUTHORIZED: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'IDENTITY_SESSION_INVALID',
   'STAFF_AUTH_INVALID',
+  'PARTNER_AUTH_INVALID',
   'IDENTITY_SESSION_EXPIRED',
 ]);
 
@@ -21,6 +22,8 @@ const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   // Refus d'autorisation du back-office : hors périmètre (ville, partenaire) ou au-delà du plafond.
   'ADMIN_SCOPE_DENIED',
   'ADMIN_AMOUNT_LIMIT',
+  // Portail partenaire : rôle (vendeur) ou partenaire hors périmètre (F-PRT-003/004).
+  'PARTNER_ROLE_DENIED',
   'ORIGIN_FORBIDDEN',
   'MAKER_CANNOT_APPROVE',
   'IDENTITY_ACCOUNT_BLOCKED',
@@ -61,6 +64,7 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   RATE_LIMIT_UNCONFIGURED: 'service-unavailable',
   PIN_UNCONFIGURED: 'service-unavailable',
   STAFF_AUTH_UNCONFIGURED: 'service-unavailable',
+  PARTNER_AUTH_UNCONFIGURED: 'service-unavailable',
   SIGNING_UNCONFIGURED: 'service-unavailable',
 };
 
@@ -75,7 +79,7 @@ export function statusForCode(code: ErrorCode): number {
   }
   if (code === 'INTERNAL_ERROR') return 500;
   if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
   return 422;
 }
 
