@@ -172,6 +172,9 @@ describe('F-SUP-001 réclamation du client sur son objectif (D70)', () => {
       [body.claimId],
     );
     expect(stored.rows).toEqual([{ channel: 'APP', agreement_id: GOAL, reason: 'PAYMENT_NOT_RECEIVED', details: 'Mon versement du 3 novembre n’apparaît pas.' }]);
+    // F-NOT-001 / D70 : accusé notifié au client (gabarit existant, sans détail), même transaction.
+    const queued = await admin.query(`SELECT DISTINCT event_type AS event FROM notifications.outbox WHERE recipient_id = $1`, [CUSTOMER]);
+    expect(queued.rows).toEqual([{ event: 'DISPUTE_UPDATED' }]);
   });
 
   it('objectif d’un autre client : 404 sans rien enregistrer ; corps en liste blanche ; texte trop court ; sans session', async () => {

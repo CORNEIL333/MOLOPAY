@@ -10,6 +10,7 @@ import { CLAIM_REASONS, recordComplaint, recordComplaintDetail, type ClaimReason
 import { lockDataRightsActor } from '../modules/identity/data-rights.store';
 import type { AuthenticatedCustomer } from '../modules/identity/session.store';
 import { uuidv7 } from '../modules/ledger/domain';
+import { factKey, notifyCustomer } from './notify';
 
 function invalid(): never {
   throw new BusinessError('REQUEST_INVALID', 'Corps de requête invalide');
@@ -50,6 +51,8 @@ export class GoalClaimsController {
         await getGoalForCustomer(client, actor.accountId, goalId);
         const recorded = await recordComplaint(client, { id: uuidv7(), customerId: actor.accountId, agreementId: goalId, channel: 'APP' });
         await recordComplaintDetail(client, { complaintId: recorded.id, ...claim });
+        // F-NOT-001 : accusé au client par le gabarit existant (D56), sans aucun détail, même transaction.
+        await notifyCustomer(client, { customerId: actor.accountId, event: 'DISPUTE_UPDATED', eventKey: factKey('complaint-received', recorded.id) });
         return { status: 201, body: { claimId: recorded.id, reference: recorded.reference, status: 'OPEN', createdAt: recorded.receivedAt } };
       },
     );
