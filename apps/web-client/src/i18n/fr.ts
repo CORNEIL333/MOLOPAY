@@ -1,4 +1,11 @@
 export const fr = {
+  claim: {
+    title: 'Signaler un problème', reason: 'Motif', details: 'Décrivez le problème', submit: 'Envoyer ma réclamation',
+    reasons: { PAYMENT_NOT_RECEIVED: 'Versement non reçu', HANDOVER_REFUSED: 'Remise refusée', OFFER_MISMATCH: 'Article non conforme', OTHER: 'Autre' },
+    invalid: 'Décrivez le problème en 10 caractères au moins (1000 au plus).',
+    privacy: 'N’indiquez jamais votre PIN, un code reçu par SMS ni le numéro de votre pièce d’identité.',
+    received: 'Réclamation enregistrée. Votre numéro :', error: 'Réclamation non confirmée', network: 'Connexion interrompue. Réessayez.',
+  },
   legalName: {
     title: 'Mon identité', description: 'Indiquez votre nom complet, tel qu’il figure sur votre pièce d’identité. Il est exigé par la réglementation pour ouvrir le premier niveau de votre compte.',
     label: 'Nom complet (tel qu’inscrit sur votre pièce d’identité)', submit: 'Enregistrer mon nom', back: 'Mon compte',

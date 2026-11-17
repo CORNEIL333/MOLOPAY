@@ -55,7 +55,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Lot 07 : niveau KYC 1 (nom déclaré + filtrage ONU, D68) | 0060, route client, écran `/compte/identite`, contrat 0.23.0 ; quota à valider |
 | BLOCKED | Lot 07 : PPE, listes nationales, niveaux 2–3 (pièce + vivacité : prestataire) | source PPE et listes CEMAC à décider (D66) ; prestataire de vivacité (zéro simulation) |
 | DONE | Historique des versements d'un objectif (F-PAY-006, D69) | contrat 0.24.0 |
-| DONE | Réclamation client `POST /v1/goals/{goalId}/claims` (F-SUP-001, D70) | 0061, contrat 0.25.0 ; écran client à faire |
+| DONE | Réclamation client `POST /v1/goals/{goalId}/claims` (F-SUP-001, D70) | 0061, contrat 0.25.0, écran sur la page d'objectif |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -73,4 +73,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Écran client de réclamation (D70) sur la page d'un objectif (`apps/web-client`, FR/EN : motif, description, accusé avec numéro `R-…`), tests de composants d'abord. Ensuite : connexion par PIN `POST /v1/auth/sessions` (D69, avec D16 : compteurs PIN sous verrou) — à étudier avant d'implémenter (L3).
+Connexion client par PIN et appareil `POST /v1/auth/sessions` (D69) : lire le contrat, `identity/pin.store.ts`, `auth.store.ts`, D15/D16 (compteurs PIN sous verrou), puis consigner un plan (D71) avant d'implémenter — L3, tests d'attaque (rejeu, PIN erroné, appareil révoqué, verrouillage progressif).

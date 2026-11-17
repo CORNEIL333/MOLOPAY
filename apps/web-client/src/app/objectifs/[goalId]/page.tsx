@@ -3,6 +3,7 @@ import { ErrorState } from '@achat/ui';
 import { GoalOverview } from '../../../components/goal-overview';
 import { BeneficiaryPanel } from '../../../components/beneficiary-panel';
 import { ContributionsView } from '../../../components/contributions-view';
+import { ClaimPanel } from '../../../components/claim-panel';
 import { getDictionary } from '../../../i18n';
 import { currentLocale } from '../../../lib/locale';
 import { serverApi } from '../../../lib/server-api';
@@ -26,6 +27,7 @@ export default async function GoalPage({ params }: { readonly params: Promise<{ 
       <GoalOverview goal={goal.data} labels={labels.goals} locale={locale} />
       <BeneficiaryPanel goal={goal.data} receipt={receipt} locale={locale} />
       {contributions.data === undefined ? <ErrorState problem={problemFrom(contributions.error, contributions.response, labels.goals.errorTitle)} /> : <ContributionsView data={contributions.data} labels={labels.goals} locale={locale} />}
+      <ClaimPanel goalId={goalId} locale={locale} />
     </div>;
   } catch {
     return <ErrorState problem={{ title: labels.goals.errorTitle, detail: labels.errors.network }} />;

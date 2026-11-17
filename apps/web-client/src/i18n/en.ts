@@ -1,6 +1,13 @@
 import type { Dictionary } from './fr';
 
 export const en: Dictionary = {
+  claim: {
+    title: 'Report a problem', reason: 'Reason', details: 'Describe the problem', submit: 'Send my claim',
+    reasons: { PAYMENT_NOT_RECEIVED: 'Payment not received', HANDOVER_REFUSED: 'Handover refused', OFFER_MISMATCH: 'Item not as described', OTHER: 'Other' },
+    invalid: 'Describe the problem in at least 10 characters (at most 1000).',
+    privacy: 'Never include your PIN, a code received by SMS, or your ID document number.',
+    received: 'Claim recorded. Your reference:', error: 'Claim not confirmed', network: 'Connection interrupted. Please try again.',
+  },
   legalName: {
     title: 'My identity', description: 'Enter your full name as shown on your ID document. Regulations require it to open the first level of your account.',
     label: 'Full name (as on your ID document)', submit: 'Save my name', back: 'My account',
