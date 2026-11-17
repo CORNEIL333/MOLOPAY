@@ -76,4 +76,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Accusé de réclamation notifié au client (F-NOT-001, outbox D47) : vérifier les événements de notification existants (`notifications/domain.ts`) ; un nouveau type exige un gabarit FR/EN — texte proposé à valider (⚖), envoi réel toujours différé par le fondateur. Sinon : relecture de sécurité ciblée des routes ajoutées le 17 novembre (liste blanche, Origin, cache, idempotence, quotas) par les contrôles transverses existants.
+Presque tout le reste attend une décision ou un accès externe (fiche des points ouverts ; D62–D73). Travail réversible encore possible : (1) lot 25 — étendre le jeu de recette (`tools/generate-recette.ts`) aux flux partenaires et KYC ajoutés le 17 novembre, vérifier par `verify:ledger` ; (2) rédiger une fiche de synthèse des décisions D63–D73 pour le fondateur (une page, questions fermées) ; (3) portail partenaire : afficher le reçu de remise après confirmation (numéro de commande, heure).
