@@ -36,7 +36,7 @@ export const CUSTOMER_QUOTA_ACTIONS = [
 ] as const;
 export type CustomerQuotaAction = (typeof CUSTOMER_QUOTA_ACTIONS)[number];
 
-const QUOTA_ACTION = Symbol('CUSTOMER_QUOTA_ACTION');
+export const QUOTA_ACTION = Symbol('CUSTOMER_QUOTA_ACTION');
 const MAX_RETRY_AFTER_SECONDS = 86_400;
 
 export function parseCustomerQuotaAction(input: unknown): CustomerQuotaAction {
