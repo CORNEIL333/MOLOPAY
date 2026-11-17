@@ -17,6 +17,7 @@ import {
 } from './reconciliation-classification';
 import { getAgreementHistoryForStaff } from './agreement-history';
 import { readBackofficeQueue } from './backoffice-queue';
+import { readBackofficeDashboard } from './backoffice-dashboard';
 import { decideRiskAlert } from './risk-detection';
 
 type Result = { readonly status: number; readonly body: JsonValue };
@@ -45,6 +46,14 @@ export class BackofficeOversightController {
     const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
     // app_rw : la consultation est inscrite à l'audit chaîné dans la même transaction (F-BO-004).
     return withTransaction({ ...this.database, role: 'app_rw' }, (client) => readBackofficeQueue(client, staff, reason));
+  }
+
+  /** F-BO-003 / D65 : tableau de bord agrégé (consultation motivée, journalisée). */
+  @Get('dashboard')
+  @Header('Cache-Control', 'private, no-store')
+  public dashboard(@CurrentStaff() staff: AdminPrincipal, @Query() query: unknown): Promise<unknown> {
+    const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
+    return withTransaction({ ...this.database, role: 'app_rw' }, (client) => readBackofficeDashboard(client, staff, reason));
   }
 
   /** F-SUP-003 / D62 : historique d'un objectif pour le support (consultation motivée, journalisée). */

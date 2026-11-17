@@ -229,3 +229,43 @@ describe('F-SUP-003 / D62 historique d’un objectif pour le support', () => {
   });
 });
 
+
+describe('F-BO-003 tableau de bord du back-office (D65)', () => {
+  type Dashboard = {
+    asOf: string;
+    agreements: { model: string; universe: string | null; cities: string; status: string; count: number; targetXaf: string; confirmedFundsXaf: string }[];
+    settlements: { state: string; count: number; netXaf: string }[];
+    handovers: number;
+    openDisputes: number;
+    openComplaints: number;
+    openRiskAlerts: number;
+  };
+  const read = (cookie: string, reason = 'pilotage hebdomadaire'): request.Test =>
+    request(server()).get('/v1/backoffice/dashboard').query({ reason }).set('Cookie', cookie);
+
+  it('agrégats dérivés : accords par modèle, univers, villes et état, montants entiers en texte ; aucune donnée personnelle', async () => {
+    await pay(10_000n);
+    await pay(5_000n);
+    const response = await read(cookies.finOne);
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    const board = response.body as Dashboard;
+    expect(board.agreements).toEqual([
+      { model: 'PLANNED_EXPENSE', universe: null, cities: '', status: 'ACTIVE', count: 1, targetXaf: '300000', confirmedFundsXaf: '15000' },
+    ]);
+    expect(board.settlements).toEqual([]);
+    expect({ handovers: board.handovers, openDisputes: board.openDisputes, openRiskAlerts: board.openRiskAlerts }).toEqual({ handovers: 0, openDisputes: 0, openRiskAlerts: 0 });
+    expect(JSON.stringify(board)).not.toContain(CUSTOMER);
+    expect(Number.isNaN(Date.parse(board.asOf))).toBe(false);
+  });
+
+  it('réclamation ouverte comptée ; consultation motivée et journalisée ; droit et motif exigés', async () => {
+    await withTransaction(database, (client) => recordComplaint(client, { id: uuidv7(), customerId: CUSTOMER, agreementId: GOAL, channel: 'APP' }));
+    expect((await request(server()).get('/v1/backoffice/dashboard').set('Cookie', cookies.finOne)).status).toBe(400);
+    expect((await read(cookies.supportN1)).status).toBe(403);
+    const board = (await read(cookies.ops)).body as Dashboard;
+    expect(board.openComplaints).toBe(1);
+    const audit = await admin.query(`SELECT actor_id, reason FROM audit.event WHERE target_type = 'BACKOFFICE_DASHBOARD'`);
+    expect(audit.rows).toEqual([{ actor_id: 'ops.un', reason: 'pilotage hebdomadaire' }]);
+  });
+});

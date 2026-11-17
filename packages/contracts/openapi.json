@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4670,6 +4670,57 @@
           }
         }
       }
+    },
+    "/v1/backoffice/dashboard": {
+      "get": {
+        "operationId": "getBackofficeDashboard",
+        "summary": "Tableau de bord agrégé, consultation motivée et journalisée (F-BO-003, D65)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "description": "Motif de consultation (F-BO-004), inscrit à l’audit."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File de travail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackofficeDashboard"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7830,6 +7881,129 @@
         },
         "additionalProperties": false,
         "description": "D63 : relu en base à chaque requête ; sert l'orientation du portail, chaque route revérifie le rôle."
+      },
+      "BackofficeDashboard": {
+        "type": "object",
+        "required": [
+          "asOf",
+          "agreements",
+          "settlements",
+          "handovers",
+          "openDisputes",
+          "openComplaints",
+          "openRiskAlerts"
+        ],
+        "description": "F-BO-003 / D65 : agrégats dérivés, sans donnée personnelle. `cities` : villes de la version d'offre, triées et jointes par « + » ; vide pour un accord C.",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "agreements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "model",
+                "universe",
+                "cities",
+                "status",
+                "count",
+                "targetXaf",
+                "confirmedFundsXaf"
+              ],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "enum": [
+                    "SAVE_THEN_BUY",
+                    "FINANCED_PURCHASE",
+                    "PLANNED_EXPENSE"
+                  ]
+                },
+                "universe": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "ESSENTIALS",
+                    "TECHNOLOGY",
+                    "HOUSING",
+                    "MOBILITY",
+                    null
+                  ]
+                },
+                "cities": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "targetXaf": {
+                  "$ref": "#/components/schemas/Money"
+                },
+                "confirmedFundsXaf": {
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "settlements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "state",
+                "count",
+                "netXaf"
+              ],
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "PREPARED",
+                    "APPROVED",
+                    "REJECTED",
+                    "INSTRUCTED",
+                    "EXECUTED",
+                    "EXECUTION_REJECTED"
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "netXaf": {
+                  "$ref": "#/components/schemas/Money"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "handovers": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "openDisputes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "openComplaints": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "openRiskAlerts": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
       }
     },
     "responses": {
