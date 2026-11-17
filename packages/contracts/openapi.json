@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.17.0",
+    "version": "0.18.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4569,6 +4569,55 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/v1/partner/orders/export": {
+      "get": {
+        "operationId": "exportPartnerOrders",
+        "summary": "Export CSV des commandes, gérant uniquement (F-PRT-004, D63)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV (RFC 4180, UTF-8, CRLF), mêmes colonnes que PartnerOrder ; cellules commençant par = + - @ préfixées d'une apostrophe",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "const": "attachment; filename=\"commandes.csv\""
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }

@@ -431,6 +431,26 @@ describe('F-PRT-004 tableau des commandes du partenaire (D63)', () => {
     expect(payload(foreign).orders).toEqual([]);
   });
 
+  it('export CSV au gérant : pièce jointe, mêmes commandes, sans donnée client ; vendeur refusé', async () => {
+    await fundedWithCode();
+    const managerCookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const exported = await request(server()).get('/v1/partner/orders/export').set('Origin', PARTNER_ORIGIN).set('Cookie', managerCookie);
+    expect(exported.status).toBe(200);
+    expect(exported.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(exported.headers['content-disposition']).toBe('attachment; filename="commandes.csv"');
+    expect(exported.headers['cache-control']).toBe('private, no-store');
+    const lines = exported.text.split('\r\n');
+    expect(lines[0]).toBe('orderId,offerId,offerTitle,status,targetXaf,progressBasisPoints,createdAt,handedOverAt');
+    expect(lines[1]).toMatch(new RegExp(`^${GOAL},${OFFER},.*,FUNDED,150000,10000,`));
+    expect(exported.text).not.toContain(CUSTOMER);
+    const sellerCookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    const seller = await request(server()).get('/v1/partner/orders/export').set('Origin', PARTNER_ORIGIN).set('Cookie', sellerCookie);
+    expect(seller.status).toBe(403);
+    const foreignCookie = partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1));
+    const foreign = await request(server()).get('/v1/partner/orders/export').set('Origin', PARTNER_ORIGIN).set('Cookie', foreignCookie);
+    expect(foreign.text.split('\r\n').filter((line) => line !== '')).toHaveLength(1);
+  });
+
   it('sans session partenaire : 401', async () => {
     const refused = await request(server()).get('/v1/partner/orders').set('Origin', PARTNER_ORIGIN);
     expect(refused.status).toBe(401);

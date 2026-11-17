@@ -14,6 +14,7 @@ import {
   type PartnerPrincipal,
 } from '../modules/catalog/partner-user.store';
 import { listPartnerOrders } from '../modules/agreements/partner-orders.store';
+import { ordersCsv } from './partner-csv';
 import { uuidv7 } from '../modules/ledger/domain';
 import { listPartnerPayouts } from '../modules/settlement/partner-payouts.store';
 
@@ -78,6 +79,16 @@ export class PartnerStaffController {
       const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
       return { orders: await listPartnerOrders(client, partner.partnerId), asOf: asOf.toISOString() };
     });
+  }
+
+  /** F-PRT-004 : export CSV des commandes, gérant uniquement (extraction en masse). */
+  @Get('orders/export')
+  @Header('Cache-Control', 'private, no-store')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="commandes.csv"')
+  public async exportOrders(@CurrentPartner() partner: PartnerPrincipal): Promise<string> {
+    assertManager(partner);
+    return ordersCsv(await withTransaction({ ...this.database, role: 'app_ro' }, (client) => listPartnerOrders(client, partner.partnerId)));
   }
 
   /** F-PRT-003 : règlements au gérant seul ; le vendeur ne les voit pas. */
