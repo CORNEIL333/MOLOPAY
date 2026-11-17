@@ -104,6 +104,8 @@ export async function confirmHandover(
   const amount = xaf(stored.agreement.terms.targetXaf);
   const clientAccount = await ensureClientFundsAccount(client, stored.agreement.terms.customerId);
   const partnerAccount = await ensurePartnerFundsAccount(client, input.partnerLedgerOwnerId);
+  // CDC_07 concurrence : une remise concurrente du même code par un autre vendeur
+  // a déjà écrit l'écriture HANDOVER (même clé, acteur différent) : code utilisé.
   const entry = await appendLedgerEntry(client, {
     id: uuidv7(),
     operationType: 'HANDOVER',
@@ -116,6 +118,11 @@ export async function confirmHandover(
       { accountId: clientAccount, direction: 'DEBIT', amount },
       { accountId: partnerAccount, direction: 'CREDIT', amount },
     ],
+  }).catch((error: unknown) => {
+    if (error instanceof BusinessError && error.code === 'IDEMPOTENCY_KEY_REUSED') {
+      throw new BusinessError('HANDOVER_CODE_USED', 'code de remise déjà utilisé');
+    }
+    throw error;
   });
   if (entry.replayed) {
     throw new BusinessError('HANDOVER_CODE_USED', 'code de remise déjà utilisé');

@@ -284,6 +284,19 @@ describe('F-SET-001 remise au comptoir (D63)', () => {
     expect(state.rows).toEqual([{ status: 'FUNDED' }]);
   });
 
+  it('CDC_07 concurrence : double remise simultanée du même code → une seule remise, une seule écriture', async () => {
+    const code = await fundedWithCode();
+    const [seller, manager] = [partnerCookie(await login('paul.vendeur', staff.sellerKey, 1)), partnerCookie(await login('awa.gerant', staff.managerKey, 1))];
+    const results = await Promise.all([handover(seller, { code, ...SHOP }), handover(manager, { code, ...SHOP }), handover(seller, { code, ...SHOP })]);
+    const statuses = results.map((response) => response.status).sort();
+    expect(statuses.filter((status) => status === 201)).toHaveLength(1);
+    for (const response of results.filter((item) => item.status !== 201)) {
+      expect(payload(response).code).toBe('HANDOVER_CODE_USED');
+    }
+    expect((await admin.query('SELECT count(*)::int AS n FROM settlement.handover WHERE agreement_id = $1', [GOAL])).rows[0]).toEqual({ n: 1 });
+    expect((await admin.query(`SELECT count(*)::int AS n FROM ledger.journal_entry WHERE operation_type = 'HANDOVER'`)).rows[0]).toEqual({ n: 1 });
+  });
+
   it('sans session : 401', async () => {
     const refused = await handover(null, { code: 'ABCDE-12345', ...SHOP });
     expect(refused.status).toBe(401);
