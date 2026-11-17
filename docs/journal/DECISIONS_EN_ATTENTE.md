@@ -490,3 +490,13 @@
   - Contrat 0.23.0. 7 tests PostgreSQL, 3 tests HTTP ; 10 mutants tués, 1 équivalent (la base refuse déjà l'élévation après correspondance confirmée).
 - **⚖ À trancher :** quota de la route (méthode D60 : proposé 3 par 24 h et par compte) ; effet d'une nouvelle déclaration correspondant à la liste chez un client déjà `BASIC` (aujourd'hui : niveau conservé, examen en attente — rétrograder ? geler ?) ; déclaration à l'ANIF en cas de correspondance confirmée (juridique) ; écran client (web) pour la déclaration.
 - **Mise à jour D68 (écran client) :** page `/compte/identite` du client web (FR/EN), lien depuis « Mon compte » : saisie du nom complet, résultat neutre (« niveau ouvert » ou « vérification en cours », jamais de détail). 5 tests de composants (accessibilité comprise) ; 4 mutants tués. Non compilé (D64).
+
+### D69 · Routes du contrat sans implémentation (inventaire du 17 novembre)
+- **Constat :** comparaison automatique des routes déclarées par l'application et du contrat OpenAPI : aucune route implémentée hors contrat ; 16 routes du **brouillon de contrat** n'étaient pas implémentées, dont une appelée par le client web.
+- **Fait :** `GET /v1/goals/{goalId}/contributions` (F-PAY-006, D39) implémentée : versements confirmés de l'objectif au seul client, ordre des reçus, numéro de reçu propre au client, montants entiers en texte, `REVERSED` si l'écriture a été contre-passée ; objectif d'un autre client : même 404. Contrat 0.24.0. 4 tests HTTP ; 3 mutants tués, 1 équivalent (la base lie déjà chaque versement au client de l'accord).
+- **Restent non implémentées, avec leur blocage :**
+  - `/v1/auth/signups`, `/v1/auth/otp-challenges`, `/v1/auth/otp-challenges/{id}/verify` : envoi d'OTP par SMS, aucun prestataire ni identifiant d'environnement de test (D1, zéro simulation) ;
+  - `POST /v1/auth/sessions` (connexion par PIN et appareil) et `GET /v1/me` : réalisables sans prestataire mais inutiles tant qu'aucun appareil ne peut être enrôlé (inscription bloquée) — **prochain candidat**, à faire avec D16 (compteurs PIN sous verrou) ;
+  - `GET /v1/goals/{goalId}/handover-code` : le code n'est conservé qu'en empreinte (D45) ; il ne peut pas être réaffiché : contrat à revoir (remise à l'émission par notification, ou nouvelle émission explicite) — ⚖ ;
+  - `POST /v1/goals/{goalId}/claims` : réclamation client (F-SUP-001) — store existant, route à faire ;
+  - `/v1/admin/*` (approbations, audit, grand livre, rapprochement, session, `me`) : remplacées par `/v1/backoffice/*` (D62) ; à retirer du contrat ou à rediriger — ⚖ (décision de contrat).

@@ -2883,6 +2883,7 @@ export interface operations {
             /** @description Versements */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {

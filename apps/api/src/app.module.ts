@@ -19,6 +19,7 @@ import { PARTNER_RP, PartnerSessionGuard } from './http/partner-session.guard';
 import { PartnerStaffController } from './workflows/partner-staff.controller';
 import { BackofficeKycController } from './workflows/backoffice-kyc.controller';
 import { LegalNameController } from './workflows/kyc.controller';
+import { GoalContributionsController } from './workflows/goal-contributions.controller';
 import { HANDOVER_PEPPER, PartnerAuthController, PartnerHandoverController } from './workflows/partner.controller';
 import type { RelyingParty } from './modules/admin/webauthn';
 import { PublicOfferController } from './workflows/public-offer.controller';
@@ -52,7 +53,7 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },

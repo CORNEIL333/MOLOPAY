@@ -54,6 +54,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | IN_PROGRESS | Lot 07 : filtrage ONU (REG-LBC-002, D66) | tranches 1–2 : 0059, liste réelle, import, filtrage, examen, routes back-office, écran `/conformite`, contrat 0.22.0 ; reste : import en exploitation et validation conditionnée (⚖ D66) |
 | DONE | Lot 07 : niveau KYC 1 (nom déclaré + filtrage ONU, D68) | 0060, route client, écran `/compte/identite`, contrat 0.23.0 ; quota à valider |
 | BLOCKED | Lot 07 : PPE, listes nationales, niveaux 2–3 (pièce + vivacité : prestataire) | source PPE et listes CEMAC à décider (D66) ; prestataire de vivacité (zéro simulation) |
+| DONE | Historique des versements d'un objectif (F-PAY-006, D69) | contrat 0.24.0 |
+| READY | Réclamation client `POST /v1/goals/{goalId}/claims` (F-SUP-001, D69) | store existant |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -71,4 +73,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Analyser les lots READY restants (tout le reste est bloqué par une décision ou un accès externe, voir la fiche) : candidats — journal de session `docs/journal/2026-11-17.md` et mise à jour d'`ETAT.md` (en retard depuis le 11) ; revue de cohérence des contrats OpenAPI (schémas inutilisés du brouillon) ; lot 25 : régénérer le jeu de recette avec les nouveaux flux (partenaires, KYC) et le vérifier par `verify:ledger`.
+D69 : `POST /v1/goals/{goalId}/claims` (F-SUP-001) — réclamation ouverte par le client sur son objectif (canal APP), numéro `R-…`, délai cible publié ; lire le schéma du contrat et `disputes/dispute.store.ts` (`recordComplaint`) ; tests HTTP d'abord (autre client : 404 ; quota à proposer).
