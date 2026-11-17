@@ -29,7 +29,7 @@ import {
   validateMerchant,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
-import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerLoginBody, type PartnerKey, type Transact } from './partner-fixture';
+import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerCredentialBody, partnerKey, partnerLoginBody, type PartnerKey, type Transact } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
 /**
@@ -52,7 +52,7 @@ let migrations: string[];
 const apps: INestApplication[] = [];
 let app: INestApplication;
 let staff: { manager: PartnerPrincipal; seller: PartnerPrincipal; managerKey: PartnerKey; sellerKey: PartnerKey };
-let otherSeller: { seller: PartnerPrincipal; sellerKey: PartnerKey };
+let otherSeller: { manager: PartnerPrincipal; seller: PartnerPrincipal; managerKey: PartnerKey; sellerKey: PartnerKey };
 
 async function start(deps: Partial<AppDependencies>): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
@@ -64,7 +64,7 @@ async function start(deps: Partial<AppDependencies>): Promise<INestApplication> 
   return started;
 }
 
-type Body = { code?: string; agreementId?: string; validatedAt?: string };
+type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[] };
 function payload(response: request.Response): Body {
   return response.body as Body;
 }
@@ -288,5 +288,99 @@ describe('F-SET-001 remise au comptoir (D63)', () => {
     await transact((client) => insertPartnerUserDisable(client, { userId: staff.seller.userId, by: { manager: staff.manager }, reason: 'fin de contrat' }));
     expect((await failure(() => attempt(staff.seller.userId))).message).toMatch(/^PARTNER_ROLE_DENIED/);
     await attempt(staff.manager.userId);
+  });
+});
+
+function managerPost(cookie: string, path: string, body: object, idempotencyKey = `pm-${uuidv7()}`): request.Test {
+  return request(server()).post(path).set('Origin', PARTNER_ORIGIN).set('Cookie', cookie).set('Idempotency-Key', idempotencyKey).send(body);
+}
+
+describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
+  it('le gérant crée un vendeur, émet son enrôlement (jeton rendu une seule fois) ; le vendeur enrôle sa clé et se connecte', async () => {
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const created = await managerPost(cookie, '/v1/partner/sellers', { login: 'lea.vendeuse' });
+    expect(created.status).toBe(201);
+    const sellerId = payload(created).sellerId ?? '';
+    const stored = await admin.query('SELECT partner_id, role, created_by_user FROM catalog.partner_user WHERE id = $1', [sellerId]);
+    expect(stored.rows).toEqual([{ partner_id: 'merchant-1', role: 'SELLER', created_by_user: staff.manager.userId }]);
+    const key = `pm-${uuidv7()}`;
+    const issued = await managerPost(cookie, `/v1/partner/sellers/${sellerId}/enrollments`, {}, key);
+    expect(issued.status).toBe(201);
+    const enrollment = payload(issued);
+    expect(enrollment.enrollmentToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const replay = await managerPost(cookie, `/v1/partner/sellers/${sellerId}/enrollments`, {}, key);
+    expect(payload(replay).enrollmentToken).toBeUndefined();
+    const record = await admin.query<{ response_body: unknown }>(`SELECT response_body FROM api.idempotency_record WHERE idempotency_key = $1`, [key]);
+    expect(JSON.stringify(record.rows)).not.toContain(enrollment.enrollmentToken ?? 'absent');
+    const device = partnerKey();
+    const enrolled = await request(server()).post('/v1/partner/credentials').set('Origin', PARTNER_ORIGIN).set('Idempotency-Key', `pc-${uuidv7()}`)
+      .send(partnerCredentialBody({ challengeId: enrollment.challengeId ?? '', challenge: enrollment.challenge ?? '', enrollmentToken: enrollment.enrollmentToken ?? '' }, device));
+    expect(enrolled.status).toBe(201);
+    const session = await login('lea.vendeuse', device, 1);
+    expect(session.status).toBe(201);
+    expect(payload(session)).toMatchObject({ login: 'lea.vendeuse' });
+  });
+
+  it('le gérant liste les comptes de son seul partenaire (actifs et désactivés)', async () => {
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    await transact((client) => insertPartnerUserDisable(client, { userId: staff.seller.userId, by: { manager: staff.manager }, reason: 'fin de contrat' }));
+    const listed = await request(server()).get('/v1/partner/users').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie);
+    expect(listed.status).toBe(200);
+    expect(listed.headers['cache-control']).toBe('private, no-store');
+    expect(payload(listed).users).toEqual([
+      { userId: staff.manager.userId, login: 'awa.gerant', role: 'MANAGER', active: true },
+      { userId: staff.seller.userId, login: 'paul.vendeur', role: 'SELLER', active: false },
+    ]);
+  });
+
+  it('le gérant désactive son vendeur avec un motif : la session du vendeur tombe', async () => {
+    const sellerCookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    expect((await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, {})).status).toBe(400);
+    const done = await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, { reason: 'fin de contrat' });
+    expect(done.status).toBe(200);
+    expect(payload(done)).toEqual({ sellerId: staff.seller.userId, disabled: true });
+    expect((await handover(sellerCookie, { code: 'ABCDE-12345', ...SHOP })).status).toBe(401);
+  });
+
+  it('un vendeur ne gère pas le personnel (403 PARTNER_ROLE_DENIED), y compris la liste', async () => {
+    const cookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    const refusals = [
+      await managerPost(cookie, '/v1/partner/sellers', { login: 'intrus.vendeur' }),
+      await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/enrollments`, {}),
+      await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, { reason: 'x' }),
+      await request(server()).get('/v1/partner/users').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie),
+    ];
+    for (const refused of refusals) {
+      expect(refused.status).toBe(403);
+      expect(payload(refused).code).toBe('PARTNER_ROLE_DENIED');
+    }
+    const count = await admin.query("SELECT count(*)::int AS n FROM catalog.partner_user WHERE login = 'intrus.vendeur'");
+    expect(count.rows[0]).toEqual({ n: 0 });
+  });
+
+  it('F-PRT-004 un gérant ne touche jamais au personnel d’un autre partenaire : même 404 qu’un compte inconnu', async () => {
+    const cookie = partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1));
+    for (const target of [staff.seller.userId, staff.manager.userId, uuidv7()]) {
+      for (const [path, body] of [[`/v1/partner/sellers/${target}/enrollments`, {}], [`/v1/partner/sellers/${target}/disable`, { reason: 'x' }]] as const) {
+        const refused = await managerPost(cookie, path, body);
+        expect(refused.status).toBe(404);
+        expect(payload(refused).code).toBe('PARTNER_USER_NOT_FOUND');
+      }
+    }
+    const own = await managerPost(cookie, `/v1/partner/sellers/${otherSeller.manager.userId}/disable`, { reason: 'x' });
+    expect(own.status).toBe(404);
+    const disabled = await admin.query('SELECT count(*)::int AS n FROM catalog.partner_user_disable');
+    expect(disabled.rows[0]).toEqual({ n: 0 });
+  });
+
+  it('identifiant déjà pris : conflit 409 ; corps en liste blanche', async () => {
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const taken = await managerPost(cookie, '/v1/partner/sellers', { login: 'max.vendeur' });
+    expect(taken.status).toBe(409);
+    for (const body of [{ login: 'Bad Login' }, { login: 'ok.vendeur', role: 'MANAGER' }, { login: 'ok.vendeur', partnerId: 'merchant-2' }]) {
+      const refused = await managerPost(cookie, '/v1/partner/sellers', body);
+      expect(refused.status).toBe(400);
+    }
   });
 });

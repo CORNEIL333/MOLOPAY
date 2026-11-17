@@ -120,3 +120,15 @@ export function partnerCookie(response: request.Response): string {
   }
   return found.split(';')[0] ?? '';
 }
+
+/** Corps d'enrôlement `webauthn.create` pour un défi et un jeton remis (route réelle). */
+export function partnerCredentialBody(input: { readonly challengeId: string; readonly challenge: string; readonly enrollmentToken: string }, key: PartnerKey): Record<string, string> {
+  return {
+    challengeId: input.challengeId,
+    enrollmentToken: input.enrollmentToken,
+    credentialId: key.credentialId.toString('base64url'),
+    clientDataJSON: clientData('webauthn.create', Buffer.from(input.challenge, 'base64url')).toString('base64url'),
+    authenticatorData: authData(0x45, 0, key.credentialId).toString('base64url'),
+    publicKeySpki: key.spki.toString('base64url'),
+  };
+}

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.14.0",
+    "version": "0.15.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4294,6 +4294,262 @@
           }
         }
       }
+    },
+    "/v1/partner/users": {
+      "get": {
+        "operationId": "listPartnerUsers",
+        "summary": "Comptes du partenaire (gérant uniquement, F-PRT-003)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comptes du seul partenaire de la session",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerUserList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/partner/sellers": {
+      "post": {
+        "operationId": "createPartnerSeller",
+        "summary": "Créer un vendeur (gérant uniquement, F-PRT-003)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerSellerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vendeur créé",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerSeller"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/v1/partner/sellers/{sellerId}/enrollments": {
+      "post": {
+        "operationId": "issuePartnerSellerEnrollment",
+        "summary": "Émettre l'enrôlement d'une clé du vendeur (jeton rendu une seule fois)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sellerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Défi et jeton d'enrôlement",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerSellerEnrollment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/partner/sellers/{sellerId}/disable": {
+      "post": {
+        "operationId": "disablePartnerSeller",
+        "summary": "Désactiver un vendeur avec motif (gérant uniquement)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sellerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerSellerDisableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vendeur désactivé",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerSellerDisabled"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7213,6 +7469,136 @@
             "description": "Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url."
           }
         }
+      },
+      "PartnerSellerRequest": {
+        "type": "object",
+        "required": [
+          "login"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{2,63}$"
+          }
+        },
+        "additionalProperties": false,
+        "description": "D63 : rôle (vendeur) et partenaire imposés par la session du gérant."
+      },
+      "PartnerSeller": {
+        "type": "object",
+        "required": [
+          "sellerId",
+          "login"
+        ],
+        "properties": {
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "login": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerSellerEnrollment": {
+        "type": "object",
+        "required": [
+          "sellerId",
+          "challengeId",
+          "challenge"
+        ],
+        "properties": {
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "enrollmentToken": {
+            "type": "string",
+            "description": "Rendu une seule fois (absent d'un rejeu), à remettre en main propre ; jamais conservé."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerSellerDisableRequest": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerSellerDisabled": {
+        "type": "object",
+        "required": [
+          "sellerId",
+          "disabled"
+        ],
+        "properties": {
+          "sellerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "disabled": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerUserList": {
+        "type": "object",
+        "required": [
+          "users"
+        ],
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "userId",
+                "login",
+                "role",
+                "active"
+              ],
+              "properties": {
+                "userId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "login": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "MANAGER",
+                    "SELLER"
+                  ]
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
       }
     },
     "responses": {

@@ -1294,6 +1294,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/partner/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comptes du partenaire (gérant uniquement, F-PRT-003) */
+        get: operations["listPartnerUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/partner/sellers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Créer un vendeur (gérant uniquement, F-PRT-003) */
+        post: operations["createPartnerSeller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/partner/sellers/{sellerId}/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Émettre l'enrôlement d'une clé du vendeur (jeton rendu une seule fois) */
+        post: operations["issuePartnerSellerEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/partner/sellers/{sellerId}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Désactiver un vendeur avec motif (gérant uniquement) */
+        post: operations["disablePartnerSeller"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2042,6 +2110,43 @@ export interface components {
             authenticatorData: string;
             /** @description Clé publique SPKI DER (PublicKeyCredential.response.getPublicKey()), base64url. */
             publicKeySpki: string;
+        };
+        /** @description D63 : rôle (vendeur) et partenaire imposés par la session du gérant. */
+        PartnerSellerRequest: {
+            login: string;
+        };
+        PartnerSeller: {
+            /** Format: uuid */
+            sellerId: string;
+            login: string;
+        };
+        PartnerSellerEnrollment: {
+            /** Format: uuid */
+            sellerId: string;
+            /** Format: uuid */
+            challengeId: string;
+            challenge: string;
+            /** @description Rendu une seule fois (absent d'un rejeu), à remettre en main propre ; jamais conservé. */
+            enrollmentToken?: string;
+        };
+        PartnerSellerDisableRequest: {
+            reason: string;
+        };
+        PartnerSellerDisabled: {
+            /** Format: uuid */
+            sellerId: string;
+            /** @constant */
+            disabled: true;
+        };
+        PartnerUserList: {
+            users: {
+                /** Format: uuid */
+                userId: string;
+                login: string;
+                /** @enum {string} */
+                role: "MANAGER" | "SELLER";
+                active: boolean;
+            }[];
         };
     };
     responses: {
@@ -4474,6 +4579,131 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    listPartnerUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Comptes du seul partenaire de la session */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerUserList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    createPartnerSeller: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerSellerRequest"];
+            };
+        };
+        responses: {
+            /** @description Vendeur créé */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSeller"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    issuePartnerSellerEnrollment: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Défi et jeton d'enrôlement */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSellerEnrollment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    disablePartnerSeller: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sellerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerSellerDisableRequest"];
+            };
+        };
+        responses: {
+            /** @description Vendeur désactivé */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSellerDisabled"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             503: components["responses"]["Unavailable"];
         };
     };

@@ -109,6 +109,9 @@ const PARTNER_LOGIN_CASES: Readonly<Record<string, object>> = {
 };
 const PARTNER_CASES: Readonly<Record<string, object>> = {
   '/v1/partner/handovers': { code: 'ABCDE-12345', latitude: '4.051056', longitude: '9.767869' },
+  '/v1/partner/sellers': { login: 'nouveau.vendeur' },
+  [`/v1/partner/sellers/${GOAL}/enrollments`]: {},
+  [`/v1/partner/sellers/${GOAL}/disable`]: { reason: 'départ' },
 };
 
 let db: TestDatabase;
@@ -231,7 +234,7 @@ describe('Lot 24 / INT-IDEM-001 Idempotency-Key exigée sur chaque route d’éc
     const server = app.getHttpServer() as Server;
     await validateMerchant(admin, uuidv7(), 'merchant-idem');
     const counter = await createPartnerStaff((action) => withTransaction(database, action), { partnerId: 'merchant-idem', managerLogin: 'gerant.idem', sellerLogin: 'vendeur.idem' });
-    const body = await partnerLoginBody(server, 'vendeur.idem', counter.sellerKey, 1);
+    const body = await partnerLoginBody(server, 'gerant.idem', counter.managerKey, 1);
     const cookie = partnerCookie(await request(server).post('/v1/partner/sessions').set('Origin', PARTNER_ORIGIN).set('Idempotency-Key', `p-${uuidv7()}`).send(body));
     const failures: string[] = [];
     for (const [path, payload] of [...Object.entries(PARTNER_CASES), ...Object.entries(PARTNER_LOGIN_CASES)]) {

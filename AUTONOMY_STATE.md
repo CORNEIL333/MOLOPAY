@@ -39,7 +39,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–2 faites (0057, 0058, connexion WebAuthn et remise au comptoir en HTTP, contrat 0.14.0, fermé par défaut) ; suite : gestion des vendeurs par le gérant |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–3 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs en HTTP, contrat 0.15.0, fermé par défaut) ; suite : tableau des commandes (F-PRT-004) |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -66,4 +66,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 3 (D63) : gestion des vendeurs par le gérant en HTTP — `POST /v1/partner/sellers` (création, gérant uniquement), `POST /v1/partner/sellers/{id}/enrollments` (code d'enrôlement rendu une seule fois), `POST /v1/partner/sellers/{id}/disable` (motif) ; vendeur → 403 `PARTNER_ROLE_DENIED` ; autre partenaire → même refus. Tests HTTP d'abord, contrat 0.15.0.
+Lot 20, tranche 4 (D63, F-PRT-004) : `GET /v1/partner/orders` — accords du seul partenaire de la session (offre, état, montant cible, date de remise), clients **anonymisés** jusqu'à 100 % ; gérant et vendeur ; aucun accès aux règlements pour le vendeur (F-PRT-003). Vérifier d'abord le contrat existant de `/v1/partner/orders` et `/v1/partner/payouts`. Tests HTTP d'abord.

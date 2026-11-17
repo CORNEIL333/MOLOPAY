@@ -227,3 +227,28 @@ export async function revokePartnerSession(client: SqlClient, sessionToken: stri
     [sha256(sessionToken)],
   );
 }
+
+/**
+ * F-PRT-004 : compte vendeur du partenaire donné ; null pour un compte
+ * inconnu, d'un autre partenaire ou gérant (même réponse, aucun oracle).
+ */
+export async function findPartnerSeller(client: SqlClient, input: { readonly userId: string; readonly partnerId: string }): Promise<{ readonly userId: string } | null> {
+  const row = (await client.query<{ id: string }>(
+    `SELECT id FROM catalog.partner_user WHERE id = $1 AND partner_id = $2 AND role = 'SELLER'`,
+    [input.userId, input.partnerId],
+  )).rows[0];
+  return row === undefined ? null : { userId: row.id };
+}
+
+/** F-PRT-003 : comptes du seul partenaire du gérant, désactivés compris. */
+export async function listPartnerUsers(
+  client: SqlClient,
+  partnerId: string,
+): Promise<readonly { readonly userId: string; readonly login: string; readonly role: PartnerRole; readonly active: boolean }[]> {
+  const rows = await client.query<{ id: string; login: string; role: PartnerRole; active: boolean }>(
+    `SELECT u.id, u.login, u.role, NOT EXISTS (SELECT 1 FROM catalog.partner_user_disable x WHERE x.user_id = u.id) AS active
+       FROM catalog.partner_user u WHERE u.partner_id = $1 ORDER BY u.role, u.login`,
+    [partnerId],
+  );
+  return rows.rows.map((row) => Object.freeze({ userId: row.id, login: row.login, role: row.role, active: row.active }));
+}
