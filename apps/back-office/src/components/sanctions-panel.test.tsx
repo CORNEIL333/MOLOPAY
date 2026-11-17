@@ -10,6 +10,16 @@ function ports(overrides: Partial<SanctionsPorts> = {}): SanctionsPorts {
   return {
     screen: vi.fn<SanctionsPorts['screen']>(() => Promise.resolve({ ok: true, screening: SCREENING })),
     review: vi.fn<SanctionsPorts['review']>(() => Promise.resolve({ ok: true })),
+    detail: vi.fn<SanctionsPorts['detail']>(() =>
+      Promise.resolve({
+        ok: true,
+        detail: {
+          screeningId: SCREENING.screeningId, subjectType: 'PARTNER', subjectId: 'merchant-9', normalizedName: 'BUTEMBO AIRLINES SARL', outcome: 'POTENTIAL_MATCH',
+          screenedAt: '2026-11-17T10:00:00.000Z', review: null,
+          matches: [{ reference: 'CDe.002', kind: 'ENTITY', names: ['BUTEMBO AIRLINES (BAL)'], listedOn: '2007-03-29' }],
+        },
+      }),
+    ),
     ...overrides,
   };
 }
@@ -49,6 +59,23 @@ describe('REG-LBC-002 / D66 filtrage sanctions au back-office', () => {
     await user.click(screen.getByRole('button', { name: 'Enregistrer l’examen' }));
     await waitFor(() => { expect(injected.review).toHaveBeenCalledWith(SCREENING.screeningId, 'CONFIRMED_MATCH', 'correspondance avérée'); });
     expect(await screen.findByText('Examen enregistré.')).toBeVisible();
+  });
+
+  it('D74 détail avant examen : motif de consultation exigé, nom filtré et noms listés affichés', async () => {
+    const injected = ports();
+    const user = await screenPartner(injected);
+    await screen.findByRole('status');
+    await user.click(screen.getByRole('button', { name: 'Voir le détail' }));
+    expect(screen.getByText(/motif de consultation est obligatoire/)).toBeVisible();
+    expect(injected.detail).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText('Motif de la consultation'), 'examen du rapprochement');
+    await user.click(screen.getByRole('button', { name: 'Voir le détail' }));
+    await waitFor(() => { expect(injected.detail).toHaveBeenCalledWith(SCREENING.screeningId, 'examen du rapprochement'); });
+    const region = await screen.findByRole('region', { name: 'Détail du filtrage' });
+    expect(region).toHaveTextContent('BUTEMBO AIRLINES SARL');
+    expect(region).toHaveTextContent('CDe.002');
+    expect(region).toHaveTextContent('BUTEMBO AIRLINES (BAL)');
+    expect(region).toHaveTextContent('2007-03-29');
   });
 
   it('refus du serveur (auteur du filtrage) : problème affiché', async () => {

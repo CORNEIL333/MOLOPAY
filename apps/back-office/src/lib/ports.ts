@@ -171,6 +171,10 @@ export const browserSanctionsPorts: SanctionsPort = {
     });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
   },
+  async detail(screeningId, reason) {
+    const result = await api().GET('/v1/backoffice/screenings/{screeningId}', { params: { path: { screeningId }, query: { reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, detail: result.data };
+  },
 };
 
 /** F-SUP-001 / D73 : détail d'une réclamation (route réelle ; le motif est inscrit à l'audit). */

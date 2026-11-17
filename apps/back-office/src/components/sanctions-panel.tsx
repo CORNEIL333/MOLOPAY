@@ -6,6 +6,7 @@ import { Button, ErrorState, TextField } from '@achat/ui';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 
 type Screening = components['schemas']['SanctionsScreening'];
+type Detail = components['schemas']['SanctionsScreeningDetail'];
 type Decision = 'FALSE_POSITIVE' | 'CONFIRMED_MATCH';
 type Failure = { readonly ok: false; readonly problem: ProblemSummary };
 
@@ -13,13 +14,18 @@ type Failure = { readonly ok: false; readonly problem: ProblemSummary };
 export type SanctionsPorts = {
   readonly screen: (partnerId: string) => Promise<{ readonly ok: true; readonly screening: Screening } | Failure>;
   readonly review: (screeningId: string, decision: Decision, reason: string) => Promise<{ readonly ok: true } | Failure>;
+  /** D74 : détail (nom filtré, noms listés) ; consultation motivée et journalisée côté serveur. */
+  readonly detail: (screeningId: string, reason: string) => Promise<{ readonly ok: true; readonly detail: Detail } | Failure>;
 };
 
 const PARTNER_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
 
 /** REG-LBC-002 / D66 : filtrage d'un partenaire contre la liste ONU et examen motivé d'un rapprochement. */
 export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): ReactElement {
-  const ids = { partner: useId(), decision: useId(), reason: useId() };
+  const ids = { partner: useId(), decision: useId(), reason: useId(), consultation: useId(), detailHeading: useId() };
+  const [consultation, setConsultation] = useState('');
+  const [consultationError, setConsultationError] = useState<string | undefined>(undefined);
+  const [detail, setDetail] = useState<Detail | null>(null);
   const [partnerId, setPartnerId] = useState('');
   const [partnerError, setPartnerError] = useState<string | undefined>(undefined);
   const [screening, setScreening] = useState<Screening | null>(null);
@@ -50,10 +56,26 @@ export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): R
     }
     setPartnerError(undefined);
     setScreening(null);
+    setDetail(null);
     setReviewed(false);
     await guard(async () => {
       const result = await ports.screen(partnerId);
       if (result.ok) setScreening(result.screening);
+      else setProblem(result.problem);
+    });
+  }
+
+  async function showDetail(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (screening === null) return;
+    if (consultation.trim().length < 3) {
+      setConsultationError('Le motif de consultation est obligatoire (3 caractères au moins).');
+      return;
+    }
+    setConsultationError(undefined);
+    await guard(async () => {
+      const result = await ports.detail(screening.screeningId, consultation.trim());
+      if (result.ok) setDetail(result.detail);
       else setProblem(result.problem);
     });
   }
@@ -87,6 +109,25 @@ export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): R
             ? `Aucun rapprochement pour ${screening.partnerId}.`
             : `Rapprochement possible : ${screening.matchedReferences.join(', ')}. Examen requis par une autre personne de la Conformité.`}
         </p>
+      )}
+      {screening?.outcome !== 'POTENTIAL_MATCH' || detail !== null ? null : (
+        <form onSubmit={(event) => void showDetail(event)} noValidate>
+          <TextField id={ids.consultation} label="Motif de la consultation" value={consultation} error={consultationError} onChange={(event) => { setConsultation(event.target.value); }} />
+          <Button type="submit" disabled={pending}>Voir le détail</Button>
+        </form>
+      )}
+      {detail === null ? null : (
+        <section aria-labelledby={ids.detailHeading}>
+          <h2 id={ids.detailHeading}>Détail du filtrage</h2>
+          <p>Nom filtré : <strong>{detail.normalizedName}</strong></p>
+          <ul>
+            {detail.matches.map((match) => (
+              <li key={match.reference}>
+                {match.reference} ({match.kind === 'ENTITY' ? 'entité' : 'personne'}, inscrite le {match.listedOn ?? '—'}) : {match.names.join(' ; ')}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       {screening?.outcome !== 'POTENTIAL_MATCH' || reviewed ? null : (
         <form onSubmit={(event) => void review(event)} noValidate>

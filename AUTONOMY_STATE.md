@@ -76,4 +76,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Écran `/conformite` (D74) : après un filtrage avec rapprochement, afficher le détail (nom filtré, noms listés, date d'inscription) via `GET /v1/backoffice/screenings/{id}` avec motif, avant le formulaire d'examen ; tests de composants d'abord. Puis portail partenaire : reçu de remise (heure) après confirmation.
+Portail partenaire : afficher l'heure de validation dans la confirmation de remise (`validatedAt`) ; puis relire le backlog : il ne reste presque que des points à décision (fiche du 17 novembre) ou à accès externe.
