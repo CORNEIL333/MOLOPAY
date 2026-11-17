@@ -273,3 +273,25 @@ export async function listOverdueComplaints(
     beyondMaximum: row.beyond_maximum,
   }));
 }
+
+export const CLAIM_REASONS = ['PAYMENT_NOT_RECEIVED', 'HANDOVER_REFUSED', 'OFFER_MISMATCH', 'OTHER'] as const;
+export type ClaimReason = (typeof CLAIM_REASONS)[number];
+
+/** F-SUP-001 / D70 : motif et description d'une réclamation (un seul détail, en ajout seul). */
+export async function recordComplaintDetail(
+  client: SqlClient,
+  input: { readonly complaintId: string; readonly reason: ClaimReason; readonly details: string },
+): Promise<void> {
+  assertUuid(input.complaintId, 'réclamation');
+  if (!(CLAIM_REASONS as readonly string[]).includes(input.reason)) {
+    invalid('motif de réclamation inconnu');
+  }
+  const details = input.details.trim();
+  if (details.length < 10 || details.length > 1000 || /\p{Cc}/u.test(details)) {
+    invalid('description de 10 à 1000 caractères, sans caractère de contrôle');
+  }
+  await client.query(
+    'INSERT INTO disputes.complaint_detail (complaint_id, reason, details, recorded_at) VALUES ($1, $2, $3, now())',
+    [input.complaintId, input.reason, details],
+  );
+}

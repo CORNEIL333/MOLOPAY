@@ -115,6 +115,7 @@ export function claimReceiptFixture(
 ): ClaimReceipt {
   return {
     claimId: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4aa0',
+    reference: 'R-0123456789',
     status: 'OPEN',
     createdAt: '2026-10-26T12:00:00.000Z',
     ...overrides,

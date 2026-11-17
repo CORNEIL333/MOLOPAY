@@ -500,3 +500,7 @@
   - `GET /v1/goals/{goalId}/handover-code` : le code n'est conservé qu'en empreinte (D45) ; il ne peut pas être réaffiché : contrat à revoir (remise à l'émission par notification, ou nouvelle émission explicite) — ⚖ ;
   - `POST /v1/goals/{goalId}/claims` : réclamation client (F-SUP-001) — store existant, route à faire ;
   - `/v1/admin/*` (approbations, audit, grand livre, rapprochement, session, `me`) : remplacées par `/v1/backoffice/*` (D62) ; à retirer du contrat ou à rediriger — ⚖ (décision de contrat).
+
+### D70 · Réclamation du client sur son objectif (F-SUP-001)
+- **Appliqué :** `POST /v1/goals/{goalId}/claims` (session, verrou de session, Idempotency-Key) : réclamation sur l'objectif du seul client (autre client : 404, rien d'enregistré), canal `APP`, motif en liste blanche et description de 10 à 1000 caractères conservés dans `disputes.complaint_detail` (migration 0061, ajout seul, un seul détail, sans caractère de contrôle, jamais journalisé ni notifié) ; accusé de réception immédiat avec numéro `R-…` (ajouté au contrat 0.25.0) et heure serveur. 3 tests HTTP ; 5 mutants tués, 1 équivalent.
+- **⚖ À trancher :** quota (méthode D60, proposé 5 par 24 h et par compte) ; affichage du délai de réponse publié (D56 : 15 j cible, 45 j max, à valider) ; écran client.

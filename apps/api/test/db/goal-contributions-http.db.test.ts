@@ -18,7 +18,7 @@ import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-conf
 import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateLandlord } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
-/** F-PAY-006 / D39 : historique des versements confirmés d'un objectif, au seul client de l'objectif. */
+/** F-PAY-006 / D39 : historique des versements d'un objectif ; F-SUP-001 / D70 : réclamation du client sur son objectif. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
 const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
@@ -151,5 +151,46 @@ describe('F-PAY-006 historique des versements d’un objectif', () => {
   it('aucun versement : liste vide', async () => {
     const response = await contributions(await session(CUSTOMER));
     expect((response.body as { contributions: unknown[] }).contributions).toEqual([]);
+  });
+});
+
+describe('F-SUP-001 réclamation du client sur son objectif (D70)', () => {
+  function claim(cookie: string | null, body: object, goalId = GOAL): request.Test {
+    const call = request(server()).post(`/v1/goals/${goalId}/claims`).set('Origin', ORIGIN).set('Idempotency-Key', `cl-${uuidv7()}`);
+    return (cookie === null ? call : call.set('Cookie', cookie)).send(body);
+  }
+
+  it('réclamation enregistrée : numéro R-…, accusé de réception, motif et texte conservés, canal APP', async () => {
+    const response = await claim(await session(CUSTOMER), { reason: 'PAYMENT_NOT_RECEIVED', details: 'Mon versement du 3 novembre n’apparaît pas.' });
+    expect(response.status, JSON.stringify(response.body)).toBe(201);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    const body = response.body as { claimId: string; reference: string; status: string; createdAt: string };
+    expect(body.status).toBe('OPEN');
+    expect(body.reference).toMatch(/^R-[0-9A-HJKMNP-TV-Z]{10}$/);
+    const stored = await admin.query(
+      `SELECT c.channel, c.agreement_id, d.reason, d.details FROM disputes.complaint c JOIN disputes.complaint_detail d ON d.complaint_id = c.id WHERE c.id = $1`,
+      [body.claimId],
+    );
+    expect(stored.rows).toEqual([{ channel: 'APP', agreement_id: GOAL, reason: 'PAYMENT_NOT_RECEIVED', details: 'Mon versement du 3 novembre n’apparaît pas.' }]);
+  });
+
+  it('objectif d’un autre client : 404 sans rien enregistrer ; corps en liste blanche ; texte trop court ; sans session', async () => {
+    expect((await claim(await session(OTHER), { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(404);
+    const cookie = await session(CUSTOMER);
+    expect((await claim(cookie, { reason: 'OTHER', details: 'court' })).status).toBe(400);
+    expect((await claim(cookie, { reason: 'INCONNU', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(400);
+    expect((await claim(cookie, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.', channel: 'PHONE' })).status).toBe(400);
+    expect((await claim(null, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(401);
+    expect((await admin.query('SELECT count(*)::int AS n FROM disputes.complaint')).rows[0]).toEqual({ n: 0 });
+  });
+
+  it('base garante : détail en ajout seul, un seul par réclamation, texte sans caractère de contrôle', async () => {
+    const response = await claim(await session(CUSTOMER), { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' });
+    const id = (response.body as { claimId: string }).claimId;
+    const again = admin.query(`INSERT INTO disputes.complaint_detail (complaint_id, reason, details, recorded_at) VALUES ($1, 'OTHER', 'deuxième texte ici', now())`, [id]);
+    await expect(again).rejects.toMatchObject({ code: '23505' });
+    await expect(admin.query(`UPDATE disputes.complaint_detail SET details = 'modifié par erreur' WHERE complaint_id = $1`, [id])).rejects.toThrow(/DISPUTE_APPEND_ONLY|append/i);
+    const other = (await admin.query<{ id: string }>(`INSERT INTO disputes.complaint (id, reference, customer_id, agreement_id, channel, received_at) VALUES ($1, 'R-0000000001', $2, NULL, 'PHONE', now()) RETURNING id`, [uuidv7(), CUSTOMER])).rows[0]?.id;
+    await expect(admin.query(`INSERT INTO disputes.complaint_detail (complaint_id, reason, details, recorded_at) VALUES ($1, 'OTHER', E'texte\\u0007 caché ici', now())`, [other])).rejects.toMatchObject({ code: '23514' });
   });
 });

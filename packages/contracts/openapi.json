@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.24.0",
+    "version": "0.25.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -848,7 +848,7 @@
     "/v1/goals/{goalId}/claims": {
       "post": {
         "operationId": "createClaim",
-        "summary": "Ouvrir une réclamation",
+        "summary": "Ouvrir une réclamation sur son objectif (F-SUP-001, D70)",
         "tags": [
           "Objectifs"
         ],
@@ -882,6 +882,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClaimReceipt"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
                 }
               }
             }
@@ -6055,6 +6063,7 @@
         "type": "object",
         "required": [
           "claimId",
+          "reference",
           "status",
           "createdAt"
         ],
@@ -6075,6 +6084,11 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "reference": {
+            "type": "string",
+            "pattern": "^R-[0-9A-HJKMNP-TV-Z]{10}$",
+            "description": "Numéro de réclamation à communiquer au support (jamais séquentiel)."
           }
         },
         "additionalProperties": false

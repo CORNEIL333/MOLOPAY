@@ -309,7 +309,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ouvrir une réclamation */
+        /** Ouvrir une réclamation sur son objectif (F-SUP-001, D70) */
         post: operations["createClaim"];
         delete?: never;
         options?: never;
@@ -1727,6 +1727,8 @@ export interface components {
             status: "OPEN" | "IN_REVIEW" | "RESOLVED" | "REJECTED";
             /** Format: date-time */
             createdAt: string;
+            /** @description Numéro de réclamation à communiquer au support (jamais séquentiel). */
+            reference: string;
         };
         /** @description Assertion WebAuthn (navigator.credentials.get), champs en base64url. */
         PartnerSessionRequest: {
@@ -2940,6 +2942,7 @@ export interface operations {
             /** @description Réclamation enregistrée */
             201: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
