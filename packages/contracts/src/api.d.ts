@@ -375,7 +375,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Commandes et objectifs du partenaire */
+        /** Commandes du partenaire, sans donnée client (F-PRT-004, D63) */
         get: operations["listPartnerOrders"];
         put?: never;
         post?: never;
@@ -1671,16 +1671,21 @@ export interface components {
             /** Format: date-time */
             validatedAt: string;
         };
+        /** @description F-PRT-004 / D63 : aucune donnée du client (anonymisation et minimisation). */
         PartnerOrder: {
             /** Format: uuid */
             orderId: string;
-            offerTitle: string;
-            customerDisplayName?: string;
+            /** Format: uuid */
+            offerId: string | null;
+            offerTitle: string | null;
             /** @enum {string} */
-            status: "IN_PROGRESS" | "READY" | "HANDED_OVER" | "CANCELLED";
-            goalProgressBasisPoints?: number;
+            status: "ACTIVE" | "FUNDED" | "HANDED_OVER" | "PAID_TO_BENEFICIARY" | "CANCELLED_BY_CUSTOMER" | "DISPUTED" | "FROZEN" | "REFUNDED" | "CLOSED";
+            targetXaf: components["schemas"]["Money"];
+            progressBasisPoints: number;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            handedOverAt: string | null;
         };
         PartnerOrderList: {
             orders: components["schemas"]["PartnerOrder"][];
@@ -2858,6 +2863,7 @@ export interface operations {
             /** @description Commandes */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -2866,6 +2872,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
         };
     };
     listPartnerPayouts: {

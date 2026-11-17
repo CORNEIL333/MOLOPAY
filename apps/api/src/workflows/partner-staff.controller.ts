@@ -13,6 +13,7 @@ import {
   listPartnerUsers,
   type PartnerPrincipal,
 } from '../modules/catalog/partner-user.store';
+import { listPartnerOrders } from '../modules/agreements/partner-orders.store';
 import { uuidv7 } from '../modules/ledger/domain';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -49,7 +50,8 @@ function assertManager(partner: PartnerPrincipal): void {
 }
 
 /**
- * D63 / F-PRT-003 / F-PRT-004 : le gérant gère les vendeurs de son seul
+ * D63 / F-PRT-003 / F-PRT-004 : tableau des commandes (gérant et vendeur) ;
+ * le gérant gère les vendeurs de son seul
  * partenaire (pris dans la session). Compte inconnu, d'un autre partenaire
  * ou gérant : même 404 (aucun oracle). La base revérifie le gérant actif du
  * même partenaire (0057).
@@ -65,6 +67,16 @@ export class PartnerStaffController {
       throw new BusinessError('PARTNER_USER_NOT_FOUND', 'compte introuvable');
     }
     return found.userId;
+  }
+
+  /** F-PRT-004 : gérant et vendeur ; commandes du seul partenaire de la session, sans donnée client. */
+  @Get('orders')
+  @Header('Cache-Control', 'private, no-store')
+  public async orders(@CurrentPartner() partner: PartnerPrincipal): Promise<unknown> {
+    return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
+      const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
+      return { orders: await listPartnerOrders(client, partner.partnerId), asOf: asOf.toISOString() };
+    });
   }
 
   @Get('users')

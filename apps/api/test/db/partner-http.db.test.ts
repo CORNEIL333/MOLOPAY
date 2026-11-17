@@ -11,6 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BusinessError } from '@achat/contracts';
 import { AppModule, type AppDependencies } from '../../src/app.module';
 import { createDatabase, withTransaction, type Database } from '../../src/http/database';
+import { createSaveThenBuyAgreement } from '../../src/modules/agreements/agreement.store';
 import { insertPartnerUserDisable, type PartnerPrincipal } from '../../src/modules/catalog/partner-user.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
@@ -64,7 +65,7 @@ async function start(deps: Partial<AppDependencies>): Promise<INestApplication> 
   return started;
 }
 
-type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[] };
+type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[]; orders?: Record<string, unknown>[]; asOf?: string };
 function payload(response: request.Response): Body {
   return response.body as Body;
 }
@@ -382,5 +383,54 @@ describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
       const refused = await managerPost(cookie, '/v1/partner/sellers', body);
       expect(refused.status).toBe(400);
     }
+  });
+});
+
+describe('F-PRT-004 tableau des commandes du partenaire (D63)', () => {
+  function orders(cookie: string): request.Test {
+    return request(server()).get('/v1/partner/orders').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie);
+  }
+
+  it('commandes du seul partenaire de la session, progression dérivée du grand livre (0 %), réservé aux sessions partenaires', async () => {
+    const before = await orders(partnerCookie(await login('paul.vendeur', staff.sellerKey, 1)));
+    expect(before.status).toBe(200);
+    expect(before.headers['cache-control']).toBe('private, no-store');
+    expect(payload(before).orders).toEqual([expect.objectContaining({ orderId: GOAL, status: 'ACTIVE', progressBasisPoints: 0, targetXaf: '150000' })]);
+    expect(Number.isNaN(Date.parse(payload(before).asOf ?? ''))).toBe(false);
+  });
+
+  it('accord financé puis remis : état, montant cible, 100 %, date de remise ; jamais le client', async () => {
+    const code = await fundedWithCode();
+    const sellerCookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
+    const funded = payload(await orders(sellerCookie)).orders ?? [];
+    expect(funded).toEqual([
+      expect.objectContaining({ orderId: GOAL, offerId: OFFER, status: 'FUNDED', targetXaf: '150000', progressBasisPoints: 10000, handedOverAt: null }),
+    ]);
+    expect(JSON.stringify(funded)).not.toContain(CUSTOMER);
+    expect(Object.keys(funded[0] ?? {}).sort()).toEqual(['createdAt', 'handedOverAt', 'offerId', 'offerTitle', 'orderId', 'progressBasisPoints', 'status', 'targetXaf']);
+    expect((await handover(sellerCookie, { code, ...SHOP })).status).toBe(201);
+    const managerCookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const after = payload(await orders(managerCookie)).orders ?? [];
+    expect(after[0]).toMatchObject({ status: 'HANDED_OVER' });
+    expect(Number.isNaN(Date.parse(String(after[0]?.['handedOverAt'])))).toBe(false);
+  });
+
+  it('un brouillon (accord non activé par le client) n’apparaît pas', async () => {
+    const draft = '019ab100-0000-7000-8000-0000000000a2';
+    await createSaveThenBuyAgreement(admin, { id: draft, customerId: CUSTOMER, offerId: OFFER, planId: PLAN_A.planId, durationMonths: 3, createdAt: '2026-11-02T09:00:00.000Z' });
+    const listed = payload(await orders(partnerCookie(await login('awa.gerant', staff.managerKey, 1)))).orders ?? [];
+    expect(listed.map((order) => order['orderId'])).toEqual([GOAL]);
+  });
+
+  it('un autre partenaire ne voit jamais ces commandes', async () => {
+    await fundedWithCode();
+    const foreign = await orders(partnerCookie(await login('max.vendeur', otherSeller.sellerKey, 1)));
+    expect(foreign.status).toBe(200);
+    expect(payload(foreign).orders).toEqual([]);
+  });
+
+  it('sans session partenaire : 401', async () => {
+    const refused = await request(server()).get('/v1/partner/orders').set('Origin', PARTNER_ORIGIN);
+    expect(refused.status).toBe(401);
   });
 });

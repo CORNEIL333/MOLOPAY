@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.15.0",
+    "version": "0.16.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -1041,7 +1041,7 @@
     "/v1/partner/orders": {
       "get": {
         "operationId": "listPartnerOrders",
-        "summary": "Commandes et objectifs du partenaire",
+        "summary": "Commandes du partenaire, sans donnée client (F-PRT-004, D63)",
         "tags": [
           "Partenaire"
         ],
@@ -1059,6 +1059,14 @@
                   "$ref": "#/components/schemas/PartnerOrderList"
                 }
               }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
             }
           },
           "401": {
@@ -1066,6 +1074,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -5792,37 +5803,64 @@
         "type": "object",
         "required": [
           "orderId",
+          "offerId",
           "offerTitle",
           "status",
-          "createdAt"
+          "targetXaf",
+          "progressBasisPoints",
+          "createdAt",
+          "handedOverAt"
         ],
+        "description": "F-PRT-004 / D63 : aucune donnée du client (anonymisation et minimisation).",
         "properties": {
           "orderId": {
             "type": "string",
             "format": "uuid"
           },
-          "offerTitle": {
-            "type": "string"
+          "offerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           },
-          "customerDisplayName": {
-            "type": "string"
+          "offerTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string",
             "enum": [
-              "IN_PROGRESS",
-              "READY",
+              "ACTIVE",
+              "FUNDED",
               "HANDED_OVER",
-              "CANCELLED"
+              "PAID_TO_BENEFICIARY",
+              "CANCELLED_BY_CUSTOMER",
+              "DISPUTED",
+              "FROZEN",
+              "REFUNDED",
+              "CLOSED"
             ]
           },
-          "goalProgressBasisPoints": {
+          "targetXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "progressBasisPoints": {
             "type": "integer",
             "minimum": 0,
             "maximum": 10000
           },
           "createdAt": {
             "type": "string",
+            "format": "date-time"
+          },
+          "handedOverAt": {
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           }
         },

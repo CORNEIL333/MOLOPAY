@@ -39,7 +39,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Historique de l'accord : clôture des réclamations (F-SUP-003) | |
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | aucun canal partenaire (lot 20) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–3 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs en HTTP, contrat 0.15.0, fermé par défaut) ; suite : tableau des commandes (F-PRT-004) |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–4 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, tableau des commandes, contrat 0.16.0, fermé par défaut) ; suite : règlements au gérant |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -66,4 +66,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 4 (D63, F-PRT-004) : `GET /v1/partner/orders` — accords du seul partenaire de la session (offre, état, montant cible, date de remise), clients **anonymisés** jusqu'à 100 % ; gérant et vendeur ; aucun accès aux règlements pour le vendeur (F-PRT-003). Vérifier d'abord le contrat existant de `/v1/partner/orders` et `/v1/partner/payouts`. Tests HTTP d'abord.
+Lot 20, tranche 5 (D63, F-PRT-003/004) : `GET /v1/partner/payouts` réservé au gérant (vendeur → 403) : règlements du seul partenaire (accord, net, état, date d'exécution) lus depuis `settlement` ; puis export CSV des commandes. Tests HTTP d'abord.
