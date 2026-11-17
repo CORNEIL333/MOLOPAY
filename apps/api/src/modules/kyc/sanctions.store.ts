@@ -137,3 +137,43 @@ export async function getScreeningSubject(client: SqlClient, screeningId: string
   )).rows[0];
   return row === undefined ? null : { subjectType: row.subject_type, subjectId: row.subject_id };
 }
+
+/** D74 : filtrage tel qu'examiné par la Conformité (nom filtré, entrées rapprochées, examen éventuel). */
+export type ScreeningDetail = {
+  readonly screeningId: string;
+  readonly subjectType: 'PARTNER' | 'CUSTOMER';
+  readonly subjectId: string;
+  readonly normalizedName: string;
+  readonly outcome: 'CLEAR' | 'POTENTIAL_MATCH';
+  readonly screenedAt: string;
+  readonly review: { readonly decision: string; readonly reviewedAt: string } | null;
+  readonly matches: readonly { readonly reference: string; readonly kind: string; readonly names: readonly string[]; readonly listedOn: string | null }[];
+};
+
+export async function getScreeningDetail(client: SqlClient, screeningId: string): Promise<ScreeningDetail | null> {
+  if (!UUID_V7.test(screeningId)) return null;
+  const row = (await client.query<{
+    id: string; subject_type: 'PARTNER' | 'CUSTOMER'; subject_id: string; normalized_name: string; outcome: 'CLEAR' | 'POTENTIAL_MATCH';
+    screened_at: Date; version_id: string; matched_references: string[]; decision: string | null; reviewed_at: Date | null;
+  }>(
+    `SELECT s.id, s.subject_type, s.subject_id, s.normalized_name, s.outcome, s.screened_at, s.version_id, s.matched_references, r.decision, r.reviewed_at
+       FROM kyc.screening s LEFT JOIN kyc.screening_review r ON r.screening_id = s.id WHERE s.id = $1`,
+    [screeningId],
+  )).rows[0];
+  if (row === undefined) return null;
+  const matches = (await client.query<{ reference: string; kind: string; names: string[]; listed_on: string | null }>(
+    `SELECT reference, kind, names, to_char(listed_on, 'YYYY-MM-DD') AS listed_on FROM kyc.sanctions_entry
+      WHERE version_id = $1 AND reference = ANY($2::text[]) ORDER BY reference`,
+    [row.version_id, row.matched_references],
+  )).rows;
+  return Object.freeze({
+    screeningId: row.id,
+    subjectType: row.subject_type,
+    subjectId: row.subject_id,
+    normalizedName: row.normalized_name,
+    outcome: row.outcome,
+    screenedAt: row.screened_at.toISOString(),
+    review: row.decision === null || row.reviewed_at === null ? null : { decision: row.decision, reviewedAt: row.reviewed_at.toISOString() },
+    matches: matches.map((match) => ({ reference: match.reference, kind: match.kind, names: match.names, listedOn: match.listed_on })),
+  });
+}

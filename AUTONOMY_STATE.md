@@ -76,4 +76,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Presque tout le reste attend une décision ou un accès externe (fiche des points ouverts ; D62–D73). Travail réversible encore possible : (1) lot 25 — étendre le jeu de recette (`tools/generate-recette.ts`) aux flux partenaires et KYC ajoutés le 17 novembre, vérifier par `verify:ledger` ; (3) portail partenaire : afficher le reçu de remise après confirmation (numéro de commande, heure).
+Écran `/conformite` (D74) : après un filtrage avec rapprochement, afficher le détail (nom filtré, noms listés, date d'inscription) via `GET /v1/backoffice/screenings/{id}` avec motif, avant le formulaire d'examen ; tests de composants d'abord. Puis portail partenaire : reçu de remise (heure) après confirmation.

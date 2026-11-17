@@ -2,7 +2,8 @@ import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
 import { getLatestPartnerLegalName } from '../modules/catalog/partner.store';
-import { getScreeningStatus, getScreeningSubject, grantBasicLevel, recordScreeningReview, screenName, type Screening } from '../modules/kyc/sanctions.store';
+import { appendAuditEvent } from '../modules/audit/audit.store';
+import { getScreeningDetail, getScreeningStatus, getScreeningSubject, type ScreeningDetail, grantBasicLevel, recordScreeningReview, screenName, type Screening } from '../modules/kyc/sanctions.store';
 import { uuidv7 } from '../modules/ledger/domain';
 
 type SqlClient = Pick<PoolClient, 'query'>;
@@ -39,4 +40,32 @@ export async function reviewSanctionsMatch(
 export async function partnerScreeningStatus(client: SqlClient, input: { readonly principal: AdminPrincipal; readonly partnerId: string }): Promise<ReturnType<typeof getScreeningStatus>> {
   assertAuthorized(input.principal, 'SCREEN_PARTNER', {});
   return getScreeningStatus(client, { subjectType: 'PARTNER', subjectId: input.partnerId });
+}
+
+/**
+ * D74 / F-BO-004 : détail d'un filtrage pour l'examen (nom filtré, entrées
+ * de liste rapprochées). Donnée d'identité : droit `READ_IDENTITY_DOCUMENT`
+ * (Conformité, support N2), motif obligatoire, consultation inscrite à
+ * l'audit chaîné (identifiant du client en référence pour un client).
+ */
+export async function readScreeningDetail(
+  client: SqlClient,
+  input: { readonly principal: AdminPrincipal; readonly screeningId: string; readonly reason: string },
+): Promise<ScreeningDetail> {
+  assertAuthorized(input.principal, 'READ_IDENTITY_DOCUMENT', { reason: input.reason });
+  const detail = await getScreeningDetail(client, input.screeningId);
+  if (detail === null) {
+    throw new BusinessError('KYC_SUBJECT_NOT_FOUND', 'filtrage introuvable');
+  }
+  await appendAuditEvent(client, {
+    eventType: 'SENSITIVE_DATA_READ',
+    actorId: input.principal.actorId,
+    action: 'READ_IDENTITY_DOCUMENT',
+    targetType: 'SANCTIONS_SCREENING',
+    targetId: input.screeningId,
+    outcome: 'SUCCESS',
+    reason: input.reason,
+    ...(detail.subjectType === 'CUSTOMER' ? { refs: { client_id: detail.subjectId } } : {}),
+  });
+  return detail;
 }

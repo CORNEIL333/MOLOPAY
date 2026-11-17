@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.27.0",
+    "version": "0.28.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5078,6 +5078,68 @@
           }
         }
       }
+    },
+    "/v1/backoffice/screenings/{screeningId}": {
+      "get": {
+        "operationId": "getSanctionsScreening",
+        "summary": "Détail d'un filtrage pour l'examen (D74)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          },
+          {
+            "name": "screeningId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsScreeningDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8577,6 +8639,117 @@
           },
           "openDispute": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SanctionsScreeningDetail": {
+        "type": "object",
+        "required": [
+          "screeningId",
+          "subjectType",
+          "subjectId",
+          "normalizedName",
+          "outcome",
+          "screenedAt",
+          "review",
+          "matches"
+        ],
+        "description": "D74 : donnée d'identité, consultation motivée et journalisée (READ_IDENTITY_DOCUMENT).",
+        "properties": {
+          "screeningId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "enum": [
+              "PARTNER",
+              "CUSTOMER"
+            ]
+          },
+          "subjectId": {
+            "type": "string"
+          },
+          "normalizedName": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "CLEAR",
+              "POTENTIAL_MATCH"
+            ]
+          },
+          "screenedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "decision",
+                  "reviewedAt"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "FALSE_POSITIVE",
+                      "CONFIRMED_MATCH"
+                    ]
+                  },
+                  "reviewedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "reference",
+                "kind",
+                "names",
+                "listedOn"
+              ],
+              "properties": {
+                "reference": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "INDIVIDUAL",
+                    "ENTITY"
+                  ]
+                },
+                "names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "listedOn": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false
