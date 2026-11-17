@@ -392,7 +392,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Règlements du partenaire, en lecture */
+        /** Règlements du partenaire, gérant uniquement (F-PRT-003/004, D63) */
         get: operations["listPartnerPayouts"];
         put?: never;
         post?: never;
@@ -1692,22 +1692,6 @@ export interface components {
             /** Format: date-time */
             asOf: string;
         };
-        Payout: {
-            /** Format: uuid */
-            payoutId: string;
-            /** Format: uuid */
-            orderId: string;
-            netXaf: components["schemas"]["Money"];
-            /** @enum {string} */
-            status: "PENDING" | "SENT" | "CONFIRMED" | "FAILED";
-            /** Format: date-time */
-            executedAt?: string;
-        };
-        PayoutList: {
-            payouts: components["schemas"]["Payout"][];
-            /** Format: date-time */
-            asOf: string;
-        };
         AdminSessionRequest: {
             /** Format: email */
             email: string;
@@ -2152,6 +2136,26 @@ export interface components {
                 role: "MANAGER" | "SELLER";
                 active: boolean;
             }[];
+        };
+        /** @description F-PRT-003/004 / D63 : règlement vu par le gérant ; aucun identifiant du personnel. */
+        PartnerPayout: {
+            /** Format: uuid */
+            payoutId: string;
+            /** Format: uuid */
+            agreementId: string;
+            grossXaf: components["schemas"]["Money"];
+            commissionXaf: components["schemas"]["Money"];
+            netXaf: components["schemas"]["Money"];
+            /** @enum {string} */
+            status: "PREPARED" | "APPROVED" | "REJECTED" | "INSTRUCTED" | "EXECUTED" | "EXECUTION_REJECTED";
+            /** Format: date-time */
+            executedAt: string | null;
+            bankReference: string | null;
+        };
+        PartnerPayoutList: {
+            payouts: components["schemas"]["PartnerPayout"][];
+            /** Format: date-time */
+            asOf: string;
         };
     };
     responses: {
@@ -2887,14 +2891,16 @@ export interface operations {
             /** @description Règlements */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PayoutList"];
+                    "application/json": components["schemas"]["PartnerPayoutList"];
                 };
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
         };
     };
     createAdminSession: {

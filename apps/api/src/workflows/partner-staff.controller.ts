@@ -15,6 +15,7 @@ import {
 } from '../modules/catalog/partner-user.store';
 import { listPartnerOrders } from '../modules/agreements/partner-orders.store';
 import { uuidv7 } from '../modules/ledger/domain';
+import { listPartnerPayouts } from '../modules/settlement/partner-payouts.store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const LOGIN = /^[a-z][a-z0-9._-]{2,63}$/;
@@ -76,6 +77,17 @@ export class PartnerStaffController {
     return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
       const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
       return { orders: await listPartnerOrders(client, partner.partnerId), asOf: asOf.toISOString() };
+    });
+  }
+
+  /** F-PRT-003 : règlements au gérant seul ; le vendeur ne les voit pas. */
+  @Get('payouts')
+  @Header('Cache-Control', 'private, no-store')
+  public async payouts(@CurrentPartner() partner: PartnerPrincipal): Promise<unknown> {
+    assertManager(partner);
+    return withTransaction({ ...this.database, role: 'app_ro' }, async (client) => {
+      const asOf = (await client.query<{ now: Date }>('SELECT clock_timestamp() AS now')).rows[0]?.now ?? new Date(0);
+      return { payouts: await listPartnerPayouts(client, partner.partnerId), asOf: asOf.toISOString() };
     });
   }
 

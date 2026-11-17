@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { resolve } from 'node:path';
@@ -18,6 +18,8 @@ import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/m
 import { issueHandoverCode } from '../../src/modules/settlement/handover.store';
 import { confirmHandoverAtPartner } from '../../src/workflows/handover';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
+import { decidePayout, instructPayout, preparePayout, recordPayoutExecution } from '../../src/workflows/settlement-payout';
+import type { AdminPrincipal } from '../../src/modules/admin/domain';
 import {
   createAgreementA,
   PLAN_A,
@@ -65,7 +67,7 @@ async function start(deps: Partial<AppDependencies>): Promise<INestApplication> 
   return started;
 }
 
-type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[]; orders?: Record<string, unknown>[]; asOf?: string };
+type Body = { code?: string; agreementId?: string; validatedAt?: string; sellerId?: string; login?: string; challengeId?: string; challenge?: string; enrollmentToken?: string; disabled?: boolean; users?: { userId: string; login: string; role: string; active: boolean }[]; orders?: Record<string, unknown>[]; payouts?: Record<string, unknown>[]; asOf?: string };
 function payload(response: request.Response): Body {
   return response.body as Body;
 }
@@ -432,5 +434,71 @@ describe('F-PRT-004 tableau des commandes du partenaire (D63)', () => {
   it('sans session partenaire : 401', async () => {
     const refused = await request(server()).get('/v1/partner/orders').set('Origin', PARTNER_ORIGIN);
     expect(refused.status).toBe(401);
+  });
+});
+
+describe('F-PRT-003/004 règlements du partenaire, gérant uniquement (D63)', () => {
+  const OPS: AdminPrincipal = { actorId: 'ops-1', roles: ['OPERATIONS'], cityIds: ['douala'] };
+  const FIN: AdminPrincipal = { actorId: 'fin-1', roles: ['FINANCE'], cityIds: ['douala'], maxAmountXaf: 1_000_000n };
+  const FIN2: AdminPrincipal = { actorId: 'fin-2', roles: ['FINANCE'], cityIds: ['douala'], maxAmountXaf: 1_000_000n };
+  const PLATFORM = generateKeyPairSync('ed25519');
+
+  function payouts(cookie: string): request.Test {
+    return request(server()).get('/v1/partner/payouts').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie);
+  }
+
+  async function handedOverAndPrepared(): Promise<string> {
+    await publishSetting(admin, 'merchant_commission_bps', 250);
+    await publishSetting(admin, 'settlement_contestation_days', 0);
+    const code = await fundedWithCode();
+    await withTransaction(database, (client) => confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: staff.seller.userId, ...SHOP, pepper: PEPPER }));
+    const prepared = await withTransaction(database, (client) => preparePayout(client, { id: uuidv7(), agreementId: GOAL, cityId: 'douala', principal: OPS }));
+    return prepared.payoutId;
+  }
+
+  it('le gérant suit son règlement de la préparation à l’exécution (brut, commission, net, référence)', async () => {
+    const payoutId = await handedOverAndPrepared();
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const prepared = await payouts(cookie);
+    expect(prepared.status).toBe(200);
+    expect(prepared.headers['cache-control']).toBe('private, no-store');
+    expect(payload(prepared).payouts).toEqual([
+      { payoutId, agreementId: GOAL, grossXaf: '150000', commissionXaf: '3750', netXaf: '146250', status: 'PREPARED', executedAt: null, bankReference: null },
+    ]);
+    await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'APPROVED', cityId: 'douala' }));
+    expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'APPROVED' });
+    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+    expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'INSTRUCTED' });
+    await withTransaction(database, (client) => recordPayoutExecution(client, { payoutId, principal: FIN2, cityId: 'douala', outcome: 'EXECUTED', bankReference: 'ETAB-REG-1' }));
+    const executed = payload(await payouts(cookie)).payouts?.[0] ?? {};
+    expect(executed).toMatchObject({ status: 'EXECUTED', bankReference: 'ETAB-REG-1' });
+    expect(Number.isNaN(Date.parse(String(executed['executedAt'])))).toBe(false);
+    expect(JSON.stringify(executed)).not.toMatch(/ops-1|fin-1|fin-2/);
+  });
+
+  it('règlement refusé par la finance : état REJECTED', async () => {
+    const payoutId = await handedOverAndPrepared();
+    await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'REJECTED', cityId: 'douala', reason: 'pièce manquante' }));
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'REJECTED', netXaf: '146250' });
+  });
+
+  it('exécution refusée par l’établissement : état EXECUTION_REJECTED, ni date ni référence', async () => {
+    const payoutId = await handedOverAndPrepared();
+    await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'APPROVED', cityId: 'douala' }));
+    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+    await withTransaction(database, (client) => recordPayoutExecution(client, { payoutId, principal: FIN2, cityId: 'douala', outcome: 'REJECTED', bankReference: 'ETAB-REJ-1' }));
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'EXECUTION_REJECTED', executedAt: null, bankReference: null });
+  });
+
+  it('le vendeur ne voit pas les règlements (403) ; un autre partenaire ne voit rien', async () => {
+    await handedOverAndPrepared();
+    const seller = await payouts(partnerCookie(await login('paul.vendeur', staff.sellerKey, 1)));
+    expect(seller.status).toBe(403);
+    expect(payload(seller).code).toBe('PARTNER_ROLE_DENIED');
+    const foreign = await payouts(partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1)));
+    expect(foreign.status).toBe(200);
+    expect(payload(foreign).payouts).toEqual([]);
   });
 });

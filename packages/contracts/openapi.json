@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.16.0",
+    "version": "0.17.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -1084,7 +1084,7 @@
     "/v1/partner/payouts": {
       "get": {
         "operationId": "listPartnerPayouts",
-        "summary": "Règlements du partenaire, en lecture",
+        "summary": "Règlements du partenaire, gérant uniquement (F-PRT-003/004, D63)",
         "tags": [
           "Partenaire"
         ],
@@ -1096,10 +1096,18 @@
         "responses": {
           "200": {
             "description": "Règlements",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PayoutList"
+                  "$ref": "#/components/schemas/PartnerPayoutList"
                 }
               }
             }
@@ -1109,6 +1117,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -5886,62 +5897,6 @@
         },
         "additionalProperties": false
       },
-      "Payout": {
-        "type": "object",
-        "required": [
-          "payoutId",
-          "orderId",
-          "netXaf",
-          "status"
-        ],
-        "properties": {
-          "payoutId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "orderId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "netXaf": {
-            "$ref": "#/components/schemas/Money"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "SENT",
-              "CONFIRMED",
-              "FAILED"
-            ]
-          },
-          "executedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PayoutList": {
-        "type": "object",
-        "required": [
-          "payouts",
-          "asOf"
-        ],
-        "properties": {
-          "payouts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Payout"
-            }
-          },
-          "asOf": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
       "AdminSessionRequest": {
         "type": "object",
         "required": [
@@ -7634,6 +7589,84 @@
               },
               "additionalProperties": false
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerPayout": {
+        "type": "object",
+        "required": [
+          "payoutId",
+          "agreementId",
+          "grossXaf",
+          "commissionXaf",
+          "netXaf",
+          "status",
+          "executedAt",
+          "bankReference"
+        ],
+        "description": "F-PRT-003/004 / D63 : règlement vu par le gérant ; aucun identifiant du personnel.",
+        "properties": {
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agreementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grossXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "commissionXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netXaf": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARED",
+              "APPROVED",
+              "REJECTED",
+              "INSTRUCTED",
+              "EXECUTED",
+              "EXECUTION_REJECTED"
+            ]
+          },
+          "executedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "bankReference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerPayoutList": {
+        "type": "object",
+        "required": [
+          "payouts",
+          "asOf"
+        ],
+        "properties": {
+          "payouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerPayout"
+            }
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
