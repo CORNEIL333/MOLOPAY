@@ -40,7 +40,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | canal partenaire : portail en lecture disponible ; envoi actif (courriel/SMS) à décider |
 | BLOCKED | F-PRT-002 écriture du catalogue par le partenaire | décision du fondateur (D63) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut) ; suite : écrans du portail partenaire |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut ; portail web : connexion, enrôlement, comptoir) ; suite : écrans de gestion du portail |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -67,4 +67,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 8 (D63) : application web `apps/partner-portal` (Next.js, mêmes dépendances épinglées que le back-office, aucune nouvelle) : connexion par clé (`navigator.credentials.get`), enrôlement (`/enrolement`), remise au comptoir (code + position), commandes, règlements (gérant), vendeurs (gérant) ; tests de composants d'abord. Attention : le build Next.js 16.4.3 est refusé (D64) — composants testés sans build tant que la montée n'est pas approuvée.
+Lot 20, tranche 8b (D63) : écrans de gestion du portail partenaire — `/commandes` (liste + lien d'export CSV gérant), `/reglements` (gérant), `/vendeurs` (gérant : liste, création, émission du code d'enrôlement `défi.challenge.jeton` affiché une seule fois, désactivation motivée), `/offres` ; orientation après connexion selon le rôle (vendeur → `/comptoir`, gérant → `/commandes`). Tests de composants d'abord, mutations. Build bloqué par D64.
