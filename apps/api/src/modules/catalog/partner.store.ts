@@ -290,3 +290,12 @@ export async function recordMerchantDefault(
     recordedAt: recordedAt.toISOString(),
   };
 }
+
+/** REG-LBC-002 / D66 : raison sociale du dossier le plus récent d'un partenaire ; null s'il n'existe pas. */
+export async function getLatestPartnerLegalName(client: SqlClient, partnerId: string): Promise<string | null> {
+  const row = (await client.query<{ legal_name: string }>(
+    'SELECT legal_name FROM catalog.partner_dossier WHERE partner_id = $1 ORDER BY version DESC LIMIT 1',
+    [partnerId],
+  )).rows[0];
+  return row?.legal_name ?? null;
+}

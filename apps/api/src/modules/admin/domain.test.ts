@@ -74,10 +74,13 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'DECIDE_RISK_ALERT',
     // D56 : levée des litiges.
     'RESOLVE_DISPUTE',
+    // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
+    'SCREEN_PARTNER',
+    'REVIEW_SANCTIONS_MATCH',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT'],
-  PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT'],
+  PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER'],
   AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
 };

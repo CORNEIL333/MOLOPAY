@@ -42,6 +42,8 @@ export const ADMIN_ACTIONS = [
   'OPEN_DISPUTE',
   'RESOLVE_DISPUTE',
   'CLOSE_COMPLAINT',
+  'SCREEN_PARTNER',
+  'REVIEW_SANCTIONS_MATCH',
   'MANAGE_USERS',
   'MANAGE_RISK_ALERT',
   'DECLARE_MERCHANT_DEFAULT',
@@ -132,6 +134,9 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECIDE_RISK_ALERT',
     // D41 / D56 : levée des litiges.
     'RESOLVE_DISPUTE',
+    // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
+    'SCREEN_PARTNER',
+    'REVIEW_SANCTIONS_MATCH',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -142,7 +147,7 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
   ]),
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
-  PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT']),
+  PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER']),
   AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG']),
   TECH_ADMIN: new Set<AdminAction>([
     'MANAGE_USERS',

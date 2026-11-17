@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.21.0",
+    "version": "0.22.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4721,6 +4721,215 @@
           }
         }
       }
+    },
+    "/v1/backoffice/partners/{partnerId}/screenings": {
+      "post": {
+        "operationId": "screenPartner",
+        "summary": "Filtrer un partenaire contre la liste ONU (REG-LBC-002, D66)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "partnerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Filtrage enregistré",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsScreening"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/partners/{partnerId}/screening": {
+      "get": {
+        "operationId": "getPartnerScreeningStatus",
+        "summary": "État de filtrage d'un partenaire (D66)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "partnerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsScreeningStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/screenings/{screeningId}/review": {
+      "post": {
+        "operationId": "reviewSanctionsMatch",
+        "summary": "Examiner un rapprochement (Conformité, D66)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "screeningId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SanctionsReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Examen enregistré",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsReview"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8001,6 +8210,110 @@
           "openRiskAlerts": {
             "type": "integer",
             "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "SanctionsScreening": {
+        "type": "object",
+        "required": [
+          "screeningId",
+          "partnerId",
+          "versionId",
+          "outcome",
+          "matchedReferences"
+        ],
+        "description": "REG-LBC-002 / D66 : filtrage contre la liste consolidée ONU la plus récente.",
+        "properties": {
+          "screeningId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partnerId": {
+            "type": "string"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "CLEAR",
+              "POTENTIAL_MATCH"
+            ]
+          },
+          "matchedReferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SanctionsScreeningStatus": {
+        "type": "object",
+        "required": [
+          "partnerId",
+          "status"
+        ],
+        "properties": {
+          "partnerId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NOT_SCREENED",
+              "CLEAR",
+              "FALSE_POSITIVE",
+              "PENDING_REVIEW",
+              "CONFIRMED_MATCH"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SanctionsReviewRequest": {
+        "type": "object",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "FALSE_POSITIVE",
+              "CONFIRMED_MATCH"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000
+          }
+        },
+        "additionalProperties": false
+      },
+      "SanctionsReview": {
+        "type": "object",
+        "required": [
+          "screeningId",
+          "decision"
+        ],
+        "properties": {
+          "screeningId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "FALSE_POSITIVE",
+              "CONFIRMED_MATCH"
+            ]
           }
         },
         "additionalProperties": false

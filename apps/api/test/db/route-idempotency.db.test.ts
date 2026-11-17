@@ -79,6 +79,8 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/admin/staff/${GOAL}/disable`]: { reason: 'départ' },
   [`/v1/backoffice/admin/staff/${GOAL}/enrollments`]: {},
   '/v1/backoffice/admin/settings': { key: 'merchant_commission_bps', value: 250, approvalRequestId: GOAL },
+  [`/v1/backoffice/partners/${GOAL}/screenings`]: {},
+  [`/v1/backoffice/screenings/${GOAL}/review`]: { decision: 'FALSE_POSITIVE', reason: 'homonyme vérifié' },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
