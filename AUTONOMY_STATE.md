@@ -68,7 +68,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | App mobile Flutter | livrée par ChatGPT selon `PROMPT_CHATGPT_APP_MOBILE.md`, branchement ensuite |
 
 ## Décisions humaines attendues
-Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, engagements client, authentification du personnel, accès externes).
+Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées) et `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, engagements client, authentification du personnel, accès externes).
 
 ## Décisions techniques importantes (rappel)
 - Toute sortie de fonds : préparation → décision par une autre personne → instruction Ed25519 canonique → exécution enregistrée par une autre personne ; base garante (déclencheurs) ; écriture et état dans la même transaction.
@@ -76,4 +76,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Presque tout le reste attend une décision ou un accès externe (fiche des points ouverts ; D62–D73). Travail réversible encore possible : (1) lot 25 — étendre le jeu de recette (`tools/generate-recette.ts`) aux flux partenaires et KYC ajoutés le 17 novembre, vérifier par `verify:ledger` ; (2) rédiger une fiche de synthèse des décisions D63–D73 pour le fondateur (une page, questions fermées) ; (3) portail partenaire : afficher le reçu de remise après confirmation (numéro de commande, heure).
+Presque tout le reste attend une décision ou un accès externe (fiche des points ouverts ; D62–D73). Travail réversible encore possible : (1) lot 25 — étendre le jeu de recette (`tools/generate-recette.ts`) aux flux partenaires et KYC ajoutés le 17 novembre, vérifier par `verify:ledger` ; (3) portail partenaire : afficher le reçu de remise après confirmation (numéro de commande, heure).
