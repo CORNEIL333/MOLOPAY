@@ -2,7 +2,7 @@ import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
 import { getLatestPartnerLegalName } from '../modules/catalog/partner.store';
-import { getScreeningStatus, recordScreeningReview, screenName, type Screening } from '../modules/kyc/sanctions.store';
+import { getScreeningStatus, getScreeningSubject, grantBasicLevel, recordScreeningReview, screenName, type Screening } from '../modules/kyc/sanctions.store';
 import { uuidv7 } from '../modules/ledger/domain';
 
 type SqlClient = Pick<PoolClient, 'query'>;
@@ -28,6 +28,11 @@ export async function reviewSanctionsMatch(
 ): Promise<void> {
   assertAuthorized(input.principal, 'REVIEW_SANCTIONS_MATCH', { reason: input.reason });
   await recordScreeningReview(client, { screeningId: input.screeningId, decision: input.decision, reason: input.reason, actorId: input.principal.actorId });
+  // D68 : un faux positif écarté peut débloquer le niveau 1 d'un client (vérifié par la base).
+  const subject = await getScreeningSubject(client, input.screeningId);
+  if (subject?.subjectType === 'CUSTOMER' && input.decision === 'FALSE_POSITIVE') {
+    await grantBasicLevel(client, subject.subjectId);
+  }
 }
 
 /** État de filtrage d'un partenaire (lecture, mêmes droits que le filtrage). */

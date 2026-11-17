@@ -117,3 +117,23 @@ export async function getScreeningStatus(
   if (row.decision === null) return 'PENDING_REVIEW';
   return row.decision === 'FALSE_POSITIVE' ? 'FALSE_POSITIVE' : 'CONFIRMED_MATCH';
 }
+
+/** D68 : rattache un filtrage à la déclaration de nom qu'il couvre (même compte, vérifié par la base). */
+export async function linkLegalNameScreening(client: SqlClient, input: { readonly declarationId: string; readonly screeningId: string }): Promise<void> {
+  await client.query('INSERT INTO kyc.legal_name_screening (declaration_id, screening_id) VALUES ($1, $2)', [input.declarationId, input.screeningId]);
+}
+
+/** D68 : seule voie d'élévation au niveau 1 ; renvoie le niveau obtenu ou le motif d'attente. */
+export async function grantBasicLevel(client: SqlClient, accountId: string): Promise<string> {
+  const row = (await client.query<{ level: string }>('SELECT kyc.grant_basic_level($1) AS level', [accountId])).rows[0];
+  return row?.level ?? 'NONE';
+}
+
+/** Sujet d'un filtrage (pour enchaîner l'élévation après un examen). */
+export async function getScreeningSubject(client: SqlClient, screeningId: string): Promise<{ readonly subjectType: 'PARTNER' | 'CUSTOMER'; readonly subjectId: string } | null> {
+  const row = (await client.query<{ subject_type: 'PARTNER' | 'CUSTOMER'; subject_id: string }>(
+    'SELECT subject_type, subject_id FROM kyc.screening WHERE id = $1',
+    [screeningId],
+  )).rows[0];
+  return row === undefined ? null : { subjectType: row.subject_type, subjectId: row.subject_id };
+}

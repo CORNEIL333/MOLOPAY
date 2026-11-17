@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.22.0",
+    "version": "0.23.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4930,6 +4930,70 @@
           }
         }
       }
+    },
+    "/v1/me/legal-name": {
+      "post": {
+        "operationId": "declareLegalName",
+        "summary": "Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68)",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalNameDeclaration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Déclaration enregistrée",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycVerification"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8313,6 +8377,46 @@
             "enum": [
               "FALSE_POSITIVE",
               "CONFIRMED_MATCH"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "LegalNameDeclaration": {
+        "type": "object",
+        "required": [
+          "legalName"
+        ],
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          }
+        },
+        "additionalProperties": false
+      },
+      "KycVerification": {
+        "type": "object",
+        "required": [
+          "kycLevel",
+          "verification"
+        ],
+        "description": "D68 : jamais de détail de filtrage (aucune alerte de la personne, LBC/FT).",
+        "properties": {
+          "kycLevel": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "BASIC",
+              "STRONG"
+            ]
+          },
+          "verification": {
+            "type": "string",
+            "enum": [
+              "COMPLETED",
+              "IN_PROGRESS"
             ]
           }
         },

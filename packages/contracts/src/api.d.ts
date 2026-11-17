@@ -1448,6 +1448,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/legal-name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68) */
+        post: operations["declareLegalName"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2309,6 +2326,16 @@ export interface components {
             screeningId: string;
             /** @enum {string} */
             decision: "FALSE_POSITIVE" | "CONFIRMED_MATCH";
+        };
+        LegalNameDeclaration: {
+            legalName: string;
+        };
+        /** @description D68 : jamais de détail de filtrage (aucune alerte de la personne, LBC/FT). */
+        KycVerification: {
+            /** @enum {string} */
+            kycLevel: "NONE" | "BASIC" | "STRONG";
+            /** @enum {string} */
+            verification: "COMPLETED" | "IN_PROGRESS";
         };
     };
     responses: {
@@ -5045,6 +5072,38 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    declareLegalName: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalNameDeclaration"];
+            };
+        };
+        responses: {
+            /** @description Déclaration enregistrée */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KycVerification"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
         };
     };
 }

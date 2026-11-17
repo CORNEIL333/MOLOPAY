@@ -473,3 +473,19 @@
 - **⚖ Import en exploitation (à trancher) :** un import par téléversement permettrait à un initié de charger une liste altérée (entrée retirée). Option prudente proposée : le serveur télécharge lui-même le fichier depuis l'URL officielle (hôte autorisé en sortie, ADR réseau), import déclenché par la Conformité et journalisé. Aucun outil d'import vers une base réelle n'est fourni par l'agent (AGENTS § 4 : aucun script ne touche la production).
 - **⚖ Validation des partenaires :** subordonner `recordPartnerValidation` à un filtrage `CLEAR` ou `FALSE_POSITIVE` récent ? (restrictif ; à décider avec la Conformité).
 - **Mise à jour D66 (écran) :** page `/conformite` du back-office : filtrage d'un partenaire, références rapprochées, examen motivé (faux positif ou correspondance confirmée) ; refus serveur affiché. 5 tests de composants ; 5 mutants tués. Non compilé (D64).
+
+### D67 · Défis de connexion du personnel et des partenaires non limités (lot 24, SEC-API-003)
+- **Constat :** `POST /v1/staff/login-challenges` et `POST /v1/partner/login-challenges` enregistrent un défi (5 min) pour tout identifiant existant, sans quota ; les tables sont en ajout seul, donc une rafale fait croître la base indéfiniment. Aucun risque d'usurpation (signature WebAuthn exigée), risque de saturation seulement.
+- **Analyse :** un plafond en base par compte (ex. 5 défis vivants) bornerait la croissance mais permettrait à un tiers connaissant un identifiant d'empêcher la connexion de son titulaire ; un refus explicite révélerait l'existence du compte (SEC-API-003). La bonne place est la **limitation par IP en périphérie (WAF, CDC_03)**, complétée par un quota par identifiant aux valeurs décidées (D38).
+- **Option appliquée :** aucun code (pas de demi-mesure qui crée un déni de service ciblé) ; les deux routes restent fermées par défaut (ADR-0007, D63). **⚖ À trancher :** valeurs de quota par IP et par identifiant, et WAF en exploitation.
+
+### D68 · KYC niveau 1 : nom déclaré et filtré (REG-LBC-001, REG-LBC-002, F-ACC-003, lot 07)
+- **Constat :** aucun code n'élevait un client au niveau `BASIC` ; le nom (exigé au niveau 1) n'était pas enregistré, ce qui empêchait aussi le filtrage des clients (D66).
+- **Option appliquée (régime sprint, prudente) :** migration 0060 et route `POST /v1/me/legal-name` (session, Origin, Idempotency-Key, verrou de session comme les droits sur les données) :
+  - déclaration du nom légal en ajout seul (compte actif exigé par la base) ;
+  - dans la même transaction : filtrage du nom contre la liste ONU la plus récente, rattachement en base du filtrage à la déclaration (même compte, postérieur), puis élévation par `kyc.grant_basic_level` (fonction de base, seule voie, le rôle applicatif n'ayant aucun droit de mise à jour sur le compte) : compte actif, numéro vérifié, dernière déclaration filtrée sans rapprochement ou faux positif écarté par la Conformité ; une correspondance confirmée ou un examen en attente bloque ;
+  - sans liste importée : tout est refusé (fermé par défaut) ;
+  - **aucune alerte de la personne (LBC/FT)** : la réponse ne distingue jamais un rapprochement d'une vérification en cours (`verification: IN_PROGRESS`) et ne renvoie pas le nom ;
+  - un faux positif examiné débloque le niveau (même transaction que l'examen).
+  - Contrat 0.23.0. 7 tests PostgreSQL, 3 tests HTTP ; 10 mutants tués, 1 équivalent (la base refuse déjà l'élévation après correspondance confirmée).
+- **⚖ À trancher :** quota de la route (méthode D60 : proposé 3 par 24 h et par compte) ; effet d'une nouvelle déclaration correspondant à la liste chez un client déjà `BASIC` (aujourd'hui : niveau conservé, examen en attente — rétrograder ? geler ?) ; déclaration à l'ANIF en cas de correspondance confirmée (juridique) ; écran client (web) pour la déclaration.
