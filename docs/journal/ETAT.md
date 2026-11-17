@@ -1,3 +1,14 @@
+# État du sprint — 2026-11-17
+
+## Fait depuis le 11 novembre (D62–D68)
+- **Lot 21, back-office (D62, ADR-0007 proposé, fermé par défaut) :** authentification WebAuthn du personnel (0056), toutes les routes de contrôle et de sortie de fonds, administration, file de travail, historique d'objectif, **tableau de bord agrégé F-BO-003 (D65)**, écrans web (connexion, enrôlement, file, administration, tableau de bord, conformité).
+- **Lot 20, portail partenaire (D63, fermé par défaut) :** comptes gérant/vendeur WebAuthn (0057), remise au comptoir avec vendeur garanti par la base (0058), gestion des vendeurs, commandes sans donnée client, export CSV, règlements au gérant, offres en lecture ; application web `apps/partner-portal`.
+- **Lot 07, KYC :** filtrage contre la liste consolidée réelle de l'ONU (0059, D66) avec examen par la Conformité ; niveau 1 par nom déclaré et filtré, élévation par la base seulement, sans alerte de la personne (0060, D68) ; écrans conformité et client.
+- **Lot 24 :** contrôle de cache étendu aux sessions partenaires (défaut corrigé) ; défis de connexion non limités consignés (D67, WAF et valeurs à décider).
+- **Contrat OpenAPI 0.23.0.**
+- **Vérifications (dernière régression) : 1281 unitaires, 831 PostgreSQL (53 suites), 45 attaques, 211 web, OpenAPI, sécurité OK.** Bout en bout du back-office **bloqué** : `next build` refuse Next.js 16.4.3 (D64, montée à approuver). Revue indépendante non faite (L2/L3) ; revue humaine avant fusion.
+- **Décisions attendues du fondateur :** voir `FICHE_POINTS_OUVERTS_2026-11-11.md` et D62–D68 (ADR-0007, RP ID et origines, Next.js 16.4.5, ville de l'accord, import ONU en exploitation, PPE et listes CEMAC, quota du nom légal, rétrogradation KYC, écriture du catalogue par le partenaire, nom du client au partenaire, périmètre partenaire du personnel).
+
 # État du sprint — 2026-11-11
 
 ## Décisions prises par délégation (D1–D62) et mise en œuvre
