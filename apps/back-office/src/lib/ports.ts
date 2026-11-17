@@ -5,6 +5,7 @@ import type { FundsActionPort } from '../components/funds-action';
 import type { StaffEnrollmentPorts } from '../components/staff-enrollment';
 import type { OversightPort } from '../components/oversight-action';
 import type { WorkQueuePorts } from '../components/work-queue';
+import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
@@ -148,5 +149,25 @@ export const browserDashboardPorts: DashboardPort = {
   async load(reason) {
     const result = await api().GET('/v1/backoffice/dashboard', { params: { query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, board: result.data };
+  },
+};
+
+/** REG-LBC-002 / D66 : filtrage et examen par les routes réelles du back-office. */
+export const browserSanctionsPorts: SanctionsPort = {
+  async screen(partnerId) {
+    const result = await api().POST('/v1/backoffice/partners/{partnerId}/screenings', {
+      params: { path: { partnerId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: {},
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, screening: result.data };
+  },
+  async review(screeningId, decision, reason) {
+    const result = await api().POST('/v1/backoffice/screenings/{screeningId}/review', {
+      params: { path: { screeningId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { decision, reason },
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
   },
 };

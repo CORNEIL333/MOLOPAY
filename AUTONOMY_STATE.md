@@ -51,7 +51,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Lot 23 : envoi des têtes aux témoins réels | conventions, canal authentifié, clé HSM |
 | IN_PROGRESS | Lot 21 : authentification du personnel WebAuthn (ADR-0007 proposé, D62) | tranches 1–14 faites (serveur complet ; web : enrôlement, connexion par clé, file, actions, administration ; bout en bout réel) ; fermé par défaut, à valider par le fondateur |
 | DONE | Lot 21 : tableau de bord agrégé F-BO-003 (D65) | API, contrat 0.21.0, écran `/tableau-de-bord` |
-| IN_PROGRESS | Lot 07 : filtrage ONU (REG-LBC-002, D66) | tranches 1–2 : 0059, liste réelle, import, filtrage, examen, routes back-office, contrat 0.22.0 ; reste : import en exploitation et validation conditionnée (⚖ D66) |
+| IN_PROGRESS | Lot 07 : filtrage ONU (REG-LBC-002, D66) | tranches 1–2 : 0059, liste réelle, import, filtrage, examen, routes back-office, écran `/conformite`, contrat 0.22.0 ; reste : import en exploitation et validation conditionnée (⚖ D66) |
 | BLOCKED | Lot 07 : filtrage des clients, PPE, listes nationales | nom du client non enregistré ; source PPE et listes CEMAC à décider (D66) |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -70,4 +70,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Écran back-office du filtrage (D66) : sur la page d'administration ou une page `/conformite`, filtrer un partenaire, voir son état, examiner un rapprochement (motif). Tests de composants d'abord. Ensuite : reprendre l'analyse des lots READY (lot 24 : limitation de débit des défis de connexion personnel/partenaire — valeurs D38 non fixées, mécanisme fermé par défaut à étudier).
+Lot 24 (durcissement) : limiter l'émission de défis de connexion du personnel et des partenaires (stockage de défis en base sans limite aujourd'hui). Étudier un mécanisme réversible (quota par identifiant et par fenêtre, politique publiée, fermé par défaut comme D38) et le consigner (D67) avant d'implémenter ; à défaut, documenter le risque et passer au lot suivant.
