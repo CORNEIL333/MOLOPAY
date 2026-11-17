@@ -27,7 +27,7 @@ import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from '.
  */
 const ORIGIN = 'https://app.example.test';
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ACCOUNT = '019aa400-0000-7000-8000-0000000000c1';
 const GOAL = '019aa400-0000-7000-8000-0000000000a1';
 const OFFER = '019aa400-0000-7000-8000-0000000000f1';

@@ -456,3 +456,16 @@
 - **Écran web :** à ajouter au back-office (tableau, motif) — prochaine tranche.
 - **Mise à jour D65 :** écran `/tableau-de-bord` du back-office (motif obligatoire, compteurs, accords par modèle/univers/villes/état, règlements par état ; un échec efface l'instantané précédent). 5 tests de composants ; 5 mutants tués. Non compilé (D64).
 - **Lot 24 (17 novembre) :** le contrôle transversal de cache (`route-policy.test.ts`) ne connaissait que les sessions client et personnel ; étendu à la session partenaire, il a révélé `POST /v1/partner/handovers` en `no-store` au lieu de `private, no-store` : corrigé (contrat mis à jour).
+
+### D66 · Filtrage contre la liste consolidée de l'ONU (REG-LBC-002, lot 07)
+- **Constat (17 novembre) :** aucun filtrage sanctions/PPE n'existait. La liste consolidée officielle du Conseil de sécurité est publique et accessible (`https://scsanctions.un.org/resources/xml/en/consolidated.xml`, 2,1 Mo, 733 personnes et 274 entités le 2026-11-17).
+- **Option appliquée (tranche 1, réversible) :** module `kyc` et migration 0059 (ajout seul) :
+  - analyseur XML minimal et strict, **sans dépendance ajoutée** : DOCTYPE/entités externes (XXE), CDATA et document mal formé refusés ; validé sur le fichier réel complet ;
+  - import versionné en une transaction : empreinte SHA-256 unique (jamais réimporté), nombre d'entrées vérifié par la base à la validation (liste tronquée refusée), entrées figées ensuite ;
+  - filtrage d'un nom contre la version la plus récente ; sans liste : refus `KYC_LIST_UNAVAILABLE` (jamais « aucun rapprochement » par défaut) ; version, nom normalisé et références figés ; issue dérivée et vérifiée par la base ;
+  - rapprochement **prudent (rappel d'abord)** : mêmes mots dans n'importe quel ordre, accents et ponctuation ignorés, sigles entre parenthèses séparés, inclusion de l'un dans l'autre dès deux mots ; un nom d'un seul mot n'est rapproché qu'à l'identique. Mesure sur la liste réelle : « Quincaillerie du Centre » → 0, « Mohamed Ali » → 7 pistes, « Abdul Rahman » → 12 pistes (homonymes fréquents, à examiner) ;
+  - examen d'un rapprochement par une autre personne que l'auteur du filtrage (base garante), une seule décision motivée (`FALSE_POSITIVE` ou `CONFIRMED_MATCH`).
+  - 17 tests unitaires (extrait réel du fichier officiel, SHA-256 du fichier complet consigné), 9 tests PostgreSQL ; 19 mutants tués.
+- **⚖ À trancher :** règle de rapprochement (tolérance orthographique, translittérations) ; source PPE (aucune liste officielle camerounaise identifiée — fournisseur agréé ?) ; listes nationales (gel des avoirs CEMAC/ANIF) ; fréquence de mise à jour ; effet d'une correspondance confirmée (refus d'entrée en relation, déclaration à l'ANIF — juridique).
+- **Constat bloquant pour les clients :** le nom du client n'est pas enregistré (le niveau 1 de REG-LBC-001 l'exige) ; seul le filtrage des partenaires (raison sociale du dossier) est possible aujourd'hui.
+- **Suite (tranche 2) :** filtrage des partenaires au back-office (Réseau partenaires) et examen par la Conformité, en HTTP ; outil d'import `pnpm sanctions:import <fichier>` pour l'exploitation ; validation d'un partenaire subordonnée à un filtrage `CLEAR` ou `FALSE_POSITIVE` (à décider : restrictif).

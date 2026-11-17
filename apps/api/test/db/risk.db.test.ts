@@ -146,7 +146,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const schema of ['risk', 'settlement', ...AGREEMENT_STACK_SCHEMAS]) {
+  for (const schema of ['kyc', 'risk', 'settlement', ...AGREEMENT_STACK_SCHEMAS]) {
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
   }
   for (const sql of migrationSql) {

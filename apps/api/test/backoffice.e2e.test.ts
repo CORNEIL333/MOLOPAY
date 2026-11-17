@@ -38,7 +38,7 @@ import { startTestDatabase, type TestDatabase } from './db/harness';
  */
 const ROOT = resolve(__dirname, '../../..');
 const DIRECTORY = resolve(ROOT, 'db/migrations');
-const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER = '019aad00-0000-7000-8000-0000000000c1';
 const GOAL = '019aad00-0000-7000-8000-0000000000a1';
 const ADMIN1: AdminPrincipal = { actorId: 'tech-1', roles: ['TECH_ADMIN'] };

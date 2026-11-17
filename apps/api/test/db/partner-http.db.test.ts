@@ -41,7 +41,7 @@ import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCo
  * migrations. Partenaire et vendeur viennent de la session, jamais du corps.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER = '019ab100-0000-7000-8000-0000000000c1';
 const GOAL = '019ab100-0000-7000-8000-0000000000a1';
 const OFFER = '019ab100-0000-7000-8000-0000000000f1';

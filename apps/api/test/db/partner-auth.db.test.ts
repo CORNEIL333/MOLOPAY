@@ -30,7 +30,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  * logiciel conforme à la spécification WebAuthn (vraies clés P-256).
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const RP: RelyingParty = { rpId: 'partenaires.molopay.test', origins: new Set(['https://partenaires.molopay.test']) };
 const ORIGIN = 'https://partenaires.molopay.test';
 const NETWORK: AdminPrincipal = { actorId: 'net-1', roles: ['PARTNER_NETWORK'], partnerIds: ['merchant-1', 'merchant-2', 'landlord-1', 'inconnu-1'] };

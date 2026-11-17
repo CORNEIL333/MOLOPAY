@@ -42,7 +42,7 @@ import { createPartnerStaff } from './partner-fixture';
  * génération du jeu de recette.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER_ID = '019aa200-0000-7000-8000-0000000000c1';
 const PAID_GOAL = '019aa200-0000-7000-8000-0000000000a1';
 const REFUNDED_GOAL = '019aa200-0000-7000-8000-0000000000a2';
