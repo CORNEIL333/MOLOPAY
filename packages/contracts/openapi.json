@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.19.0",
+    "version": "0.20.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4278,6 +4278,44 @@
             "$ref": "#/components/responses/Unavailable"
           }
         }
+      },
+      "get": {
+        "operationId": "getPartnerSession",
+        "summary": "Session partenaire courante (D63)",
+        "tags": [
+          "Partenaire"
+        ],
+        "security": [
+          {
+            "partnerCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Partenaire et rôle de la session",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerCurrentSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
       }
     },
     "/v1/partner/credentials": {
@@ -7767,6 +7805,31 @@
           }
         },
         "additionalProperties": false
+      },
+      "PartnerCurrentSession": {
+        "type": "object",
+        "required": [
+          "partnerId",
+          "login",
+          "role"
+        ],
+        "properties": {
+          "partnerId": {
+            "type": "string"
+          },
+          "login": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "MANAGER",
+              "SELLER"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "D63 : relu en base à chaque requête ; sert l'orientation du portail, chaque route revérifie le rôle."
       }
     },
     "responses": {

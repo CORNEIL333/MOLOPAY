@@ -1267,7 +1267,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Session partenaire courante (D63) */
+        get: operations["getPartnerSession"];
         put?: never;
         post?: never;
         /** Déconnexion du partenaire (révocation immédiate) */
@@ -2180,6 +2181,13 @@ export interface components {
             payouts: components["schemas"]["PartnerPayout"][];
             /** Format: date-time */
             asOf: string;
+        };
+        /** @description D63 : relu en base à chaque requête ; sert l'orientation du portail, chaque route revérifie le rôle. */
+        PartnerCurrentSession: {
+            partnerId: string;
+            login: string;
+            /** @enum {string} */
+            role: "MANAGER" | "SELLER";
         };
     };
     responses: {
@@ -4566,6 +4574,29 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    getPartnerSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Partenaire et rôle de la session */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCurrentSession"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             503: components["responses"]["Unavailable"];
         };
     };

@@ -198,6 +198,15 @@ describe('SEC-AUTH-006 connexion du portail partenaire', () => {
     expect(replay.headers['set-cookie']).toBeUndefined();
   });
 
+  it('session courante : partenaire et rôle relus en base ; sans session 401', async () => {
+    const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
+    const current = await request(server()).get('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie);
+    expect(current.status).toBe(200);
+    expect(current.headers['cache-control']).toBe('private, no-store');
+    expect(current.body).toEqual({ partnerId: 'merchant-1', login: 'awa.gerant', role: 'MANAGER' });
+    expect((await request(server()).get('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN)).status).toBe(401);
+  });
+
   it('identifiant inconnu et mauvaise clé : même refus 401 PARTNER_AUTH_INVALID', async () => {
     const unknown = await login('inconnu.vendeur', staff.sellerKey, 1);
     expect(unknown.status).toBe(401);

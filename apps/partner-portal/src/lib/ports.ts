@@ -2,6 +2,8 @@ import { createApiClient } from '@achat/contracts/client';
 import type { CounterHandoverPorts } from '../components/counter-handover';
 import type { PartnerEnrollmentPorts } from '../components/partner-enrollment';
 import type { PartnerLoginPorts } from '../components/partner-login';
+import type { BoardPorts } from '../components/partner-boards';
+import type { SellersPorts } from '../components/sellers-panel';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie `partner_session` httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -113,3 +115,47 @@ export const browserCounterPorts: CounterHandoverPorts = {
       : { ok: true, agreementId: result.data.agreementId, validatedAt: result.data.validatedAt };
   },
 };
+
+/** F-PRT-004 : lectures réelles du portail (le serveur filtre par partenaire et par rôle). */
+export const browserBoardPorts: BoardPorts = {
+  async loadOrders() {
+    const result = await api().GET('/v1/partner/orders', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, rows: result.data.orders };
+  },
+  async loadPayouts() {
+    const result = await api().GET('/v1/partner/payouts', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, rows: result.data.payouts };
+  },
+};
+
+function idempotent(): { readonly header: { readonly 'Idempotency-Key': string } } {
+  return { header: { 'Idempotency-Key': crypto.randomUUID() } };
+}
+
+/** F-PRT-003 : gestion des vendeurs par les routes réelles ; le jeton d'enrôlement n'est jamais conservé ici. */
+export const browserSellersPorts: SellersPorts = {
+  async load() {
+    const result = await api().GET('/v1/partner/users', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, users: result.data.users };
+  },
+  async create(login) {
+    const result = await api().POST('/v1/partner/sellers', { params: idempotent(), body: { login }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, sellerId: result.data.sellerId };
+  },
+  async issueEnrollment(sellerId) {
+    const result = await api().POST('/v1/partner/sellers/{sellerId}/enrollments', { params: { path: { sellerId }, ...idempotent() }, body: {}, cache: 'no-store' });
+    return result.data === undefined
+      ? { ok: false, problem: problemOf(result.error, result.response.status) }
+      : { ok: true, challengeId: result.data.challengeId, challenge: result.data.challenge, ...(result.data.enrollmentToken === undefined ? {} : { enrollmentToken: result.data.enrollmentToken }) };
+  },
+  async disable(sellerId, reason) {
+    const result = await api().POST('/v1/partner/sellers/{sellerId}/disable', { params: { path: { sellerId }, ...idempotent() }, body: { reason }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+};
+
+/** Rôle de la session courante (route réelle) ; null si la session est absente ou expirée. */
+export async function loadPartnerRole(): Promise<'MANAGER' | 'SELLER' | null> {
+  const result = await api().GET('/v1/partner/sessions/current', { cache: 'no-store' });
+  return result.data === undefined ? null : result.data.role;
+}

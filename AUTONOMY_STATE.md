@@ -40,7 +40,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | canal partenaire : portail en lecture disponible ; envoi actif (courriel/SMS) à décider |
 | BLOCKED | F-PRT-002 écriture du catalogue par le partenaire | décision du fondateur (D63) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut ; portail web : connexion, enrôlement, comptoir) ; suite : écrans de gestion du portail |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut ; portail web : connexion, enrôlement, comptoir, commandes, règlements, vendeurs ; contrat 0.20.0) ; suite : écran des offres, navigation |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
@@ -67,4 +67,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Lot 20, tranche 8b (D63) : écrans de gestion du portail partenaire — `/commandes` (liste + lien d'export CSV gérant), `/reglements` (gérant), `/vendeurs` (gérant : liste, création, émission du code d'enrôlement `défi.challenge.jeton` affiché une seule fois, désactivation motivée), `/offres` ; orientation après connexion selon le rôle (vendeur → `/comptoir`, gérant → `/commandes`). Tests de composants d'abord, mutations. Build bloqué par D64.
+Lot 20, tranche 8c (D63) : écran `/offres` (lecture, stock disponible, visibilité publique) et barre de navigation du portail selon le rôle (liens Comptoir, Commandes, Offres ; Règlements et Vendeurs pour le gérant ; déconnexion `DELETE /v1/partner/sessions/current`). Tests de composants d'abord. Ensuite, si D64 reste bloqué : revenir aux points ouverts réversibles (ex. création du gérant au back-office une fois le périmètre partenaire du personnel décidé — sinon consigner et passer à un autre lot).

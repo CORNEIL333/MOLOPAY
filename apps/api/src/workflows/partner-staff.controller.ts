@@ -82,6 +82,13 @@ export class PartnerStaffController {
     });
   }
 
+  /** D63 : session courante (partenaire, identifiant, rôle) relue en base ; sert l'orientation du portail. */
+  @Get('sessions/current')
+  @Header('Cache-Control', 'private, no-store')
+  public current(@CurrentPartner() partner: PartnerPrincipal): unknown {
+    return { partnerId: partner.partnerId, login: partner.login, role: partner.role };
+  }
+
   /** F-PRT-002 : offres du seul partenaire, en lecture (gérant et vendeur). */
   @Get('offers')
   @Header('Cache-Control', 'private, no-store')
