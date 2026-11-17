@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactElement, ReactNode } from 'react';
 import '@achat/ui/styles.css';
+import { SessionNav } from './session-nav';
 
 export const metadata: Metadata = {
   title: { default: 'Portail partenaire MoloPay', template: '%s · Portail partenaire MoloPay' },
@@ -11,6 +12,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
   return (
     <html lang="fr">
       <body>
+        <SessionNav />
         <main>{children}</main>
       </body>
     </html>

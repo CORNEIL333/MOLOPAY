@@ -4,6 +4,7 @@ import type { PartnerEnrollmentPorts } from '../components/partner-enrollment';
 import type { PartnerLoginPorts } from '../components/partner-login';
 import type { BoardPorts } from '../components/partner-boards';
 import type { SellersPorts } from '../components/sellers-panel';
+import type { OffersPorts } from '../components/offers-board';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie `partner_session` httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -158,4 +159,17 @@ export const browserSellersPorts: SellersPorts = {
 export async function loadPartnerRole(): Promise<'MANAGER' | 'SELLER' | null> {
   const result = await api().GET('/v1/partner/sessions/current', { cache: 'no-store' });
   return result.data === undefined ? null : result.data.role;
+}
+
+/** F-PRT-002 : offres du partenaire (lecture). */
+export const browserOffersPorts: OffersPorts = {
+  async load() {
+    const result = await api().GET('/v1/partner/offers', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, rows: result.data.offers };
+  },
+};
+
+/** Déconnexion : révocation immédiate de la session côté serveur. */
+export async function signOutPartner(): Promise<void> {
+  await api().DELETE('/v1/partner/sessions/current', { params: idempotent(), cache: 'no-store' });
 }

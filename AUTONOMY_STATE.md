@@ -40,7 +40,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Reçu de règlement C consultable par le client (D58) | contrat 0.5.0 |
 | BLOCKED | Reçu et notifications aux partenaires/bénéficiaires | canal partenaire : portail en lecture disponible ; envoi actif (courriel/SMS) à décider |
 | BLOCKED | F-PRT-002 écriture du catalogue par le partenaire | décision du fondateur (D63) |
-| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut ; portail web : connexion, enrôlement, comptoir, commandes, règlements, vendeurs ; contrat 0.20.0) ; suite : écran des offres, navigation |
+| IN_PROGRESS | Lot 20 : comptes partenaires WebAuthn (D63) | tranches 1–5 faites (0057, 0058, connexion WebAuthn, remise au comptoir, gestion des vendeurs, commandes, règlements au gérant, export CSV, offres en lecture, contrat 0.19.0, fermé par défaut ; portail web : connexion, enrôlement, comptoir, commandes, règlements, vendeurs, offres, navigation ; contrat 0.20.0) ; reste : création du gérant au back-office (décision périmètre), build (D64) |
 | DONE | Client web : parcours bénéficiaire C (pièce, PIN, reçu) | 6 tests composants, build OK |
 | DONE | Test de la chaîne complète des migrations 0001→0053 | I-2 vérifié sur tous les schémas en ajout seul |
 | DONE | Export du grand livre + vérificateur Rust sur flux réels (D59) | altération détectée |
