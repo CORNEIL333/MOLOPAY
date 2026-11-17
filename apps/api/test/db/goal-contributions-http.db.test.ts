@@ -194,3 +194,25 @@ describe('F-SUP-001 réclamation du client sur son objectif (D70)', () => {
     await expect(admin.query(`INSERT INTO disputes.complaint_detail (complaint_id, reason, details, recorded_at) VALUES ($1, 'OTHER', E'texte\\u0007 caché ici', now())`, [other])).rejects.toMatchObject({ code: '23514' });
   });
 });
+
+describe('SEC-API-003 quotas des routes client du 17 novembre (D72)', () => {
+  it('réclamations : 5 par 24 h et par compte, puis 429 avec Retry-After ; nom légal : 3 par 24 h', async () => {
+    const cookie = await session(CUSTOMER);
+    for (let index = 0; index < 5; index += 1) {
+      const ok = await request(server()).post(`/v1/goals/${GOAL}/claims`).set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', `cl-${uuidv7()}`)
+        .send({ reason: 'OTHER', details: `Réclamation numéro ${index.toString()} détaillée.` });
+      expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+    }
+    const limited = await request(server()).post(`/v1/goals/${GOAL}/claims`).set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', `cl-${uuidv7()}`)
+      .send({ reason: 'OTHER', details: 'Réclamation de trop, refusée.' });
+    expect(limited.status).toBe(429);
+    expect((limited.body as { code: string }).code).toBe('REQUEST_RATE_LIMITED');
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
+    for (let index = 0; index < 3; index += 1) {
+      const response = await request(server()).post('/v1/me/legal-name').set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', `ln-${uuidv7()}`).send({ legalName: 'Aïcha Ngono' });
+      expect(response.status).not.toBe(429);
+    }
+    const nameLimited = await request(server()).post('/v1/me/legal-name').set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', `ln-${uuidv7()}`).send({ legalName: 'Aïcha Ngono' });
+    expect(nameLimited.status).toBe(429);
+  });
+});

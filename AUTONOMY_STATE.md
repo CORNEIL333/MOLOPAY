@@ -56,6 +56,8 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Lot 07 : PPE, listes nationales, niveaux 2–3 (pièce + vivacité : prestataire) | source PPE et listes CEMAC à décider (D66) ; prestataire de vivacité (zéro simulation) |
 | DONE | Historique des versements d'un objectif (F-PAY-006, D69) | contrat 0.24.0 |
 | DONE | Réclamation client `POST /v1/goals/{goalId}/claims` (F-SUP-001, D70) | 0061, contrat 0.25.0, écran sur la page d'objectif |
+| DONE | Quotas nom légal et réclamations (D72) | 0062, contrat 0.26.0 |
+| BLOCKED | Connexion client par PIN et appareil (D71) | contrat contraire à SEC-AUTH-001 ; enrôlement d'appareil bloqué par le SMS |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -73,4 +75,4 @@ Voir `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, 
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Connexion client par PIN et appareil `POST /v1/auth/sessions` (D69) : lire le contrat, `identity/pin.store.ts`, `auth.store.ts`, D15/D16 (compteurs PIN sous verrou), puis consigner un plan (D71) avant d'implémenter — L3, tests d'attaque (rejeu, PIN erroné, appareil révoqué, verrouillage progressif).
+Réanalyser le backlog : la plupart des lots restants attendent une décision ou un accès externe (fiche des points ouverts, D62–D72). Candidats réversibles : (1) notifier le client à l'ouverture d'une réclamation (accusé dans l'outbox, gabarit FR/EN existant ou à ajouter — F-NOT-001, D47) ; (2) back-office : consulter le détail d'une réclamation (motif, description) avec motif de consultation journalisé (F-BO-004).

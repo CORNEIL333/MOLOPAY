@@ -1,5 +1,6 @@
 import { Body, Controller, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { BusinessError } from '@achat/contracts';
+import { CustomerQuota } from '../http/customer-quota';
 import { PG_POOL, type Database } from '../http/database';
 import type { HttpRequest } from '../http/express-types';
 import { assertIdempotencyKey, runIdempotent } from '../http/idempotency';
@@ -35,6 +36,7 @@ export class GoalClaimsController {
   public constructor(@Inject(PG_POOL) private readonly database: Database) {}
 
   @Post()
+  @CustomerQuota('CLAIM_SUBMIT')
   @HttpCode(201)
   @Header('Cache-Control', 'private, no-store')
   public async create(@CurrentCustomer() actor: AuthenticatedCustomer, @Param('goalId') goalId: string, @Req() request: HttpRequest, @Body() body: unknown): Promise<unknown> {

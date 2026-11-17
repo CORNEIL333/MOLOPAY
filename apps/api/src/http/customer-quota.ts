@@ -30,6 +30,9 @@ export const CUSTOMER_QUOTA_ACTIONS = [
   // D61 : création d'objectif ; activation, annulation et verrou (budget commun).
   'GOAL_CREATE',
   'GOAL_SIGNED_ACTION',
+  // D72 : déclaration du nom légal (D68) et réclamations (D70).
+  'LEGAL_NAME_DECLARE',
+  'CLAIM_SUBMIT',
 ] as const;
 export type CustomerQuotaAction = (typeof CUSTOMER_QUOTA_ACTIONS)[number];
 
