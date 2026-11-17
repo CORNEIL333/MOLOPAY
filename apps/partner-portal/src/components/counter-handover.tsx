@@ -30,7 +30,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
-  const [done, setDone] = useState<{ readonly agreementId: string } | null>(null);
+  const [done, setDone] = useState<{ readonly agreementId: string; readonly validatedAt: string } | null>(null);
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -60,7 +60,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
       }
       const result = await ports.confirm({ code: `${compact.slice(0, 5)}-${compact.slice(5)}`, ...position });
       if (result.ok) {
-        setDone({ agreementId: result.agreementId });
+        setDone({ agreementId: result.agreementId, validatedAt: result.validatedAt });
         setCode('');
       } else {
         setProblem(result.problem);
@@ -75,7 +75,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
   return (
     <section>
       <h1>Remise au comptoir</h1>
-      {done === null ? null : <p role="status">Remise confirmée pour la commande {done.agreementId}. Vous pouvez remettre l’article.</p>}
+      {done === null ? null : <p role="status">Remise confirmée pour la commande {done.agreementId} à <time dateTime={done.validatedAt}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(done.validatedAt))}</time>. Vous pouvez remettre l’article.</p>}
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={codeId} label="Code de remise du client" autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value); }} />

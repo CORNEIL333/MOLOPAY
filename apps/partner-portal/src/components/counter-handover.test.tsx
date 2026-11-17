@@ -23,6 +23,7 @@ describe('F-SET-001 / D63 remise au comptoir', () => {
     await user.click(screen.getByRole('button', { name: 'Confirmer la remise' }));
     await waitFor(() => { expect(screen.getByRole('status')).toHaveTextContent('Remise confirmée'); });
     expect(screen.getByRole('status')).toHaveTextContent(AGREEMENT);
+    expect(screen.getByRole('status').querySelector('time')).toHaveAttribute('dateTime', '2026-11-17T10:00:00.000Z');
     expect(injected.confirm).toHaveBeenCalledWith({ code: 'ABCDE-12345', latitude: '4.051056', longitude: '9.767869' });
     expect(screen.getByLabelText('Code de remise du client')).toHaveValue('');
   });
