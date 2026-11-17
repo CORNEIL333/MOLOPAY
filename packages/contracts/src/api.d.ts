@@ -1465,6 +1465,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/complaints/{complaintId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d’une réclamation, consultation motivée (F-SUP-001, F-BO-004, D73) */
+        get: operations["getComplaintDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2338,6 +2355,23 @@ export interface components {
             kycLevel: "NONE" | "BASIC" | "STRONG";
             /** @enum {string} */
             verification: "COMPLETED" | "IN_PROGRESS";
+        };
+        /** @description F-SUP-001 / D73 : consultation motivée et journalisée ; l'identifiant du client n'est pas renvoyé. */
+        ComplaintDetail: {
+            /** Format: uuid */
+            complaintId: string;
+            reference: string;
+            /** Format: uuid */
+            agreementId: string | null;
+            /** @enum {string} */
+            channel: "APP" | "USSD_CALLBACK" | "PHONE";
+            /** Format: date-time */
+            receivedAt: string;
+            /** @enum {string|null} */
+            reason: "PAYMENT_NOT_RECEIVED" | "HANDOVER_REFUSED" | "OFFER_MISMATCH" | "OTHER" | null;
+            details: string | null;
+            closed: boolean;
+            openDispute: boolean;
         };
     };
     responses: {
@@ -5110,6 +5144,35 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    getComplaintDetail: {
+        parameters: {
+            query: {
+                reason: string;
+            };
+            header?: never;
+            path: {
+                complaintId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historique */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
         };
     };
 }

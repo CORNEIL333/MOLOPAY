@@ -295,3 +295,38 @@ export async function recordComplaintDetail(
     [input.complaintId, input.reason, details],
   );
 }
+
+/** F-SUP-001 / D73 : réclamation telle que consultée par le support (détail du client compris). */
+export type ComplaintForStaff = {
+  readonly complaintId: string;
+  readonly reference: string;
+  readonly customerId: string;
+  readonly agreementId: string | null;
+  readonly channel: string;
+  readonly receivedAt: string;
+  readonly reason: string | null;
+  readonly details: string | null;
+  readonly closed: boolean;
+  readonly openDispute: boolean;
+};
+
+export async function getComplaintForStaff(client: SqlClient, complaintId: string): Promise<ComplaintForStaff | null> {
+  assertUuid(complaintId, 'réclamation');
+  const row = (await client.query<{
+    id: string; reference: string; customer_id: string; agreement_id: string | null; channel: string; received_at: Date;
+    reason: string | null; details: string | null; closed: boolean; open_dispute: boolean;
+  }>(
+    `SELECT c.id, c.reference, c.customer_id, c.agreement_id, c.channel, c.received_at, d.reason, d.details,
+            EXISTS (SELECT 1 FROM disputes.complaint_closure k WHERE k.complaint_id = c.id) AS closed,
+            EXISTS (SELECT 1 FROM disputes.dispute x WHERE x.complaint_id = c.id
+                      AND NOT EXISTS (SELECT 1 FROM disputes.dispute_resolution r WHERE r.dispute_id = x.id)) AS open_dispute
+       FROM disputes.complaint c LEFT JOIN disputes.complaint_detail d ON d.complaint_id = c.id
+      WHERE c.id = $1`,
+    [complaintId],
+  )).rows[0];
+  if (row === undefined) return null;
+  return Object.freeze({
+    complaintId: row.id, reference: row.reference, customerId: row.customer_id, agreementId: row.agreement_id, channel: row.channel,
+    receivedAt: row.received_at.toISOString(), reason: row.reason, details: row.details, closed: row.closed, openDispute: row.open_dispute,
+  });
+}

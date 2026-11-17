@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
 import { appendAuditEvent } from '../modules/audit/audit.store';
 import { getAgreement, listAgreementEvents, type AgreementHistoryItem } from '../modules/agreements/agreement.store';
-import { listDisputeHistory, type DisputeHistoryItem } from '../modules/disputes/dispute.store';
+import { getComplaintForStaff, listDisputeHistory, type ComplaintForStaff, type DisputeHistoryItem } from '../modules/disputes/dispute.store';
 import { listPaymentHistory, type PaymentHistoryItem } from '../modules/payments/attempt.store';
 
 type SqlClient = Pick<PoolClient, 'query'>;
@@ -64,4 +64,34 @@ export async function getAgreementHistoryForStaff(
     refs: { client_id: customerId },
   });
   return getAgreementHistory(client, { agreementId: input.agreementId, customerId });
+}
+
+/**
+ * F-SUP-001 / F-BO-004 (D73) : détail d'une réclamation pour le support ;
+ * consultation motivée, inscrite à l'audit avec l'identifiant du client.
+ * L'identifiant du client n'est pas renvoyé (il figure à l'audit seulement).
+ */
+export async function getComplaintDetailForStaff(
+  client: SqlClient,
+  input: { readonly complaintId: string; readonly principal: AdminPrincipal; readonly reason: string },
+): Promise<Omit<ComplaintForStaff, 'customerId'>> {
+  assertAuthorized(input.principal, 'READ_FINANCIAL_HISTORY', { reason: input.reason });
+  const complaint = await getComplaintForStaff(client, input.complaintId);
+  if (complaint === null) {
+    throw new BusinessError('COMPLAINT_NOT_FOUND', 'Réclamation introuvable');
+  }
+  await appendAuditEvent(client, {
+    eventType: 'FINANCIAL_HISTORY_READ',
+    actorId: input.principal.actorId,
+    action: 'READ_FINANCIAL_HISTORY',
+    targetType: 'COMPLAINT',
+    targetId: input.complaintId,
+    outcome: 'SUCCESS',
+    reason: input.reason,
+    refs: { client_id: complaint.customerId },
+  });
+  return Object.freeze({
+    complaintId: complaint.complaintId, reference: complaint.reference, agreementId: complaint.agreementId, channel: complaint.channel,
+    receivedAt: complaint.receivedAt, reason: complaint.reason, details: complaint.details, closed: complaint.closed, openDispute: complaint.openDispute,
+  });
 }

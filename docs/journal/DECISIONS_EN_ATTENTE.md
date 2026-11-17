@@ -514,3 +514,6 @@
 ### D72 · Quotas de la déclaration du nom légal et des réclamations (SEC-API-003)
 - **Décision (17 novembre, méthode déléguée de D60/D61) :** `LEGAL_NAME_DECLARE` 3 par 24 h, `CLAIM_SUBMIT` 5 par 24 h, par compte et par appareil ; au-delà 429 `REQUEST_RATE_LIMITED` avec `Retry-After`, sans compteur ni plafond révélés. Migration 0062 (fonction reprise de 0055, diff vérifié : seule la liste des actions change), décorateurs sur les deux routes, contrat 0.26.0. Retrait de chaque décorateur : test rouge.
 - **⚖ À valider** par le fondateur avec les autres valeurs D38/D60/D61.
+
+### D73 · Détail d'une réclamation au back-office (F-SUP-001, F-BO-004)
+- **Appliqué :** `GET /v1/backoffice/complaints/{complaintId}?reason=…` : même règle d'accès que l'historique d'un objectif (`READ_FINANCIAL_HISTORY`, motif obligatoire), consultation inscrite à l'audit chaîné avec l'identifiant du client (jamais renvoyé dans la réponse) ; référence, canal, objectif, réception, motif et description du client (nuls pour une réclamation téléphonique sans détail), réclamation close, litige ouvert. Contrat 0.27.0. 2 tests HTTP ; 5 mutants tués.

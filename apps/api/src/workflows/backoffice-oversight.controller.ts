@@ -15,7 +15,7 @@ import {
   proposeGapClassification,
   proposeSuspenseLineJustification,
 } from './reconciliation-classification';
-import { getAgreementHistoryForStaff } from './agreement-history';
+import { getAgreementHistoryForStaff, getComplaintDetailForStaff } from './agreement-history';
 import { readBackofficeQueue } from './backoffice-queue';
 import { readBackofficeDashboard } from './backoffice-dashboard';
 import { decideRiskAlert } from './risk-detection';
@@ -54,6 +54,15 @@ export class BackofficeOversightController {
   public dashboard(@CurrentStaff() staff: AdminPrincipal, @Query() query: unknown): Promise<unknown> {
     const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
     return withTransaction({ ...this.database, role: 'app_rw' }, (client) => readBackofficeDashboard(client, staff, reason));
+  }
+
+  /** F-SUP-001 / F-BO-004 (D73) : détail d'une réclamation (consultation motivée, journalisée). */
+  @Get('complaints/:complaintId')
+  @Header('Cache-Control', 'private, no-store')
+  public complaint(@CurrentStaff() staff: AdminPrincipal, @Param('complaintId') complaintId: string, @Query() query: unknown): Promise<unknown> {
+    const id = requiredText(complaintId, UUID_PATTERN);
+    const reason = requiredText(whitelistedBody(query, ['reason'])['reason'], /^[\p{L}\p{N}\p{P}\p{Zs}]{3,500}$/u);
+    return withTransaction({ ...this.database, role: 'app_rw' }, (client) => getComplaintDetailForStaff(client, { complaintId: id, principal: staff, reason }));
   }
 
   /** F-SUP-003 / D62 : historique d'un objectif pour le support (consultation motivée, journalisée). */

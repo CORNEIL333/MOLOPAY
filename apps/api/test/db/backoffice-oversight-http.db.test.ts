@@ -269,3 +269,37 @@ describe('F-BO-003 tableau de bord du back-office (D65)', () => {
     expect(audit.rows).toEqual([{ actor_id: 'ops.un', reason: 'pilotage hebdomadaire' }]);
   });
 });
+
+describe('F-SUP-001 / F-BO-004 détail d’une réclamation au back-office (D73)', () => {
+  it('motif obligatoire ; détail rendu au support N2 ; consultation journalisée avec le client ; N1 refusé ; inconnue 404', async () => {
+    const complaint = await withTransaction(database, (client) => recordComplaint(client, { id: uuidv7(), customerId: CUSTOMER, agreementId: GOAL, channel: 'APP' }));
+    await admin.query(`INSERT INTO disputes.complaint_detail (complaint_id, reason, details, recorded_at) VALUES ($1, 'PAYMENT_NOT_RECEIVED', 'Mon versement du 3 novembre n’apparaît pas.', now())`, [complaint.id]);
+    const path = `/v1/backoffice/complaints/${complaint.id}`;
+    expect((await request(server()).get(path).set('Cookie', cookies.support)).status).toBe(400);
+    expect((await request(server()).get(path).query({ reason: 'appel du client' }).set('Cookie', cookies.supportN1)).status).toBe(403);
+    const response = await request(server()).get(path).query({ reason: 'appel du client' }).set('Cookie', cookies.support);
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(response.body).toMatchObject({
+      complaintId: complaint.id,
+      reference: complaint.reference,
+      agreementId: GOAL,
+      channel: 'APP',
+      reason: 'PAYMENT_NOT_RECEIVED',
+      details: 'Mon versement du 3 novembre n’apparaît pas.',
+      closed: false,
+      openDispute: false,
+    });
+    expect(JSON.stringify(response.body)).not.toContain(CUSTOMER);
+    const audit = await admin.query(`SELECT actor_id, reason, refs ->> 'client_id' AS client FROM audit.event WHERE target_type = 'COMPLAINT' AND target_id = $1`, [complaint.id]);
+    expect(audit.rows).toEqual([{ actor_id: 'sup.deux', reason: 'appel du client', client: CUSTOMER }]);
+    expect((await request(server()).get(`/v1/backoffice/complaints/${uuidv7()}`).query({ reason: 'appel' }).set('Cookie', cookies.support)).status).toBe(404);
+  });
+
+  it('réclamation sans détail (téléphone) : détail nul ; réclamation close signalée', async () => {
+    const complaint = await withTransaction(database, (client) => recordComplaint(client, { id: uuidv7(), customerId: CUSTOMER, agreementId: null, channel: 'PHONE' }));
+    expect((await post(`/v1/backoffice/complaints/${complaint.id}/closure`, cookies.support, { outcome: 'ANSWERED' })).status).toBe(200);
+    const response = await request(server()).get(`/v1/backoffice/complaints/${complaint.id}`).query({ reason: 'suivi qualité' }).set('Cookie', cookies.support);
+    expect(response.body).toMatchObject({ channel: 'PHONE', agreementId: null, reason: null, details: null, closed: true });
+  });
+});

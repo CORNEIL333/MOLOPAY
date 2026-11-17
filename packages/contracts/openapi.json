@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5016,6 +5016,68 @@
           }
         }
       }
+    },
+    "/v1/backoffice/complaints/{complaintId}": {
+      "get": {
+        "operationId": "getComplaintDetail",
+        "summary": "Détail d’une réclamation, consultation motivée (F-SUP-001, F-BO-004, D73)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          },
+          {
+            "name": "complaintId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplaintDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8446,6 +8508,75 @@
               "COMPLETED",
               "IN_PROGRESS"
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ComplaintDetail": {
+        "type": "object",
+        "required": [
+          "complaintId",
+          "reference",
+          "agreementId",
+          "channel",
+          "receivedAt",
+          "reason",
+          "details",
+          "closed",
+          "openDispute"
+        ],
+        "description": "F-SUP-001 / D73 : consultation motivée et journalisée ; l'identifiant du client n'est pas renvoyé.",
+        "properties": {
+          "complaintId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "agreementId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "APP",
+              "USSD_CALLBACK",
+              "PHONE"
+            ]
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "PAYMENT_NOT_RECEIVED",
+              "HANDOVER_REFUSED",
+              "OFFER_MISMATCH",
+              "OTHER",
+              null
+            ]
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "openDispute": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
