@@ -1023,7 +1023,7 @@
               "Cache-Control": {
                 "schema": {
                   "type": "string",
-                  "const": "no-store"
+                  "const": "private, no-store"
                 }
               }
             }

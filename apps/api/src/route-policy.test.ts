@@ -3,6 +3,7 @@ import { GUARDS_METADATA, HEADERS_METADATA, METHOD_METADATA, PATH_METADATA } fro
 import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { CustomerSessionGuard } from './http/session.guard';
+import { PartnerSessionGuard } from './http/partner-session.guard';
 import { StaffSessionGuard } from './http/staff-session.guard';
 
 /**
@@ -28,7 +29,7 @@ function routes(): Route[] {
       const headers = (Reflect.getMetadata(HEADERS_METADATA, handler) ?? []) as { name: string; value: string }[];
       found.push({
         name: `${controller.name}.${key}`,
-        authenticated: [...classGuards, ...methodGuards].some((guard) => guard === CustomerSessionGuard || guard === StaffSessionGuard),
+        authenticated: [...classGuards, ...methodGuards].some((guard) => guard === CustomerSessionGuard || guard === StaffSessionGuard || guard === PartnerSessionGuard),
         cacheControl: headers.find((header) => header.name.toLowerCase() === 'cache-control')?.value,
         method: Reflect.getMetadata(METHOD_METADATA, handler) as number,
       });
@@ -40,6 +41,13 @@ function routes(): Route[] {
 describe('Lot 24 / SEC-API politique de cache des routes', () => {
   it('l’application déclare des routes authentifiées (le test porte sur quelque chose)', () => {
     expect(routes().filter((route) => route.authenticated).length).toBeGreaterThan(10);
+  });
+
+  it('les trois espaces de session sont couverts (client, personnel, partenaire)', () => {
+    const names = routes().filter((route) => route.authenticated).map((route) => route.name);
+    expect(names.some((name) => name.startsWith('Partner'))).toBe(true);
+    expect(names.some((name) => name.startsWith('Backoffice'))).toBe(true);
+    expect(names.some((name) => name.startsWith('Goals'))).toBe(true);
   });
 
   it('toute route authentifiée répond « Cache-Control: private, no-store »', () => {

@@ -2917,7 +2917,7 @@ export interface operations {
             /** @description Remise validée */
             201: {
                 headers: {
-                    "Cache-Control"?: "no-store";
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {

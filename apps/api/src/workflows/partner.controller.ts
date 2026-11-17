@@ -174,7 +174,7 @@ export class PartnerHandoverController {
 
   @Post()
   @HttpCode(201)
-  @Header('Cache-Control', 'no-store')
+  @Header('Cache-Control', 'private, no-store')
   public async confirm(@CurrentPartner() partner: PartnerPrincipal, @Req() request: HttpRequest, @Body() body: unknown): Promise<unknown> {
     const pepper = this.pepper;
     if (pepper === null) {
