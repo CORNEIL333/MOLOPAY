@@ -46,6 +46,13 @@
 | D70 | Délai de réponse aux réclamations à publier : **15 j cible / 45 j max** ? **Valider / Modifier** | Non affiché. |
 | D71 | Connexion client : **PIN + appareil à clé** (SEC-AUTH-001) au lieu du brouillon « téléphone + PIN » ? **Oui** (recommandé) **/ Non** | Non implémentée (inscription par SMS bloquée). |
 
-## F. Accès externes toujours attendus
+## F. Outillage (18 novembre)
+
+| # | Question | Option appliquée |
+|---|---|---|
+| D75 | Délai cible d'examen d'un rapprochement sanctions et escalade (comme les 48 h des écarts) ? | Aucun délai ; rapprochements listés dans la file. |
+| D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
+
+## G. Accès externes toujours attendus
 
 Prestataire SMS et agrégateur de paiement (identifiants d'environnement de test), établissement de cantonnement (instructions, relevés), financeur B, témoins d'ancrage, prestataire de vérification de pièce et de vivacité (KYC niveaux 2–3).

@@ -537,3 +537,8 @@
 - **⚖ À décider :** délai d'examen cible et escalade (sur le modèle des 48 h des écarts, D54) ; information du client en cas d'attente prolongée (sans alerte, LBC/FT).
 - **Mise à jour D75 (écran) :** `/conformite` permet d'ouvrir un filtrage existant par son identifiant (celui de la file), sur motif de consultation : détail (D74) puis examen ; un filtrage déjà examiné n'offre plus de formulaire d'examen. 3 tests de composants ; 4 mutants tués. Non compilé (D64).
 - **Mise à jour D75 (navigation) :** la file de travail renvoie directement vers `/conformite?filtrage=…` (rapprochement à examiner) et `/reclamations?reclamation=…` (réclamation en retard) ; l'identifiant n'est prérempli que s'il est un UUID valide ; le motif de consultation reste exigé à l'ouverture. 3 tests de composants.
+
+### D76 · Mesure de couverture NF-MNT-002 non outillée
+- **Constat (18 novembre) :** NF-MNT-002 exige ≥ 90 % des lignes et 100 % des transitions sur `ledger`, `payments`, `settlement` (≥ 75 % ailleurs) ; aucun outil de mesure n'est installé, la couverture n'a donc jamais été mesurée (critère de « terminé », AGENTS § 10). Les tests de mutation manuels (scripts de l'agent) compensent en partie, sans chiffre global.
+- **Option appliquée :** aucune dépendance ajoutée sans revue (AGENTS § 8).
+- **⚖ À décider :** ajouter `@vitest/coverage-v8` épinglé à la version de Vitest déjà utilisée (même éditeur), avec seuils NF-MNT-002 dans la CI ; et Stryker (prévu par ADR-0001) pour le score de mutation du grand livre.
