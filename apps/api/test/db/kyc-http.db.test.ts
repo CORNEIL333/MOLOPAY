@@ -182,3 +182,22 @@ describe('REG-LBC-002 / F-BO-004 consultation d’un filtrage par la Conformité
     expect(audit.rows).toEqual([{ client: customer }]);
   });
 });
+
+describe('F-BO-003 / D75 rapprochements en attente d’examen dans la file de travail', () => {
+  it('un rapprochement non examiné apparaît (sans nom) ; il disparaît après examen ; un filtrage sans rapprochement n’apparaît pas', async () => {
+    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    const customer = '019aba00-0000-7000-8000-0000000000c1';
+    await seedCustomerAccount(admin, customer, 'NONE');
+    const match = await withTransaction(database, (client) => declareLegalNameAndScreen(client, { accountId: customer, legalName: 'Eric Badege' }));
+    await dossier('merchant-9', 'Quincaillerie du Centre');
+    await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    const queue = (): request.Test => request(server()).get('/v1/backoffice/queue').query({ reason: 'revue quotidienne' }).set('Cookie', cookies.compliance);
+    const first = await queue();
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    const pending = (first.body as { pendingSanctionsReviews: Record<string, unknown>[] }).pendingSanctionsReviews;
+    expect(pending).toEqual([{ screeningId: match.screeningId, subjectType: 'CUSTOMER', screenedAt: expect.any(String) as unknown }]);
+    expect(JSON.stringify(first.body)).not.toMatch(/BADEGE|Badege|CDi\.001/);
+    await post(`/v1/backoffice/screenings/${match.screeningId}/review`, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'date de naissance différente' });
+    expect(((await queue()).body as { pendingSanctionsReviews: unknown[] }).pendingSanctionsReviews).toEqual([]);
+  });
+});

@@ -2175,6 +2175,15 @@ export interface components {
             }[];
             /** Format: date-time */
             asOf: string;
+            /** @description D75 : rapprochements sanctions à examiner (détail : D74). */
+            pendingSanctionsReviews: {
+                /** Format: uuid */
+                screeningId: string;
+                /** @enum {string} */
+                subjectType: "PARTNER" | "CUSTOMER";
+                /** Format: date-time */
+                screenedAt: string;
+            }[];
         };
         ApprovalPrepareRequest: {
             /** Format: uuid */

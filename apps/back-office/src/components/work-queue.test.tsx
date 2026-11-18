@@ -16,6 +16,7 @@ const QUEUE: Queue = {
   unjustifiedSuspense: [],
   openRiskAlerts: [{ alertId: '019aa800-0000-7000-8000-0000000000a1', rule: 'PAYMENT_VELOCITY', subjectType: 'CUSTOMER', detectedAt: '2026-11-12T09:00:00.000Z' }],
   overdueComplaints: [],
+  pendingSanctionsReviews: [{ screeningId: '019aa800-0000-7000-8000-0000000000s1', subjectType: 'CUSTOMER', screenedAt: '2026-11-12T08:00:00.000Z' }],
 };
 
 describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
@@ -37,6 +38,8 @@ describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
     await waitFor(() => { expect(screen.getByRole('heading', { name: 'Remboursements (1)' })).toBeVisible(); });
     expect(loadQueue).toHaveBeenCalledWith('revue quotidienne');
     expect(screen.getByRole('heading', { name: 'Alertes de fraude ouvertes (1)' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Rapprochements sanctions à examiner (1)' })).toBeVisible();
+    expect(screen.getByText(/019aa800-0000-7000-8000-0000000000s1/)).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Virements aux bénéficiaires (0)' })).toBeVisible();
     expect(screen.getByText('En attente de décision')).toBeVisible();
     await expectNoA11yViolations(container);

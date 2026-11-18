@@ -14,6 +14,8 @@ export type BackofficeQueue = {
   readonly unjustifiedSuspense: readonly { readonly entryId: string; readonly amountXaf: string; readonly direction: string }[];
   readonly openRiskAlerts: readonly { readonly alertId: string; readonly rule: string; readonly subjectType: string; readonly detectedAt: string }[];
   readonly overdueComplaints: readonly { readonly complaintId: string; readonly reference: string; readonly beyondMaximum: boolean }[];
+  /** D75 / REG-LBC-002 : rapprochements à examiner (sans nom ni référence listée : le détail exige READ_IDENTITY_DOCUMENT, D74). */
+  readonly pendingSanctionsReviews: readonly { readonly screeningId: string; readonly subjectType: string; readonly screenedAt: string }[];
 };
 
 /** Étape suivante d'un circuit maker-checker de sortie de fonds (lecture). */
@@ -76,6 +78,11 @@ export async function readBackofficeQueue(client: SqlClient, principal: AdminPri
     'SELECT complaint_id, reference, beyond_maximum FROM disputes.overdue_complaints($1)',
     [now],
   );
+  const screenings = await client.query<{ id: string; subject_type: string; screened_at: Date }>(
+    `SELECT s.id, s.subject_type, s.screened_at FROM kyc.screening s
+      WHERE s.outcome = 'POTENTIAL_MATCH' AND NOT EXISTS (SELECT 1 FROM kyc.screening_review r WHERE r.screening_id = s.id)
+      ORDER BY s.screened_at, s.id`,
+  );
   return Object.freeze({
     asOf: now.toISOString(),
     refunds: refunds.rows.map((row) => ({ refundId: row.id, kind: row.kind, amountXaf: row.amount, stage: row.stage, preparedBy: row.prepared_by })),
@@ -86,5 +93,6 @@ export async function readBackofficeQueue(client: SqlClient, principal: AdminPri
     unjustifiedSuspense: suspense.rows.map((row) => ({ entryId: row.entry_id, amountXaf: row.amount_xaf, direction: row.direction })),
     openRiskAlerts: alerts.rows.map((row) => ({ alertId: row.id, rule: row.rule, subjectType: row.subject_type, detectedAt: row.detected_at.toISOString() })),
     overdueComplaints: complaints.rows.map((row) => ({ complaintId: row.complaint_id, reference: row.reference, beyondMaximum: row.beyond_maximum })),
+    pendingSanctionsReviews: screenings.rows.map((row) => ({ screeningId: row.id, subjectType: row.subject_type, screenedAt: row.screened_at.toISOString() })),
   });
 }

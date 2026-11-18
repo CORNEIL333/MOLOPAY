@@ -47,6 +47,8 @@ const SECTIONS: readonly { readonly key: keyof Omit<Queue, 'asOf'>; readonly tit
   { key: 'unjustifiedSuspense', title: 'Suspens 2900 non justifié' },
   { key: 'openRiskAlerts', title: 'Alertes de fraude ouvertes' },
   { key: 'overdueComplaints', title: 'Réclamations en retard' },
+  // D75 : à examiner depuis la page Conformité (détail sur motif, D74).
+  { key: 'pendingSanctionsReviews', title: 'Rapprochements sanctions à examiner' },
 ];
 
 /** Résumé lisible d'un élément : identifiants internes, montants, étape ; aucune donnée personnelle. */

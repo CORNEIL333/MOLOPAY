@@ -530,3 +530,8 @@
 - **Appliqué :** `GET /v1/backoffice/screenings/{screeningId}?reason=…` : nom normalisé filtré, entrées rapprochées **de la version de liste utilisée** (noms et alias, nature, date d'inscription), examen éventuel. Donnée d'identité : droit `READ_IDENTITY_DOCUMENT` (Conformité, support N2), motif obligatoire, consultation inscrite à l'audit chaîné (identifiant du client en référence pour un client). Contrat 0.28.0, inventaire régénéré. 2 tests HTTP ; 4 mutants tués.
 - **Suite :** afficher ce détail dans l'écran `/conformite` avant la décision.
 - **Mise à jour D74 (écran) :** `/conformite` affiche, après un rapprochement et sur motif de consultation, le nom filtré et les entrées listées (référence, nature, date d'inscription, noms et alias) avant le formulaire d'examen. 1 test de composant ajouté ; 4 mutants tués. Non compilé (D64).
+
+### D75 · Rapprochements sanctions en attente dans la file de travail (REG-LBC-002, F-BO-003)
+- **Constat (18 novembre) :** un rapprochement issu de la déclaration du nom d'un client (D68) n'était visible nulle part : la Conformité ne pouvait pas savoir qu'un examen l'attendait, et le client restait au niveau `NONE` indéfiniment.
+- **Appliqué :** section `pendingSanctionsReviews` de `GET /v1/backoffice/queue` (filtrages avec rapprochement non encore examinés, partenaires et clients, sans nom ni référence listée : le détail passe par D74 avec `READ_IDENTITY_DOCUMENT`) ; section « Rapprochements sanctions à examiner » dans l'écran de la file. Contrat 0.29.0. 1 test HTTP, 1 test de composant ; 2 mutants tués.
+- **⚖ À décider :** délai d'examen cible et escalade (sur le modèle des 48 h des écarts, D54) ; information du client en cas d'attente prolongée (sans alerte, LBC/FT).
