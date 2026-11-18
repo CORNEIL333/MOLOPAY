@@ -22,9 +22,9 @@ const REASONS: Readonly<Record<string, string>> = {
 };
 
 /** F-SUP-001 / D73 : détail d'une réclamation, consultation motivée. */
-export function ComplaintDetail({ ports }: { readonly ports: ComplaintPorts }): ReactElement {
+export function ComplaintDetail({ ports, initialComplaintId = '' }: { readonly ports: ComplaintPorts; readonly initialComplaintId?: string }): ReactElement {
   const ids = { complaint: useId(), reason: useId(), heading: useId() };
-  const [complaintId, setComplaintId] = useState('');
+  const [complaintId, setComplaintId] = useState(initialComplaintId);
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<{ readonly complaint?: string; readonly reason?: string }>({});
   const [problem, setProblem] = useState<ProblemSummary | null>(null);

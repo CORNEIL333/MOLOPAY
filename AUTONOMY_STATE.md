@@ -77,4 +77,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Vérifier l'arrivée de décisions (fiche du 17 novembre). Travail réversible restant à évaluer : (1) lien direct depuis la file vers `/reclamations` et `/conformite` (identifiant prérempli par paramètre d'URL) ; (2) délai d'examen des rapprochements (⚖ D75) — rien à coder sans décision.
+Vérifier l'arrivée de décisions (fiche du 17 novembre). Plus de travail réversible significatif identifié sans décision ou accès externe ; candidats mineurs : relecture des libellés FR/EN, couverture NF-MNT-002 des modules touchés (mesure à outiller sans nouvelle dépendance ?).

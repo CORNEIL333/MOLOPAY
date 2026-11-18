@@ -15,7 +15,7 @@ const QUEUE: Queue = {
   gapsToEscalate: [],
   unjustifiedSuspense: [],
   openRiskAlerts: [{ alertId: '019aa800-0000-7000-8000-0000000000a1', rule: 'PAYMENT_VELOCITY', subjectType: 'CUSTOMER', detectedAt: '2026-11-12T09:00:00.000Z' }],
-  overdueComplaints: [],
+  overdueComplaints: [{ complaintId: '019aa800-0000-7000-8000-0000000000c9', reference: 'R-0123456789', beyondMaximum: false }],
   pendingSanctionsReviews: [{ screeningId: '019aa800-0000-7000-8000-0000000000s1', subjectType: 'CUSTOMER', screenedAt: '2026-11-12T08:00:00.000Z' }],
 };
 
@@ -40,6 +40,8 @@ describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
     expect(screen.getByRole('heading', { name: 'Alertes de fraude ouvertes (1)' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Rapprochements sanctions à examiner (1)' })).toBeVisible();
     expect(screen.getByText(/019aa800-0000-7000-8000-0000000000s1/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Examiner le rapprochement 019aa800-0000-7000-8000-0000000000s1' })).toHaveAttribute('href', '/conformite?filtrage=019aa800-0000-7000-8000-0000000000s1');
+    expect(screen.getByRole('link', { name: 'Consulter la réclamation R-0123456789' })).toHaveAttribute('href', '/reclamations?reclamation=019aa800-0000-7000-8000-0000000000c9');
     expect(screen.getByRole('heading', { name: 'Virements aux bénéficiaires (0)' })).toBeVisible();
     expect(screen.getByText('En attente de décision')).toBeVisible();
     await expectNoA11yViolations(container);

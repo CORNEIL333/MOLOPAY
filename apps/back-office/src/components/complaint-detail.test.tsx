@@ -64,4 +64,9 @@ describe('F-SUP-001 / D73 détail d’une réclamation au back-office', () => {
     await screen.findByRole('region', { name: 'Réclamation R-0123456789' });
     await expectNoA11yViolations(document.body);
   });
+
+  it('identifiant prérempli depuis la file (paramètre d’URL)', () => {
+    render(<ComplaintDetail ports={ports()} initialComplaintId="019aa800-0000-7000-8000-0000000000e1" />);
+    expect(screen.getByLabelText('Identifiant de la réclamation')).toHaveValue('019aa800-0000-7000-8000-0000000000e1');
+  });
 });

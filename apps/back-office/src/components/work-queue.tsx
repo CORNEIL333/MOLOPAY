@@ -130,6 +130,12 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
                         {actionable !== undefined && ports.act !== undefined && typeof itemId === 'string' && typeof item['stage'] === 'string' ? (
                           <FundsAction flow={actionable.flow} id={itemId} stage={item['stage']} act={ports.act} onDone={() => void refresh()} />
                         ) : null}
+                        {key === 'pendingSanctionsReviews' && typeof item['screeningId'] === 'string' ? (
+                          <> <a href={`/conformite?filtrage=${encodeURIComponent(item['screeningId'])}`} aria-label={`Examiner le rapprochement ${item['screeningId']}`}>Examiner</a></>
+                        ) : null}
+                        {key === 'overdueComplaints' && typeof item['complaintId'] === 'string' ? (
+                          <> <a href={`/reclamations?reclamation=${encodeURIComponent(item['complaintId'])}`} aria-label={`Consulter la réclamation ${String(item['reference'])}`}>Consulter</a></>
+                        ) : null}
                         {oversight !== undefined && ports.oversee !== undefined && typeof oversightId === 'string' ? (
                           <OversightAction kind={oversight.kind} id={oversightId} act={ports.oversee} onDone={() => void refresh()} />
                         ) : null}

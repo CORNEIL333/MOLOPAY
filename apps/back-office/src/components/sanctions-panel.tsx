@@ -22,9 +22,9 @@ const PARTNER_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** REG-LBC-002 / D66 : filtrage d'un partenaire contre la liste ONU et examen motivé d'un rapprochement. */
-export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): ReactElement {
+export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly ports: SanctionsPorts; readonly initialScreeningId?: string }): ReactElement {
   const ids = { partner: useId(), decision: useId(), reason: useId(), consultation: useId(), detailHeading: useId(), existing: useId() };
-  const [existingId, setExistingId] = useState('');
+  const [existingId, setExistingId] = useState(initialScreeningId);
   const [existingError, setExistingError] = useState<string | undefined>(undefined);
   const [consultation, setConsultation] = useState('');
   const [consultationError, setConsultationError] = useState<string | undefined>(undefined);

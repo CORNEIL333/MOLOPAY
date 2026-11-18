@@ -141,4 +141,9 @@ describe('REG-LBC-002 / D66 filtrage sanctions au back-office', () => {
     await screen.findByRole('status');
     await expectNoA11yViolations(document.body);
   });
+
+  it('identifiant prérempli depuis la file (paramètre d’URL)', () => {
+    render(<SanctionsPanel ports={ports()} initialScreeningId="019aa800-0000-7000-8000-0000000000e1" />);
+    expect(screen.getByLabelText('Identifiant du filtrage')).toHaveValue('019aa800-0000-7000-8000-0000000000e1');
+  });
 });
