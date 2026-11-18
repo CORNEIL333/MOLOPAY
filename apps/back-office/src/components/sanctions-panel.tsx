@@ -19,10 +19,13 @@ export type SanctionsPorts = {
 };
 
 const PARTNER_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** REG-LBC-002 / D66 : filtrage d'un partenaire contre la liste ONU et examen motivé d'un rapprochement. */
 export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): ReactElement {
-  const ids = { partner: useId(), decision: useId(), reason: useId(), consultation: useId(), detailHeading: useId() };
+  const ids = { partner: useId(), decision: useId(), reason: useId(), consultation: useId(), detailHeading: useId(), existing: useId() };
+  const [existingId, setExistingId] = useState('');
+  const [existingError, setExistingError] = useState<string | undefined>(undefined);
   const [consultation, setConsultation] = useState('');
   const [consultationError, setConsultationError] = useState<string | undefined>(undefined);
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -80,6 +83,32 @@ export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): R
     });
   }
 
+  /** D75 : ouvre un filtrage déjà enregistré (ex. depuis la file de travail), détail sur motif. */
+  async function openExisting(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    const idValid = UUID.test(existingId);
+    const reasonValid = consultation.trim().length >= 3;
+    setExistingError(idValid ? undefined : 'Identifiant de filtrage invalide (UUID).');
+    setConsultationError(reasonValid ? undefined : 'Le motif de consultation est obligatoire (3 caractères au moins).');
+    if (!idValid || !reasonValid) return;
+    await guard(async () => {
+      const result = await ports.detail(existingId, consultation.trim());
+      if (!result.ok) {
+        setProblem(result.problem);
+        return;
+      }
+      setDetail(result.detail);
+      setReviewed(result.detail.review !== null);
+      setScreening({
+        screeningId: result.detail.screeningId,
+        partnerId: result.detail.subjectId,
+        versionId: result.detail.screeningId,
+        outcome: result.detail.outcome,
+        matchedReferences: result.detail.matches.map((match) => match.reference),
+      });
+    });
+  }
+
   async function review(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (screening === null) return;
@@ -102,6 +131,14 @@ export function SanctionsPanel({ ports }: { readonly ports: SanctionsPorts }): R
         <TextField id={ids.partner} label="Identifiant du partenaire" autoComplete="off" value={partnerId} error={partnerError} onChange={(event) => { setPartnerId(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>Filtrer contre la liste ONU</Button>
       </form>
+      {screening !== null ? null : (
+        <form onSubmit={(event) => void openExisting(event)} noValidate>
+          <h2>Examiner un filtrage existant</h2>
+          <TextField id={ids.existing} label="Identifiant du filtrage" autoComplete="off" value={existingId} error={existingError} onChange={(event) => { setExistingId(event.target.value.trim()); }} />
+          <TextField id={ids.consultation} label="Motif de la consultation" value={consultation} error={consultationError} onChange={(event) => { setConsultation(event.target.value); }} />
+          <Button type="submit" disabled={pending}>Ouvrir le filtrage</Button>
+        </form>
+      )}
       {problem === null ? null : <ErrorState problem={problem} />}
       {screening === null ? null : (
         <p role="status">

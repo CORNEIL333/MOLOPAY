@@ -78,6 +78,56 @@ describe('REG-LBC-002 / D66 filtrage sanctions au back-office', () => {
     expect(region).toHaveTextContent('2007-03-29');
   });
 
+  it('D75 filtrage existant (depuis la file) : ouvert par identifiant et motif, détail puis examen', async () => {
+    const injected = ports();
+    const user = userEvent.setup();
+    render(<SanctionsPanel ports={injected} />);
+    await user.type(screen.getByLabelText('Identifiant du filtrage'), SCREENING.screeningId);
+    await user.type(screen.getByLabelText('Motif de la consultation'), 'examen de la file');
+    await user.click(screen.getByRole('button', { name: 'Ouvrir le filtrage' }));
+    await waitFor(() => { expect(injected.detail).toHaveBeenCalledWith(SCREENING.screeningId, 'examen de la file'); });
+    expect(await screen.findByRole('region', { name: 'Détail du filtrage' })).toHaveTextContent('BUTEMBO AIRLINES SARL');
+    await user.type(screen.getByLabelText('Motif de l’examen'), 'société distincte');
+    await user.click(screen.getByRole('button', { name: 'Enregistrer l’examen' }));
+    await waitFor(() => { expect(injected.review).toHaveBeenCalledWith(SCREENING.screeningId, 'FALSE_POSITIVE', 'société distincte'); });
+    expect(injected.screen).not.toHaveBeenCalled();
+  });
+
+  it('identifiant de filtrage invalide : aucun appel', async () => {
+    const injected = ports();
+    const user = userEvent.setup();
+    render(<SanctionsPanel ports={injected} />);
+    await user.type(screen.getByLabelText('Identifiant du filtrage'), 'pas-un-uuid');
+    await user.type(screen.getByLabelText('Motif de la consultation'), 'examen de la file');
+    await user.click(screen.getByRole('button', { name: 'Ouvrir le filtrage' }));
+    expect(screen.getByText(/Identifiant de filtrage invalide/)).toBeVisible();
+    expect(injected.detail).not.toHaveBeenCalled();
+  });
+
+  it('filtrage existant : motif de consultation obligatoire ; déjà examiné → aucun formulaire d’examen', async () => {
+    const reviewed = vi.fn<SanctionsPorts['detail']>(() =>
+      Promise.resolve({
+        ok: true,
+        detail: {
+          screeningId: SCREENING.screeningId, subjectType: 'CUSTOMER', subjectId: 'client', normalizedName: 'ERIC BADEGE', outcome: 'POTENTIAL_MATCH',
+          screenedAt: '2026-11-17T10:00:00.000Z', review: { decision: 'FALSE_POSITIVE', reviewedAt: '2026-11-17T11:00:00.000Z' },
+          matches: [{ reference: 'CDi.001', kind: 'INDIVIDUAL', names: ['ERIC BADEGE'], listedOn: '2012-12-31' }],
+        },
+      }),
+    );
+    const injected = ports({ detail: reviewed });
+    const user = userEvent.setup();
+    render(<SanctionsPanel ports={injected} />);
+    await user.type(screen.getByLabelText('Identifiant du filtrage'), SCREENING.screeningId);
+    await user.click(screen.getByRole('button', { name: 'Ouvrir le filtrage' }));
+    expect(screen.getByText(/motif de consultation est obligatoire/)).toBeVisible();
+    expect(reviewed).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText('Motif de la consultation'), 'contrôle');
+    await user.click(screen.getByRole('button', { name: 'Ouvrir le filtrage' }));
+    await screen.findByRole('region', { name: 'Détail du filtrage' });
+    expect(screen.queryByRole('button', { name: 'Enregistrer l’examen' })).toBeNull();
+  });
+
   it('refus du serveur (auteur du filtrage) : problème affiché', async () => {
     const user = await screenPartner(ports({ review: () => Promise.resolve({ ok: false, problem: { title: 'Action interdite', detail: 'l’auteur du filtrage ne peut pas l’examiner', status: 403 } }) }));
     await screen.findByRole('status');

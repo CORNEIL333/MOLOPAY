@@ -57,6 +57,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Historique des versements d'un objectif (F-PAY-006, D69) | contrat 0.24.0 |
 | DONE | Réclamation client `POST /v1/goals/{goalId}/claims` (F-SUP-001, D70) | 0061, contrat 0.25.0, écran sur la page d'objectif |
 | DONE | Quotas nom légal et réclamations (D72) | 0062, contrat 0.26.0 |
+| DONE | Rapprochements sanctions en attente dans la file + ouverture d'un filtrage existant (D75) | contrat 0.29.0 |
 | DONE | Détail d'une réclamation au back-office (D73) | contrat 0.27.0, écran `/reclamations` |
 | BLOCKED | Connexion client par PIN et appareil (D71) | contrat contraire à SEC-AUTH-001 ; enrôlement d'appareil bloqué par le SMS |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
@@ -76,4 +77,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Portail partenaire : afficher l'heure de validation dans la confirmation de remise (`validatedAt`) ; puis relire le backlog : il ne reste presque que des points à décision (fiche du 17 novembre) ou à accès externe.
+Vérifier l'arrivée de décisions (fiche du 17 novembre). Travail réversible restant à évaluer : (1) lien direct depuis la file vers `/reclamations` et `/conformite` (identifiant prérempli par paramètre d'URL) ; (2) délai d'examen des rapprochements (⚖ D75) — rien à coder sans décision.
