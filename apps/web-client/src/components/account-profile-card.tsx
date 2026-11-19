@@ -42,6 +42,7 @@ export function AccountProfileCard({
           </dd>
         </div>
       </dl>
+      <p><a href="/compte/notifications">Notifications</a></p>
     </section>
   );
 }
