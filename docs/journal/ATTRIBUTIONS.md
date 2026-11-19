@@ -7,8 +7,8 @@
 | Lot | Contenu | Branche | Échéance | Statut |
 |---|---|---|---|---|
 | G1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/gemini/arrivee` | J1 | À démarrer |
-| G2 | `apps/mobile` : application client Flutter à partir du design de `apps/mobile-showcase` ; connexion, catalogue, objectifs branchés sur l'API réelle | `agent/gemini/mobile-socle` | J2 | À démarrer |
-| G3 | Parcours mobile et bureau A, B, C (versements, reçus, remise, annulation, bénéficiaire C), FR/EN, accessibilité, hors connexion lisible | `agent/gemini/mobile-parcours` | J6 | À démarrer |
+| G2 | `apps/mobile` : application client Flutter à partir du design de `apps/mobile-showcase` ; connexion, catalogue, objectifs branchés sur l'API réelle | `agent/gemini/mobile-socle` | J2 | En cours (PR brouillon ouverte) |
+| G3 | Parcours mobile et bureau A, B, C (versements, reçus, remise, annulation, bénéficiaire C), FR/EN, accessibilité, hors connexion lisible | `agent/gemini/mobile-parcours` | J6 | En cours (PR brouillon ouverte) |
 | G4 | Application web client : écrans manquants au regard des routes de `INVENTAIRE_ROUTES.md` | `agent/gemini/web-client` | J6 | À démarrer |
 | G5 | Portail partenaire : écrans manquants, parcours de bout en bout | `agent/gemini/portail-partenaire` | J6 | À démarrer |
 | G6 | Tests de bout en bout des parcours (mobile, bureau, web) | `agent/gemini/e2e` | J8 | À démarrer |
@@ -37,3 +37,7 @@
 
 | Demandé par | Besoin (route, champ) | Lot concerné | Statut |
 |---|---|---|---|
+
+| Gemini | Route d'ouverture de session client implémentée côté serveur (`POST /v1/auth/sessions` ou flux clé + PIN selon D71), absente d'`INVENTAIRE_ROUTES.md` | G2 / G3 / G4 | Bloqué par D71 + accès SMS |
+| Gemini | Route d'émission explicite du code de remise à 100 % (D69, remplacement de `GET .../handover-code`) | G3 / G4 | Bloqué par D69 |
+| Gemini | Route d'initiation de versement client sur un objectif actif (modèles A, B, C) | G3 / G4 | Bloqué par accès agrégateur |
