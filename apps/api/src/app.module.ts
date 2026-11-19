@@ -38,6 +38,8 @@ import { AccountSecurityController } from './modules/identity/account-security.c
 import { DataRightsController } from './modules/identity/data-rights.controller';
 import { ProfileController } from './modules/identity/profile.controller';
 import { ClientSessionController } from './modules/identity/client-session.controller';
+import { OTP_PEPPER, SMS_SENDER, type SmsSender } from './modules/identity/sms.port';
+import { ClientAuthController } from './workflows/client-auth.controller';
 
 export type AppDependencies = {
   readonly database: Database;
@@ -52,6 +54,10 @@ export type AppDependencies = {
   readonly handoverPepper?: Uint8Array | null;
   /** Clé de signature des instructions (D5) ; absente : instructions refusées (503). */
   readonly platformSigningKey?: PlatformSigningKey | null;
+  /** Poivre des codes OTP (C2) ; absent : inscription fermée (503 SMS_UNCONFIGURED). */
+  readonly otpPepper?: Uint8Array | null;
+  /** Prestataire SMS (C2, D1) ; absent : envoi des codes fermé (503 SMS_UNCONFIGURED). Aucune simulation. */
+  readonly smsSender?: SmsSender | null;
   /** Puits de journal (NF-OBS-001) ; absent : aucune ligne n'est écrite. */
   readonly logSink?: LogSink | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
@@ -72,10 +78,12 @@ export class AppModule implements NestModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, GoalClaimsController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, ClientAuthController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, GoalClaimsController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
+        { provide: OTP_PEPPER, useValue: deps.otpPepper ?? null },
+        { provide: SMS_SENDER, useValue: deps.smsSender ?? null },
         { provide: STAFF_RP, useValue: deps.staffRp ?? null },
         { provide: PARTNER_RP, useValue: deps.partnerRp ?? null },
         { provide: HANDOVER_PEPPER, useValue: deps.handoverPepper ?? null },

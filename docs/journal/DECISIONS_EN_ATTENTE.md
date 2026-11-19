@@ -603,6 +603,34 @@
 - ⚖ Qui détient le rôle `kyc_list_importer` en exploitation, et l'import doit-il être confirmé par une seconde personne ?
 - ⚖ Accepter les noms arabes vocalisés (étendre les marques normalisées en base et en application, avec preuve d'identité des deux normalisations) ? Option appliquée : refus (le nom sans voyelles reste accepté).
 
+### C2 · Compte client : profil, renouvellement, inscription par OTP, connexion appareil + PIN (20 novembre)
+- **Appliqué (contrats 0.32.0 à 0.34.0, migration 0066) :**
+  - `GET /v1/me` : profil minimal (identifiant, numéro masqué, date d'inscription, nom déclaré oui/non) ; ni numéro en clair, ni niveau KYC (D77) ;
+  - `POST /v1/auth/session-refreshes` : jeton de rafraîchissement à usage unique, cookie `client_refresh` restreint à `/v1/auth` (`SameSite=Strict`) ;
+  - inscription `otp-challenges` → `signups` : le code est vérifié dans une transaction validée à part (un essai faux reste décompté), puis compte, premier appareil, PIN Argon2id, acceptation des conditions et session dans une seule transaction ; le premier appareil est enregistré sur la preuve d'inscription (pas de second code) ;
+  - **D71 appliqué conformément à SEC-AUTH-001** (le CDC prime sur le brouillon) : connexion par défi signé par la clé Ed25519 de l'appareil, puis PIN ; refus uniforme ; défi indiscernable pour un appareil inconnu ; le brouillon « téléphone + PIN » et la route `/verify` sont retirés du contrat ;
+  - la base exige un OTP d'inscription consommé pour créer un compte et un premier appareil, un OTP « nouvel appareil » pour les suivants, un défi consommé (ou un appareil neuf) pour ouvrir une session. **Portée rectifiée (revue du 20 novembre) :** ces gardes arrêtent une erreur de l'application, pas un rôle `app_rw` compromis, qui peut marquer lui-même un code ou un défi comme consommé (la base ne connaît ni le poivre des codes ni Ed25519).
+- **Fermé par défaut :** sans prestataire SMS (D1, zéro simulation), `otp-challenges` répond 503 `SMS_UNCONFIGURED` ; seul l'adaptateur du prestataire manque (port `SmsSender`). Sans `OTP_PEPPER` ou `PIN_PEPPER` : 503.
+- **Tests :** 8 tests base (gardes), 12 tests HTTP, 7 tests renouvellement et profil ; 22 mutants tués, 1 équivalent.
+- **Reste :** ajout d'un nouvel appareil et récupération (OTP « nouvel appareil » + délai, domaine `recovery` existant) ; la signature Ed25519 est vérifiée par l'application (la base n'a pas cette primitive) ; formulaires web et mobile à recâbler (Gemini, G2/G4).
+
+### D81 · Limite d'envoi des codes OTP (20 novembre)
+- **Appliqué (option prudente) :** 5 codes au plus par numéro et par heure, imposé par la base ; au-delà 429 `REQUEST_RATE_LIMITED`. Code valable 5 minutes, 5 essais.
+- **⚖ À décider :** valeurs définitives ; limite complémentaire par adresse IP ou par appareil (coût des SMS, D67) ; texte du SMS (`sms.port.ts`).
+
+### Revue indépendante de la chaîne de compte client (20 novembre)
+- **Aucun bloquant ; aucun contournement par HTTP.** Constats traités (migration 0067, contrat 0.35.0) :
+  - **Session (base) :** ouverte seulement pour le compte propriétaire de l'appareil ; création et émission horodatées par la base (un `created_at` antidaté permettait de réutiliser un défi consommé) ;
+  - **Signature d'abord :** une signature fausse ne consomme plus le défi ; défi verrouillé pendant sa vérification ;
+  - **Objet du défi** (LOGIN ou REFRESH), immuable, inclus dans le message signé ; un défi de renouvellement n'ouvre pas de session ;
+  - **SEC-AUTH-005 :** le renouvellement exige la signature d'un défi REFRESH par l'appareil de la session (un cookie volé seul ne suffit plus) ; un ancien jeton présenté par l'appareil légitime révoque la session ;
+  - **SMS hors transaction :** aucune connexion à la base n'attend le prestataire ;
+  - **10 défis en attente au plus par appareil** sur 10 minutes ;
+  - **Course à l'inscription :** deux inscriptions simultanées donnent 201 et 409 `IDENTITY_ACCOUNT_EXISTS` (et non `REQUEST_CONFLICT`) ;
+  - masque du numéro aligné sur le contrat, test à valeur littérale ; test « compte bloqué » sur un vrai défi ; réponses 409 ajoutées au contrat.
+- **Mutations :** 13 mutants tués ; 3 équivalents (deux couches se recouvrent : contexte signé et objet du défi, domaine qui refuse un compte bloqué, contrainte de la base sur l'objet).
+- **Reste ⚖ (D81) :** limite par adresse IP ou globale de l'envoi de SMS (coût, prise de numéro par essais : ≈ 25 essais par numéro et par heure) ; préfixe `__Host-` des cookies (exige `Path=/`, incompatible avec le chemin restreint du rafraîchissement) à arbitrer.
+
 ## 2026-11-19 · Qoder (plateforme, observabilité)
 
 ### D100 · Destination et rétention des journaux en production (NF-OBS-001)

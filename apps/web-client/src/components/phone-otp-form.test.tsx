@@ -1,15 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { components } from '@achat/contracts/api';
 import { expectNoA11yViolations } from '../../test/a11y';
 import { getDictionary } from '../i18n';
 import type { AuthOutcome, SignupInput } from './phone-otp-form';
 import { PhoneOtpForm } from './phone-otp-form';
 
-type OtpChallenge = components['schemas']['OtpChallenge'];
-type OtpVerification = components['schemas']['OtpVerification'];
-type SessionSummary = components['schemas']['SessionSummary'];
+// Types de l'ancien brouillon de contrat (≤ 0.33.0), figés ici : ce formulaire n'a jamais été branché sur une route
+// réelle. Contrat 0.34.0 : `POST /v1/auth/otp-challenges` puis `POST /v1/auth/signups` (code, PIN, clé de l'appareil) et
+// connexion `POST /v1/auth/device-challenges` + `POST /v1/auth/sessions`. Recâblage : lot G4 (docs/journal/ATTRIBUTIONS.md).
+type OtpChallenge = { challengeId: string; expiresAt: string; resendAfterSeconds: number };
+type OtpVerification = { challengeId: string; signupToken: string; expiresAt: string };
+type SessionSummary = { accountId: string; displayName: string; locale: 'fr' | 'en'; expiresAt: string };
 
 const labels = getDictionary('fr').auth;
 const challenge: OtpChallenge = {

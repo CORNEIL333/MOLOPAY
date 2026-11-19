@@ -92,11 +92,11 @@ export async function verifyPinFromStore(
 }
 
 /** Poivre PIN lu dans l'environnement (base64, 32 à 64 octets) ; aucun défaut. */
-export function pinPepperFromEnv(env: NodeJS.ProcessEnv): Uint8Array {
-  const raw = env['PIN_PEPPER']?.trim() ?? '';
+export function pinPepperFromEnv(env: NodeJS.ProcessEnv, name: 'PIN_PEPPER' | 'OTP_PEPPER' = 'PIN_PEPPER'): Uint8Array {
+  const raw = env[name]?.trim() ?? '';
   const pepper = Buffer.from(raw, 'base64');
   if (raw === '' || pepper.length < 32 || pepper.length > 64) {
-    throw new Error('CONFIG_INVALID: PIN_PEPPER doit être du base64 de 32 à 64 octets');
+    throw new Error(`CONFIG_INVALID: ${name} doit être du base64 de 32 à 64 octets`);
   }
   return pepper;
 }

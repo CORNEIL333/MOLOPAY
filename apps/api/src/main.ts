@@ -14,6 +14,9 @@ export async function bootstrap(): Promise<void> {
       allowedOrigins: allowedOriginsFromEnv(process.env),
       // Fermé par défaut : sans PIN_PEPPER, aucune action sous PIN n'est possible.
       pinPepper: process.env['PIN_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env),
+      // C2 : poivre OTP ; aucun prestataire SMS n'est branché tant qu'il n'est pas choisi (D1) : envoi fermé (503).
+      otpPepper: process.env['OTP_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env, 'OTP_PEPPER'),
+      smsSender: null,
       logSink: stdoutLogSink,
     }),
   );
