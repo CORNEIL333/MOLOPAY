@@ -1,6 +1,6 @@
 /** NF-UX-002 : textes du portail partenaire, français (référence). */
 export const fr = {
-  common: { serviceDown: 'Le service ne répond pas. Réessayez.', loadFailed: 'Chargement impossible', actionFailed: 'Action impossible', none: '—' },
+  common: { serviceDown: 'Le service ne répond pas. Réessayez.', loadFailed: 'Chargement impossible', actionFailed: 'Action impossible', none: '—', refresh: 'Actualiser' },
   login: {
     title: 'Portail partenaire MoloPay', login: 'Identifiant', submit: 'Se connecter avec ma clé de sécurité',
     invalidLogin: 'Identifiant invalide (minuscules, chiffres, point, tiret).',
@@ -20,6 +20,7 @@ export const fr = {
     failedTitle: 'Remise non confirmée', failedDetail: 'Le service ne répond pas. Ne remettez pas l’article ; réessayez.',
     doneLead: (order: string): string => `Remise confirmée pour la commande ${order} à `,
     doneTail: '. Vous pouvez remettre l’article.',
+    offline: 'Hors connexion : ne remettez pas l’article tant que la remise n’est pas confirmée par le serveur.',
   },
   orders: {
     title: 'Commandes', table: 'Commandes', export: 'Exporter les commandes (CSV)',

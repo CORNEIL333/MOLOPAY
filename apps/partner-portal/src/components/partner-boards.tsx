@@ -2,8 +2,8 @@
 
 import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
-import { AmountXaf, EmptyState, ErrorState } from '@achat/ui';
-import { useEffect, useState, type ReactElement } from 'react';
+import { AmountXaf, Button, EmptyState, ErrorState } from '@achat/ui';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { getDictionary, type Locale } from '../i18n';
 
 export type PartnerOrderRow = components['schemas']['PartnerOrder'];
@@ -20,11 +20,24 @@ function dateFormat(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'medium', timeZone: 'Africa/Douala' });
 }
 
-function useLoad<T>(load: () => Promise<Loaded<T>>, failureTitle: string, failureDetail: string): { readonly rows: readonly T[] | null; readonly problem: ProblemSummary | null } {
+function useLoad<T>(
+  load: () => Promise<Loaded<T>>,
+  failureTitle: string,
+  failureDetail: string,
+): { readonly rows: readonly T[] | null; readonly problem: ProblemSummary | null; readonly loading: boolean; readonly reload: () => void } {
   const [rows, setRows] = useState<readonly T[] | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
+
+  const reload = useCallback((): void => {
+    setTick((n) => n + 1);
+  }, []);
+
   useEffect(() => {
     let live = true;
+    setLoading(true);
+    setProblem(null);
     load()
       .then((result) => {
         if (!live) return;
@@ -33,21 +46,28 @@ function useLoad<T>(load: () => Promise<Loaded<T>>, failureTitle: string, failur
       })
       .catch(() => {
         if (live) setProblem({ title: failureTitle, detail: failureDetail });
+      })
+      .finally(() => {
+        if (live) setLoading(false);
       });
     return () => { live = false; };
-  }, [load, failureTitle, failureDetail]);
-  return { rows, problem };
+  }, [load, failureTitle, failureDetail, tick]);
+
+  return { rows, problem, loading, reload };
 }
 
 /** F-PRT-004 / D63 : commandes du partenaire, sans donnée client ; export CSV proposé au gérant. */
 export function OrdersBoard({ ports, role, locale = 'fr' }: { readonly ports: BoardPorts; readonly role: 'MANAGER' | 'SELLER'; readonly locale?: Locale }): ReactElement {
   const dictionary = getDictionary(locale);
   const t = dictionary.orders;
-  const { rows, problem } = useLoad(ports.loadOrders, dictionary.common.loadFailed, dictionary.common.serviceDown);
+  const { rows, problem, loading, reload } = useLoad(ports.loadOrders, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
-    <section>
+    <section aria-busy={loading}>
       <h1>{t.title}</h1>
-      {role === 'MANAGER' ? <p><a href="/v1/partner/orders/export" download>{t.export}</a></p> : null}
+      <div className="catalog-filters__actions">
+        <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
+        {role === 'MANAGER' ? <p><a href="/v1/partner/orders/export" download>{t.export}</a></p> : null}
+      </div>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
         <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
@@ -77,10 +97,13 @@ export function OrdersBoard({ ports, role, locale = 'fr' }: { readonly ports: Bo
 export function PayoutsBoard({ ports, locale = 'fr' }: { readonly ports: BoardPorts; readonly locale?: Locale }): ReactElement {
   const dictionary = getDictionary(locale);
   const t = dictionary.payouts;
-  const { rows, problem } = useLoad(ports.loadPayouts, dictionary.common.loadFailed, dictionary.common.serviceDown);
+  const { rows, problem, loading, reload } = useLoad(ports.loadPayouts, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
-    <section>
+    <section aria-busy={loading}>
       <h1>{t.title}</h1>
+      <div className="catalog-filters__actions">
+        <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
+      </div>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
         <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
