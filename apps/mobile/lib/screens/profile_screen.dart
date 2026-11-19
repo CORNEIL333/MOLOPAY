@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_state.dart';
+import '../core/models.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
@@ -25,6 +26,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool? _apiHealthy;
   bool _checkingHealth = false;
   ApiProblem? _signOutProblem;
+  AccountProfile? _accountProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.state.addListener(_onStateChanged);
+    if (widget.state.isAuthenticated) {
+      _loadProfile();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.state.removeListener(_onStateChanged);
+    super.dispose();
+  }
+
+  void _onStateChanged() {
+    if (!mounted) return;
+    if (widget.state.isAuthenticated) {
+      _loadProfile();
+    } else if (_accountProfile != null) {
+      setState(() => _accountProfile = null);
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await widget.state.api.getCurrentAccount();
+      if (!mounted) return;
+      setState(() => _accountProfile = profile);
+    } on ApiProblemException {
+      // Profil minimal optionnel si route non encore disponible ou hors ligne.
+    }
+  }
 
   Future<void> _checkHealth() async {
     setState(() => _checkingHealth = true);
@@ -90,6 +126,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 session?.displayName ?? s.notSignedIn,
                 style: type(20, weight: FontWeight.w700),
               ),
+              if (_accountProfile != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${_accountProfile!.phoneMasked} · ${_accountProfile!.memberSince}',
+                  style: type(13, color: muted),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _accountProfile!.legalNameDeclared
+                      ? (s.isEn ? 'Legal name declared' : 'Nom légal déclaré')
+                      : (s.isEn
+                          ? 'Legal name not declared yet'
+                          : 'Nom légal non encore déclaré'),
+                  style: type(12, color: ink, weight: FontWeight.w600),
+                ),
+              ],
               const SizedBox(height: 16),
               if (session != null)
                 Primary(s.signOutButton, _signOut, dark: true)
