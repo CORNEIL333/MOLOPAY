@@ -329,6 +329,20 @@ class MoloPayApiClient {
   /// Construit les octets exacts à signer par la clé Ed25519 de l'appareil (Contrat 0.34.0, D71) :
   /// UTF-8 de `molopay.client-login.v1\u0000<challengeId>\u0000<deviceId>\u0000`
   /// suivi des 32 octets du défi décodé base64url.
+  static List<int> buildDeviceChallengeSigningBytes({
+    required DeviceChallengePurpose purpose,
+    required String challengeId,
+    required String deviceId,
+    required String challengeBase64Url,
+  }) {
+    final prefix = utf8.encode(
+      '${purpose.signingContext}\u0000$challengeId\u0000$deviceId\u0000',
+    );
+    final normalized = base64Url.normalize(challengeBase64Url);
+    final challengeBytes = base64Url.decode(normalized);
+    return <int>[...prefix, ...challengeBytes];
+  }
+
   static List<int> buildClientLoginSigningBytes({
     required String challengeId,
     required String deviceId,
@@ -378,10 +392,11 @@ class MoloPayApiClient {
   /// Demande un défi de connexion d'appareil (`POST /v1/auth/device-challenges`, Contrat 0.34.0, D71).
   Future<ClientLoginChallenge> requestDeviceChallenge({
     required String deviceId,
+    DeviceChallengePurpose purpose = DeviceChallengePurpose.login,
   }) async {
     final response = await _sendPost(
       '/v1/auth/device-challenges',
-      body: {'deviceId': deviceId},
+      body: {'deviceId': deviceId, 'purpose': purpose.apiValue},
     );
     return ClientLoginChallenge.fromJson(_decodeJsonObject(response));
   }
@@ -413,7 +428,10 @@ class MoloPayApiClient {
   }
 
   /// Renouvelle la session via le cookie `client_refresh` à usage unique (`POST /v1/auth/session-refreshes`).
-  Future<ClientSessionRefresh> refreshSession() async {
+  Future<ClientSessionRefresh> refreshSession({
+    required String challengeId,
+    required String signature,
+  }) async {
     final uri = _buildUri('/v1/auth/session-refreshes', null);
     final headers = <String, String>{
       'accept': 'application/json',
@@ -424,7 +442,11 @@ class MoloPayApiClient {
       'cookie': ?_refreshCookie,
     };
     try {
-      final response = await _http.post(uri, headers: headers, body: '{}');
+      final response = await _http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode({'challengeId': challengeId, 'signature': signature}),
+      );
       _ensureSuccess(response);
       _captureSessionCookie(response.headers);
       return ClientSessionRefresh.fromJson(_decodeJsonObject(response));
