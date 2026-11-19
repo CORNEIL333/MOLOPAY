@@ -84,8 +84,19 @@ export function statusForCode(code: ErrorCode): number {
   return 422;
 }
 
-function problem(code: ErrorCode, detail?: string): Problem {
+/**
+ * Refus d'authentification : un seul détail, quelle que soit la cause (compte
+ * désactivé, défi expiré, clé clonée…), pour ne rien apprendre à un attaquant.
+ * La cause exacte reste dans le message interne.
+ */
+const UNIFORM_DETAIL: Readonly<Partial<Record<ErrorCode, string>>> = Object.freeze({
+  STAFF_AUTH_INVALID: 'Authentification refusée',
+  PARTNER_AUTH_INVALID: 'Authentification refusée',
+});
+
+function problem(code: ErrorCode, rawDetail?: string): Problem {
   const status = statusForCode(code);
+  const detail = UNIFORM_DETAIL[code] ?? rawDetail;
   return {
     type: `urn:achat:problem:${TYPE_SLUGS[code] ?? code.toLowerCase().replaceAll('_', '-')}`,
     title: TITLES[status] ?? 'Erreur',

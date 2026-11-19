@@ -62,6 +62,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Revue indépendante du 19 novembre : B-1 réponse neutre du nom légal (D77) ; I-1 invisibles et homoglyphes ; I-2/I-5 filtrage recalculé par la base, liste officielle (0063) ; I-3 périmètre `SCREEN_PARTNER` ; I-4 écartement client à deux personnes (0064, D78) | contrats 0.30.0 et 0.31.0 ; mutants tous tués |
 | DONE | Mineurs de la revue : `&#0;` et taille UTF-8 de la liste ONU ; instantané unique réel (REPEATABLE READ) pour les versements, commentaires rectifiés ailleurs | |
 | DONE | SEC-API-005 : CSP à nonce pour back-office et portail partenaire ; REG-DPD-001 : registre T-11 à T-15 ; NF-UX-002 portail ; NF-UX-005 ; SEC-CRY-005/006 | |
+| DONE | Mineurs restants : codes métier exacts dans les tests de refus, jeton transplanté, défi inconnu indiscernable, détail uniforme des refus d'authentification ; D79 consigné | |
 | BLOCKED | Connexion client par PIN et appareil (D71) | contrat contraire à SEC-AUTH-001 ; enrôlement d'appareil bloqué par le SMS |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -80,4 +81,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Mineurs restants de la revue indépendante (19 novembre) : assertions faibles des tests (partner-http, kyc-customer-http, goal-contributions-http, partner-auth), jeton du personnel transplanté dans `partner_session`, détail uniforme de `PARTNER_AUTH_INVALID` ; consigner l'énumération des vendeurs (409), l'enrôlement d'une clé par le gérant et la défaillance marchand ignorée par la session partenaire. Puis vérifier l'arrivée des décisions (fiche du 17 novembre).
+Revue indépendante du 19 novembre entièrement traitée (bloquant, importants, mineurs) ; ce qui reste demande une décision (D77–D79). Travail sans décision restant : nouvelle revue indépendante des changements du 19 novembre (vérificateur sans contexte). Sinon, attendre les décisions de la fiche du 17 novembre.

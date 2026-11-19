@@ -87,3 +87,20 @@ describe('RFC 9457 · traduction des erreurs', () => {
     expect(toProblem('texte')).toMatchObject({ status: 500, code: 'INTERNAL_ERROR' });
   });
 });
+
+describe('authentification : détail uniforme quelle que soit la cause (revue indépendante)', () => {
+  it.each([
+    ['PARTNER_AUTH_INVALID', new BusinessError('PARTNER_AUTH_INVALID', 'Session absente')],
+    ['PARTNER_AUTH_INVALID', { code: 'P0001', message: 'PARTNER_AUTH_INVALID: compte désactivé' }],
+    ['PARTNER_AUTH_INVALID', { code: 'P0001', message: 'PARTNER_AUTH_INVALID: compteur non croissant (clé clonée ?)' }],
+    ['PARTNER_AUTH_INVALID', { code: 'P0001', message: 'PARTNER_AUTH_INVALID: défi expiré' }],
+    ['STAFF_AUTH_INVALID', new BusinessError('STAFF_AUTH_INVALID', 'Session invalide')],
+    ['STAFF_AUTH_INVALID', { code: 'P0001', message: 'STAFF_AUTH_INVALID: compte désactivé' }],
+  ] as const)('%s : « Authentification refusée » seulement', (code, error) => {
+    expect(toProblem(error)).toMatchObject({ status: 401, code, detail: 'Authentification refusée' });
+  });
+
+  it('les autres codes gardent leur détail', () => {
+    expect(toProblem({ code: 'P0001', message: 'KYC_INVALID_REQUEST: rapprochement déjà examiné' })).toMatchObject({ detail: 'rapprochement déjà examiné' });
+  });
+});

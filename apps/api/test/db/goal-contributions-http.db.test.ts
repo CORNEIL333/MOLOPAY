@@ -26,6 +26,11 @@ const CUSTOMER = '019ab700-0000-7000-8000-0000000000c1';
 const OTHER = '019ab700-0000-7000-8000-0000000000c2';
 const GOAL = '019ab700-0000-7000-8000-0000000000a1';
 
+
+/** Statut et code métier d'une réponse d'erreur (règle 8 : un refus vérifie le code exact). */
+function problem(response: { readonly status: number; readonly body: unknown }): [number, string | undefined] {
+  return [response.status, (response.body as { code?: string }).code];
+}
 let db: TestDatabase;
 let admin: Client;
 let database: Database;
@@ -129,11 +134,11 @@ describe('F-PAY-006 historique des versements d’un objectif', () => {
   it('objectif d’un autre client ou inconnu : même 404 ; sans session : 401', async () => {
     await pay(10_000n);
     const other = await contributions(await session(OTHER));
-    expect(other.status).toBe(404);
+    expect(problem(other)).toEqual([404, 'AGREEMENT_NOT_FOUND']);
     expect((other.body as { code: string }).code).toBe('AGREEMENT_NOT_FOUND');
-    expect((await contributions(await session(CUSTOMER), uuidv7())).status).toBe(404);
-    expect((await contributions(await session(CUSTOMER), 'pas-un-uuid')).status).toBe(404);
-    expect((await contributions(null)).status).toBe(401);
+    expect(problem(await contributions(await session(CUSTOMER), uuidv7()))).toEqual([404, 'AGREEMENT_NOT_FOUND']);
+    expect(problem(await contributions(await session(CUSTOMER), 'pas-un-uuid'))).toEqual([404, 'AGREEMENT_NOT_FOUND']);
+    expect(problem(await contributions(null))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
   });
 
   it('seuls les versements de cet objectif (un autre objectif du même client est exclu)', async () => {
@@ -178,12 +183,12 @@ describe('F-SUP-001 réclamation du client sur son objectif (D70)', () => {
   });
 
   it('objectif d’un autre client : 404 sans rien enregistrer ; corps en liste blanche ; texte trop court ; sans session', async () => {
-    expect((await claim(await session(OTHER), { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(404);
+    expect(problem(await claim(await session(OTHER), { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' }))).toEqual([404, 'AGREEMENT_NOT_FOUND']);
     const cookie = await session(CUSTOMER);
-    expect((await claim(cookie, { reason: 'OTHER', details: 'court' })).status).toBe(400);
-    expect((await claim(cookie, { reason: 'INCONNU', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(400);
-    expect((await claim(cookie, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.', channel: 'PHONE' })).status).toBe(400);
-    expect((await claim(null, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' })).status).toBe(401);
+    expect(problem(await claim(cookie, { reason: 'OTHER', details: 'court' }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await claim(cookie, { reason: 'INCONNU', details: 'Je ne reçois rien depuis une semaine.' }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await claim(cookie, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.', channel: 'PHONE' }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await claim(null, { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' }))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
     expect((await admin.query('SELECT count(*)::int AS n FROM disputes.complaint')).rows[0]).toEqual({ n: 0 });
   });
 

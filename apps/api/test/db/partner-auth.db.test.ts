@@ -307,10 +307,20 @@ describe('SEC-AUTH-006 / SEC-AUTH-005 enrôlement WebAuthn, connexion et session
   });
 
   it('identifiant inconnu : défi indiscernable, jamais enregistré, connexion refusée', async () => {
+    const knownId = await manager('connu.gerant');
+    const known = await transact((client) => issuePartnerLoginChallenge(client, 'connu.gerant'));
     const challenge = await transact((client) => issuePartnerLoginChallenge(client, 'inconnu.vendeur'));
-    expect(challenge.challenge.length).toBe(32);
-    const rows = await admin.query('SELECT count(*)::int AS n FROM catalog.partner_challenge');
-    expect(rows.rows[0]).toEqual({ n: 0 });
+    const again = await transact((client) => issuePartnerLoginChallenge(client, 'inconnu.vendeur'));
+    // Même forme qu'un défi d'identifiant connu (mêmes champs, mêmes tailles), aléatoire à chaque appel.
+    expect(Object.keys(challenge).sort()).toEqual(Object.keys(known).sort());
+    expect(challenge.challenge.length).toBe(known.challenge.length);
+    expect(challenge.challengeId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(known.challengeId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(challenge.challenge.equals(again.challenge)).toBe(false);
+    expect(challenge.challengeId).not.toBe(again.challengeId);
+    // Seul le défi de l'identifiant connu est enregistré ; rien pour l'inconnu.
+    const rows = await admin.query('SELECT user_id FROM catalog.partner_challenge');
+    expect(rows.rows).toEqual([{ user_id: knownId }]);
     expect((await failure(() => login('inconnu.vendeur', key(), 1))).code).toBe('PARTNER_AUTH_INVALID');
   });
 

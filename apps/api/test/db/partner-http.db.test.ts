@@ -48,6 +48,11 @@ const OFFER = '019ab100-0000-7000-8000-0000000000f1';
 const PEPPER = randomBytes(32);
 const SHOP = { latitude: '4.051056', longitude: '9.767869' };
 
+
+/** Statut et code métier d'une réponse d'erreur (règle 8 : un refus vérifie le code exact). */
+function problem(response: { readonly status: number; readonly body: unknown }): [number, string | undefined] {
+  return [response.status, (response.body as { code?: string }).code];
+}
 let db: TestDatabase;
 let admin: Client;
 let database: Database;
@@ -204,15 +209,15 @@ describe('SEC-AUTH-006 connexion du portail partenaire', () => {
     expect(current.status).toBe(200);
     expect(current.headers['cache-control']).toBe('private, no-store');
     expect(current.body).toEqual({ partnerId: 'merchant-1', login: 'awa.gerant', role: 'MANAGER' });
-    expect((await request(server()).get('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN)).status).toBe(401);
+    expect(problem(await request(server()).get('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN))).toEqual([401, 'PARTNER_AUTH_INVALID']);
   });
 
   it('identifiant inconnu et mauvaise clé : même refus 401 PARTNER_AUTH_INVALID', async () => {
     const unknown = await login('inconnu.vendeur', staff.sellerKey, 1);
-    expect(unknown.status).toBe(401);
+    expect(problem(unknown)).toEqual([401, 'PARTNER_AUTH_INVALID']);
     expect(payload(unknown).code).toBe('PARTNER_AUTH_INVALID');
     const wrongKey = await login('paul.vendeur', staff.managerKey, 1);
-    expect(wrongKey.status).toBe(401);
+    expect(problem(wrongKey)).toEqual([401, 'PARTNER_AUTH_INVALID']);
     expect(payload(wrongKey).code).toBe('PARTNER_AUTH_INVALID');
   });
 
@@ -220,23 +225,28 @@ describe('SEC-AUTH-006 connexion du portail partenaire', () => {
     const { key } = await createStaffWithKey(db.getConnectionUri(), { login: 'ops.dla', roles: ['OPERATIONS'] });
     const staffSession = staffCookie(await loginOverHttp(server(), 'ops.dla', key, 1));
     const asStaff = await handover(staffSession, { code: 'ABCDE-12345', ...SHOP });
-    expect(asStaff.status).toBe(401);
-    expect(payload(asStaff).code).toBe('PARTNER_AUTH_INVALID');
+    expect(problem(asStaff)).toEqual([401, 'PARTNER_AUTH_INVALID']);
     const partnerSession = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
     const asPartner = await request(server()).get('/v1/backoffice/queue').set('Origin', STAFF_ORIGIN).set('Cookie', partnerSession).query({ reason: 'test' });
-    expect(asPartner.status).toBe(401);
-    expect(payload(asPartner).code).toBe('STAFF_AUTH_INVALID');
+    expect(problem(asPartner)).toEqual([401, 'STAFF_AUTH_INVALID']);
+    // Jeton transplanté : la valeur d'une session sous le nom de cookie de l'autre application ne vaut rien.
+    expect(staffSession.startsWith('staff_session=') && partnerSession.startsWith('partner_session=')).toBe(true);
+    const transplantedStaff = staffSession.replace(/^staff_session=/, 'partner_session=');
+    expect(problem(await handover(transplantedStaff, { code: 'ABCDE-12345', ...SHOP }))).toEqual([401, 'PARTNER_AUTH_INVALID']);
+    expect(problem(await request(server()).get('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN).set('Cookie', transplantedStaff))).toEqual([401, 'PARTNER_AUTH_INVALID']);
+    const transplantedPartner = partnerSession.replace(/^partner_session=/, 'staff_session=');
+    expect(problem(await request(server()).get('/v1/backoffice/queue').set('Origin', STAFF_ORIGIN).set('Cookie', transplantedPartner).query({ reason: 'test' }))).toEqual([401, 'STAFF_AUTH_INVALID']);
   });
 
   it('déconnexion et désactivation rendent la session inutilisable', async () => {
     const cookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
     const out = await request(server()).delete('/v1/partner/sessions/current').set('Origin', PARTNER_ORIGIN).set('Idempotency-Key', `p-${uuidv7()}`).set('Cookie', cookie);
     expect(out.status).toBe(204);
-    expect((await handover(cookie, { code: 'ABCDE-12345', ...SHOP })).status).toBe(401);
+    expect(problem(await handover(cookie, { code: 'ABCDE-12345', ...SHOP }))).toEqual([401, 'PARTNER_AUTH_INVALID']);
     const again = partnerCookie(await login('paul.vendeur', staff.sellerKey, 2));
     await transact((client) => insertPartnerUserDisable(client, { userId: staff.seller.userId, by: { manager: staff.manager }, reason: 'fin de contrat' }));
     const disabled = await handover(again, { code: 'ABCDE-12345', ...SHOP });
-    expect(disabled.status).toBe(401);
+    expect(problem(disabled)).toEqual([401, 'PARTNER_AUTH_INVALID']);
     expect(payload(disabled).code).toBe('PARTNER_AUTH_INVALID');
   });
 });
@@ -267,7 +277,7 @@ describe('F-SET-001 remise au comptoir (D63)', () => {
       { code, latitude: '4.0510561', longitude: '9.767869' },
     ]) {
       const refused = await handover(cookie, body);
-      expect(refused.status).toBe(400);
+      expect(problem(refused)).toEqual([400, 'REQUEST_INVALID']);
       expect(payload(refused).code).toBe('REQUEST_INVALID');
     }
   });
@@ -299,7 +309,7 @@ describe('F-SET-001 remise au comptoir (D63)', () => {
 
   it('sans session : 401', async () => {
     const refused = await handover(null, { code: 'ABCDE-12345', ...SHOP });
-    expect(refused.status).toBe(401);
+    expect(problem(refused)).toEqual([401, 'PARTNER_AUTH_INVALID']);
     expect(payload(refused).code).toBe('PARTNER_AUTH_INVALID');
   });
 
@@ -361,11 +371,11 @@ describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
   it('le gérant désactive son vendeur avec un motif : la session du vendeur tombe', async () => {
     const sellerCookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
     const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
-    expect((await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, {})).status).toBe(400);
+    expect(problem(await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, {}))).toEqual([400, 'REQUEST_INVALID']);
     const done = await managerPost(cookie, `/v1/partner/sellers/${staff.seller.userId}/disable`, { reason: 'fin de contrat' });
     expect(done.status).toBe(200);
     expect(payload(done)).toEqual({ sellerId: staff.seller.userId, disabled: true });
-    expect((await handover(sellerCookie, { code: 'ABCDE-12345', ...SHOP })).status).toBe(401);
+    expect(problem(await handover(sellerCookie, { code: 'ABCDE-12345', ...SHOP }))).toEqual([401, 'PARTNER_AUTH_INVALID']);
   });
 
   it('un vendeur ne gère pas le personnel (403 PARTNER_ROLE_DENIED), y compris la liste', async () => {
@@ -377,7 +387,7 @@ describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
       await request(server()).get('/v1/partner/users').set('Origin', PARTNER_ORIGIN).set('Cookie', cookie),
     ];
     for (const refused of refusals) {
-      expect(refused.status).toBe(403);
+      expect(problem(refused)).toEqual([403, 'PARTNER_ROLE_DENIED']);
       expect(payload(refused).code).toBe('PARTNER_ROLE_DENIED');
     }
     const count = await admin.query("SELECT count(*)::int AS n FROM catalog.partner_user WHERE login = 'intrus.vendeur'");
@@ -389,12 +399,12 @@ describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
     for (const target of [staff.seller.userId, staff.manager.userId, uuidv7()]) {
       for (const [path, body] of [[`/v1/partner/sellers/${target}/enrollments`, {}], [`/v1/partner/sellers/${target}/disable`, { reason: 'x' }]] as const) {
         const refused = await managerPost(cookie, path, body);
-        expect(refused.status).toBe(404);
+        expect(problem(refused)).toEqual([404, 'PARTNER_USER_NOT_FOUND']);
         expect(payload(refused).code).toBe('PARTNER_USER_NOT_FOUND');
       }
     }
     const own = await managerPost(cookie, `/v1/partner/sellers/${otherSeller.manager.userId}/disable`, { reason: 'x' });
-    expect(own.status).toBe(404);
+    expect(problem(own)).toEqual([404, 'PARTNER_USER_NOT_FOUND']);
     const disabled = await admin.query('SELECT count(*)::int AS n FROM catalog.partner_user_disable');
     expect(disabled.rows[0]).toEqual({ n: 0 });
   });
@@ -402,10 +412,10 @@ describe('F-PRT-003 gestion des vendeurs par le gérant (D63)', () => {
   it('identifiant déjà pris : conflit 409 ; corps en liste blanche', async () => {
     const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
     const taken = await managerPost(cookie, '/v1/partner/sellers', { login: 'max.vendeur' });
-    expect(taken.status).toBe(409);
+    expect(problem(taken)).toEqual([409, 'REQUEST_CONFLICT']);
     for (const body of [{ login: 'Bad Login' }, { login: 'ok.vendeur', role: 'MANAGER' }, { login: 'ok.vendeur', partnerId: 'merchant-2' }]) {
       const refused = await managerPost(cookie, '/v1/partner/sellers', body);
-      expect(refused.status).toBe(400);
+      expect(problem(refused)).toEqual([400, 'REQUEST_INVALID']);
     }
   });
 });
@@ -467,7 +477,7 @@ describe('F-PRT-004 tableau des commandes du partenaire (D63)', () => {
     expect(exported.text).not.toContain(CUSTOMER);
     const sellerCookie = partnerCookie(await login('paul.vendeur', staff.sellerKey, 1));
     const seller = await request(server()).get('/v1/partner/orders/export').set('Origin', PARTNER_ORIGIN).set('Cookie', sellerCookie);
-    expect(seller.status).toBe(403);
+    expect(problem(seller)).toEqual([403, 'PARTNER_ROLE_DENIED']);
     const foreignCookie = partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1));
     const foreign = await request(server()).get('/v1/partner/orders/export').set('Origin', PARTNER_ORIGIN).set('Cookie', foreignCookie);
     expect(foreign.text.split('\r\n').filter((line) => line !== '')).toHaveLength(1);
@@ -475,7 +485,7 @@ describe('F-PRT-004 tableau des commandes du partenaire (D63)', () => {
 
   it('sans session partenaire : 401', async () => {
     const refused = await request(server()).get('/v1/partner/orders').set('Origin', PARTNER_ORIGIN);
-    expect(refused.status).toBe(401);
+    expect(problem(refused)).toEqual([401, 'PARTNER_AUTH_INVALID']);
   });
 });
 
@@ -537,7 +547,7 @@ describe('F-PRT-003/004 règlements du partenaire, gérant uniquement (D63)', ()
   it('le vendeur ne voit pas les règlements (403) ; un autre partenaire ne voit rien', async () => {
     await handedOverAndPrepared();
     const seller = await payouts(partnerCookie(await login('paul.vendeur', staff.sellerKey, 1)));
-    expect(seller.status).toBe(403);
+    expect(problem(seller)).toEqual([403, 'PARTNER_ROLE_DENIED']);
     expect(payload(seller).code).toBe('PARTNER_ROLE_DENIED');
     const foreign = await payouts(partnerCookie(await login('eve.gerant', otherSeller.managerKey, 1)));
     expect(foreign.status).toBe(200);

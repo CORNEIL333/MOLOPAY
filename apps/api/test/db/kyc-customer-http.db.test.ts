@@ -25,6 +25,11 @@ const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab600-0000-7000-8000-0000000000c1';
 const OTHER_CUSTOMER = '019ab600-0000-7000-8000-0000000000c2';
 
+
+/** Statut et code métier d'une réponse d'erreur (règle 8 : un refus vérifie le code exact). */
+function problem(response: { readonly status: number; readonly body: unknown }): [number, string | undefined] {
+  return [response.status, (response.body as { code?: string }).code];
+}
 let db: TestDatabase;
 let admin: Client;
 let database: Database;
@@ -108,9 +113,9 @@ describe('REG-LBC-001 / D68 nom légal du client', () => {
 
   it('corps en liste blanche, nom invalide, sans session : refus', async () => {
     const cookie = await session(CUSTOMER);
-    expect((await declare(cookie, { legalName: 'Aïcha Ngono', kycLevel: 'STRONG' })).status).toBe(400);
-    expect((await declare(cookie, { legalName: 'A' })).status).toBe(400);
-    expect((await declare(null, { legalName: 'Aïcha Ngono' })).status).toBe(401);
+    expect(problem(await declare(cookie, { legalName: 'Aïcha Ngono', kycLevel: 'STRONG' }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await declare(cookie, { legalName: 'A' }))).toEqual([400, 'KYC_INVALID_REQUEST']);
+    expect(problem(await declare(null, { legalName: 'Aïcha Ngono' }))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
     expect((await admin.query('SELECT count(*)::int AS n FROM identity.legal_name_declaration')).rows[0]).toEqual({ n: 0 });
   });
 });
