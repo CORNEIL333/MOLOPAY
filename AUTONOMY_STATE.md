@@ -70,7 +70,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | Taux de commission, délai de contestation | décision du fondateur (D46) |
 | BLOCKED | Textes juridiques, version des conditions | D23 |
 | BLOCKED | E2E back-office : build Next.js refusé (16.4.3 vulnérable, D64) | montée épinglée 16.4.5 à revoir par un humain |
-| BLOCKED | App mobile Flutter | livrée par ChatGPT selon `PROMPT_CHATGPT_APP_MOBILE.md`, branchement ensuite |
+| TODO | App mobile Flutter et version bureau | **réattribuée à Gemini** (19 novembre, lots G2–G3 de `docs/journal/ATTRIBUTIONS.md`) ; `PROMPT_CHATGPT_APP_MOBILE.md` remplacé |
 
 ## Décisions humaines attendues
 Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées) et `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, engagements client, authentification du personnel, accès externes).
@@ -81,4 +81,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Seconde revue indépendante traitée (IMP-1 à IMP-3, 0065). Tout le reste dépend de décisions (D63–D80, fiche du 17 novembre) ou d'accès externes. Prochaine étape : attendre les décisions.
+Objectif fondateur : **MVP de production le 29 novembre (J10)**, à trois agents (`docs/03_agents_ia/PROMPT_TRAVAIL_GEMINI_QODER.md`, `docs/journal/ATTRIBUTIONS.md`). Claude : lots C1 (intégration, revues), C2 (contrat 1.0, demandes de Gemini et Qoder, gel à J7), C3 (back-office prêt à la mise en service). Ne pas toucher aux périmètres de Gemini (interfaces) ni de Qoder (`http/`, observabilité, CRM, archivage, infra, migrations `01xx`).
