@@ -21,7 +21,10 @@ async function main(): Promise<void> {
   await admin.connect();
   try {
     await runRealFlowsScenario(database.getConnectionUri(), admin);
+    // Écritures et imputations lues dans un même instantané (export.store.ts).
+    await admin.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
     const entries = await exportLedgerEntries(admin);
+    await admin.query('COMMIT');
     const logKey = generateKeyPairSync('ed25519');
     const raw = logKey.publicKey.export({ type: 'spki', format: 'der' });
     mkdirSync(outputDir, { recursive: true });

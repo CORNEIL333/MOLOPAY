@@ -9,12 +9,12 @@ import { Client } from 'pg';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module';
-import { createDatabase, withTransaction, type Database } from '../../src/http/database';
+import { createDatabase, type Database } from '../../src/http/database';
 import { issueSessionTokens } from '../../src/modules/identity/domain';
 import { sessionCookieValue } from '../../src/modules/identity/session.store';
-import { importUnSanctionsList } from '../../src/modules/kyc/sanctions.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { seedCustomerAccount } from './agreement-fixture';
+import { importListAsImporter } from './kyc-list-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /** REG-LBC-001 / D68 : déclaration du nom légal par le client en HTTP réel ; aucune alerte du client (LBC). */
@@ -88,7 +88,7 @@ beforeEach(async () => {
     await admin.query(sql);
   }
   await seedCustomerAccount(admin, CUSTOMER, 'NONE');
-  await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp-1' }));
+  await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp-1' });
 });
 
 describe('REG-LBC-001 / D68 nom légal du client', () => {

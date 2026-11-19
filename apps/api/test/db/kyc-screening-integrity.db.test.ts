@@ -8,6 +8,7 @@ import { importUnSanctionsList } from '../../src/modules/kyc/sanctions.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { declareLegalNameAndScreen } from '../../src/workflows/kyc-basic-level';
 import { seedCustomerAccount } from './agreement-fixture';
+import { asListImporter, importListAsImporter } from './kyc-list-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /**
@@ -58,7 +59,7 @@ async function failure(action: () => Promise<unknown>): Promise<{ code: string |
 
 async function importList(xml = EXCERPT): Promise<string> {
   const versionId = uuidv7();
-  await transact((client) => importUnSanctionsList(client, { versionId, xml, sourceUrl: SOURCE, actorId: 'comp-1' }));
+  await importListAsImporter(container.getConnectionUri(), { versionId, xml, sourceUrl: SOURCE, actorId: 'comp-1' });
   return versionId;
 }
 
@@ -171,23 +172,78 @@ describe('I-2 REG-LBC-002 filtrage recalculé par la base', () => {
     samples.push('Forces Démocratiques Alliées-Armée', 'l’Ouganda', 'Straße Œuvre ﬁnal', 'Jean  Pierre  N’Diaye', 'ADF (Allied)', 'Еrіc Bаdege');
     const sql = await admin.query<{ i: number; n: string }>('SELECT i::int, kyc.normalize_name(s) AS n FROM unnest($1::text[]) WITH ORDINALITY AS t(s, i)', [samples]);
     const differences = sql.rows.filter((row) => row.n !== normalizeName(samples[row.i - 1] ?? '')).map((row) => ({ input: samples[row.i - 1], sql: row.n, js: normalizeName(samples[row.i - 1] ?? '') }));
-    // Seule divergence tolérée : « ƛ » (U+019B) n'a de majuscule (U+A7DC) que depuis Unicode 16, selon l'ICU de la
-    // base ; l'écart fait refuser le rattachement (refus visible), jamais accepter un nom non filtré.
-    expect(differences.filter((difference) => !(difference.input ?? '').includes('\u019B'))).toEqual([]);
+    // Divergences tolérées : « ƛ » (U+019B) et « ɤ » (U+0264) n'ont de majuscule que depuis Unicode 16, selon l'ICU de
+    // la base ; l'écart fait refuser le rattachement (refus visible), jamais accepter un nom non filtré.
+    expect(differences.filter((difference) => !/[\u019B\u0264]/u.test(difference.input ?? ''))).toEqual([]);
+  });
+});
+
+describe('IMP-1 import de liste réservé au rôle dédié', () => {
+  it('le rôle applicatif ne peut ni créer une version de liste ni y ajouter une entrée (42501) ; aucun niveau débloqué', async () => {
+    await importList();
+    const forged = await failure(() => transact((client) => importUnSanctionsList(client, {
+      versionId: uuidv7(), xml: EXCERPT.replace('dateGenerated="2026-11-17T00:00:02.485Z"', 'dateGenerated="2026-11-18T00:00:02.485Z"'), sourceUrl: SOURCE, actorId: 'comp-1',
+    })));
+    expect(forged.code).toBe('42501');
+    const direct = await failure(() => transact((client) => client.query(
+      `INSERT INTO kyc.sanctions_list_version (id, source, source_url, generated_at, content_sha256, entry_count, imported_by, imported_at)
+       VALUES ($1, 'UN_SC_CONSOLIDATED', $2, now(), $3, 1, 'x', now())`, [uuidv7(), SOURCE, Buffer.alloc(32, 7)])));
+    expect(direct.code).toBe('42501');
+    expect(await transact((client) => declareLegalNameAndScreen(client, { accountId: CUSTOMER, legalName: 'Eric Badege' }))).toMatchObject({ outcome: 'POTENTIAL_MATCH', kycLevel: 'SCREENING_PENDING_REVIEW' });
+  });
+
+  it('le rôle d’import ne filtre ni ne modifie le niveau d’un client', async () => {
+    await importList();
+    const screening = await failure(() => asListImporter(container.getConnectionUri(), (client) => client.query('SELECT kyc.grant_basic_level($1)', [CUSTOMER])));
+    expect(screening.code).toBe('42501');
+  });
+});
+
+describe('IMP-2 marques diacritiques hors des plages normalisées', () => {
+  it('la base refuse une déclaration portant une marque non normalisée (KYC_INVALID_REQUEST) ; aucun niveau accordé', async () => {
+    const versionId = await importList();
+    for (const name of ['Eric Bad\u0951ege', 'Eric Bad\u064Bege', '\u0645\u064F\u062D\u064E\u0645\u0651\u064E\u062F', 'Eric Bad\u0E31ege', 'Eric\u{1D167} Badege']) {
+      const refused = await failure(() => transact(async (client) => {
+        const declaration = uuidv7();
+        await client.query(`INSERT INTO identity.legal_name_declaration (id, account_id, legal_name, declared_at) VALUES ($1, $2, $3, now())`, [declaration, CUSTOMER, name]);
+        const screening = await forgeScreening(client, { normalized: 'ERIC BAD EGE', versionId, references: [] }) as { rows: { id: string }[] };
+        await client.query('INSERT INTO kyc.legal_name_screening (declaration_id, screening_id) VALUES ($1, $2)', [declaration, screening.rows[0]?.id]);
+        await client.query('SELECT kyc.grant_basic_level($1)', [CUSTOMER]);
+      }));
+      expect(refused.message, JSON.stringify(name)).toMatch(/^KYC_INVALID_REQUEST: caractère hors des lettres, chiffres et séparateurs admis/);
+    }
+    expect(await level()).toBe('NONE');
+  });
+
+  it('normalisation SQL identique à l’applicative pour tout nom accepté par la base (toutes écritures, marques comprises)', async () => {
+    const samples: string[] = [];
+    for (const [from, to] of [[0x20, 0x2ff], [0x300, 0x36f], [0x370, 0x52f], [0x590, 0x6ff], [0x900, 0x97f], [0xe00, 0xe7f], [0x1e00, 0x1fff], [0x3040, 0x30ff], [0xac00, 0xac20]] as const) {
+      for (let code = from; code <= to; code += 1) samples.push(`Ab${String.fromCodePoint(code)}c De`);
+    }
+    const rows = (await admin.query<{ i: number; accepted: boolean; n: string }>(
+      `SELECT i::int, kyc.legal_name_admissible(s) AS accepted, kyc.normalize_name(s) AS n FROM unnest($1::text[]) WITH ORDINALITY AS t(s, i)`, [samples],
+    )).rows;
+    const accepted = rows.filter((row) => row.accepted);
+    expect(accepted.length).toBeGreaterThan(500);
+    const differences = accepted
+      .filter((row) => row.n !== normalizeName(samples[row.i - 1] ?? ''))
+      .filter((row) => !/[\u019B\u0264]/u.test(samples[row.i - 1] ?? ''))
+      .map((row) => ({ input: samples[row.i - 1], sql: row.n, js: normalizeName(samples[row.i - 1] ?? '') }));
+    expect(differences).toEqual([]);
   });
 });
 
 describe('I-5 REG-LBC-002 version de liste', () => {
   it('refuse une source hors de l’hôte officiel ONU (KYC_LIST_INVALID)', async () => {
     for (const url of ['https://scsanctions.un.org.evil.example/consolidated.xml', 'https://example.org/resources/xml/en/consolidated.xml', 'https://evil.example/scsanctions.un.org/x.xml']) {
-      const refused = await failure(() => transact((client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: url, actorId: 'comp-1' })));
+      const refused = await failure(() => importListAsImporter(container.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: url, actorId: 'comp-1' }));
       expect(refused.message, url).toMatch(/^KYC_LIST_INVALID: source hors de l'hôte officiel/);
     }
   });
 
   it('refuse une liste datée du futur, qui deviendrait la référence (KYC_LIST_INVALID)', async () => {
     const future = EXCERPT.replace('dateGenerated="2026-11-17T00:00:02.485Z"', 'dateGenerated="2099-01-01T00:00:00.000Z"');
-    const refused = await failure(() => transact((client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: future, sourceUrl: SOURCE, actorId: 'comp-1' })));
+    const refused = await failure(() => importListAsImporter(container.getConnectionUri(), { versionId: uuidv7(), xml: future, sourceUrl: SOURCE, actorId: 'comp-1' }));
     expect(refused.message).toMatch(/^KYC_LIST_INVALID: date de génération dans le futur/);
     expect((await admin.query('SELECT count(*)::int AS n FROM kyc.sanctions_list_version')).rows[0]).toEqual({ n: 0 });
   });

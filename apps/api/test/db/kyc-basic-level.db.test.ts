@@ -4,11 +4,11 @@ import { BusinessError } from '@achat/contracts';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AdminPrincipal } from '../../src/modules/admin/domain';
-import { importUnSanctionsList } from '../../src/modules/kyc/sanctions.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { declareLegalNameAndScreen } from '../../src/workflows/kyc-basic-level';
 import { reviewSanctionsMatch } from '../../src/workflows/sanctions-screening';
 import { seedCustomerAccount } from './agreement-fixture';
+import { importListAsImporter } from './kyc-list-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /**
@@ -64,7 +64,7 @@ function declare(legalName: string): ReturnType<typeof declareLegalNameAndScreen
 }
 
 async function importList(): Promise<void> {
-  await transact((client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp-1' }));
+  await importListAsImporter(container.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp-1' });
 }
 
 beforeAll(async () => {

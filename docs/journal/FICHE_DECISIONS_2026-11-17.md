@@ -54,6 +54,7 @@
 | D77 | Informer le client de son **niveau KYC** sans révéler un rapprochement (accord différé pour tous ? message unique ?) — avis Conformité | Réponse neutre unique ; niveau jamais affiché. |
 | D78 | Écartement d'un rapprochement à **deux personnes** aussi pour les partenaires (déjà appliqué aux clients) ? **Oui / Non** | Clients seulement. |
 | D79 | Portail partenaire : identifiants préfixés par partenaire ? jeton d'enrôlement remis au vendeur seul ? sessions coupées à la défaillance du marchand ? | Inchangé, consigné. |
+| D80 | Liste ONU : qui détient le rôle d'**import** (`kyc_list_importer`) ; import confirmé par une seconde personne ? Noms arabes **vocalisés** acceptés ? | Rôle sans titulaire ; noms vocalisés refusés. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

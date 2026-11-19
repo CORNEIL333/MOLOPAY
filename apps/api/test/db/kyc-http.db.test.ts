@@ -11,10 +11,10 @@ import { AppModule } from '../../src/app.module';
 import { createDatabase, withTransaction, type Database } from '../../src/http/database';
 import { createPartnerDossier } from '../../src/modules/catalog/partner';
 import { appendPartnerDossier } from '../../src/modules/catalog/partner.store';
-import { importUnSanctionsList } from '../../src/modules/kyc/sanctions.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { declareLegalNameAndScreen } from '../../src/workflows/kyc-basic-level';
 import { seedCustomerAccount } from './agreement-fixture';
+import { importListAsImporter } from './kyc-list-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
@@ -101,14 +101,14 @@ describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
     const unavailable = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance, {});
     expect(unavailable.status).toBe(422);
     expect(payload(unavailable).code).toBe('KYC_LIST_UNAVAILABLE');
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     const unknown = await post('/v1/backoffice/partners/inconnu-1/screenings', cookies.compliance, {});
     expect(unknown.status).toBe(404);
     expect(payload(unknown).code).toBe('KYC_SUBJECT_NOT_FOUND');
   });
 
   it('raison sociale du dernier dossier filtrée ; rapprochement examiné par la conformité ; état consultable', async () => {
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     await dossier('merchant-9', 'Quincaillerie du Centre');
     await dossier('merchant-9', 'Butembo Airlines SARL');
     // I-3 : le réseau partenaires ne filtre que dans son périmètre ; aucun périmètre partenaire n'est attribué au personnel (D63).
@@ -131,7 +131,7 @@ describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
   });
 
   it('droits : les opérations ne filtrent pas ; le réseau partenaires n’examine pas ; l’auteur du filtrage n’examine pas', async () => {
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     await dossier('merchant-9', 'Butembo Airlines SARL');
     const denied = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.ops, {});
     expect(denied.status).toBe(403);
@@ -147,7 +147,7 @@ describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
 
 describe('REG-LBC-002 / F-BO-004 consultation d’un filtrage par la Conformité (D74)', () => {
   it('nom filtré et entrées rapprochées (noms listés) ; motif obligatoire ; journalisé ; réseau partenaires refusé', async () => {
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     await dossier('merchant-9', 'Butembo Airlines SARL');
     const screened = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance2, {});
     const id = payload(screened).screeningId ?? '';
@@ -171,14 +171,14 @@ describe('REG-LBC-002 / F-BO-004 consultation d’un filtrage par la Conformité
     expect((await request(server()).get(`/v1/backoffice/screenings/${uuidv7()}`).query({ reason: 'examen' }).set('Cookie', cookies.compliance)).status).toBe(404);
     // Une version plus récente de la liste ne change pas les entrées montrées pour ce filtrage (version figée).
     const later = EXCERPT.replace('dateGenerated="2026-11-17T00:00:02.485Z"', 'dateGenerated="2026-11-18T00:00:02.485Z"').replace('BUTEMBO AIRLINES (BAL)', 'BUTEMBO AIRLINES (BAL) LIMITED');
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: later, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: later, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     await post(`/v1/backoffice/screenings/${id}/review`, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'société distincte' });
     const again = await request(server()).get(path).query({ reason: 'contrôle après examen' }).set('Cookie', cookies.compliance);
     expect(again.body).toMatchObject({ matches: [{ reference: 'CDe.002', names: ['BUTEMBO AIRLINES (BAL)'] }], review: { decision: 'FALSE_POSITIVE' } });
   });
 
   it('filtrage d’un client : consultation journalisée avec l’identifiant du client', async () => {
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     const customer = '019ab900-0000-7000-8000-0000000000c9';
     await seedCustomerAccount(admin, customer, 'NONE');
     const declared = await withTransaction(database, (client) => declareLegalNameAndScreen(client, { accountId: customer, legalName: 'Eric Badege' }));
@@ -191,7 +191,7 @@ describe('REG-LBC-002 / F-BO-004 consultation d’un filtrage par la Conformité
 
 describe('F-BO-003 / D75 rapprochements en attente d’examen dans la file de travail', () => {
   it('un rapprochement non examiné apparaît (sans nom) ; il disparaît après examen ; un filtrage sans rapprochement n’apparaît pas', async () => {
-    await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
+    await importListAsImporter(db.getConnectionUri(), { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' });
     const customer = '019aba00-0000-7000-8000-0000000000c1';
     await seedCustomerAccount(admin, customer, 'NONE');
     const match = await withTransaction(database, (client) => declareLegalNameAndScreen(client, { accountId: customer, legalName: 'Eric Badege' }));

@@ -3,8 +3,9 @@ import { resolve } from 'node:path';
 import { BusinessError } from '@achat/contracts';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { getScreeningStatus, importUnSanctionsList, recordScreeningReview, screenName } from '../../src/modules/kyc/sanctions.store';
+import { getScreeningStatus, recordScreeningReview, screenName } from '../../src/modules/kyc/sanctions.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
+import { asListImporter, importListAsImporter } from './kyc-list-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /**
@@ -50,7 +51,7 @@ async function failure(action: () => Promise<unknown>): Promise<{ code: string |
 }
 
 function importExcerpt(xml = EXCERPT): Promise<{ versionId: string; entryCount: number }> {
-  return transact((client) => importUnSanctionsList(client, { versionId: uuidv7(), xml, sourceUrl: SOURCE, actorId: 'comp-1' }));
+  return importListAsImporter(container.getConnectionUri(), { versionId: uuidv7(), xml, sourceUrl: SOURCE, actorId: 'comp-1' });
 }
 
 function screen(name: string, subjectId = 'merchant-1', actorId = 'net-1'): ReturnType<typeof screenName> {
@@ -91,7 +92,7 @@ describe('REG-LBC-002 import de la liste consolidée ONU', () => {
 
   it('la base refuse une liste tronquée (nombre annoncé ≠ entrées) et tout ajout après validation', async () => {
     const truncated = await failure(() =>
-      transact(async (client) => {
+      asListImporter(container.getConnectionUri(), async (client) => {
         const id = uuidv7();
         await client.query(
           `INSERT INTO kyc.sanctions_list_version (id, source, source_url, generated_at, content_sha256, entry_count, imported_by, imported_at)
@@ -104,7 +105,7 @@ describe('REG-LBC-002 import de la liste consolidée ONU', () => {
     expect(truncated.message).toMatch(/^KYC_LIST_INVALID: 1 entrées importées pour 2 annoncées/);
     const imported = await importExcerpt();
     const late = await failure(() =>
-      transact((client) => client.query(`INSERT INTO kyc.sanctions_entry (version_id, reference, kind, names) VALUES ($1, 'CDi.999', 'INDIVIDUAL', ARRAY['X Y'])`, [imported.versionId])),
+      asListImporter(container.getConnectionUri(), (client) => client.query(`INSERT INTO kyc.sanctions_entry (version_id, reference, kind, names) VALUES ($1, 'CDi.999', 'INDIVIDUAL', ARRAY['X Y'])`, [imported.versionId])),
     );
     expect(late.message).toMatch(/^KYC_APPEND_ONLY: entrée ajoutée à une liste déjà validée/);
   });

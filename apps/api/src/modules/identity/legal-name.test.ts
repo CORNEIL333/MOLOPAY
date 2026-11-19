@@ -39,4 +39,13 @@ describe('REG-LBC-001 / D68 nom légal déclaré', () => {
     expect(refused('12 34')).toBe('KYC_INVALID_REQUEST');
     expect(refused('A'.repeat(201))).toBe('KYC_INVALID_REQUEST');
   });
+
+  it('IMP-2 refuse une marque diacritique hors des plages normalisées, comme la base (KYC_INVALID_REQUEST)', () => {
+    expect(refused('Eric Bad\u0951ege')).toBe('KYC_INVALID_REQUEST');
+    expect(refused('\u0645\u064F\u062D\u064E\u0645\u0651\u064E\u062F')).toBe('KYC_INVALID_REQUEST');
+    expect(refused('Eric Bad\u0E31ege')).toBe('KYC_INVALID_REQUEST');
+    expect(refused('Eric Bad@ege')).toBe('KYC_INVALID_REQUEST');
+    expect(parseLegalName('Ëric Bâdège-N’Diaye, Jr.')).toBe('Ëric Bâdège-N’Diaye, Jr.');
+    expect(parseLegalName('\u0645\u062D\u0645\u062F')).toBe('\u0645\u062D\u0645\u062F');
+  });
 });

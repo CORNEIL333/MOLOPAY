@@ -81,4 +81,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Revue indépendante du 19 novembre entièrement traitée (bloquant, importants, mineurs) ; ce qui reste demande une décision (D77–D79). Travail sans décision restant : nouvelle revue indépendante des changements du 19 novembre (vérificateur sans contexte). Sinon, attendre les décisions de la fiche du 17 novembre.
+Seconde revue indépendante traitée (IMP-1 à IMP-3, 0065). Tout le reste dépend de décisions (D63–D80, fiche du 17 novembre) ou d'accès externes. Prochaine étape : attendre les décisions.
