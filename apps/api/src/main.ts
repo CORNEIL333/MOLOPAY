@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { createDatabase, databaseConfigFromEnv } from './http/database';
 import { allowedOriginsFromEnv } from './http/origin.guard';
 import { pinPepperFromEnv } from './modules/identity/pin.store';
+import { stdoutLogSink } from './observability/log';
 
 export async function bootstrap(): Promise<void> {
   const database = createDatabase(databaseConfigFromEnv(process.env));
@@ -13,6 +14,7 @@ export async function bootstrap(): Promise<void> {
       allowedOrigins: allowedOriginsFromEnv(process.env),
       // Fermé par défaut : sans PIN_PEPPER, aucune action sous PIN n'est possible.
       pinPepper: process.env['PIN_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env),
+      logSink: stdoutLogSink,
     }),
   );
   app.enableShutdownHooks();
