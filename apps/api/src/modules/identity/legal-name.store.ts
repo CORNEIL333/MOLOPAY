@@ -8,13 +8,36 @@ type SqlClient = Pick<PoolClient, 'query'>;
  * ajout seul). Le nom est une donnée personnelle exigée par le niveau 1 :
  * jamais journalisé, jamais renvoyé ailleurs qu'au client lui-même.
  */
+/** Écritures dont des lettres imitent les lettres latines ; toute autre écriture forme un seul groupe. */
+const SCRIPTS: readonly (readonly [string, RegExp])[] = [
+  ['Latin', /\p{Script=Latin}/u],
+  ['Cyrillic', /\p{Script=Cyrillic}/u],
+  ['Greek', /\p{Script=Greek}/u],
+  ['Armenian', /\p{Script=Armenian}/u],
+  ['Cherokee', /\p{Script=Cherokee}/u],
+  ['Coptic', /\p{Script=Coptic}/u],
+];
+
+function scriptOf(letter: string): string {
+  return SCRIPTS.find(([, pattern]) => pattern.test(letter))?.[0] ?? 'Other';
+}
+
+/**
+ * Nom légal déclaré (D68). Refusés (I-1) : caractères de contrôle, de format
+ * ou invisibles (ils coupent un mot et feraient échapper le nom au filtrage)
+ * et mélange d'écritures dans un même nom (homoglyphes).
+ */
 export function parseLegalName(value: unknown): string {
   if (typeof value !== 'string') {
     throw new BusinessError('KYC_INVALID_REQUEST', 'nom légal attendu');
   }
   const name = value.normalize('NFC').replace(/\s+/g, ' ').trim();
-  if (name.length < 2 || name.length > 200 || /\p{Cc}/u.test(value) || !/\p{L}/u.test(name)) {
+  if (name.length < 2 || name.length > 200 || /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/u.test(value) || !/\p{L}/u.test(name)) {
     throw new BusinessError('KYC_INVALID_REQUEST', 'nom légal invalide (2 à 200 caractères, lettres)');
+  }
+  const scripts = new Set([...name.matchAll(/\p{L}/gu)].map(([letter]) => scriptOf(letter)));
+  if (scripts.size > 1) {
+    throw new BusinessError('KYC_INVALID_REQUEST', 'nom légal invalide (une seule écriture)');
   }
   return name;
 }

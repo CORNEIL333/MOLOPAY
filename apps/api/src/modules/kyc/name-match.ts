@@ -5,11 +5,27 @@ import { BusinessError } from '@achat/contracts';
  * accents retirés, majuscules, tout ce qui n'est ni lettre ni chiffre
  * remplacé par une espace, espaces réduites.
  */
+/**
+ * Lettres cyrilliques et grecques capitales visuellement identiques à une
+ * lettre latine (I-1) : ramenées à la lettre latine des deux côtés de la
+ * comparaison, pour qu'un homoglyphe ne fasse pas échapper un nom au filtrage.
+ */
+const CONFUSABLES: Readonly<Record<string, string>> = Object.freeze({
+  '\u0410': 'A', '\u0412': 'B', '\u0415': 'E', '\u0405': 'S', '\u0406': 'I', '\u0408': 'J', '\u041A': 'K', '\u041C': 'M',
+  '\u041D': 'H', '\u041E': 'O', '\u0420': 'P', '\u0421': 'C', '\u0422': 'T', '\u0425': 'X', '\u0423': 'Y', '\u04AE': 'Y',
+  '\u04C0': 'I', '\u051A': 'Q', '\u051C': 'W',
+  '\u0391': 'A', '\u0392': 'B', '\u0395': 'E', '\u0396': 'Z', '\u0397': 'H', '\u0399': 'I', '\u039A': 'K', '\u039C': 'M',
+  '\u039D': 'N', '\u039F': 'O', '\u03A1': 'P', '\u03A4': 'T', '\u03A5': 'Y', '\u03A7': 'X',
+});
+
+/** Forme de comparaison : sans caractère invisible, sans accent, capitales latines, mots séparés par une espace. */
 export function normalizeName(name: string): string {
   return name
+    .replace(/\p{Default_Ignorable_Code_Point}/gu, '')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toUpperCase()
+    .replace(/[\u0370-\u03FF\u0400-\u052F]/gu, (letter) => CONFUSABLES[letter] ?? letter)
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }

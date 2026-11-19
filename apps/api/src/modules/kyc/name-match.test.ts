@@ -36,4 +36,19 @@ describe('REG-LBC-002 / D66 rapprochement des noms', () => {
   it('nom vide après normalisation : refusé (jamais « aucun rapprochement » par défaut)', () => {
     expect(() => findPotentialMatches('---', ENTRIES)).toThrow();
   });
+
+  it('I-1 caractères invisibles (format, ignorables) retirés avant comparaison : rapprochement maintenu', () => {
+    expect(normalizeName('Er\u200Bic Bad\u00ADege')).toBe('ERIC BADEGE');
+    expect(findPotentialMatches('Er\u200Bic Ba\u200Ddege', ENTRIES)).toEqual(['CDi.001']);
+    expect(findPotentialMatches('E\u2060ric B\uFEFFadege', ENTRIES)).toEqual(['CDi.001']);
+    expect(findPotentialMatches('Eric\u034F Badege', ENTRIES)).toEqual(['CDi.001']);
+  });
+
+  it('I-1 homoglyphes cyrilliques ou grecs ramenés aux lettres latines : rapprochement maintenu', () => {
+    // « Е » cyrillique (U+0415), « і » ukrainien (U+0456), « а » cyrillique (U+0430), « Ε » grec (U+0395).
+    expect(normalizeName('\u0415r\u0456c B\u0430dege')).toBe('ERIC BADEGE');
+    expect(findPotentialMatches('\u0415r\u0456c B\u0430dege', ENTRIES)).toEqual(['CDi.001']);
+    expect(findPotentialMatches('\u0395ric Badeg\u0435', ENTRIES)).toEqual(['CDi.001']);
+    expect(findPotentialMatches('\u0410DF', ENTRIES)).toEqual(['CDe.001']);
+  });
 });

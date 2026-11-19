@@ -557,3 +557,8 @@
 - **Appliqué :** réponse unique `{ "verification": "RECEIVED" }`, identique octet pour octet dans les deux cas (test qui compare les deux réponses) ; le niveau reste accordé en base par `kyc.grant_basic_level`. Client web : un seul message neutre. Contrat 0.30.0.
 - **Indice résiduel :** le niveau 1 ouvre des plafonds plus élevés (`kyc_limits`) ; un client refusé au-delà du plafond NONE peut en déduire que son niveau n'a pas été accordé. Aucun écran n'affiche le niveau.
 - **⚖ À décider :** comment et quand informer le client de son niveau (ex. accord différé d'un délai fixe pour tous, message unique « vérifications réglementaires » pour tout refus de plafond lié au niveau) — avis Conformité requis.
+
+### I-1 · Caractères invisibles et homoglyphes dans le filtrage (19 novembre)
+- **Constat (revue indépendante) :** un espace de largeur nulle (U+200B) coupait un mot (« ER IC BADEGE ») et une lettre cyrillique identique à une lettre latine (« Е ») changeait le mot : le nom échappait au rapprochement ONU.
+- **Appliqué :** `parseLegalName` refuse les caractères de contrôle, de format et invisibles (`\p{Cf}`, `Default_Ignorable_Code_Point`) et le mélange d'écritures (latin, cyrillique, grec, arménien, cherokee, copte, autre) dans un même nom ; `normalizeName` retire les caractères invisibles et ramène les capitales cyrilliques et grecques visuellement identiques aux lettres latines, des deux côtés de la comparaison (rappel accru, examen par la Conformité). 6 tests ; 5 mutants tués.
+- **Reste :** la table d'homoglyphes est volontairement courte (lettres capitales courantes) ; une table complète (Unicode TR39 « confusables ») demanderait un jeu de données externe à revoir (aucune dépendance ajoutée).
