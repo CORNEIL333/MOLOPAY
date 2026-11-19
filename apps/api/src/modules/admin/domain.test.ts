@@ -29,8 +29,9 @@ const CONTEXT: AuthorizationContext = {
 };
 
 const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = {
-  SUPPORT_N1: [],
-  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT'],
+  // C4 / F-ACC-006 : blocage d'un compte client (perte ou vol du téléphone), motif obligatoire.
+  SUPPORT_N1: ['BLOCK_CUSTOMER_ACCOUNT'],
+  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT', 'BLOCK_CUSTOMER_ACCOUNT'],
   OPERATIONS: [
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
@@ -79,7 +80,7 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'REVIEW_SANCTIONS_MATCH',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
-  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT'],
+  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT'],
   PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER'],
   AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
@@ -160,6 +161,11 @@ describe('RBAC · matrice rôle × action exhaustive', () => {
 });
 
 describe('ABAC · périmètre, plafond et motif', () => {
+  it('C4 / F-ACC-006 le blocage d’un compte client exige un motif (ADMIN_REASON_REQUIRED)', () => {
+    expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', { reason: 'Téléphone volé' })).toMatchObject({ allowed: true });
+  });
+
   it('D31 exige un motif pour déclarer une défaillance marchand', () => {
     const decision = authorize(principal('network-1', ['PARTNER_NETWORK']), 'DECLARE_MERCHANT_DEFAULT', {
       partnerId: 'partner-1',

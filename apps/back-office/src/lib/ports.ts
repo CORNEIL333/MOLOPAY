@@ -8,6 +8,7 @@ import type { WorkQueuePorts } from '../components/work-queue';
 import type { ComplaintPorts as ComplaintPort } from '../components/complaint-detail';
 import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
+import type { CustomerBlockPorts } from '../components/customer-block';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -182,5 +183,17 @@ export const browserComplaintPorts: ComplaintPort = {
   async load(complaintId, reason) {
     const result = await api().GET('/v1/backoffice/complaints/{complaintId}', { params: { path: { complaintId }, query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, complaint: result.data };
+  },
+};
+
+/** C4 / F-ACC-006 : blocage d'un compte client par la route réelle ; une clé d'idempotence par confirmation. */
+export const browserCustomerBlockPorts: CustomerBlockPorts = {
+  async block(accountId, reason) {
+    const result = await api().POST('/v1/backoffice/customers/{accountId}/block', {
+      params: { path: { accountId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { reason },
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, blockedAt: result.data.blockedAt };
   },
 };

@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **83 routes.**
+- **84 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -31,6 +31,7 @@
 | `GET` | `/v1/backoffice/complaints/{complaintId}` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Détail d’une réclamation, consultation motivée (F-SUP-001, F-BO-004, D73) |
 | `POST` | `/v1/backoffice/complaints/{complaintId}/closure` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Clore une réclamation (D56) |
 | `POST` | `/v1/backoffice/complaints/{complaintId}/disputes` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Ouvrir un litige sur une réclamation (D56) |
+| `POST` | `/v1/backoffice/customers/{accountId}/block` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Bloquer un compte client : perte ou vol du téléphone, fraude présumée (F-ACC-006) |
 | `GET` | `/v1/backoffice/dashboard` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Tableau de bord agrégé, consultation motivée et journalisée (F-BO-003, D65) |
 | `POST` | `/v1/backoffice/disputes/{disputeId}/resolution` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Lever un litige, par une autre personne (D56) |
 | `GET` | `/v1/backoffice/goals/{goalId}/history` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Historique d’un objectif pour le support (F-SUP-003, consultation motivée et journalisée) |

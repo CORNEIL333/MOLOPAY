@@ -20,6 +20,8 @@
 | C1 | Intégration de la branche du sprint, revues indépendantes | `sprint/integration-t01urw` | Continu | En cours |
 | C2 | Contrat 1.0 : routes nécessaires aux interfaces (demandes de Gemini et de Qoder), figé à J7 | `sprint/integration-t01urw` | J7 | En cours : `GET /v1/me`, renouvellement de session, inscription par OTP et connexion appareil + PIN, renouvellement lié à l'appareil livrés (contrat 0.35.0) |
 | C3 | Back-office prêt à la mise en service (hors CRM), durcissement, tests d'attaque | `sprint/integration-t01urw` | J6 | À démarrer |
+| C4 | Blocage d'un compte client par le support (F-ACC-006) : route, base, écran `/clients/blocage` | `sprint/integration-t01urw` | J4 | Livré (contrat 0.36.0, migration 0068) |
+| C5 | Fil de notifications du client dans l'application (`GET /v1/me/notifications`), sans prestataire | `sprint/integration-t01urw` | J5 | En cours |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 
