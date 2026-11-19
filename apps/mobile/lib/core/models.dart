@@ -911,3 +911,57 @@ enum DeviceChallengePurpose {
   final String apiValue;
   final String signingContext;
 }
+
+/// Notification client générique (`GET /v1/me/notifications`, Contrat 0.37.0, F-NOT-001/002).
+final class CustomerNotification {
+  const CustomerNotification({
+    required this.notificationId,
+    required this.eventType,
+    required this.createdAt,
+    required this.title,
+    required this.body,
+  });
+
+  final String notificationId;
+  final String eventType;
+  final DateTime createdAt;
+  final String title;
+  final String body;
+
+  factory CustomerNotification.fromJson(Map<String, Object?> json) {
+    return CustomerNotification(
+      notificationId: _reqString(json, 'notificationId'),
+      eventType: _reqString(json, 'eventType'),
+      createdAt: DateTime.parse(_reqString(json, 'createdAt')),
+      title: _reqString(json, 'title'),
+      body: _reqString(json, 'body'),
+    );
+  }
+}
+
+/// Fil paginé des notifications client (`GET /v1/me/notifications`).
+final class CustomerNotificationFeed {
+  const CustomerNotificationFeed({
+    required this.items,
+    required this.nextBefore,
+    required this.asOf,
+  });
+
+  final List<CustomerNotification> items;
+  final String? nextBefore;
+  final DateTime asOf;
+
+  factory CustomerNotificationFeed.fromJson(Map<String, Object?> json) {
+    final rawItems = json['items'];
+    if (rawItems is! List<Object?>) {
+      throw const FormatException('Champ items attendu.');
+    }
+    return CustomerNotificationFeed(
+      items: rawItems
+          .map((item) => CustomerNotification.fromJson(_asMap(item, 'item')))
+          .toList(),
+      nextBefore: _optString(json, 'nextBefore'),
+      asOf: DateTime.parse(_reqString(json, 'asOf')),
+    );
+  }
+}

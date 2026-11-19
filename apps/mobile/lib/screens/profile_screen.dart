@@ -7,6 +7,7 @@ import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
 import 'account_screens.dart';
+import 'notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -244,6 +245,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         if (session != null) ...[
+          Tile(
+            CupertinoIcons.bell,
+            'Notifications',
+            '',
+            () => Navigator.of(context).push(
+              CupertinoPageRoute<void>(
+                builder: (_) => NotificationsScreen(state: widget.state),
+              ),
+            ),
+          ),
           Tile(
             CupertinoIcons.shield,
             s.securityTitle,
