@@ -51,6 +51,7 @@
 | # | Question | Option appliquée |
 |---|---|---|
 | D75 | Délai cible d'examen d'un rapprochement sanctions et escalade (comme les 48 h des écarts) ? | Aucun délai ; rapprochements listés dans la file. |
+| D77 | Informer le client de son **niveau KYC** sans révéler un rapprochement (accord différé pour tous ? message unique ?) — avis Conformité | Réponse neutre unique ; niveau jamais affiché. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

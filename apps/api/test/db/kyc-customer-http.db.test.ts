@@ -23,6 +23,7 @@ const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'pay
 const EXCERPT = readFileSync(resolve(process.cwd(), 'apps/api/src/modules/kyc/fixtures/un-consolidated-excerpt.xml'), 'utf8');
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab600-0000-7000-8000-0000000000c1';
+const OTHER_CUSTOMER = '019ab600-0000-7000-8000-0000000000c2';
 
 let db: TestDatabase;
 let admin: Client;
@@ -86,18 +87,23 @@ beforeEach(async () => {
 });
 
 describe('REG-LBC-001 / D68 nom légal du client', () => {
-  it('nom sans rapprochement : niveau 1 accordé ; réponse privée sans le nom', async () => {
+  it('nom sans rapprochement : niveau 1 accordé en base ; réponse privée, neutre, sans le nom', async () => {
     const response = await declare(await session(CUSTOMER), { legalName: 'Aïcha Ngono Mballa' });
     expect(response.status, JSON.stringify(response.body)).toBe(201);
     expect(response.headers['cache-control']).toBe('private, no-store');
-    expect(response.body).toEqual({ kycLevel: 'BASIC', verification: 'COMPLETED' });
+    expect(response.body).toEqual({ verification: 'RECEIVED' });
+    expect((await admin.query('SELECT kyc_level FROM identity.account WHERE id = $1', [CUSTOMER])).rows[0]).toEqual({ kyc_level: 'BASIC' });
   });
 
-  it('rapprochement : réponse indiscernable d’une simple vérification en cours (aucune alerte du client)', async () => {
-    const response = await declare(await session(CUSTOMER), { legalName: 'Eric Badege' });
-    expect(response.status).toBe(201);
-    expect(response.body).toEqual({ kycLevel: 'NONE', verification: 'IN_PROGRESS' });
-    expect(JSON.stringify(response.body)).not.toMatch(/MATCH|CDi|sanction|ONU|UN/i);
+  it('B-1 rapprochement : réponse identique octet pour octet à celle d’un nom sans rapprochement (aucune alerte du client)', async () => {
+    const clean = await declare(await session(CUSTOMER), { legalName: 'Aïcha Ngono Mballa' });
+    await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
+    const matched = await declare(await session(OTHER_CUSTOMER), { legalName: 'Eric Badege' });
+    expect(matched.status).toBe(clean.status);
+    expect(matched.text).toBe(clean.text);
+    expect(matched.headers['cache-control']).toBe(clean.headers['cache-control']);
+    expect(matched.headers['content-type']).toBe(clean.headers['content-type']);
+    expect((await admin.query('SELECT kyc_level FROM identity.account WHERE id = $1', [OTHER_CUSTOMER])).rows[0]).toEqual({ kyc_level: 'NONE' });
   });
 
   it('corps en liste blanche, nom invalide, sans session : refus', async () => {

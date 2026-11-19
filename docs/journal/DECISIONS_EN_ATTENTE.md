@@ -551,3 +551,9 @@
 ### NF-UX-005 · Confirmation explicite avant le règlement C (19 novembre)
 - **Constat :** sur le client web, le règlement au bénéficiaire (irréversible, cité par NF-UX-005) partait dès la saisie du PIN, sans résumé.
 - **Appliqué :** étape « Préparer le règlement » qui affiche le résumé (montant réglé, bénéficiaire, caractère irréversible), puis PIN et « Confirmer le règlement », avec « Annuler » (aucun appel serveur). FR/EN. 1 test ajouté, 2 tests adaptés ; 2 mutations détectées. L'annulation d'un objectif n'a pas d'écran web (parcours mobile sous signature d'appareil).
+
+### D77 · Aucun indice de rapprochement dans la réponse au client (B-1, 19 novembre)
+- **Constat (revue indépendante) :** `POST /v1/me/legal-name` renvoyait `BASIC/COMPLETED` pour un nom sans rapprochement et `NONE/IN_PROGRESS` sinon : la seconde réponse signifiait toujours un rapprochement (alerte de la personne interdite, LBC/FT). Le test passait pour une mauvaise raison (il vérifiait seulement l'absence de mots-clés).
+- **Appliqué :** réponse unique `{ "verification": "RECEIVED" }`, identique octet pour octet dans les deux cas (test qui compare les deux réponses) ; le niveau reste accordé en base par `kyc.grant_basic_level`. Client web : un seul message neutre. Contrat 0.30.0.
+- **Indice résiduel :** le niveau 1 ouvre des plafonds plus élevés (`kyc_limits`) ; un client refusé au-delà du plafond NONE peut en déduire que son niveau n'a pas été accordé. Aucun écran n'affiche le niveau.
+- **⚖ À décider :** comment et quand informer le client de son niveau (ex. accord différé d'un délai fixe pour tous, message unique « vérifications réglementaires » pour tout refus de plafond lié au niveau) — avis Conformité requis.

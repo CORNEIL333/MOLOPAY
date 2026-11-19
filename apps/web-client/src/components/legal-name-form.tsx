@@ -6,13 +6,13 @@ import { getDictionary, type Locale } from '../i18n';
 
 /** Envoi injecté (navigateur : `browserLegalNamePort`) ; une clé d'idempotence par intention. */
 export type LegalNamePort = (legalName: string) => Promise<
-  { readonly ok: true; readonly kycLevel: 'NONE' | 'BASIC' | 'STRONG'; readonly verification: 'COMPLETED' | 'IN_PROGRESS' } | { readonly ok: false; readonly problem: ProblemSummary }
+  { readonly ok: true; readonly verification: 'RECEIVED' } | { readonly ok: false; readonly problem: ProblemSummary }
 >;
 
 /**
- * REG-LBC-001 / D68 : le client déclare son nom légal (niveau 1). Le
- * résultat affiché reste neutre : « vérification en cours » ne révèle jamais
- * pourquoi (interdiction d'alerter la personne, LBC/FT).
+ * REG-LBC-001 / D68 : le client déclare son nom légal (niveau 1). Un seul
+ * message, identique quel que soit le résultat du filtrage (interdiction
+ * d'alerter la personne, LBC/FT, B-1 / D77).
  */
 export function LegalNameForm({ locale, submit }: { readonly locale: Locale; readonly submit: LegalNamePort }): ReactElement {
   const labels = getDictionary(locale).legalName;
@@ -20,7 +20,7 @@ export function LegalNameForm({ locale, submit }: { readonly locale: Locale; rea
   const [name, setName] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
-  const [outcome, setOutcome] = useState<'COMPLETED' | 'IN_PROGRESS' | null>(null);
+  const [received, setReceived] = useState(false);
   const [pending, setPending] = useState(false);
   const sending = useRef(false);
 
@@ -39,7 +39,7 @@ export function LegalNameForm({ locale, submit }: { readonly locale: Locale; rea
     try {
       const result = await submit(legalName);
       if (result.ok) {
-        setOutcome(result.verification);
+        setReceived(true);
         setName('');
       } else {
         setProblem(result.problem);
@@ -56,7 +56,7 @@ export function LegalNameForm({ locale, submit }: { readonly locale: Locale; rea
     <section aria-busy={pending}>
       <h1 className="page-title">{labels.title}</h1>
       <p className="page-subtitle">{labels.description}</p>
-      {outcome === null ? null : <p role="status">{outcome === 'COMPLETED' ? labels.completed : labels.inProgress}</p>}
+      {received ? <p role="status">{labels.received}</p> : null}
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void send(event)} noValidate>
         <TextField id={nameId} label={labels.label} autoComplete="name" value={name} error={error} onChange={(event) => { setName(event.target.value); }} />

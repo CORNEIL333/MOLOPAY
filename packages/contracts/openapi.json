@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.29.0",
+    "version": "0.30.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -8582,24 +8582,14 @@
       "KycVerification": {
         "type": "object",
         "required": [
-          "kycLevel",
           "verification"
         ],
-        "description": "D68 : jamais de détail de filtrage (aucune alerte de la personne, LBC/FT).",
+        "description": "D68 / D77 : accusé de réception unique, identique qu'il y ait ou non rapprochement (aucune alerte de la personne, LBC/FT). Ni niveau KYC ni état de filtrage.",
         "properties": {
-          "kycLevel": {
-            "type": "string",
-            "enum": [
-              "NONE",
-              "BASIC",
-              "STRONG"
-            ]
-          },
           "verification": {
             "type": "string",
             "enum": [
-              "COMPLETED",
-              "IN_PROGRESS"
+              "RECEIVED"
             ]
           }
         },

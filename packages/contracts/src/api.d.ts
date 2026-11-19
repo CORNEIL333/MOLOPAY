@@ -2375,12 +2375,10 @@ export interface components {
         LegalNameDeclaration: {
             legalName: string;
         };
-        /** @description D68 : jamais de détail de filtrage (aucune alerte de la personne, LBC/FT). */
+        /** @description D68 / D77 : accusé de réception unique, identique qu'il y ait ou non rapprochement (aucune alerte de la personne, LBC/FT). Ni niveau KYC ni état de filtrage. */
         KycVerification: {
             /** @enum {string} */
-            kycLevel: "NONE" | "BASIC" | "STRONG";
-            /** @enum {string} */
-            verification: "COMPLETED" | "IN_PROGRESS";
+            verification: "RECEIVED";
         };
         /** @description F-SUP-001 / D73 : consultation motivée et journalisée ; l'identifiant du client n'est pas renvoyé. */
         ComplaintDetail: {

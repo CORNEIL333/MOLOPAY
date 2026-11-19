@@ -12,8 +12,9 @@ import { declareLegalNameAndScreen } from './kyc-basic-level';
 
 /**
  * REG-LBC-001 / D68 : le client déclare son nom légal (niveau 1). La réponse
- * ne distingue jamais un rapprochement d'une vérification ordinaire en cours
- * (interdiction d'alerter la personne, LBC/FT) ; le nom n'est pas renvoyé.
+ * est identique octet pour octet, qu'il y ait rapprochement ou non : ni niveau
+ * ni état de vérification (interdiction d'alerter la personne, LBC/FT, B-1) ;
+ * le nom n'est pas renvoyé.
  */
 @Controller('v1/me/legal-name')
 @UseGuards(CustomerSessionGuard)
@@ -35,9 +36,9 @@ export class LegalNameController {
       { ...this.database, role: 'app_rw' },
       { scope: `legal-name:${actor.accountId}`, key, request: { legalName }, authorize: (client) => lockDataRightsActor(client, actor, cookie) },
       async (client) => {
-        const outcome = await declareLegalNameAndScreen(client, { accountId: actor.accountId, legalName });
-        const granted = outcome.kycLevel === 'BASIC' || outcome.kycLevel === 'STRONG';
-        return { status: 201, body: { kycLevel: granted ? outcome.kycLevel : 'NONE', verification: granted ? 'COMPLETED' : 'IN_PROGRESS' } };
+        await declareLegalNameAndScreen(client, { accountId: actor.accountId, legalName });
+        // B-1 : réponse unique, quel que soit le résultat du filtrage ou le niveau obtenu (D77).
+        return { status: 201, body: { verification: 'RECEIVED' } };
       },
     );
     return result.body;

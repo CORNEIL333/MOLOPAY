@@ -16,22 +16,22 @@ async function submit(injected: LegalNamePort, name: string, locale: 'fr' | 'en'
 }
 
 describe('REG-LBC-001 / D68 déclaration du nom légal (client web)', () => {
-  it('nom valide : envoyé une fois, niveau 1 confirmé', async () => {
-    const injected = port({ ok: true, kycLevel: 'BASIC', verification: 'COMPLETED' });
+  it('nom valide : envoyé une fois, accusé de réception neutre', async () => {
+    const injected = port({ ok: true, verification: 'RECEIVED' });
     await submit(injected, '  Aïcha   Ngono Mballa ');
-    await waitFor(() => { expect(screen.getByRole('status')).toHaveTextContent('Votre nom est enregistré'); });
+    await waitFor(() => { expect(screen.getByRole('status')).toHaveTextContent('Votre nom est enregistré. Il fait l’objet des vérifications prévues par la réglementation.'); });
     expect(injected).toHaveBeenCalledTimes(1);
     expect(injected).toHaveBeenCalledWith('Aïcha Ngono Mballa');
   });
 
-  it('vérification en cours : message neutre, jamais de détail', async () => {
-    await submit(port({ ok: true, kycLevel: 'NONE', verification: 'IN_PROGRESS' }), 'Eric Badege');
-    await waitFor(() => { expect(screen.getByRole('status')).toHaveTextContent('vérification est en cours'); });
-    expect(document.body).not.toHaveTextContent(/sanction|ONU|liste|correspond/i);
+  it('B-1 : jamais de niveau ni de détail de filtrage affiché', async () => {
+    await submit(port({ ok: true, verification: 'RECEIVED' }), 'Eric Badege');
+    await waitFor(() => { expect(screen.getByRole('status')).toBeVisible(); });
+    expect(document.body).not.toHaveTextContent(/sanction|ONU|liste|correspond|ouvert|en cours/i);
   });
 
   it('nom trop court : aucun envoi', async () => {
-    const injected = port({ ok: true, kycLevel: 'BASIC', verification: 'COMPLETED' });
+    const injected = port({ ok: true, verification: 'RECEIVED' });
     await submit(injected, 'A');
     expect(screen.getByText(/au moins 2 caractères/)).toBeVisible();
     expect(injected).not.toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe('REG-LBC-001 / D68 déclaration du nom légal (client web)', () => {
   });
 
   it('structure accessible', async () => {
-    const { container } = render(<LegalNameForm locale="fr" submit={port({ ok: true, kycLevel: 'BASIC', verification: 'COMPLETED' })} />);
+    const { container } = render(<LegalNameForm locale="fr" submit={port({ ok: true, verification: 'RECEIVED' })} />);
     await expectNoA11yViolations(container);
   });
 });

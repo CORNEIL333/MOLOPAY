@@ -12,8 +12,7 @@ export const en: Dictionary = {
     title: 'My identity', description: 'Enter your full name as shown on your ID document. Regulations require it to open the first level of your account.',
     label: 'Full name (as on your ID document)', submit: 'Save my name', back: 'My account',
     invalid: 'Enter your full name (at least 2 characters, at most 200).',
-    completed: 'Your name is saved. The first level of your account is open.',
-    inProgress: 'Your name is saved; its verification is in progress. You will be informed in the app.',
+    received: 'Your name is saved. It is subject to the checks required by regulation.',
     error: 'Not confirmed', network: 'Connection interrupted. Please try again.',
   },
   dataRights: {
