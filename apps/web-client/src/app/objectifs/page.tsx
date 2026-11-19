@@ -16,6 +16,7 @@ export default async function GoalsPage(): Promise<ReactElement> {
     if (result.data === undefined) return <ErrorState problem={problemFrom(result.error, result.response, labels.goals.errorTitle)} />;
     return <>
       <h1 className="page-title">{labels.goals.title}</h1>
+      <p><a href="/objectifs/nouveau">{labels.goals.newPlannedExpenseLink}</a></p>
       {result.data.goals.length === 0 ? <><EmptyState title={labels.goals.emptyTitle} description={labels.goals.emptyDescription} /><a href="/">{labels.nav.catalog}</a></> : <div className="offer-grid">{result.data.goals.map((goal) => <GoalOverview key={goal.goalId} goal={goal} labels={labels.goals} locale={locale} />)}</div>}
       <DataFreshness label={labels.goals.asOf} asOf={result.data.asOf} locale={locale} />
     </>;
