@@ -789,3 +789,40 @@ final class KycVerification {
     return KycVerification(verification: _reqString(json, 'verification'));
   }
 }
+
+/// Profil minimal du client connecté (`GET /v1/me`, OpenAPI 0.33.0, D77).
+final class AccountProfile {
+  const AccountProfile({
+    required this.accountId,
+    required this.phoneMasked,
+    required this.memberSince,
+    required this.legalNameDeclared,
+  });
+
+  final String accountId;
+  final String phoneMasked;
+  final String memberSince;
+  final bool legalNameDeclared;
+
+  factory AccountProfile.fromJson(Map<String, Object?> json) {
+    return AccountProfile(
+      accountId: _reqString(json, 'accountId'),
+      phoneMasked: _reqString(json, 'phoneMasked'),
+      memberSince: _reqString(json, 'memberSince'),
+      legalNameDeclared: _reqBool(json, 'legalNameDeclared'),
+    );
+  }
+}
+
+/// Résultat du renouvellement de session (`POST /v1/auth/session-refreshes`, OpenAPI 0.33.0).
+final class ClientSessionRefresh {
+  const ClientSessionRefresh({required this.accessExpiresAt});
+
+  final DateTime accessExpiresAt;
+
+  factory ClientSessionRefresh.fromJson(Map<String, Object?> json) {
+    return ClientSessionRefresh(
+      accessExpiresAt: DateTime.parse(_reqString(json, 'accessExpiresAt')),
+    );
+  }
+}

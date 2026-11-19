@@ -38,11 +38,14 @@ class MoloPayApiClient {
   final Random _random = Random.secure();
 
   String? _sessionCookie;
+  String? _refreshCookie;
 
   bool get hasSession => _sessionCookie != null;
+  bool get hasRefreshToken => _refreshCookie != null;
 
   void clearSession() {
     _sessionCookie = null;
+    _refreshCookie = null;
   }
 
   /// Vérifie la disponibilité de l'API (`GET /health`).
@@ -323,6 +326,37 @@ class MoloPayApiClient {
     return KycVerification.fromJson(_decodeJsonObject(response));
   }
 
+  /// Profil minimal du client connecté (`GET /v1/me`, OpenAPI 0.33.0).
+  Future<AccountProfile> getCurrentAccount() async {
+    final response = await _sendGet('/v1/me', authenticated: true);
+    return AccountProfile.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Renouvelle la session via le cookie `client_refresh` à usage unique (`POST /v1/auth/session-refreshes`).
+  Future<ClientSessionRefresh> refreshSession() async {
+    final uri = _buildUri('/v1/auth/session-refreshes', null);
+    final headers = <String, String>{
+      'accept': 'application/json',
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'origin': origin,
+      'idempotency-key': _generateUuidV4(),
+      'cookie': ?_refreshCookie,
+    };
+    try {
+      final response = await _http.post(uri, headers: headers, body: '{}');
+      _ensureSuccess(response);
+      _captureSessionCookie(response.headers);
+      return ClientSessionRefresh.fromJson(_decodeJsonObject(response));
+    } on ApiProblemException {
+      rethrow;
+    } on http.ClientException catch (error) {
+      throw ApiProblemException(ApiProblem.network(detail: error.message));
+    } catch (_) {
+      throw ApiProblemException(ApiProblem.network());
+    }
+  }
+
   Future<http.Response> _sendGet(
     String path, {
     Map<String, String>? queryParameters,
@@ -431,6 +465,10 @@ class MoloPayApiClient {
     final match = RegExp(r'client_session=([^;,\s]+)').firstMatch(rawSetCookie);
     if (match != null) {
       _sessionCookie = 'client_session=${match.group(1)}';
+    }
+    final refreshMatch = RegExp(r'client_refresh=([^;,\s]+)').firstMatch(rawSetCookie);
+    if (refreshMatch != null) {
+      _refreshCookie = 'client_refresh=${refreshMatch.group(1)}';
     }
   }
 

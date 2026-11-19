@@ -6,6 +6,7 @@ import '../core/models.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
+import 'offer_quote_panel.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key, required this.state});
@@ -186,7 +187,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   builder: (_) => OfferDetailScreen(
                     offer: offer,
                     plans: _plans,
-                    locale: s.locale,
+                    state: widget.state,
                   ),
                 ),
               ),
@@ -252,15 +253,16 @@ class OfferDetailScreen extends StatelessWidget {
     super.key,
     required this.offer,
     required this.plans,
-    required this.locale,
+    required this.state,
   });
 
   final Offer offer;
   final List<PaymentPlan> plans;
-  final String locale;
+  final AppState state;
 
   @override
   Widget build(BuildContext context) {
+    final locale = state.locale;
     final s = AppStrings.of(locale);
     final availabilityText = switch (offer.availability) {
       InStockAvailability(:final units) =>
@@ -329,34 +331,11 @@ class OfferDetailScreen extends StatelessWidget {
                 ],
                 Text(s.plansLabel, style: type(18, weight: FontWeight.w700)),
                 const SizedBox(height: 10),
-                if (compatiblePlans.isEmpty)
-                  Text(s.noOffersDetail, style: type(13, color: muted))
-                else
-                  for (final plan in compatiblePlans)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFF3ECE5)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${s.modelName(plan.model)} · ${s.rhythmName(plan.rhythm)}',
-                            style: type(14, weight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Min. ${plan.minAmountXaf.format(locale: locale)} · max ${plan.maxDurationMonths} mois',
-                            style: type(13, color: muted),
-                          ),
-                        ],
-                      ),
-                    ),
+                OfferQuotePanel(
+                  offer: offer,
+                  plans: compatiblePlans,
+                  state: state,
+                ),
               ],
             ),
           ),
