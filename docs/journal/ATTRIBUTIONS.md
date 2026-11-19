@@ -28,12 +28,14 @@
 | Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | Livré — [PR #2](https://github.com/CORNEIL333/MOLOPAY/pull/2) |
 | Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | Livré — [PR #6](https://github.com/CORNEIL333/MOLOPAY/pull/6) (revue attendue) |
 | Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | Livré — [PR #8](https://github.com/CORNEIL333/MOLOPAY/pull/8) (revue attendue, empilé sur #6) |
-| Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | À démarrer |
+| Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | Livré — [PR #9](https://github.com/CORNEIL333/MOLOPAY/pull/9) (revue attendue, empilé sur #8 → #6) |
 | Q5 | CRM : fiche client 360° (lecture motivée et journalisée), interactions de support et tâches de suivi en ajout seul, écrans du back-office | `agent/qoder/crm` | J6 | À démarrer |
 | Q6 | Archivage : archives signées du grand livre et de l'audit, conservation selon le registre, restauration vérifiée | `agent/qoder/archivage` | J6 | À démarrer |
 | Q7 | Procédures d'exploitation, exercice de restauration chronométré, test de charge | `agent/qoder/exploitation` | J9 | À démarrer |
 
 **Bloqués par un accès externe :** Q4 (Docker absent du poste — D2 : images non constructibles ici, composition et procédures à valider sur un poste équipé) ; Q6 (témoins d'ancrage et autorité d'horodatage — D6). Q2, Q3, Q5 et Q7 ne sont pas bloqués.
+
+**CI du dépôt hors service (constaté le 19 novembre) :** les jobs GitHub échouent en 1–2 s sans exécuter aucune étape, sur toutes les PR (y compris celles de Gemini), indépendamment du code. La configuration du dépôt n'est pas du périmètre d'un agent : signalé au fondateur. Les vérifications sont donc exécutées localement et jointes aux PR.
 
 ## Demandes de contrat (remplies par Gemini et Qoder, traitées par Claude)
 
