@@ -59,6 +59,9 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Quotas nom légal et réclamations (D72) | 0062, contrat 0.26.0 |
 | DONE | Rapprochements sanctions en attente dans la file + ouverture d'un filtrage existant (D75) | contrat 0.29.0 |
 | DONE | Détail d'une réclamation au back-office (D73) | contrat 0.27.0, écran `/reclamations` |
+| DONE | Revue indépendante du 19 novembre : B-1 réponse neutre du nom légal (D77) ; I-1 invisibles et homoglyphes ; I-2/I-5 filtrage recalculé par la base, liste officielle (0063) ; I-3 périmètre `SCREEN_PARTNER` ; I-4 écartement client à deux personnes (0064, D78) | contrats 0.30.0 et 0.31.0 ; mutants tous tués |
+| DONE | Mineurs de la revue : `&#0;` et taille UTF-8 de la liste ONU ; instantané unique réel (REPEATABLE READ) pour les versements, commentaires rectifiés ailleurs | |
+| DONE | SEC-API-005 : CSP à nonce pour back-office et portail partenaire ; REG-DPD-001 : registre T-11 à T-15 ; NF-UX-002 portail ; NF-UX-005 ; SEC-CRY-005/006 | |
 | BLOCKED | Connexion client par PIN et appareil (D71) | contrat contraire à SEC-AUTH-001 ; enrôlement d'appareil bloqué par le SMS |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
@@ -69,7 +72,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | BLOCKED | App mobile Flutter | livrée par ChatGPT selon `PROMPT_CHATGPT_APP_MOBILE.md`, branchement ensuite |
 
 ## Décisions humaines attendues
-Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées) et `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, engagements client, authentification du personnel, accès externes).
+Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées) et `docs/journal/FICHE_POINTS_OUVERTS_2026-11-11.md` (paramètres financiers, engagements client, authentification du personnel, accès externes).
 
 ## Décisions techniques importantes (rappel)
 - Toute sortie de fonds : préparation → décision par une autre personne → instruction Ed25519 canonique → exécution enregistrée par une autre personne ; base garante (déclencheurs) ; écriture et état dans la même transaction.
@@ -77,4 +80,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D73, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Vérifier l'arrivée de décisions (fiche du 17 novembre). Plus de travail réversible significatif identifié sans décision ou accès externe ; candidats mineurs : relecture des libellés FR/EN, couverture NF-MNT-002 des modules touchés (mesure à outiller sans nouvelle dépendance ?).
+Mineurs restants de la revue indépendante (19 novembre) : assertions faibles des tests (partner-http, kyc-customer-http, goal-contributions-http, partner-auth), jeton du personnel transplanté dans `partner_session`, détail uniforme de `PARTNER_AUTH_INVALID` ; consigner l'énumération des vendeurs (409), l'enrôlement d'une clé par le gérant et la défaillance marchand ignorée par la session partenaire. Puis vérifier l'arrivée des décisions (fiche du 17 novembre).

@@ -562,3 +562,26 @@
 - **Constat (revue indépendante) :** un espace de largeur nulle (U+200B) coupait un mot (« ER IC BADEGE ») et une lettre cyrillique identique à une lettre latine (« Е ») changeait le mot : le nom échappait au rapprochement ONU.
 - **Appliqué :** `parseLegalName` refuse les caractères de contrôle, de format et invisibles (`\p{Cf}`, `Default_Ignorable_Code_Point`) et le mélange d'écritures (latin, cyrillique, grec, arménien, cherokee, copte, autre) dans un même nom ; `normalizeName` retire les caractères invisibles et ramène les capitales cyrilliques et grecques visuellement identiques aux lettres latines, des deux côtés de la comparaison (rappel accru, examen par la Conformité). 6 tests ; 5 mutants tués.
 - **Reste :** la table d'homoglyphes est volontairement courte (lettres capitales courantes) ; une table complète (Unicode TR39 « confusables ») demanderait un jeu de données externe à revoir (aucune dépendance ajoutée).
+
+### I-2 / I-5 · Filtrage vérifié par la base, liste officielle seulement (19 novembre)
+- **Constat (revue indépendante) :** la base croyait l'application sur le contenu d'un filtrage : un filtrage « sans rapprochement » forgé pour un nom listé, rattaché à la déclaration, ouvrait le niveau 1 ; une version de liste datée du futur, ou d'un autre hôte, devenait la référence.
+- **Appliqué (migration 0063) :** la base recalcule les références rapprochées (`kyc.matching_references`, même règle que `name-match.ts`) et exige la version de liste la plus récente ; un filtrage ne se rattache à une déclaration que s'il porte le nom déclaré (`kyc.normalize_name`, identique à la normalisation applicative, vérifié par test sur les écritures latine, cyrillique et grecque ; seule divergence tolérée : « ƛ », qui fait refuser) ; caractères invisibles refusés dans une déclaration ; source limitée à `https://scsanctions.un.org/`, date de génération jamais future. 9 tests ; 9 mutants tués.
+- **Exigence d'exploitation :** la base doit offrir la collation ICU `und-x-icu` (images PostgreSQL officielles : oui) ; sinon la migration échoue.
+- **Reste :** le filtrage d'un partenaire porte la raison sociale lue en base par l'application ; la base ne vérifie pas encore qu'il s'agit du dernier dossier du partenaire.
+
+### I-3 · Filtrage d'un partenaire limité au périmètre (19 novembre)
+- **Constat :** `SCREEN_PARTNER` n'était pas limité au périmètre partenaire de l'agent du Réseau partenaires (contrairement à `PREPARE_PARTNER`).
+- **Appliqué :** action ajoutée aux actions à périmètre partenaire ; filtrage et lecture d'état reçoivent le partenaire. Comme aucun périmètre partenaire n'est attribué au personnel (D63, option « Non »), le Réseau partenaires ne peut plus filtrer en HTTP : la Conformité filtre. 1 test unitaire, tests HTTP adaptés.
+
+### I-4 · Écartement d'un rapprochement client à deux personnes (19 novembre)
+- **Constat :** le filtrage d'un nom de client est enregistré par le système ; une seule personne de la Conformité pouvait donc écarter un rapprochement et ouvrir le niveau 1 (I-7 seulement nominal).
+- **Appliqué (option prudente, migration 0064) :** un « faux positif » client est d'abord une proposition motivée (`kyc.screening_review_proposal`, réponse `PROPOSED`), confirmée par une autre personne (`RECORDED`) ; la base refuse l'écartement sans proposition ou par son auteur (`MAKER_CANNOT_APPROVE`). Confirmer une correspondance reste décidé par une personne (sens restrictif). Écran du back-office : message « une autre personne doit confirmer ». Contrat 0.31.0.
+- **⚖ À décider (D78) :** étendre la règle des deux personnes aux partenaires (aujourd'hui : auteur du filtrage ≠ examinateur) ; afficher dans la file qu'une proposition attend confirmation.
+
+### SEC-API-005 · CSP du back-office et du portail partenaire (19 novembre)
+- **Constat :** seul le client web envoyait une CSP ; le back-office et le portail partenaire n'avaient que des en-têtes statiques (aucune CSP).
+- **Appliqué :** même modèle que le client web : intergiciel Next.js à nonce neuf par requête (`script-src 'self' 'nonce-…' 'strict-dynamic'`, styles à nonce en production, `connect-src 'self'`, aucun cadre, ni service worker ni manifest, `upgrade-insecure-requests`), hors `/v1/` (API relayée). 10 tests. Non vérifié dans un navigateur : le build Next.js reste refusé (D64).
+
+### Mineurs de la revue indépendante (19 novembre)
+- **Liste ONU :** références numériques hors « Char » XML 1.0 (`&#0;`, contrôles, demi-substituts, U+FFFE/FFFF) refusées ; la limite de 64 Mio compte désormais les octets UTF-8 (et non les unités UTF-16). 5 tests, 2 mutants tués.
+- **Instantané unique :** l'historique des versements d'un objectif est lu en REPEATABLE READ lecture seule (`withTransaction(…, { readOnlySnapshot: true })`, 3 tests base) ; pour le tableau de bord et la file (qui ajoutent un événement d'audit dans la même transaction, incompatible avec un instantané figé avant le verrou de la chaîne), les commentaires annonçant un « instantané unique » sont rectifiés.
