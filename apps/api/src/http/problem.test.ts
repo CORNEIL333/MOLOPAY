@@ -1,6 +1,6 @@
 import { BusinessError } from '@achat/contracts';
 import { describe, expect, it } from 'vitest';
-import { statusForCode, toProblem } from './problem';
+import { problemForStatus, statusForCode, toProblem } from './problem';
 
 describe('RFC 9457 · traduction des erreurs', () => {
   it.each([
@@ -30,6 +30,11 @@ describe('RFC 9457 · traduction des erreurs', () => {
     ['INTERNAL_ERROR', 500],
     ['REQUEST_RATE_LIMITED', 429],
     ['RATE_LIMIT_UNCONFIGURED', 503],
+    ['REQUEST_UNAUTHENTICATED', 401],
+    ['REQUEST_METHOD_NOT_ALLOWED', 405],
+    ['REQUEST_TOO_LARGE', 413],
+    ['REQUEST_UNSUPPORTED_MEDIA_TYPE', 415],
+    ['SERVICE_UNAVAILABLE', 503],
   ] as const)('%s → %i', (code, status) => {
     expect(statusForCode(code)).toBe(status);
   });
@@ -37,11 +42,20 @@ describe('RFC 9457 · traduction des erreurs', () => {
   it('reprend le code et le message d’une erreur métier', () => {
     expect(toProblem(new BusinessError('AGREEMENT_LOCKED', 'Objectif verrouillé'))).toEqual({
       type: 'urn:achat:problem:agreement-locked',
-      title: 'Conflit',
+      title: 'Accord verrouillé',
       status: 409,
       code: 'AGREEMENT_LOCKED',
       detail: 'Objectif verrouillé',
     });
+  });
+
+  it('titre anglais quand la langue demandée est l’anglais, détail métier conservé', () => {
+    const problem = toProblem(new BusinessError('AGREEMENT_LOCKED', 'Objectif verrouillé'), 'en');
+    expect(problem).toMatchObject({ title: 'Agreement locked', code: 'AGREEMENT_LOCKED', detail: 'Objectif verrouillé' });
+  });
+
+  it('un détail égal au code n’est pas répété', () => {
+    expect(toProblem(new BusinessError('REQUEST_INVALID'))).not.toHaveProperty('detail');
   });
 
   it('reprend le code connu d’une exception de déclencheur SQL', () => {
@@ -102,5 +116,36 @@ describe('authentification : détail uniforme quelle que soit la cause (revue in
 
   it('les autres codes gardent leur détail', () => {
     expect(toProblem({ code: 'P0001', message: 'KYC_INVALID_REQUEST: rapprochement déjà examiné' })).toMatchObject({ detail: 'rapprochement déjà examiné' });
+  });
+});
+
+describe('NF-COMP-002 · refus émis par la couche HTTP (statut conservé)', () => {
+  it.each([
+    [400, 400, 'REQUEST_INVALID'],
+    [401, 401, 'REQUEST_UNAUTHENTICATED'],
+    [403, 403, 'PERMISSION_DENIED'],
+    [404, 404, 'ROUTE_NOT_FOUND'],
+    [405, 405, 'REQUEST_METHOD_NOT_ALLOWED'],
+    [409, 409, 'REQUEST_CONFLICT'],
+    [413, 413, 'REQUEST_TOO_LARGE'],
+    [415, 415, 'REQUEST_UNSUPPORTED_MEDIA_TYPE'],
+    [429, 429, 'REQUEST_RATE_LIMITED'],
+    [500, 500, 'INTERNAL_ERROR'],
+    [503, 503, 'SERVICE_UNAVAILABLE'],
+    [502, 502, 'SERVICE_UNAVAILABLE'],
+    [418, 418, 'REQUEST_INVALID'],
+  ] as const)('%i → statut %i, code %s', (input, status, code) => {
+    const problem = problemForStatus(input, 'fr');
+    expect(problem).toMatchObject({ status, code });
+    expect(problem).not.toHaveProperty('detail');
+  });
+
+  it('un statut hors 400–599 devient une 500 sans détail', () => {
+    expect(problemForStatus(204, 'fr')).toMatchObject({ status: 500, code: 'INTERNAL_ERROR' });
+    expect(problemForStatus(Number.NaN, 'fr')).toMatchObject({ status: 500, code: 'INTERNAL_ERROR' });
+  });
+
+  it('titre localisé en anglais', () => {
+    expect(problemForStatus(404, 'en')).toMatchObject({ title: 'Resource not found' });
   });
 });

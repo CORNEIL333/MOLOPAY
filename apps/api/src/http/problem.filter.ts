@@ -1,23 +1,22 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Inject } from '@nestjs/common';
+import { problemLocaleFromHeader, type ProblemLocale } from '@achat/contracts';
 import type { HttpResponse } from './express-types';
 import { correlationIdFromHeader } from '../observability/correlation';
 import { emitLog, LOG_SINK, type LogSink } from '../observability/log';
-import { toProblem, type Problem } from './problem';
-
-function fromHttpException(error: HttpException): Problem {
-  const status = error.getStatus();
-  if (status === 404) {
-    return { type: 'urn:achat:problem:route-not-found', title: 'Ressource introuvable', status: 404, code: 'ROUTE_NOT_FOUND' };
-  }
-  return { type: 'urn:achat:problem:request-invalid', title: 'Requête invalide', status: 400, code: 'REQUEST_INVALID' };
-}
+import { problemForStatus, toProblem } from './problem';
 
 type FilterRequest = {
   readonly method?: string;
   readonly originalUrl?: string;
   readonly url?: string;
   readonly correlationId?: string;
+  readonly headers?: Readonly<Record<string, string | readonly string[] | undefined>>;
 };
+
+function acceptLanguage(request: FilterRequest | undefined): string | undefined {
+  const value = request?.headers?.['accept-language'];
+  return typeof value === 'string' ? value : undefined;
+}
 
 /** Nom de classe seul, assaini : jamais le message ni la pile. */
 function errorNameOf(error: unknown): string {
@@ -28,8 +27,9 @@ function errorNameOf(error: unknown): string {
 
 /**
  * Toute erreur sort en `application/problem+json` (RFC 9457) avec un code
- * métier stable. Les erreurs internes (5xx) sont journalisées avec la
- * corrélation, sans message ni pile ; les refus métier 4xx ne le sont pas.
+ * métier stable et un titre FR/EN selon `Accept-Language` (français par
+ * défaut). Les erreurs internes (5xx) sont journalisées avec la corrélation,
+ * sans message ni pile ; les refus métier 4xx ne le sont pas.
  */
 @Catch()
 export class ProblemFilter implements ExceptionFilter {
@@ -39,7 +39,10 @@ export class ProblemFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const response = http.getResponse<HttpResponse>();
     const request = http.getRequest<FilterRequest | undefined>();
-    const body = error instanceof HttpException ? fromHttpException(error) : toProblem(error);
+    const locale: ProblemLocale = problemLocaleFromHeader(acceptLanguage(request));
+    const body = error instanceof HttpException
+      ? problemForStatus(error.getStatus(), locale)
+      : toProblem(error, locale);
 
     if (body.status >= 500) {
       const correlationId = correlationIdFromHeader(
@@ -58,6 +61,7 @@ export class ProblemFilter implements ExceptionFilter {
       });
     }
 
+    response.setHeader?.('content-language', locale);
     response.status(body.status).type('application/problem+json').json(body);
   }
 }

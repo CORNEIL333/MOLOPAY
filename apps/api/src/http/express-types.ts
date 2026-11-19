@@ -11,4 +11,5 @@ export type HttpResponse = {
   status(code: number): HttpResponse;
   type(contentType: string): HttpResponse;
   json(body: unknown): unknown;
+  setHeader?(name: string, value: string): void;
 };

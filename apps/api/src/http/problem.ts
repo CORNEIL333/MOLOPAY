@@ -1,4 +1,10 @@
-import { BusinessError, ERROR_CODES, type ErrorCode } from '@achat/contracts';
+import {
+  BusinessError,
+  ERROR_CODES,
+  errorMessage,
+  type ErrorCode,
+  type ProblemLocale,
+} from '@achat/contracts';
 
 /** Problème RFC 9457 tel que décrit par `components.schemas.Problem`. */
 export type Problem = {
@@ -14,6 +20,7 @@ const UNAUTHORIZED: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'STAFF_AUTH_INVALID',
   'PARTNER_AUTH_INVALID',
   'IDENTITY_SESSION_EXPIRED',
+  'REQUEST_UNAUTHENTICATED',
 ]);
 
 const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
@@ -46,16 +53,20 @@ const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'INVALID_AMOUNT',
 ]);
 
-const TITLES: Readonly<Record<number, string>> = {
-  400: 'Requête invalide',
-  401: 'Authentification requise',
-  403: 'Action interdite',
-  404: 'Ressource introuvable',
-  409: 'Conflit',
-  422: 'Règle métier non respectée',
-  429: 'Trop de requêtes',
-  500: 'Erreur interne',
-  503: 'Service indisponible',
+/** Statuts qui ne se déduisent pas du suffixe du code. */
+const STATUS_OVERRIDES: Readonly<Partial<Record<ErrorCode, number>>> = {
+  REQUEST_RATE_LIMITED: 429,
+  REQUEST_METHOD_NOT_ALLOWED: 405,
+  REQUEST_TOO_LARGE: 413,
+  REQUEST_UNSUPPORTED_MEDIA_TYPE: 415,
+  INTERNAL_ERROR: 500,
+  RATE_LIMIT_UNCONFIGURED: 503,
+  PIN_UNCONFIGURED: 503,
+  STAFF_AUTH_UNCONFIGURED: 503,
+  PARTNER_AUTH_UNCONFIGURED: 503,
+  HANDOVER_UNCONFIGURED: 503,
+  SIGNING_UNCONFIGURED: 503,
+  SERVICE_UNAVAILABLE: 503,
 };
 
 // Le type d'un refus de débit reste générique : il ne décrit pas le mécanisme.
@@ -78,9 +89,8 @@ export function statusForCode(code: ErrorCode): number {
   if (BAD_REQUEST.has(code) || code.endsWith('_INVALID_REQUEST') || code.endsWith('_FIELD_FORBIDDEN')) {
     return 400;
   }
-  if (code === 'INTERNAL_ERROR') return 500;
-  if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
+  const override = STATUS_OVERRIDES[code];
+  if (override !== undefined) return override;
   return 422;
 }
 
@@ -89,21 +99,63 @@ export function statusForCode(code: ErrorCode): number {
  * désactivé, défi expiré, clé clonée…), pour ne rien apprendre à un attaquant.
  * La cause exacte reste dans le message interne.
  */
-const UNIFORM_DETAIL: Readonly<Partial<Record<ErrorCode, string>>> = Object.freeze({
-  STAFF_AUTH_INVALID: 'Authentification refusée',
-  PARTNER_AUTH_INVALID: 'Authentification refusée',
-});
+const AUTH_REFUSED_DETAIL: Readonly<Record<ProblemLocale, string>> = {
+  fr: 'Authentification refusée',
+  en: 'Authentication refused',
+};
 
-function problem(code: ErrorCode, rawDetail?: string): Problem {
-  const status = statusForCode(code);
-  const detail = UNIFORM_DETAIL[code] ?? rawDetail;
+function problemWith(status: number, code: ErrorCode, locale: ProblemLocale, rawDetail?: string): Problem {
+  const detail =
+    code === 'STAFF_AUTH_INVALID' || code === 'PARTNER_AUTH_INVALID'
+      ? AUTH_REFUSED_DETAIL[locale]
+      : rawDetail;
   return {
     type: `urn:achat:problem:${TYPE_SLUGS[code] ?? code.toLowerCase().replaceAll('_', '-')}`,
-    title: TITLES[status] ?? 'Erreur',
+    title: errorMessage(code, locale),
     status,
     code,
-    ...(detail === undefined || detail === '' ? {} : { detail }),
+    // Un détail égal au code n'apprend rien : il n'est pas répété.
+    ...(detail === undefined || detail === '' || detail === code ? {} : { detail }),
   };
+}
+
+function problem(code: ErrorCode, locale: ProblemLocale, rawDetail?: string): Problem {
+  return problemWith(statusForCode(code), code, locale, rawDetail);
+}
+
+/**
+ * Refus émis par la couche HTTP (Nest/Express) : le statut réel est conservé,
+ * le code reste générique et aucun message interne n'est exposé.
+ */
+export function problemForStatus(status: number, locale: ProblemLocale): Problem {
+  if (!Number.isInteger(status) || status < 400 || status > 599) {
+    return problemWith(500, 'INTERNAL_ERROR', locale);
+  }
+  const code: ErrorCode =
+    status === 400
+      ? 'REQUEST_INVALID'
+      : status === 401
+        ? 'REQUEST_UNAUTHENTICATED'
+        : status === 403
+          ? 'PERMISSION_DENIED'
+          : status === 404
+            ? 'ROUTE_NOT_FOUND'
+            : status === 405
+              ? 'REQUEST_METHOD_NOT_ALLOWED'
+              : status === 409
+                ? 'REQUEST_CONFLICT'
+                : status === 413
+                  ? 'REQUEST_TOO_LARGE'
+                  : status === 415
+                    ? 'REQUEST_UNSUPPORTED_MEDIA_TYPE'
+                    : status === 429
+                      ? 'REQUEST_RATE_LIMITED'
+                      : status === 500
+                        ? 'INTERNAL_ERROR'
+                        : status >= 500
+                          ? 'SERVICE_UNAVAILABLE'
+                          : 'REQUEST_INVALID';
+  return problemWith(status, code, locale);
 }
 
 const KNOWN_CODES: ReadonlySet<string> = new Set(Object.keys(ERROR_CODES));
@@ -116,9 +168,9 @@ const MAX_DETAIL_LENGTH = 300;
  * Violation de contrainte SQL : code générique, sans détail interne.
  * Tout le reste : 500 sans détail (aucune fuite de pile ni de SQL).
  */
-export function toProblem(error: unknown): Problem {
+export function toProblem(error: unknown, locale: ProblemLocale = 'fr'): Problem {
   if (error instanceof BusinessError) {
-    return problem(error.code, error.message);
+    return problem(error.code, locale, error.message);
   }
   if (typeof error === 'object' && error !== null) {
     const pg = error as { code?: unknown; message?: unknown };
@@ -126,15 +178,15 @@ export function toProblem(error: unknown): Problem {
       const match = SQL_BUSINESS_PREFIX.exec(pg.message);
       if (match !== null && KNOWN_CODES.has(match[1] ?? '')) {
         const detail = pg.message.slice(match[0].length).slice(0, MAX_DETAIL_LENGTH);
-        return problem(match[1] as ErrorCode, detail);
+        return problem(match[1] as ErrorCode, locale, detail);
       }
     }
     if (pg.code === '23505' || pg.code === '40001') {
-      return problem('REQUEST_CONFLICT');
+      return problem('REQUEST_CONFLICT', locale);
     }
     if (typeof pg.code === 'string' && /^(23|22)/.test(pg.code)) {
-      return problem('REQUEST_INVALID');
+      return problem('REQUEST_INVALID', locale);
     }
   }
-  return problem('INTERNAL_ERROR');
+  return problem('INTERNAL_ERROR', locale);
 }
