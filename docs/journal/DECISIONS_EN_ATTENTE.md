@@ -622,3 +622,15 @@
 - **Option appliquée :** aucun 4xx dans le journal HTTP au lot Q2 (volume et données personnelles) ; seuls les 5xx sont tracés, avec corrélation, statut, code métier et nom de classe, jamais le message ni la pile.
 - **Retour arrière :** ajouter un événement de sécurité dédié (chaîne d'audit ou SIEM), plutôt que d'élargir le journal HTTP.
 - **À trancher :** refus à tracer (401/403/429, verrouillages), destination (chaîne d'audit ou SIEM) et durée de conservation.
+
+### D103 · Langue des problèmes RFC 9457 (NF-UX-002, NF-COMP-002)
+- **Constat :** les titres étaient en français seulement et le schéma `Problem` du contrat (propriété de Claude) n'a aucun champ de langue (`additionalProperties: false`). Les `detail` proviennent des règles métier et des déclencheurs SQL, en français.
+- **Option appliquée :** catalogue FR/EN dans `packages/contracts` (un message par code, exhaustif à la compilation), `title` localisé, langue choisie dans `Accept-Language` (français par défaut), signalée par l'en-tête `Content-Language`. Aucun champ ajouté au corps. Les `detail` restent inchangés (contexte de l'instance) et peuvent rester en français ; les interfaces gardent leurs tables ARB pour des messages plus riches.
+- **Retour arrière :** forcer `fr` dans le filtre et retirer `Content-Language` ; le catalogue peut rester.
+- **À trancher :** faut-il localiser les `detail` (cela suppose des paramètres structurés par code, pas du texte libre) ; ajout de `Accept-Language`/`Content-Language` au contrat (Claude).
+
+### D104 · Statut réel des exceptions HTTP et codes génériques (NF-COMP-002)
+- **Constat :** le filtre ramenait tout `HttpException` non 404 à 400, y compris 401/403/405/413/429 et 500 : une erreur serveur pouvait être présentée comme une requête invalide.
+- **Option appliquée :** le statut réel est conservé (400–599 ; hors bornes → 500) ; cinq codes génériques couvrent les refus de la couche HTTP (`REQUEST_UNAUTHENTICATED`, `REQUEST_METHOD_NOT_ALLOWED`, `REQUEST_TOO_LARGE`, `REQUEST_UNSUPPORTED_MEDIA_TYPE`, `SERVICE_UNAVAILABLE`) ; les autres 4xx gardent leur statut avec `REQUEST_INVALID` ; aucune 5xx n'expose de détail.
+- **Retour arrière :** revenir à l'ancien classement (déconseillé) en une fonction du filtre.
+- **À trancher :** les interfaces (Gemini) et le back-office (Claude) doivent traiter ces cinq codes ; exemples à ajouter au contrat (Claude).

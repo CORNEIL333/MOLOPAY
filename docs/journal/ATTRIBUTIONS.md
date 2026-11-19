@@ -27,7 +27,7 @@
 |---|---|---|---|---|
 | Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | Livré — [PR #2](https://github.com/CORNEIL333/MOLOPAY/pull/2) |
 | Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | Livré — [PR #6](https://github.com/CORNEIL333/MOLOPAY/pull/6) (revue attendue) |
-| Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | À démarrer |
+| Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | Livré — [PR #8](https://github.com/CORNEIL333/MOLOPAY/pull/8) (revue attendue, empilé sur #6) |
 | Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | À démarrer |
 | Q5 | CRM : fiche client 360° (lecture motivée et journalisée), interactions de support et tâches de suivi en ajout seul, écrans du back-office | `agent/qoder/crm` | J6 | À démarrer |
 | Q6 | Archivage : archives signées du grand livre et de l'audit, conservation selon le registre, restauration vérifiée | `agent/qoder/archivage` | J6 | À démarrer |
@@ -40,3 +40,4 @@
 | Demandé par | Besoin (route, champ) | Lot concerné | Statut |
 |---|---|---|---|
 | Qoder | En-tête de réponse `X-Correlation-Id` sur toutes les routes ; en-tête de requête facultatif du même nom (NF-OBS-001) | Q2 | Demandé — [PR #6](https://github.com/CORNEIL333/MOLOPAY/pull/6) |
+| Qoder | `Accept-Language` (requête) et `Content-Language` (réponse) décrits dans OpenAPI ; nouveaux codes génériques de couche HTTP en exemples (NF-UX-002, NF-COMP-002) | Q3 | Demandé — [PR #8](https://github.com/CORNEIL333/MOLOPAY/pull/8) |
