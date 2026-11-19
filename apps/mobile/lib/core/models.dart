@@ -901,3 +901,13 @@ final class ClientLoginResult {
     );
   }
 }
+
+/// Usage d'un défi d'appareil (`POST /v1/auth/device-challenges`, Contrat 0.35.0, D71 / SEC-AUTH-005).
+enum DeviceChallengePurpose {
+  login('LOGIN', 'molopay.client-login.v1'),
+  refresh('REFRESH', 'molopay.client-refresh.v1');
+
+  const DeviceChallengePurpose(this.apiValue, this.signingContext);
+  final String apiValue;
+  final String signingContext;
+}
