@@ -6,11 +6,12 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **78 routes.**
+- **79 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
 | `GET` | `/health` | public | (défaut) | non | non | — | — | État de disponibilité de l'API |
+| `POST` | `/v1/auth/session-refreshes` | public | no-store | oui | oui | — | — | Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) |
 | `POST` | `/v1/auth/signouts` | client | private, no-store | oui | oui | — | — | Fermer la session courante |
 | `POST` | `/v1/backoffice/admin/approvals` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Préparer une demande maker-checker (rôles, paramètre financier) |
 | `POST` | `/v1/backoffice/admin/approvals/{requestId}/decision` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Décider une demande, par une autre personne (I-7) |

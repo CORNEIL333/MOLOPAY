@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.32.0",
+    "version": "0.33.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5149,6 +5149,74 @@
           }
         }
       }
+    },
+    "/v1/auth/session-refreshes": {
+      "post": {
+        "operationId": "refreshClientSession",
+        "summary": "Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001)",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "refreshCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session renouvelée ; nouveaux cookies",
+            "headers": {
+              "Set-Cookie": {
+                "description": "`client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), tous deux HttpOnly et Secure ; absents d'une réponse rejouée.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientSessionRefresh"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5173,6 +5241,12 @@
         "in": "cookie",
         "name": "staff_session",
         "description": "D62 / ADR-0007 (proposé) : session WebAuthn du personnel, 15 min au plus."
+      },
+      "refreshCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "client_refresh",
+        "description": "Jeton de rafraîchissement à usage unique (`<sessionId>.<jeton>`), HttpOnly, Secure, SameSite=Strict, Path=/v1/auth."
       }
     },
     "parameters": {
@@ -8775,6 +8849,19 @@
               },
               "additionalProperties": false
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClientSessionRefresh": {
+        "type": "object",
+        "required": [
+          "accessExpiresAt"
+        ],
+        "properties": {
+          "accessExpiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false

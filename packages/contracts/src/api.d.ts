@@ -1502,6 +1502,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/session-refreshes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) */
+        post: operations["refreshClientSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2431,6 +2448,10 @@ export interface components {
                 /** Format: date */
                 listedOn: string | null;
             }[];
+        };
+        ClientSessionRefresh: {
+            /** Format: date-time */
+            accessExpiresAt: string;
         };
     };
     responses: {
@@ -5262,6 +5283,39 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    refreshClientSession: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Session renouvelée ; nouveaux cookies */
+            201: {
+                headers: {
+                    /** @description `client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), tous deux HttpOnly et Secure ; absents d'une réponse rejouée. */
+                    "Set-Cookie"?: string;
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientSessionRefresh"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
 }

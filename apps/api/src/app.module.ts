@@ -28,6 +28,7 @@ import { QuoteController } from './modules/catalog/quote.controller';
 import { AccountSecurityController } from './modules/identity/account-security.controller';
 import { DataRightsController } from './modules/identity/data-rights.controller';
 import { ProfileController } from './modules/identity/profile.controller';
+import { ClientSessionController } from './modules/identity/client-session.controller';
 
 export type AppDependencies = {
   readonly database: Database;
@@ -55,7 +56,7 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, GoalClaimsController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, GoalClaimsController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
