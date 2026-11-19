@@ -20,6 +20,8 @@
 | C1 | Intégration de la branche du sprint, revues indépendantes | `sprint/integration-t01urw` | Continu | En cours |
 | C2 | Contrat 1.0 : routes nécessaires aux interfaces (demandes de Gemini et de Qoder), figé à J7 | `sprint/integration-t01urw` | J7 | En cours : `GET /v1/me`, renouvellement de session, inscription par OTP et connexion appareil + PIN, renouvellement lié à l'appareil livrés (contrat 0.35.0) |
 | C3 | Back-office prêt à la mise en service (hors CRM), durcissement, tests d'attaque | `sprint/integration-t01urw` | J6 | À démarrer |
+| C4 | Blocage d'un compte client par le support (F-ACC-006) : route, base, écran `/clients/blocage` | `sprint/integration-t01urw` | J4 | Livré (contrat 0.36.0, migration 0068) |
+| C5 | Fil de notifications du client dans l'application (`GET /v1/me/notifications`), sans prestataire | `sprint/integration-t01urw` | J5 | Livré (contrat 0.37.0, migration 0069) |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 
@@ -45,4 +47,4 @@
 | Gemini | Initiation d'un versement client sur un objectif actif | G3 / G4 | Bloqué : accès à l'agrégateur de paiement (environnement de test) |
 | Qoder | En-tête `X-Correlation-Id` (réponse, requête facultative) | Q2 | Accepté : ajouté au contrat à l'intégration de la PR #6 (revue croisée publiée) |
 | Qoder | `Accept-Language` / `Content-Language` et cinq codes génériques de couche HTTP | Q3 | Accepté : ajouté au contrat à l'intégration de la PR #8 (revue croisée publiée : codes SMS à garder en 503 lors de la fusion) |
-
+| Claude (pour Gemini) | Écran Notifications du mobile et du web : `GET /v1/me/notifications` (contrat 0.37.0) ; écran de blocage au back-office déjà livré (`/clients/blocage`). | G3 / G4 | À brancher (Gemini) |

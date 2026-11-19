@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.35.0",
+    "version": "0.37.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5271,6 +5271,139 @@
           }
         }
       }
+    },
+    "/v1/backoffice/customers/{accountId}/block": {
+      "post": {
+        "operationId": "blockCustomerAccount",
+        "summary": "Bloquer un compte client : perte ou vol du téléphone, fraude présumée (F-ACC-006)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Support (niveaux 1 et 2) ou risque ; une seule personne, motif obligatoire. Compte bloqué (canal SUPPORT), appareils révoqués, sessions fermées dans la même transaction ; audit chaîné. Déblocage : récupération avec KYC renforcé (SEC-AUTH-007).",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerBlockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compte bloqué",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerBlock"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/me/notifications": {
+      "get": {
+        "operationId": "listCustomerNotifications",
+        "summary": "Fil des notifications du client dans l'application (F-NOT-001)",
+        "tags": [
+          "Authentification"
+        ],
+        "description": "Une entrée par événement (SMS et push regroupés), du plus récent au plus ancien, 50 par page ; textes génériques dans la langue de la notification. Indépendant de tout prestataire d'envoi.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Identifiant de la dernière notification de la page précédente."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fil",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerNotificationFeed"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8970,6 +9103,113 @@
           "signature": {
             "type": "string",
             "description": "Signature Ed25519 (64 octets) en base64."
+          }
+        }
+      },
+      "CustomerBlockRequest": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "Motif saisi (inscrit à l'audit chaîné)."
+          }
+        }
+      },
+      "CustomerBlock": {
+        "type": "object",
+        "required": [
+          "accountId",
+          "status",
+          "blockedAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "const": "BLOCKED"
+          },
+          "blockedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerNotification": {
+        "type": "object",
+        "required": [
+          "notificationId",
+          "eventType",
+          "createdAt",
+          "title",
+          "body"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "notificationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "PAYMENT_CONFIRMED",
+              "PAYMENT_REMINDER",
+              "GOAL_FUNDED",
+              "HANDOVER_READY",
+              "SETTLEMENT_CONFIRMED",
+              "DISPUTE_UPDATED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "Texte générique validé, sans donnée personnelle (F-NOT-002)."
+          }
+        }
+      },
+      "CustomerNotificationFeed": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextBefore",
+          "asOf"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/CustomerNotification"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Curseur de la page suivante (plus ancienne) ; null à la fin."
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

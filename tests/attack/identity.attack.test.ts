@@ -3,7 +3,11 @@ import {
   KeyObject,
   randomBytes,
   sign,
+  verify,
 } from 'node:crypto';
+import { challengeMessage, devicePublicKeyPem } from '../../apps/api/src/modules/identity/client-auth.store';
+import { CLEARED_SESSION_COOKIES, issuedSessionCookies, readRefreshCookie } from '../../apps/api/src/modules/identity/client-cookies';
+import { maskPhone } from '../../apps/api/src/modules/identity/profile.store';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { ErrorCode } from '../../packages/contracts/src/errors';
 import {
@@ -883,5 +887,62 @@ describe('Attaques identité · audit', () => {
         }),
       'IDENTITY_INVALID_REQUEST',
     );
+  });
+});
+
+describe('Attaques identité · compte client (C2, contrat 0.35.0)', () => {
+  it('SEC-AUTH-001 / SEC-AUTH-005 une signature de connexion ne vaut jamais pour un renouvellement, ni pour un autre appareil ou défi', () => {
+    const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+    const challenge = randomBytes(32);
+    const id = '019abc00-0000-7000-8000-000000000001';
+    const device = '019abc00-0000-7000-8000-0000000000d1';
+    const signature = sign(null, challengeMessage('LOGIN', id, device, challenge), privateKey);
+    expect(verify(null, challengeMessage('LOGIN', id, device, challenge), publicKey, signature)).toBe(true);
+    expect(verify(null, challengeMessage('REFRESH', id, device, challenge), publicKey, signature)).toBe(false);
+    expect(verify(null, challengeMessage('LOGIN', id, '019abc00-0000-7000-8000-0000000000d2', challenge), publicKey, signature)).toBe(false);
+    expect(verify(null, challengeMessage('LOGIN', '019abc00-0000-7000-8000-000000000002', device, challenge), publicKey, signature)).toBe(false);
+    expect(verify(null, challengeMessage('LOGIN', id, device, randomBytes(32)), publicKey, signature)).toBe(false);
+  });
+
+  it('SEC-AUTH-001 refuse une clé d’appareil autre qu’Ed25519 (RSA, P-256) ou illisible (IDENTITY_INVALID_REQUEST)', () => {
+    const spki = (key: KeyObject): string => key.export({ type: 'spki', format: 'der' }).toString('base64');
+    const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey;
+    const p256 = generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey;
+    for (const value of [spki(rsa), spki(p256), 'A'.repeat(60), '-----BEGIN PUBLIC KEY-----']) {
+      expectCode(() => devicePublicKeyPem(value), 'IDENTITY_INVALID_REQUEST');
+    }
+    expect(devicePublicKeyPem(spki(generateKeyPairSync('ed25519').publicKey))).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+  });
+
+  it('SEC-AUTH-005 refuse un cookie de rafraîchissement dupliqué ou illisible (fixation de session)', () => {
+    const token = 'A'.repeat(43);
+    const good = `client_refresh=019abc00-0000-7000-8000-000000000001.${token}`;
+    expect(readRefreshCookie(good)).toEqual({ sessionId: '019abc00-0000-7000-8000-000000000001', refreshToken: token });
+    for (const header of [`${good}; client_refresh=019abc00-0000-7000-8000-000000000002.${token}`, 'client_refresh=x.y', undefined, `${good};`.repeat(400)]) {
+      expectCode(() => readRefreshCookie(header), 'IDENTITY_SESSION_INVALID');
+    }
+  });
+
+  it('SEC-AUTH-005 les cookies de session sont toujours HttpOnly et Secure ; le rafraîchissement reste sur /v1/auth en SameSite=Strict', () => {
+    const cookies = issuedSessionCookies({
+      session: { id: '019abc00-0000-7000-8000-000000000001', accountId: 'a', deviceId: 'd', accessTokenHash: Buffer.alloc(32), refreshTokenHash: Buffer.alloc(32),
+        accessIssuedAt: '2026-11-20T10:00:00.000Z', accessExpiresAt: '2026-11-20T10:15:00.000Z', refreshExpiresAt: '2026-12-20T10:00:00.000Z', createdAt: '2026-11-20T10:00:00.000Z', revokedAt: null },
+      accessToken: 'A'.repeat(43), refreshToken: 'B'.repeat(43),
+    });
+    for (const cookie of [...cookies, ...CLEARED_SESSION_COOKIES]) {
+      expect(cookie).toContain('; HttpOnly; Secure;');
+    }
+    expect(cookies[1]).toMatch(/^client_refresh=.*; Path=\/v1\/auth; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000$/);
+    expect(cookies[0]).toMatch(/; Max-Age=900$/);
+  });
+
+  it('D77 le numéro masqué ne révèle jamais que l’indicatif et les deux derniers chiffres', () => {
+    for (let index = 0; index < 200; index += 1) {
+      const middle = Array.from({ length: 6 }, () => Math.floor(randomBytes(1)[0]! / 26)).join('');
+      const phone = `+2376${middle}${randomBytes(1)[0]! % 10}${randomBytes(1)[0]! % 10}`;
+      const masked = maskPhone(phone);
+      expect(masked).toBe(`+237•••••••${phone.slice(-2)}`);
+      expect(masked).not.toContain(`6${middle}`);
+    }
   });
 });

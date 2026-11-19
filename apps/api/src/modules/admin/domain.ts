@@ -49,6 +49,7 @@ export const ADMIN_ACTIONS = [
   'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
+  'BLOCK_CUSTOMER_ACCOUNT',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -83,13 +84,15 @@ export type AuthorizationDecision =
     };
 
 const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
-  SUPPORT_N1: new Set(),
+  // C4 / F-ACC-006 : perte ou vol du téléphone ; bloquer ne fait que protéger (une personne, motif obligatoire).
+  SUPPORT_N1: new Set<AdminAction>(['BLOCK_CUSTOMER_ACCOUNT']),
   SUPPORT_N2: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
     // D41 / D56 : le support de niveau 2 ouvre les litiges et clôt les réclamations.
     'OPEN_DISPUTE',
     'CLOSE_COMPLAINT',
+    'BLOCK_CUSTOMER_ACCOUNT',
   ]),
   OPERATIONS: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -144,6 +147,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECLARE_MERCHANT_DEFAULT',
     // D53 / SEC-FRD-002 : décision tracée sur une alerte de fraude.
     'DECIDE_RISK_ALERT',
+    // C4 / F-ACC-006 : blocage d'un compte client sur fraude présumée.
+    'BLOCK_CUSTOMER_ACCOUNT',
   ]),
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
@@ -163,6 +168,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
+  'BLOCK_CUSTOMER_ACCOUNT',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([

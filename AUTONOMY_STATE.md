@@ -81,4 +81,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-MVP J10 (29 novembre). C2 suite : routes demandées par Gemini et Qoder (`docs/journal/ATTRIBUTIONS.md`), ajout d'un nouvel appareil et récupération ; C3 : back-office prêt à la mise en service. Ne pas toucher aux périmètres de Gemini (interfaces) ni de Qoder (`http/`, observabilité, CRM, archivage, infra, migrations `01xx`).
+MVP J10 (29 novembre). Claude : intégrer au contrat `X-Correlation-Id`, `Accept-Language`/`Content-Language` et les codes génériques dès que les PR #6/#8 de Qoder sont intégrées ; relire les PR suivantes de Qoder (revue croisée). Ce qui reste du lot C2 dépend de décisions ou d'accès : nouvel appareil (D82), récupération (KYC renforcé), code de remise (D69), versements (agrégateur), SMS (D1). C3 (mise en service du back-office) attend ADR-0007, D63 et D64.

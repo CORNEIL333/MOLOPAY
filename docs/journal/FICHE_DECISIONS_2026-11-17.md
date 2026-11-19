@@ -57,6 +57,8 @@
 | D80 | Liste ONU : qui détient le rôle d'**import** (`kyc_list_importer`) ; import confirmé par une seconde personne ? Noms arabes **vocalisés** acceptés ? | Rôle sans titulaire ; noms vocalisés refusés. |
 | D81 | Envoi des codes SMS : **5 par numéro et par heure**, code valable 5 min, 5 essais : **Valider / Modifier** ; limite par IP ? | Appliqué. |
 | D71 | (Appliqué le 20 novembre conformément à SEC-AUTH-001 : appareil + PIN.) Confirmer ? | — |
+| D82 | **Nouveau téléphone** sur le même numéro : **A** approbation par l'ancien téléphone + OTP / **B** OTP + délai 24 h / **C** agence ou support avec contrôle d'identité (recommandé : A + C) | Aucun ajout d'appareil possible. |
+| D83 | **Blocage d'un compte client** par : support N1/N2 et risque (appliqué) — **Valider / Modifier** ; SMS au client lors du blocage ? procédure de déblocage ? | Appliqué ; aucun déblocage possible. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

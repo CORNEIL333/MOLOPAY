@@ -1531,6 +1531,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/customers/{accountId}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bloquer un compte client : perte ou vol du téléphone, fraude présumée (F-ACC-006)
+         * @description Support (niveaux 1 et 2) ou risque ; une seule personne, motif obligatoire. Compte bloqué (canal SUPPORT), appareils révoqués, sessions fermées dans la même transaction ; audit chaîné. Déblocage : récupération avec KYC renforcé (SEC-AUTH-007).
+         */
+        post: operations["blockCustomerAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fil des notifications du client dans l'application (F-NOT-001)
+         * @description Une entrée par événement (SMS et push regroupés), du plus récent au plus ancien, 50 par page ; textes génériques dans la langue de la notification. Indépendant de tout prestataire d'envoi.
+         */
+        get: operations["listCustomerNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2505,6 +2545,39 @@ export interface components {
             challengeId: string;
             /** @description Signature Ed25519 (64 octets) en base64. */
             signature: string;
+        };
+        CustomerBlockRequest: {
+            /** @description Motif saisi (inscrit à l'audit chaîné). */
+            reason: string;
+        };
+        CustomerBlock: {
+            /** Format: uuid */
+            accountId: string;
+            /** @constant */
+            status: "BLOCKED";
+            /** Format: date-time */
+            blockedAt: string;
+        };
+        CustomerNotification: {
+            /** Format: uuid */
+            notificationId: string;
+            /** @enum {string} */
+            eventType: "PAYMENT_CONFIRMED" | "PAYMENT_REMINDER" | "GOAL_FUNDED" | "HANDOVER_READY" | "SETTLEMENT_CONFIRMED" | "DISPUTE_UPDATED";
+            /** Format: date-time */
+            createdAt: string;
+            title: string;
+            /** @description Texte générique validé, sans donnée personnelle (F-NOT-002). */
+            body: string;
+        };
+        CustomerNotificationFeed: {
+            items: components["schemas"]["CustomerNotification"][];
+            /**
+             * Format: uuid
+             * @description Curseur de la page suivante (plus ancienne) ; null à la fin.
+             */
+            nextBefore: string | null;
+            /** Format: date-time */
+            asOf: string;
         };
     };
     responses: {
@@ -5381,6 +5454,68 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    blockCustomerAccount: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerBlockRequest"];
+            };
+        };
+        responses: {
+            /** @description Compte bloqué */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBlock"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    listCustomerNotifications: {
+        parameters: {
+            query?: {
+                /** @description Identifiant de la dernière notification de la page précédente. */
+                before?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fil */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerNotificationFeed"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
         };
     };
 }
