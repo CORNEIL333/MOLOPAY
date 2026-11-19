@@ -421,6 +421,17 @@ class MoloPayApiClient {
     return ClientLoginResult.fromJson(_decodeJsonObject(response));
   }
 
+  /// Fil des notifications du client (`GET /v1/me/notifications`, Contrat 0.37.0, F-NOT-001).
+  Future<CustomerNotificationFeed> listNotifications({String? before}) async {
+    final query = <String, String>{'before': ?before};
+    final response = await _sendGet(
+      '/v1/me/notifications',
+      queryParameters: query.isEmpty ? null : query,
+      authenticated: true,
+    );
+    return CustomerNotificationFeed.fromJson(_decodeJsonObject(response));
+  }
+
   /// Profil minimal du client connecté (`GET /v1/me`, OpenAPI 0.33.0).
   Future<AccountProfile> getCurrentAccount() async {
     final response = await _sendGet('/v1/me', authenticated: true);
