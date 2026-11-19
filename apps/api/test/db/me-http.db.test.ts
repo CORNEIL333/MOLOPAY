@@ -95,9 +95,11 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200);
     expect(response.headers['cache-control']).toBe('private, no-store');
     const digits = (phone?.phone ?? '').slice(1);
+    expect(phone?.phone).toMatch(/^\+2376[0-9]{8}$/);
     expect(response.body).toEqual({
       accountId: CUSTOMER,
-      phoneMasked: `+${digits.slice(0, 3)}${'•'.repeat(digits.length - 5)}${digits.slice(-2)}`,
+      // Valeur littérale attendue (et non la formule du code) : indicatif 237, sept points, deux derniers chiffres.
+      phoneMasked: `+237•••••••${digits.slice(-2)}`,
       memberSince: phone?.created,
       legalNameDeclared: false,
     });

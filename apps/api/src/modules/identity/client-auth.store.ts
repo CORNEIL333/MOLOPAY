@@ -19,8 +19,14 @@ import { verifyPinFromStore } from './pin.store';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
-/** Rôle du message signé par l'appareil pour se connecter (D71) ; toute autre signature est refusée. */
-const LOGIN_CONTEXT = 'molopay.client-login.v1';
+/** Objet d'un défi d'appareil : connexion (D71) ou renouvellement de session (SEC-AUTH-005). */
+export type DeviceChallengePurpose = 'LOGIN' | 'REFRESH';
+
+/** Contexte signé : une signature de connexion ne vaut jamais pour un renouvellement, et inversement. */
+const CHALLENGE_CONTEXT: Readonly<Record<DeviceChallengePurpose, string>> = Object.freeze({
+  LOGIN: 'molopay.client-login.v1',
+  REFRESH: 'molopay.client-refresh.v1',
+});
 
 /** Refus uniforme de connexion : ni l'appareil, ni le défi, ni la signature ne sont distingués. */
 function refused(): never {
@@ -140,12 +146,14 @@ export async function completeSignup(
 }
 
 /**
- * D71 : défi de connexion pour un appareil. Appareil inconnu, révoqué ou
- * compte bloqué : défi aléatoire non enregistré, indiscernable d'un vrai.
+ * D71 / SEC-AUTH-005 : défi pour un appareil (connexion ou renouvellement).
+ * Appareil inconnu, révoqué ou compte bloqué : défi aléatoire non enregistré,
+ * indiscernable d'un vrai. La base limite les défis en attente par appareil.
  */
 export async function issueDeviceLoginChallenge(
   client: SqlClient,
   deviceId: string,
+  purpose: DeviceChallengePurpose = 'LOGIN',
 ): Promise<{ readonly challengeId: string; readonly challenge: string; readonly expiresAt: string }> {
   const challenge = randomBytes(32);
   const id = uuidv7();
@@ -158,50 +166,106 @@ export async function issueDeviceLoginChallenge(
     return Object.freeze({ challengeId: uuidv7(), challenge: challenge.toString('base64url'), expiresAt: new Date(now + 120_000).toISOString() });
   }
   const row = (await client.query<{ expires_at: Date }>(
-    'INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at) VALUES ($1, $2, $3, now(), now()) RETURNING expires_at',
-    [id, deviceId, challenge],
+    'INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at, purpose) VALUES ($1, $2, $3, now(), now(), $4) RETURNING expires_at',
+    [id, deviceId, challenge, purpose],
   )).rows[0];
   return Object.freeze({ challengeId: id, challenge: challenge.toString('base64url'), expiresAt: (row?.expires_at ?? new Date()).toISOString() });
 }
 
-/** Octets signés par l'appareil pour se connecter (contrat : `ClientLoginChallenge`). */
-export function loginMessage(challengeId: string, deviceId: string, challenge: Buffer): Buffer {
-  return Buffer.concat([Buffer.from(`${LOGIN_CONTEXT}\u0000${challengeId}\u0000${deviceId}\u0000`, 'utf8'), challenge]);
+/** Octets signés par l'appareil (contrat : `ClientLoginChallenge`). */
+export function challengeMessage(purpose: DeviceChallengePurpose, challengeId: string, deviceId: string, challenge: Buffer): Buffer {
+  return Buffer.concat([Buffer.from(`${CHALLENGE_CONTEXT[purpose]}\u0000${challengeId}\u0000${deviceId}\u0000`, 'utf8'), challenge]);
+}
+
+type ChallengeCheck =
+  | { readonly ok: true; readonly accountId: string; readonly accountActive: boolean }
+  | { readonly ok: false; readonly error: BusinessError };
+
+/**
+ * Vérifie la signature d'un défi en attente de cet objet pour cet appareil,
+ * PUIS le consomme (revue du 20 novembre : une signature fausse ne consomme
+ * rien). Verrou sur le défi : deux vérifications simultanées ne le
+ * consomment qu'une fois.
+ */
+async function checkDeviceChallenge(
+  client: SqlClient,
+  input: { readonly purpose: DeviceChallengePurpose; readonly challengeId: string; readonly deviceId: string; readonly signature: Buffer },
+): Promise<ChallengeCheck> {
+  const denied: ChallengeCheck = { ok: false, error: new BusinessError('IDENTITY_SESSION_INVALID', 'Authentification refusée') };
+  const row = (await client.query<{ challenge: Buffer; account_id: string; public_key_pem: string; account_status: string; device_status: string }>(
+    `SELECT c.challenge, d.account_id, d.public_key_pem, a.status AS account_status, d.status AS device_status
+       FROM identity.device_login_challenge c
+       JOIN identity.device d ON d.id = c.device_id
+       JOIN identity.account a ON a.id = d.account_id
+      WHERE c.id = $1 AND c.device_id = $2 AND c.purpose = $3
+        AND c.consumed_at IS NULL AND c.expires_at >= clock_timestamp()
+      FOR UPDATE OF c`,
+    [input.challengeId, input.deviceId, input.purpose],
+  )).rows[0];
+  if (row === undefined || input.signature.length !== 64 || row.device_status !== 'ACTIVE') {
+    return denied;
+  }
+  if (!verifySignature(null, challengeMessage(input.purpose, input.challengeId, input.deviceId, row.challenge), row.public_key_pem, input.signature)) {
+    return denied;
+  }
+  await client.query('UPDATE identity.device_login_challenge SET consumed_at = clock_timestamp() WHERE id = $1', [input.challengeId]);
+  return { ok: true, accountId: row.account_id, accountActive: row.account_status === 'ACTIVE' };
 }
 
 /**
- * D71 / SEC-AUTH-001, étape 1 (à VALIDER même en cas de refus) : consomme le
- * défi, vérifie la signature de l'appareil, puis le PIN (compteur d'essais
- * écrit). Renvoie le résultat sans lever pour un PIN faux : l'appelant valide
- * la transaction, puis refuse.
+ * D71 / SEC-AUTH-001, étape 1 (à VALIDER même en cas de refus) : signature du
+ * défi par l'appareil, consommation, puis PIN (compteur d'essais écrit).
+ * Renvoie le résultat sans lever pour un PIN faux : l'appelant valide la
+ * transaction, puis refuse.
  */
 export async function verifyDeviceLogin(
   client: SqlClient,
   input: { readonly challengeId: string; readonly deviceId: string; readonly signature: Buffer; readonly pin: string; readonly pinPepper: Uint8Array },
 ): Promise<{ readonly ok: true; readonly accountId: string } | { readonly ok: false; readonly error: BusinessError }> {
-  const row = (await client.query<{ challenge: Buffer; account_id: string; public_key_pem: string; account_status: string; device_status: string }>(
-    `UPDATE identity.device_login_challenge c SET consumed_at = clock_timestamp()
-       FROM identity.device d JOIN identity.account a ON a.id = d.account_id
-      WHERE c.id = $1 AND c.device_id = $2 AND d.id = c.device_id
-        AND c.consumed_at IS NULL AND c.expires_at >= clock_timestamp()
-      RETURNING c.challenge, d.account_id, d.public_key_pem, a.status AS account_status, d.status AS device_status`,
-    [input.challengeId, input.deviceId],
-  )).rows[0];
-  if (row === undefined || input.signature.length !== 64) {
-    return { ok: false, error: new BusinessError('IDENTITY_SESSION_INVALID', 'Authentification refusée') };
-  }
-  const signed = verifySignature(null, loginMessage(input.challengeId, input.deviceId, row.challenge), row.public_key_pem, input.signature);
-  if (!signed || row.device_status !== 'ACTIVE') {
-    return { ok: false, error: new BusinessError('IDENTITY_SESSION_INVALID', 'Authentification refusée') };
-  }
-  if (row.account_status !== 'ACTIVE') {
+  const checked = await checkDeviceChallenge(client, { purpose: 'LOGIN', challengeId: input.challengeId, deviceId: input.deviceId, signature: input.signature });
+  if (!checked.ok) return checked;
+  if (!checked.accountActive) {
     return { ok: false, error: new BusinessError('IDENTITY_ACCOUNT_BLOCKED', 'Compte bloqué') };
   }
-  const pin = await verifyPinFromStore(client, { accountId: row.account_id, deviceId: input.deviceId, pin: input.pin, pepper: input.pinPepper });
+  const pin = await verifyPinFromStore(client, { accountId: checked.accountId, deviceId: input.deviceId, pin: input.pin, pepper: input.pinPepper });
   if (!pin.ok) {
     return { ok: false, error: new BusinessError(pin.code, 'PIN refusé') };
   }
-  return { ok: true, accountId: row.account_id };
+  return { ok: true, accountId: checked.accountId };
+}
+
+/**
+ * SEC-AUTH-005 : le renouvellement d'une session exige la signature d'un
+ * défi REFRESH par l'appareil de cette session (un cookie volé seul ne suffit
+ * pas). Étape à valider même en cas de refus (défi consommé).
+ */
+export async function verifyDeviceRefresh(
+  client: SqlClient,
+  input: { readonly sessionId: string; readonly challengeId: string; readonly signature: Buffer },
+): Promise<{ readonly ok: true } | { readonly ok: false; readonly error: BusinessError }> {
+  const session = (await client.query<{ device_id: string }>('SELECT device_id FROM identity.session WHERE id = $1 AND revoked_at IS NULL', [input.sessionId])).rows[0];
+  if (session === undefined) {
+    return { ok: false, error: new BusinessError('IDENTITY_SESSION_INVALID', 'Authentification refusée') };
+  }
+  const checked = await checkDeviceChallenge(client, { purpose: 'REFRESH', challengeId: input.challengeId, deviceId: session.device_id, signature: input.signature });
+  if (!checked.ok) return checked;
+  if (!checked.accountActive) {
+    return { ok: false, error: new BusinessError('IDENTITY_ACCOUNT_BLOCKED', 'Compte bloqué') };
+  }
+  return { ok: true };
+}
+
+/**
+ * Réutilisation d'un ancien jeton de rafraîchissement par l'appareil légitime
+ * (signature valable) : un tiers a déjà renouvelé la session avec le jeton
+ * volé. La session est révoquée. Renvoie vrai si une révocation a eu lieu.
+ */
+export async function revokeOnRefreshReuse(client: SqlClient, input: { readonly sessionId: string; readonly refreshTokenHash: Buffer }): Promise<boolean> {
+  const revoked = await client.query(
+    'UPDATE identity.session SET revoked_at = clock_timestamp() WHERE id = $1 AND revoked_at IS NULL AND refresh_token_hash <> $2',
+    [input.sessionId, input.refreshTokenHash],
+  );
+  return revoked.rowCount === 1;
 }
 
 /** D71, étape 2 : ouvre la session (la base exige le défi consommé, migration 0066). */

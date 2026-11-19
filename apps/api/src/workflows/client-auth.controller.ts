@@ -83,16 +83,22 @@ export class ClientAuthController {
     if (sms === null || pepper === null) {
       throw new BusinessError('SMS_UNCONFIGURED', 'Envoi de SMS non configuré');
     }
+    let code: string | null = null;
     const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `otp-signup:${phone}`, key, request: { phone, purpose: 'SIGNUP' } }, async (client) => {
       const issued = await issueSignupOtp(client, { phone, pepper });
+      code = issued.code;
+      return { status: 201, body: { challengeId: issued.challengeId, expiresAt: issued.expiresAt } };
+    });
+    // Envoi APRÈS validation (revue du 20 novembre) : aucune connexion à la base n'attend le prestataire.
+    // Le code n'existe qu'en mémoire ; une réponse rejouée ne renvoie pas de SMS. Échec : le défi reste
+    // inutilisable (aucun code reçu) et compte dans la limite par numéro ; nouvel essai avec une autre clé.
+    if (!result.replayed && code !== null) {
       try {
-        // Envoi avant validation : un échec annule le défi (aucun code valable sans SMS reçu).
-        await sms.send({ phone: issued.phone, text: otpSmsText(issued.code) });
+        await sms.send({ phone, text: otpSmsText(code) });
       } catch {
         throw new BusinessError('SMS_DELIVERY_FAILED', 'Le SMS n’a pas pu être envoyé');
       }
-      return { status: 201, body: { challengeId: issued.challengeId, expiresAt: issued.expiresAt } };
-    });
+    }
     return result.body;
   }
 
@@ -127,6 +133,12 @@ export class ClientAuthController {
         if (!verified.ok) throw verified.error;
         const signup = await completeSignup(client, {
           proof: verified.proof, otpPepper, pinPepper, devicePublicKeyPem: publicKeyPem, deviceName, pin: value.pin, termsVersion: value.acceptTermsVersion,
+        }).catch((error: unknown) => {
+          // Deux inscriptions simultanées du même numéro : la contrainte d'unicité tranche, même code que la vérification.
+          if ((error as { code?: string; constraint?: string }).code === '23505' && (error as { constraint?: string }).constraint === 'account_phone_key') {
+            throw new BusinessError('IDENTITY_ACCOUNT_EXISTS', 'Un compte existe déjà pour ce numéro');
+          }
+          throw error;
         });
         issued = signup.issued;
         return { status: 201, body: { accountId: signup.accountId, deviceId: signup.issued.session.deviceId, accessExpiresAt: signup.issued.session.accessExpiresAt } };
@@ -138,16 +150,19 @@ export class ClientAuthController {
     return result.body;
   }
 
-  /** D71 : défi de connexion d'un appareil enregistré (indiscernable pour un appareil inconnu). */
+  /** D71 / SEC-AUTH-005 : défi de connexion ou de renouvellement d'un appareil enregistré (indiscernable pour un appareil inconnu). */
   @Post('device-challenges')
   @HttpCode(201)
   @Header('Cache-Control', 'no-store')
   public async challenge(@Req() request: HttpRequest, @Body() body: unknown): Promise<unknown> {
-    const deviceId = uuid(fields(body, ['deviceId']).deviceId, 'deviceId');
+    const value = fields(body, ['deviceId', 'purpose']);
+    const deviceId = uuid(value.deviceId, 'deviceId');
+    if (value.purpose !== 'LOGIN' && value.purpose !== 'REFRESH') invalid('purpose : LOGIN ou REFRESH');
+    const purpose = value.purpose;
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
-    const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `device-challenge:${deviceId}`, key, request: { deviceId } }, async (client) => ({
+    const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `device-challenge:${deviceId}`, key, request: { deviceId, purpose } }, async (client) => ({
       status: 201,
-      body: { ...(await issueDeviceLoginChallenge(client, deviceId)) },
+      body: { ...(await issueDeviceLoginChallenge(client, deviceId, purpose)) },
     }));
     return result.body;
   }

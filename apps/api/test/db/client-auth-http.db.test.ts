@@ -10,7 +10,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module';
 import { createDatabase, withTransaction, type Database } from '../../src/http/database';
-import { issueSignupOtp, loginMessage } from '../../src/modules/identity/client-auth.store';
+import { challengeMessage, issueSignupOtp } from '../../src/modules/identity/client-auth.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { startTestDatabase, type TestDatabase } from './harness';
 
@@ -80,11 +80,11 @@ async function signup(phone = PHONE): Promise<SignedUp> {
   return { accountId: body.accountId, deviceId: body.deviceId, privateKey: key.privateKey, cookies: cookiesOf(response) };
 }
 
-async function loginBody(deviceId: string, privateKey: KeyObject, pin = PIN): Promise<{ challengeId: string; deviceId: string; signature: string; pin: string }> {
-  const issued = await post('/v1/auth/device-challenges', { deviceId });
+async function loginBody(deviceId: string, privateKey: KeyObject, pin = PIN, purpose: 'LOGIN' | 'REFRESH' = 'LOGIN'): Promise<{ challengeId: string; deviceId: string; signature: string; pin: string }> {
+  const issued = await post('/v1/auth/device-challenges', { deviceId, purpose });
   expect(issued.status, JSON.stringify(issued.body)).toBe(201);
   const { challengeId, challenge } = issued.body as { challengeId: string; challenge: string };
-  const signature = sign(null, loginMessage(challengeId, deviceId, Buffer.from(challenge, 'base64url')), privateKey).toString('base64');
+  const signature = sign(null, challengeMessage(purpose, challengeId, deviceId, Buffer.from(challenge, 'base64url')), privateKey).toString('base64');
   return { challengeId, deviceId, signature, pin };
 }
 
@@ -180,6 +180,15 @@ describe('F-ACC-001/002/004 inscription (POST /v1/auth/signups)', () => {
     expect(await attempts(challenge.challengeId)).toEqual({ attempts_remaining: 5, consumed: false });
   });
 
+  it('revue 2 : deux inscriptions simultanées du même numéro : une 201, l’autre 409 IDENTITY_ACCOUNT_EXISTS ; un seul compte', async () => {
+    const first = await otp();
+    const second = await otp();
+    const body = (challenge: { challengeId: string; code: string }): object => ({ challengeId: challenge.challengeId, code: challenge.code, pin: PIN, devicePublicKey: deviceKey().spki, deviceName: 'Itel', acceptTermsVersion: TERMS });
+    const results = await Promise.all([post('/v1/auth/signups', body(first)), post('/v1/auth/signups', body(second))]);
+    expect(results.map(problem).map(([status, code]) => `${status.toString()} ${code ?? ''}`).sort()).toEqual(['201 ', '409 IDENTITY_ACCOUNT_EXISTS']);
+    expect((await admin.query('SELECT count(*)::int AS n FROM identity.account')).rows[0]).toEqual({ n: 1 });
+  });
+
   it('numéro déjà inscrit : 409 IDENTITY_ACCOUNT_EXISTS (seul le détenteur du code l’apprend) ; aucun second compte', async () => {
     await signup();
     const challenge = await otp();
@@ -223,13 +232,42 @@ describe('D71 / SEC-AUTH-001 connexion par appareil enregistré et PIN', () => {
 
   it('appareil inconnu : défi de même forme, aléatoire, jamais enregistré', async () => {
     const created = await signup();
-    const known = (await post('/v1/auth/device-challenges', { deviceId: created.deviceId })).body as Record<string, string>;
-    const unknown = await post('/v1/auth/device-challenges', { deviceId: uuidv7() });
+    const known = (await post('/v1/auth/device-challenges', { deviceId: created.deviceId, purpose: 'LOGIN' })).body as Record<string, string>;
+    const unknown = await post('/v1/auth/device-challenges', { deviceId: uuidv7(), purpose: 'LOGIN' });
     expect(unknown.status).toBe(201);
     const body = unknown.body as Record<string, string>;
     expect(Object.keys(body).sort()).toEqual(Object.keys(known).sort());
     expect(body['challenge']?.length).toBe(known['challenge']?.length);
     expect((await admin.query('SELECT count(*)::int AS n FROM identity.device_login_challenge WHERE id = $1', [body['challengeId']])).rows[0]).toEqual({ n: 0 });
+  });
+
+  it('revue 2 : signature fausse — défi NON consommé ; la bonne signature du même défi ouvre ensuite la session', async () => {
+    const created = await signup();
+    const body = await loginBody(created.deviceId, created.privateKey);
+    const forged = sign(null, Buffer.from('autre message'), created.privateKey).toString('base64');
+    expect(problem(await post('/v1/auth/sessions', { ...body, signature: forged }))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+    expect((await admin.query('SELECT consumed_at IS NULL AS open FROM identity.device_login_challenge WHERE id = $1', [body.challengeId])).rows[0]).toEqual({ open: true });
+    expect((await post('/v1/auth/sessions', body)).status).toBe(201);
+  });
+
+  it('revue 2 : compte bloqué après l’émission d’un vrai défi : 403 IDENTITY_ACCOUNT_BLOCKED, aucune session', async () => {
+    const created = await signup();
+    const body = await loginBody(created.deviceId, created.privateKey);
+    await admin.query(`UPDATE identity.account SET status = 'BLOCKED', blocked_at = now(), block_channel = 'APP', block_reason = 'LOST_OR_STOLEN' WHERE id = $1`, [created.accountId]);
+    expect(problem(await post('/v1/auth/sessions', body))).toEqual([403, 'IDENTITY_ACCOUNT_BLOCKED']);
+    expect((await admin.query('SELECT count(*)::int AS n FROM identity.session WHERE device_id = $1', [created.deviceId])).rows[0]).toEqual({ n: 1 });
+  });
+
+  it('revue 2 : défi de renouvellement présenté à la connexion : 401 IDENTITY_SESSION_INVALID ; objet inconnu : 400', async () => {
+    const created = await signup();
+    expect(problem(await post('/v1/auth/sessions', await loginBody(created.deviceId, created.privateKey, PIN, 'REFRESH')))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+    expect(problem(await post('/v1/auth/device-challenges', { deviceId: created.deviceId, purpose: 'ADMIN' }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await post('/v1/auth/device-challenges', { deviceId: uuidv7(), purpose: 'ADMIN' }))).toEqual([400, 'REQUEST_INVALID']);
+    // Défi REFRESH signé dans le contexte de connexion : refusé par l'objet du défi lui-même (pas seulement par le contexte).
+    const issued = await post('/v1/auth/device-challenges', { deviceId: created.deviceId, purpose: 'REFRESH' });
+    const { challengeId, challenge } = issued.body as { challengeId: string; challenge: string };
+    const crossSigned = sign(null, challengeMessage('LOGIN', challengeId, created.deviceId, Buffer.from(challenge, 'base64url')), created.privateKey).toString('base64');
+    expect(problem(await post('/v1/auth/sessions', { challengeId, deviceId: created.deviceId, signature: crossSigned, pin: PIN }))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
   });
 
   it('compte bloqué : défi indiscernable non enregistré, connexion refusée', async () => {

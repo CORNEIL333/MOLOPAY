@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.34.0",
+    "version": "0.35.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -117,6 +117,9 @@
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
         },
         "description": "Fermé par défaut : 503 SMS_UNCONFIGURED tant qu'aucun prestataire SMS n'est branché (aucune simulation). 503 SMS_DELIVERY_FAILED si l'envoi échoue (aucun défi enregistré)."
@@ -251,6 +254,9 @@
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
         },
         "description": "Refus uniforme 401 IDENTITY_SESSION_INVALID (défi, appareil, signature). PIN faux : 422 IDENTITY_PIN_INVALID, essai décompté ; 403 IDENTITY_PIN_LOCKED après 5 essais."
@@ -5141,7 +5147,7 @@
     "/v1/auth/session-refreshes": {
       "post": {
         "operationId": "refreshClientSession",
-        "summary": "Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001)",
+        "summary": "Renouveler la session client : défi REFRESH signé par l'appareil + jeton de rafraîchissement à usage unique (SEC-AUTH-005)",
         "tags": [
           "Authentification"
         ],
@@ -5156,12 +5162,11 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": false
+                "$ref": "#/components/schemas/ClientSessionRefreshRequest"
               }
             }
           }
@@ -5202,8 +5207,12 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
           }
-        }
+        },
+        "description": "Un cookie volé seul ne suffit pas (preuve de l'appareil). Un ancien jeton présenté avec une preuve valable de l'appareil révoque la session (vol présumé) : 401."
       }
     },
     "/v1/auth/device-challenges": {
@@ -5253,6 +5262,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
         }
       }
@@ -5908,7 +5923,7 @@
           },
           "phoneMasked": {
             "type": "string",
-            "description": "Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34)."
+            "description": "Indicatif pays (3 chiffres pour le Cameroun), points, puis seulement les deux derniers chiffres (ex. +237•••••••34)."
           },
           "memberSince": {
             "type": "string",
@@ -8849,13 +8864,22 @@
       "DeviceChallengeRequest": {
         "type": "object",
         "required": [
-          "deviceId"
+          "deviceId",
+          "purpose"
         ],
         "additionalProperties": false,
         "properties": {
           "deviceId": {
             "type": "string",
             "format": "uuid"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "LOGIN",
+              "REFRESH"
+            ],
+            "description": "LOGIN : connexion (D71) ; REFRESH : renouvellement de session (SEC-AUTH-005)."
           }
         }
       },
@@ -8882,7 +8906,7 @@
             "description": "2 minutes."
           }
         },
-        "description": "D71 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `molopay.client-login.v1\\u0000<challengeId>\\u0000<deviceId>\\u0000` suivis des 32 octets du défi décodé. Appareil inconnu : défi de même forme, jamais valable."
+        "description": "D71 / SEC-AUTH-005 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `<contexte>\\u0000<challengeId>\\u0000<deviceId>\\u0000` suivis des 32 octets du défi décodé ; contexte `molopay.client-login.v1` (LOGIN) ou `molopay.client-refresh.v1` (REFRESH). Appareil inconnu : défi de même forme, jamais valable. 10 défis non consommés au plus par appareil sur 10 minutes (429)."
       },
       "ClientLoginRequest": {
         "type": "object",
@@ -8927,6 +8951,25 @@
           "accessExpiresAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ClientSessionRefreshRequest": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "signature"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Défi REFRESH de l'appareil de la session."
+          },
+          "signature": {
+            "type": "string",
+            "description": "Signature Ed25519 (64 octets) en base64."
           }
         }
       }

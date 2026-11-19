@@ -223,4 +223,67 @@ describe('C2 / SEC-AUTH-001 compte, appareil et session garantis par la base', (
     expect((await failure(() => asApp((client) => client.query(`INSERT INTO identity.terms_acceptance (account_id, version, accepted_at) VALUES ($1, '2026-10-26-v1', now())`, [account])))).code).toBe('23505');
     expect((await failure(() => asApp((client) => client.query('UPDATE identity.terms_acceptance SET version = $2 WHERE account_id = $1', [account, 'x'])))).code).toBe('42501');
   });
+
+  it('revue 2 : session pour un compte qui ne possède pas l’appareil, ou antidatée pour réutiliser un défi : refusée (IDENTITY_SESSION_INVALID)', async () => {
+    await otp(PHONE, 'SIGNUP', PHONE, true);
+    const victim = uuidv7();
+    const attacker = uuidv7();
+    const device = uuidv7();
+    await otp('+237690000002', 'SIGNUP', '+237690000002', true);
+    await asApp(async (client) => {
+      await insertAccount(client, victim, PHONE);
+      await insertAccount(client, attacker, '+237690000002');
+      await insertDevice(client, device, attacker);
+      await insertSession(client, attacker, device);
+    });
+    const challenge = uuidv7();
+    await asApp(async (client) => {
+      await client.query(`INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at) VALUES ($1, $2, $3, now(), now())`, [challenge, device, randomBytes(32)]);
+      await client.query('UPDATE identity.device_login_challenge SET consumed_at = clock_timestamp() WHERE id = $1', [challenge]);
+    });
+    expect((await failure(() => asApp((client) => insertSession(client, victim, device)))).message).toMatch(/^IDENTITY_SESSION_INVALID: appareil d'un autre compte/);
+    const backdated = (client: Client): Promise<unknown> => client.query(
+      `INSERT INTO identity.session (id, account_id, device_id, access_token_hash, refresh_token_hash, access_issued_at, access_expires_at, refresh_expires_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, now(), now() + interval '15 minutes', now() + interval '30 days', now() - interval '1 hour')`,
+      [uuidv7(), attacker, device, randomBytes(32), randomBytes(32)],
+    );
+    await asApp(backdated);
+    expect((await failure(() => asApp(backdated))).message).toMatch(/^IDENTITY_SESSION_INVALID/);
+    expect((await admin.query<{ recent: boolean }>(`SELECT bool_and(created_at > now() - interval '5 minutes') AS recent FROM identity.session WHERE device_id = $1`, [device])).rows[0]).toEqual({ recent: true });
+  });
+
+  it('revue 2 : un défi de RENOUVELLEMENT consommé n’ouvre pas de session ; objet du défi immuable', async () => {
+    await otp(PHONE, 'SIGNUP', PHONE, true);
+    const account = uuidv7();
+    const device = uuidv7();
+    await asApp(async (client) => {
+      await insertAccount(client, account, PHONE);
+      await insertDevice(client, device, account);
+      await insertSession(client, account, device);
+    });
+    const challenge = uuidv7();
+    await asApp(async (client) => {
+      await client.query(`INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at, purpose) VALUES ($1, $2, $3, now(), now(), 'REFRESH')`, [challenge, device, randomBytes(32)]);
+      await client.query('UPDATE identity.device_login_challenge SET consumed_at = clock_timestamp() WHERE id = $1', [challenge]);
+    });
+    expect((await failure(() => asApp((client) => insertSession(client, account, device)))).message).toMatch(/^IDENTITY_SESSION_INVALID/);
+    expect((await failure(() => asApp((client) => client.query(`UPDATE identity.device_login_challenge SET purpose = 'LOGIN' WHERE id = $1`, [challenge])))).code).toBe('42501');
+    const pending = uuidv7();
+    await asApp((client) => client.query(`INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at, purpose) VALUES ($1, $2, $3, now(), now(), 'REFRESH')`, [pending, device, randomBytes(32)]));
+    expect((await failure(() => admin.query(`UPDATE identity.device_login_challenge SET purpose = 'LOGIN', consumed_at = clock_timestamp() WHERE id = $1`, [pending]))).message).toMatch(/^IDENTITY_APPEND_ONLY/);
+  });
+
+  it('revue 2 : 10 défis non consommés au plus par appareil en 10 minutes (REQUEST_RATE_LIMITED)', async () => {
+    await otp(PHONE, 'SIGNUP', PHONE, true);
+    const account = uuidv7();
+    const device = uuidv7();
+    await asApp(async (client) => {
+      await insertAccount(client, account, PHONE);
+      await insertDevice(client, device, account);
+    });
+    const issue = (): Promise<unknown> => asApp((client) => client.query(`INSERT INTO identity.device_login_challenge (id, device_id, challenge, issued_at, expires_at) VALUES ($1, $2, $3, now(), now())`, [uuidv7(), device, randomBytes(32)]));
+    for (let index = 0; index < 10; index += 1) await issue();
+    expect((await failure(issue)).message).toMatch(/^REQUEST_RATE_LIMITED/);
+  });
 });
+
