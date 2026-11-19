@@ -563,6 +563,45 @@ export function registerDevice(input: {
   };
 }
 
+/**
+ * C2 / SEC-AUTH-001 : premier appareil, enregistré à l'inscription sur la même
+ * preuve OTP que le compte (inscription, liée au numéro) : un second code
+ * n'apporterait rien, le numéro venant d'être vérifié. Les appareils suivants
+ * passent par `registerDevice` (OTP « nouvel appareil »). La base l'impose
+ * aussi (migration 0066).
+ */
+export function registerSignupDevice(input: {
+  readonly id: string;
+  readonly account: Account;
+  readonly publicKeyPem: string;
+  readonly name: string;
+  readonly now: string;
+  readonly otpProof: OtpProof;
+  readonly pepper: Uint8Array;
+}): Device {
+  assertUuidV7(input.id, 'id');
+  assertIsoUtcMs(input.now, 'now');
+  assertAccountActive(input.account);
+  const name = assertLabel(input.name, 'Nom d’appareil', 100);
+  assertOtpProof(
+    input.otpProof,
+    { purpose: 'SIGNUP', binding: input.account.phone, phone: input.account.phone },
+    input.now,
+    input.pepper,
+  );
+  const { fingerprint } = buildPublicKey(input.publicKeyPem);
+  return {
+    id: input.id,
+    accountId: input.account.id,
+    publicKeyPem: input.publicKeyPem,
+    fingerprint,
+    name,
+    status: 'ACTIVE',
+    registeredAt: input.now,
+    revokedAt: null,
+  };
+}
+
 export function revokeDevice(
   device: Device,
   input: { readonly now: string; readonly reason: string },

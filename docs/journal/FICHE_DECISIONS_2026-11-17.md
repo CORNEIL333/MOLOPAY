@@ -55,6 +55,8 @@
 | D78 | Écartement d'un rapprochement à **deux personnes** aussi pour les partenaires (déjà appliqué aux clients) ? **Oui / Non** | Clients seulement. |
 | D79 | Portail partenaire : identifiants préfixés par partenaire ? jeton d'enrôlement remis au vendeur seul ? sessions coupées à la défaillance du marchand ? | Inchangé, consigné. |
 | D80 | Liste ONU : qui détient le rôle d'**import** (`kyc_list_importer`) ; import confirmé par une seconde personne ? Noms arabes **vocalisés** acceptés ? | Rôle sans titulaire ; noms vocalisés refusés. |
+| D81 | Envoi des codes SMS : **5 par numéro et par heure**, code valable 5 min, 5 essais : **Valider / Modifier** ; limite par IP ? | Appliqué. |
+| D71 | (Appliqué le 20 novembre conformément à SEC-AUTH-001 : appareil + PIN.) Confirmer ? | — |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

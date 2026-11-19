@@ -18,8 +18,8 @@
 | Lot | Contenu | Branche | Échéance | Statut |
 |---|---|---|---|---|
 | C1 | Intégration de la branche du sprint, revues indépendantes | `sprint/integration-t01urw` | Continu | En cours |
-| C2 | Contrat 1.0 : routes nécessaires aux interfaces (demandes de Gemini et de Qoder), figé à J7 | `agent/claude/contrat-1-0` | J7 | À démarrer |
-| C3 | Back-office prêt à la mise en service (hors CRM), durcissement, tests d'attaque | `agent/claude/backoffice` | J6 | À démarrer |
+| C2 | Contrat 1.0 : routes nécessaires aux interfaces (demandes de Gemini et de Qoder), figé à J7 | `sprint/integration-t01urw` | J7 | En cours : `GET /v1/me`, renouvellement de session, inscription par OTP et connexion appareil + PIN livrés (contrat 0.34.0) |
+| C3 | Back-office prêt à la mise en service (hors CRM), durcissement, tests d'attaque | `sprint/integration-t01urw` | J6 | À démarrer |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 
@@ -37,3 +37,7 @@
 
 | Demandé par | Besoin (route, champ) | Lot concerné | Statut |
 |---|---|---|---|
+| Claude (pour Gemini) | Recâbler l'inscription et la connexion du client web et du mobile sur le contrat 0.34.0 : `POST /v1/auth/otp-challenges` → `POST /v1/auth/signups` (code, PIN, clé Ed25519 de l'appareil en SPKI base64, nom, version des conditions) ; connexion `POST /v1/auth/device-challenges` → signature du défi (message décrit dans `ClientLoginChallenge`) → `POST /v1/auth/sessions` ; renouvellement `POST /v1/auth/session-refreshes` ; profil `GET /v1/me`. Les anciens formulaires web (`phone-otp-form`, `pin-login-form`) n'envoient plus rien et s'affichent indisponibles. | G2, G4 | À faire (Gemini) |
+
+> Note : Claude commite sur `sprint/integration-t01urw` (branche de travail de sa session), pas sur `agent/claude/*`. Avant le démarrage de Qoder, Claude a ajouté trois codes d'erreur (`IDENTITY_ACCOUNT_EXISTS`, `SMS_UNCONFIGURED`, `SMS_DELIVERY_FAILED`) dans `packages/contracts/src/errors.ts` et `apps/api/src/http/problem.ts`, fichiers désormais du périmètre de Qoder.
+

@@ -63,7 +63,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Mineurs de la revue : `&#0;` et taille UTF-8 de la liste ONU ; instantané unique réel (REPEATABLE READ) pour les versements, commentaires rectifiés ailleurs | |
 | DONE | SEC-API-005 : CSP à nonce pour back-office et portail partenaire ; REG-DPD-001 : registre T-11 à T-15 ; NF-UX-002 portail ; NF-UX-005 ; SEC-CRY-005/006 | |
 | DONE | Mineurs restants : codes métier exacts dans les tests de refus, jeton transplanté, défi inconnu indiscernable, détail uniforme des refus d'authentification ; D79 consigné | |
-| BLOCKED | Connexion client par PIN et appareil (D71) | contrat contraire à SEC-AUTH-001 ; enrôlement d'appareil bloqué par le SMS |
+| DONE | C2 : profil `GET /v1/me`, renouvellement de session, inscription par OTP (envoi SMS fermé sans prestataire), connexion appareil + PIN (D71 selon SEC-AUTH-001) | 0066, contrat 0.34.0 ; reste : adaptateur SMS (prestataire), nouvel appareil et récupération |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -81,4 +81,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-Objectif fondateur : **MVP de production le 29 novembre (J10)**, à trois agents (`docs/03_agents_ia/PROMPT_TRAVAIL_GEMINI_QODER.md`, `docs/journal/ATTRIBUTIONS.md`). Claude : lots C1 (intégration, revues), C2 (contrat 1.0, demandes de Gemini et Qoder, gel à J7), C3 (back-office prêt à la mise en service). Ne pas toucher aux périmètres de Gemini (interfaces) ni de Qoder (`http/`, observabilité, CRM, archivage, infra, migrations `01xx`).
+MVP J10 (29 novembre). C2 suite : routes demandées par Gemini et Qoder (`docs/journal/ATTRIBUTIONS.md`), ajout d'un nouvel appareil et récupération ; C3 : back-office prêt à la mise en service. Ne pas toucher aux périmètres de Gemini (interfaces) ni de Qoder (`http/`, observabilité, CRM, archivage, infra, migrations `01xx`).

@@ -1,17 +1,17 @@
 'use client';
 
-import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import type { FormEvent, ReactElement } from 'react';
 import { useState } from 'react';
 import type { Locale } from '../i18n';
-import { browserApi } from '../lib/browser-api';
-import { problemFrom } from '../lib/problem';
 
-type OtpChallenge = components['schemas']['OtpChallenge'];
-type OtpVerification = components['schemas']['OtpVerification'];
-type SessionSummary = components['schemas']['SessionSummary'];
+// Types de l'ancien brouillon de contrat (≤ 0.33.0), figés ici : ce formulaire n'a jamais été branché sur une route
+// réelle. Contrat 0.34.0 : `POST /v1/auth/otp-challenges` puis `POST /v1/auth/signups` (code, PIN, clé de l'appareil) et
+// connexion `POST /v1/auth/device-challenges` + `POST /v1/auth/sessions`. Recâblage : lot G4 (docs/journal/ATTRIBUTIONS.md).
+type OtpChallenge = { challengeId: string; expiresAt: string; resendAfterSeconds: number };
+type OtpVerification = { challengeId: string; signupToken: string; expiresAt: string };
+type SessionSummary = { accountId: string; displayName: string; locale: 'fr' | 'en'; expiresAt: string };
 
 export type SignupInput = {
   readonly phone: string;
@@ -51,72 +51,25 @@ export type PhoneOtpLabels = {
 const PHONE_PATTERN = /^\+[1-9][0-9]{7,14}$/;
 const CODE_PATTERN = /^[0-9]{6}$/;
 
-async function requestCodeDefault(
-  phone: string,
-  locale: Locale,
-  fallbackTitle: string,
-): Promise<AuthOutcome<OtpChallenge>> {
-  try {
-    const response = await browserApi().POST('/v1/auth/otp-challenges', {
-      body: { phone, locale },
-      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
-    });
-    if (response.data !== undefined) {
-      return { ok: true, value: response.data };
-    }
-    return {
-      ok: false,
-      problem: problemFrom(response.error, response.response, fallbackTitle),
-    };
-  } catch {
-    return { ok: false, problem: { title: fallbackTitle } };
-  }
+/**
+ * Contrat 0.34.0 : l'ancien flux du brouillon (vérification séparée, connexion par téléphone + PIN) n'existe pas
+ * côté API ; aucune requête n'est envoyée et l'écran l'indique comme indisponible (aucune simulation).
+ * Recâblage sur `otp-challenges` → `signups` et `device-challenges` → `sessions` : lot G4 de Gemini.
+ */
+function unavailable<T>(fallbackTitle: string): Promise<AuthOutcome<T>> {
+  return Promise.resolve({ ok: false, problem: { title: fallbackTitle, status: 503 } });
 }
 
-async function verifyCodeDefault(
-  challengeId: string,
-  code: string,
-  fallbackTitle: string,
-): Promise<AuthOutcome<OtpVerification>> {
-  try {
-    const response = await browserApi().POST(
-      '/v1/auth/otp-challenges/{challengeId}/verify',
-      {
-        params: { path: { challengeId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
-        body: { code },
-      },
-    );
-    if (response.data !== undefined) {
-      return { ok: true, value: response.data };
-    }
-    return {
-      ok: false,
-      problem: problemFrom(response.error, response.response, fallbackTitle),
-    };
-  } catch {
-    return { ok: false, problem: { title: fallbackTitle } };
-  }
+function requestCodeDefault(_phone: string, _locale: Locale, fallbackTitle: string): Promise<AuthOutcome<OtpChallenge>> {
+  return unavailable(fallbackTitle);
 }
 
-async function signupDefault(
-  input: SignupInput,
-  fallbackTitle: string,
-): Promise<AuthOutcome<SessionSummary>> {
-  try {
-    const response = await browserApi().POST('/v1/auth/signups', {
-      body: input,
-      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
-    });
-    if (response.data !== undefined) {
-      return { ok: true, value: response.data };
-    }
-    return {
-      ok: false,
-      problem: problemFrom(response.error, response.response, fallbackTitle),
-    };
-  } catch {
-    return { ok: false, problem: { title: fallbackTitle } };
-  }
+function verifyCodeDefault(_challengeId: string, _code: string, fallbackTitle: string): Promise<AuthOutcome<OtpVerification>> {
+  return unavailable(fallbackTitle);
+}
+
+function signupDefault(_input: SignupInput, fallbackTitle: string): Promise<AuthOutcome<SessionSummary>> {
+  return unavailable(fallbackTitle);
 }
 
 export function PhoneOtpForm({

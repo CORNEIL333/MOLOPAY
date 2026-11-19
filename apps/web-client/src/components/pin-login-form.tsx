@@ -1,37 +1,25 @@
 'use client';
 
-import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import type { FormEvent, ReactElement } from 'react';
 import { useId, useRef, useState } from 'react';
 import type { Dictionary, Locale } from '../i18n';
-import { browserApi } from '../lib/browser-api';
-import { problemFrom } from '../lib/problem';
 import type { AuthOutcome } from './phone-otp-form';
 
-type SessionRequest = components['schemas']['SessionRequest'];
-type SessionSummary = components['schemas']['SessionSummary'];
+// Types de l'ancien brouillon (≤ 0.33.0), figés ici : connexion par téléphone + PIN, contraire à SEC-AUTH-001 (D71).
+type SessionRequest = { phone: string; pin: string };
+type SessionSummary = { accountId: string; displayName: string; locale: 'fr' | 'en'; expiresAt: string };
 
 const PHONE_PATTERN = /^\+[1-9][0-9]{7,14}$/;
 const PIN_PATTERN = /^[0-9]{6}$/;
 
-async function loginDefault(
-  input: SessionRequest,
-  fallbackTitle: string,
-): Promise<AuthOutcome<SessionSummary>> {
-  const response = await browserApi().POST('/v1/auth/sessions', {
-    body: input,
-    params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
-    cache: 'no-store',
-  });
-  if (response.data !== undefined) {
-    return { ok: true, value: response.data };
-  }
-  return {
-    ok: false,
-    problem: problemFrom(response.error, response.response, fallbackTitle),
-  };
+/**
+ * Contrat 0.34.0 : la connexion exige la clé de l'appareil puis le PIN (`device-challenges` → `sessions`) ; ce
+ * formulaire « téléphone + PIN » n'envoie plus rien et s'affiche indisponible. Recâblage : lot G4 de Gemini.
+ */
+function loginDefault(_input: SessionRequest, fallbackTitle: string): Promise<AuthOutcome<SessionSummary>> {
+  return Promise.resolve({ ok: false, problem: { title: fallbackTitle, status: 503 } });
 }
 
 export function PinLoginForm({

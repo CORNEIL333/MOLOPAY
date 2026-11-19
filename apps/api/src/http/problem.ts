@@ -39,6 +39,7 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'AGREEMENT_LOCKED',
   'IDENTITY_NONCE_REUSED',
   'IDENTITY_OTP_REPLAYED',
+  'IDENTITY_ACCOUNT_EXISTS',
 ]);
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
@@ -67,6 +68,8 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   PARTNER_AUTH_UNCONFIGURED: 'service-unavailable',
   HANDOVER_UNCONFIGURED: 'service-unavailable',
   SIGNING_UNCONFIGURED: 'service-unavailable',
+  SMS_UNCONFIGURED: 'service-unavailable',
+  SMS_DELIVERY_FAILED: 'service-unavailable',
 };
 
 /** Statut HTTP d'un code métier ; tout code non classé est une règle métier (422). */
@@ -80,7 +83,7 @@ export function statusForCode(code: ErrorCode): number {
   }
   if (code === 'INTERNAL_ERROR') return 500;
   if (code === 'REQUEST_RATE_LIMITED') return 429;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED' || code === 'SMS_UNCONFIGURED' || code === 'SMS_DELIVERY_FAILED') return 503;
   return 422;
 }
 
