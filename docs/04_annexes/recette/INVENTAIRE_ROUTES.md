@@ -13,7 +13,7 @@
 | `GET` | `/health` | public | (défaut) | non | non | — | — | État de disponibilité de l'API |
 | `POST` | `/v1/auth/device-challenges` | public | no-store | oui | oui | — | poivre PIN | Défi de connexion d'un appareil enregistré (D71) |
 | `POST` | `/v1/auth/otp-challenges` | public | no-store | oui | oui | — | poivre PIN | Envoyer un code d'inscription par SMS (F-ACC-001) |
-| `POST` | `/v1/auth/session-refreshes` | public | no-store | oui | oui | — | — | Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) |
+| `POST` | `/v1/auth/session-refreshes` | public | no-store | oui | oui | — | — | Renouveler la session client : défi REFRESH signé par l'appareil + jeton de rafraîchissement à usage unique (SEC-AUTH-005) |
 | `POST` | `/v1/auth/sessions` | public | no-store | oui | oui | — | poivre PIN | Se connecter : défi signé par l'appareil, puis PIN (SEC-AUTH-001, D71) |
 | `POST` | `/v1/auth/signouts` | client | private, no-store | oui | oui | — | — | Fermer la session courante |
 | `POST` | `/v1/auth/signups` | public | no-store | oui | oui | — | poivre PIN | Créer son compte avec le code reçu : appareil, PIN, conditions, première session (F-ACC-001/002/004) |

@@ -1503,7 +1503,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) */
+        /**
+         * Renouveler la session client : défi REFRESH signé par l'appareil + jeton de rafraîchissement à usage unique (SEC-AUTH-005)
+         * @description Un cookie volé seul ne suffit pas (preuve de l'appareil). Un ancien jeton présenté avec une preuve valable de l'appareil révoque la session (vol présumé) : 401.
+         */
         post: operations["refreshClientSession"];
         delete?: never;
         options?: never;
@@ -1679,7 +1682,7 @@ export interface components {
         Account: {
             /** Format: uuid */
             accountId: string;
-            /** @description Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34). */
+            /** @description Indicatif pays (3 chiffres pour le Cameroun), points, puis seulement les deux derniers chiffres (ex. +237•••••••34). */
             phoneMasked: string;
             /** Format: date */
             memberSince: string;
@@ -2461,8 +2464,13 @@ export interface components {
         DeviceChallengeRequest: {
             /** Format: uuid */
             deviceId: string;
+            /**
+             * @description LOGIN : connexion (D71) ; REFRESH : renouvellement de session (SEC-AUTH-005).
+             * @enum {string}
+             */
+            purpose: "LOGIN" | "REFRESH";
         };
-        /** @description D71 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `molopay.client-login.v1\u0000<challengeId>\u0000<deviceId>\u0000` suivis des 32 octets du défi décodé. Appareil inconnu : défi de même forme, jamais valable. */
+        /** @description D71 / SEC-AUTH-005 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `<contexte>\u0000<challengeId>\u0000<deviceId>\u0000` suivis des 32 octets du défi décodé ; contexte `molopay.client-login.v1` (LOGIN) ou `molopay.client-refresh.v1` (REFRESH). Appareil inconnu : défi de même forme, jamais valable. 10 défis non consommés au plus par appareil sur 10 minutes (429). */
         ClientLoginChallenge: {
             /** Format: uuid */
             challengeId: string;
@@ -2488,6 +2496,15 @@ export interface components {
             accountId: string;
             /** Format: date-time */
             accessExpiresAt: string;
+        };
+        ClientSessionRefreshRequest: {
+            /**
+             * Format: uuid
+             * @description Défi REFRESH de l'appareil de la session.
+             */
+            challengeId: string;
+            /** @description Signature Ed25519 (64 octets) en base64. */
+            signature: string;
         };
     };
     responses: {
@@ -2635,6 +2652,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["Unavailable"];
         };
@@ -2703,6 +2721,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
             503: components["responses"]["Unavailable"];
         };
@@ -5308,9 +5327,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": components["schemas"]["ClientSessionRefreshRequest"];
             };
         };
         responses: {
@@ -5330,6 +5349,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
         };
     };
     issueClientLoginChallenge: {
@@ -5359,6 +5379,8 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
 }
