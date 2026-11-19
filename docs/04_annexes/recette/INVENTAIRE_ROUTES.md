@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **84 routes.**
+- **85 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -69,6 +69,7 @@
 | `GET` | `/v1/me/data-rights` | client | private, no-store | non | non | DATA_RIGHTS_READ | — | Historique des demandes de droits du compte connecte |
 | `POST` | `/v1/me/data-rights` | client | private, no-store | oui | oui | DATA_RIGHTS_SUBMIT | — | Enregistrer une demande de droits sur ses donnees |
 | `POST` | `/v1/me/legal-name` | client | private, no-store | oui | oui | LEGAL_NAME_DECLARE | — | Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68) |
+| `GET` | `/v1/me/notifications` | client | private, no-store | non | non | — | — | Fil des notifications du client dans l'application (F-NOT-001) |
 | `GET` | `/v1/me/security` | client | private, no-store | non | non | SECURITY_READ | — | Consulter ses appareils et sessions renouvelables |
 | `POST` | `/v1/me/security/block` | client | private, no-store | oui | oui | — | — | Bloquer son compte depuis l'application |
 | `POST` | `/v1/me/security/revoke-other-sessions` | client | private, no-store | oui | oui | REVOKE_OTHERS | — | Fermer les autres sessions du compte |
