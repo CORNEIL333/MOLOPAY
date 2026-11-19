@@ -2,7 +2,7 @@ import type { Dictionary } from './fr';
 
 /** NF-UX-002 : textes du portail partenaire, anglais. */
 export const en: Dictionary = {
-  common: { serviceDown: 'The service is not responding. Please try again.', loadFailed: 'Unable to load', actionFailed: 'Action failed', none: '—' },
+  common: { serviceDown: 'The service is not responding. Please try again.', loadFailed: 'Unable to load', actionFailed: 'Action failed', none: '—', refresh: 'Refresh' },
   login: {
     title: 'MoloPay partner portal', login: 'Username', submit: 'Sign in with my security key',
     invalidLogin: 'Invalid username (lowercase letters, digits, dot, hyphen).',
@@ -22,6 +22,7 @@ export const en: Dictionary = {
     failedTitle: 'Handover not confirmed', failedDetail: 'The service is not responding. Do not hand over the item; try again.',
     doneLead: (order: string): string => `Handover confirmed for order ${order} at `,
     doneTail: '. You may hand over the item.',
+    offline: 'Offline: do not hand over the item until the handover is confirmed by the server.',
   },
   orders: {
     title: 'Orders', table: 'Orders', export: 'Export orders (CSV)',
