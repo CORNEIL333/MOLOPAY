@@ -826,3 +826,78 @@ final class ClientSessionRefresh {
     );
   }
 }
+
+/// Défi OTP d'inscription (`POST /v1/auth/otp-challenges`, Contrat 0.34.0).
+final class OtpChallenge {
+  const OtpChallenge({required this.challengeId, required this.expiresAt});
+
+  final String challengeId;
+  final DateTime expiresAt;
+
+  factory OtpChallenge.fromJson(Map<String, Object?> json) {
+    return OtpChallenge(
+      challengeId: _reqString(json, 'challengeId'),
+      expiresAt: DateTime.parse(_reqString(json, 'expiresAt')),
+    );
+  }
+}
+
+/// Résultat d'inscription (`POST /v1/auth/signups`, Contrat 0.34.0, D71).
+final class SignupResult {
+  const SignupResult({
+    required this.accountId,
+    required this.deviceId,
+    required this.accessExpiresAt,
+  });
+
+  final String accountId;
+  final String deviceId;
+  final DateTime accessExpiresAt;
+
+  factory SignupResult.fromJson(Map<String, Object?> json) {
+    return SignupResult(
+      accountId: _reqString(json, 'accountId'),
+      deviceId: _reqString(json, 'deviceId'),
+      accessExpiresAt: DateTime.parse(_reqString(json, 'accessExpiresAt')),
+    );
+  }
+}
+
+/// Défi de connexion par appareil (`POST /v1/auth/device-challenges`, Contrat 0.34.0, D71).
+final class ClientLoginChallenge {
+  const ClientLoginChallenge({
+    required this.challengeId,
+    required this.challenge,
+    required this.expiresAt,
+  });
+
+  final String challengeId;
+  final String challenge;
+  final DateTime expiresAt;
+
+  factory ClientLoginChallenge.fromJson(Map<String, Object?> json) {
+    return ClientLoginChallenge(
+      challengeId: _reqString(json, 'challengeId'),
+      challenge: _reqString(json, 'challenge'),
+      expiresAt: DateTime.parse(_reqString(json, 'expiresAt')),
+    );
+  }
+}
+
+/// Résultat de connexion appareil + PIN (`POST /v1/auth/sessions`, Contrat 0.34.0, D71).
+final class ClientLoginResult {
+  const ClientLoginResult({
+    required this.accountId,
+    required this.accessExpiresAt,
+  });
+
+  final String accountId;
+  final DateTime accessExpiresAt;
+
+  factory ClientLoginResult.fromJson(Map<String, Object?> json) {
+    return ClientLoginResult(
+      accountId: _reqString(json, 'accountId'),
+      accessExpiresAt: DateTime.parse(_reqString(json, 'accessExpiresAt')),
+    );
+  }
+}

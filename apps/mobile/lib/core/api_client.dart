@@ -326,6 +326,86 @@ class MoloPayApiClient {
     return KycVerification.fromJson(_decodeJsonObject(response));
   }
 
+  /// Construit les octets exacts à signer par la clé Ed25519 de l'appareil (Contrat 0.34.0, D71) :
+  /// UTF-8 de `molopay.client-login.v1\u0000<challengeId>\u0000<deviceId>\u0000`
+  /// suivi des 32 octets du défi décodé base64url.
+  static List<int> buildClientLoginSigningBytes({
+    required String challengeId,
+    required String deviceId,
+    required String challengeBase64Url,
+  }) {
+    final prefix = utf8.encode(
+      'molopay.client-login.v1\u0000$challengeId\u0000$deviceId\u0000',
+    );
+    final normalized = base64Url.normalize(challengeBase64Url);
+    final challengeBytes = base64Url.decode(normalized);
+    return <int>[...prefix, ...challengeBytes];
+  }
+
+  /// Demande un défi OTP d'inscription (`POST /v1/auth/otp-challenges`, Contrat 0.34.0).
+  Future<OtpChallenge> requestOtpChallenge({required String phone}) async {
+    final response = await _sendPost(
+      '/v1/auth/otp-challenges',
+      body: {'phone': phone, 'purpose': 'SIGNUP'},
+    );
+    return OtpChallenge.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Inscription client par OTP + PIN + clé publique Ed25519 (`POST /v1/auth/signups`, Contrat 0.34.0).
+  Future<SignupResult> signUp({
+    required String challengeId,
+    required String code,
+    required String pin,
+    required String devicePublicKey,
+    required String deviceName,
+    required String acceptTermsVersion,
+  }) async {
+    final response = await _sendPost(
+      '/v1/auth/signups',
+      body: {
+        'challengeId': challengeId,
+        'code': code,
+        'pin': pin,
+        'devicePublicKey': devicePublicKey,
+        'deviceName': deviceName,
+        'acceptTermsVersion': acceptTermsVersion,
+      },
+    );
+    _captureSessionCookie(response.headers);
+    return SignupResult.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Demande un défi de connexion d'appareil (`POST /v1/auth/device-challenges`, Contrat 0.34.0, D71).
+  Future<ClientLoginChallenge> requestDeviceChallenge({
+    required String deviceId,
+  }) async {
+    final response = await _sendPost(
+      '/v1/auth/device-challenges',
+      body: {'deviceId': deviceId},
+    );
+    return ClientLoginChallenge.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Connexion client par appareil + signature Ed25519 + PIN (`POST /v1/auth/sessions`, Contrat 0.34.0, D71).
+  Future<ClientLoginResult> signInWithDevice({
+    required String challengeId,
+    required String deviceId,
+    required String signature,
+    required String pin,
+  }) async {
+    final response = await _sendPost(
+      '/v1/auth/sessions',
+      body: {
+        'challengeId': challengeId,
+        'deviceId': deviceId,
+        'signature': signature,
+        'pin': pin,
+      },
+    );
+    _captureSessionCookie(response.headers);
+    return ClientLoginResult.fromJson(_decodeJsonObject(response));
+  }
+
   /// Profil minimal du client connecté (`GET /v1/me`, OpenAPI 0.33.0).
   Future<AccountProfile> getCurrentAccount() async {
     final response = await _sendGet('/v1/me', authenticated: true);
