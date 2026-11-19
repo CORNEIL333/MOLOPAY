@@ -1,5 +1,14 @@
-import { type DynamicModule, Module, type Type } from '@nestjs/common';
+import {
+  type DynamicModule,
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+  RequestMethod,
+  type Type,
+} from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { CorrelationMiddleware } from './observability/correlation';
+import { LOG_SINK, type LogSink } from './observability/log';
 import { CustomerQuotaGuard } from './http/customer-quota';
 import { PG_POOL, type Database } from './http/database';
 import { ALLOWED_ORIGINS, OriginGuard } from './http/origin.guard';
@@ -43,6 +52,8 @@ export type AppDependencies = {
   readonly handoverPepper?: Uint8Array | null;
   /** Clé de signature des instructions (D5) ; absente : instructions refusées (503). */
   readonly platformSigningKey?: PlatformSigningKey | null;
+  /** Puits de journal (NF-OBS-001) ; absent : aucune ligne n'est écrite. */
+  readonly logSink?: LogSink | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -52,7 +63,12 @@ export type AppDependencies = {
  * l'environnement) : aucune configuration implicite ni valeur par défaut.
  */
 @Module({})
-export class AppModule {
+export class AppModule implements NestModule {
+  /** Corrélation sur toutes les routes, y compris 404 et erreurs. */
+  public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CorrelationMiddleware).forRoutes({ path: '{*path}', method: RequestMethod.ALL });
+  }
+
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
@@ -65,6 +81,8 @@ export class AppModule {
         { provide: HANDOVER_PEPPER, useValue: deps.handoverPepper ?? null },
         { provide: PLATFORM_SIGNING_KEY, useValue: deps.platformSigningKey ?? null },
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
+        { provide: LOG_SINK, useValue: deps.logSink ?? null },
+        CorrelationMiddleware,
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },
         CustomerSessionGuard,
