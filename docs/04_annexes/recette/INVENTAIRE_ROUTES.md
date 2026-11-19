@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **77 routes.**
+- **78 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -59,6 +59,7 @@
 | `GET` | `/v1/goals/{goalId}/contributions` | client | private, no-store | non | non | — | — | Historique des versements confirmés |
 | `POST` | `/v1/goals/{goalId}/lock` | client | private, no-store | oui | oui | GOAL_SIGNED_ACTION | poivre PIN | Verrouiller un objectif actif (PIN) |
 | `GET` | `/v1/goals/{goalId}/signing-payload` | client | private, no-store | non | non | — | poivre PIN | Octets à signer par l'appareil (D28) |
+| `GET` | `/v1/me` | client | private, no-store | non | non | — | — | Profil du client connecté |
 | `GET` | `/v1/me/data-rights` | client | private, no-store | non | non | DATA_RIGHTS_READ | — | Historique des demandes de droits du compte connecte |
 | `POST` | `/v1/me/data-rights` | client | private, no-store | oui | oui | DATA_RIGHTS_SUBMIT | — | Enregistrer une demande de droits sur ses donnees |
 | `POST` | `/v1/me/legal-name` | client | private, no-store | oui | oui | LEGAL_NAME_DECLARE | — | Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68) |

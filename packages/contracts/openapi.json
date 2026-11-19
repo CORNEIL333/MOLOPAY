@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.31.0",
+    "version": "0.32.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -491,6 +491,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
                 }
               }
             }
@@ -5859,40 +5867,26 @@
         "required": [
           "accountId",
           "phoneMasked",
-          "displayName",
-          "kycLevel",
-          "city",
-          "locale"
+          "memberSince",
+          "legalNameDeclared"
         ],
+        "description": "C2 / contrat 1.0 : profil minimal. Ni numéro en clair, ni nom légal, ni niveau KYC (D77).",
         "properties": {
           "accountId": {
             "type": "string",
             "format": "uuid"
           },
           "phoneMasked": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "kycLevel": {
             "type": "string",
-            "enum": [
-              "NONE",
-              "BASIC",
-              "STANDARD",
-              "STRONG"
-            ]
+            "description": "Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34)."
           },
-          "city": {
-            "$ref": "#/components/schemas/City"
-          },
-          "locale": {
+          "memberSince": {
             "type": "string",
-            "enum": [
-              "fr",
-              "en"
-            ]
+            "format": "date"
+          },
+          "legalNameDeclared": {
+            "type": "boolean",
+            "description": "Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé)."
           }
         },
         "additionalProperties": false

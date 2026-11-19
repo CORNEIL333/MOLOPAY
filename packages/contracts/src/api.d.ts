@@ -1664,16 +1664,16 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
         };
+        /** @description C2 / contrat 1.0 : profil minimal. Ni numéro en clair, ni nom légal, ni niveau KYC (D77). */
         Account: {
             /** Format: uuid */
             accountId: string;
+            /** @description Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34). */
             phoneMasked: string;
-            displayName: string;
-            /** @enum {string} */
-            kycLevel: "NONE" | "BASIC" | "STANDARD" | "STRONG";
-            city: components["schemas"]["City"];
-            /** @enum {string} */
-            locale: "fr" | "en";
+            /** Format: date */
+            memberSince: string;
+            /** @description Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé). */
+            legalNameDeclared: boolean;
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2796,6 +2796,7 @@ export interface operations {
             /** @description Profil */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
