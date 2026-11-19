@@ -1,4 +1,3 @@
-import type { components } from '@achat/contracts/api';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { randomInt, randomUUID } from 'node:crypto';
@@ -8,8 +7,9 @@ import { getDictionary } from '../i18n';
 import type { AuthOutcome } from './phone-otp-form';
 import { PinLoginForm } from './pin-login-form';
 
-type SessionRequest = components['schemas']['SessionRequest'];
-type SessionSummary = components['schemas']['SessionSummary'];
+// Types de l'ancien brouillon (≤ 0.33.0), figés comme dans le composant (recâblage : lot G4).
+type SessionRequest = { phone: string; pin: string };
+type SessionSummary = { accountId: string; displayName: string; locale: 'fr' | 'en'; expiresAt: string };
 type Login = (input: SessionRequest) => Promise<AuthOutcome<SessionSummary>>;
 
 const labels = getDictionary('fr').auth;
@@ -43,6 +43,15 @@ afterEach(() => {
 });
 
 describe('PinLoginForm', () => {
+  it('contrat 0.34.0 : sans port injecté, aucune requête vers l’ancien flux « téléphone + PIN » ; erreur affichée', async () => {
+    const network = vi.spyOn(globalThis, 'fetch');
+    render(<PinLoginForm labels={labels} />);
+    await fillForm(generatedInput());
+    await userEvent.setup().click(screen.getByRole('button', { name: labels.loginButton }));
+    await waitFor(() => { expect(screen.getByRole('alert')).toBeVisible(); });
+    expect(network).not.toHaveBeenCalled();
+  });
+
   it('golden : transmet les identifiants générés, termine et efface le PIN sans stockage', async () => {
     const input = generatedInput();
     const login = vi.fn<Login>(() => Promise.resolve({ ok: true, value: generatedSession() }));

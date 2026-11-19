@@ -26,6 +26,7 @@ import {
   normalizePhone,
   refreshSession,
   registerDevice,
+  registerSignupDevice,
   requestRecovery,
   revokeDevice,
   revokeSession,
@@ -424,6 +425,23 @@ describe('F-ACC-006 · blocage et appareils', () => {
           otpProof: verify(signupIssued),
           pepper,
         }),
+      'IDENTITY_OTP_INVALID',
+    );
+  });
+
+  it('C2 / SEC-AUTH-001 premier appareil sur la preuve d’inscription ; refus sur une preuve « nouvel appareil » ou d’un autre numéro (IDENTITY_OTP_INVALID)', () => {
+    const issued = issueOtp({ id: CHALLENGE_ID, phone: PHONE, purpose: 'SIGNUP', binding: PHONE, now: NOW, pepper });
+    const proof = verify(issued);
+    const account = createAccount({ id: ACCOUNT_ID, phone: PHONE, now: NOW, otpProof: proof, pepper });
+    const device = registerSignupDevice({ id: DEVICE_ID, account, publicKeyPem, name: 'Téléphone', now: NOW, otpProof: proof, pepper });
+    expect(device).toMatchObject({ id: DEVICE_ID, accountId: ACCOUNT_ID, status: 'ACTIVE', name: 'Téléphone' });
+    const newDevice = issueOtp({ id: DEVICE_CHALLENGE_ID, phone: PHONE, purpose: 'NEW_DEVICE', binding: DEVICE_ID, now: NOW, pepper });
+    expectCode(
+      () => registerSignupDevice({ id: DEVICE_ID, account, publicKeyPem, name: 'Téléphone', now: NOW, otpProof: verify(newDevice), pepper }),
+      'IDENTITY_OTP_INVALID',
+    );
+    expectCode(
+      () => registerSignupDevice({ id: DEVICE_ID, account: { ...account, phone: '+237690000099' }, publicKeyPem, name: 'Téléphone', now: NOW, otpProof: proof, pepper }),
       'IDENTITY_OTP_INVALID',
     );
   });

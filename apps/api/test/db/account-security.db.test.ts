@@ -106,6 +106,8 @@ describe('SEC-AUTH-005 / F-ACC-006 · sécurité du compte réelle', () => {
     const cookies = response.headers['set-cookie'] as unknown as string[];
     expect(cookies.some((value) => value.startsWith('client_session=;') && value.includes('Max-Age=0') && value.includes('HttpOnly')
       && value.includes('Secure') && value.includes('SameSite=Lax') && value.includes('Path=/'))).toBe(true);
+    // C2 : le cookie de rafraîchissement est effacé sur son chemin restreint.
+    expect(cookies.some((value) => value.startsWith('client_refresh=;') && value.includes('Max-Age=0') && value.includes('Path=/v1/auth;'))).toBe(true);
     expect((await admin.query('SELECT revoked_at IS NOT NULL AS revoked FROM identity.session WHERE id=$1', [SESSION])).rows[0]).toEqual({ revoked: true });
     expect((await request(server()).get(ROOT).set('Cookie', cookie).expect(401)).body).toMatchObject({ code: 'IDENTITY_SESSION_INVALID' });
     await request(server()).get(ROOT).set('Cookie', otherCookie).expect(200);

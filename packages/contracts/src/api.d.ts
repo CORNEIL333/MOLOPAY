@@ -30,25 +30,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Envoyer un code OTP au numéro demandé */
+        /**
+         * Envoyer un code d'inscription par SMS (F-ACC-001)
+         * @description Fermé par défaut : 503 SMS_UNCONFIGURED tant qu'aucun prestataire SMS n'est branché (aucune simulation). 503 SMS_DELIVERY_FAILED si l'envoi échoue (aucun défi enregistré).
+         */
         post: operations["issueOtpChallenge"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/otp-challenges/{challengeId}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Vérifier un code OTP d'inscription */
-        post: operations["verifyOtpChallenge"];
         delete?: never;
         options?: never;
         head?: never;
@@ -64,7 +50,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Créer un compte après vérification OTP */
+        /**
+         * Créer son compte avec le code reçu : appareil, PIN, conditions, première session (F-ACC-001/002/004)
+         * @description Le code est vérifié et son essai décompté même en cas de refus (IDENTITY_OTP_INVALID, IDENTITY_OTP_LOCKED). Numéro déjà inscrit : 409 IDENTITY_ACCOUNT_EXISTS.
+         */
         post: operations["createSignup"];
         delete?: never;
         options?: never;
@@ -81,8 +70,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ouvrir une session avec téléphone et PIN */
-        post: operations["createSession"];
+        /**
+         * Se connecter : défi signé par l'appareil, puis PIN (SEC-AUTH-001, D71)
+         * @description Refus uniforme 401 IDENTITY_SESSION_INVALID (défi, appareil, signature). PIN faux : 422 IDENTITY_PIN_INVALID, essai décompté ; 403 IDENTITY_PIN_LOCKED après 5 essais.
+         */
+        post: operations["createClientSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1502,6 +1494,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/session-refreshes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) */
+        post: operations["refreshClientSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/device-challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Défi de connexion d'un appareil enregistré (D71) */
+        post: operations["issueClientLoginChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1588,48 +1614,33 @@ export interface components {
             expiresAt: string;
         };
         OtpChallengeRequest: {
+            /** @description Numéro E.164 (ex. +237690000000). */
             phone: string;
-            /** @enum {string} */
-            locale: "fr" | "en";
+            /**
+             * @description Inscription seulement pour l'instant ; « nouvel appareil » viendra avec la récupération.
+             * @enum {string}
+             */
+            purpose: "SIGNUP";
         };
+        /** @description Réponse identique que le numéro soit déjà inscrit ou non. */
         OtpChallenge: {
             /** Format: uuid */
             challengeId: string;
             /** Format: date-time */
             expiresAt: string;
-            resendAfterSeconds: number;
-        };
-        OtpVerifyRequest: {
-            code: string;
-        };
-        OtpVerification: {
-            /** Format: uuid */
-            challengeId: string;
-            signupToken: string;
-            /** Format: date-time */
-            expiresAt: string;
         };
         SignupRequest: {
-            phone: string;
             /** Format: uuid */
             challengeId: string;
-            signupToken: string;
+            /** @description Code reçu par SMS. */
+            code: string;
+            /** @description Nouveau PIN : 6 chiffres, ni répétés ni suite (IDENTITY_PIN_WEAK). */
             pin: string;
-            /** @enum {string} */
-            locale: "fr" | "en";
-        };
-        SessionRequest: {
-            phone: string;
-            pin: string;
-        };
-        SessionSummary: {
-            /** Format: uuid */
-            accountId: string;
-            displayName: string;
-            /** @enum {string} */
-            locale: "fr" | "en";
-            /** Format: date-time */
-            expiresAt: string;
+            /** @description Clé publique Ed25519 de l'appareil, SPKI DER en base64 (générée dans le Keystore / Secure Enclave ; la clé privée ne quitte jamais l'appareil). */
+            devicePublicKey: string;
+            deviceName: string;
+            /** @description Version courante des conditions acceptée (F-ACC-004). */
+            acceptTermsVersion: string;
         };
         AccountSecurity: {
             /** Format: date-time */
@@ -1664,16 +1675,16 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
         };
+        /** @description C2 / contrat 1.0 : profil minimal. Ni numéro en clair, ni nom légal, ni niveau KYC (D77). */
         Account: {
             /** Format: uuid */
             accountId: string;
+            /** @description Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34). */
             phoneMasked: string;
-            displayName: string;
-            /** @enum {string} */
-            kycLevel: "NONE" | "BASIC" | "STANDARD" | "STRONG";
-            city: components["schemas"]["City"];
-            /** @enum {string} */
-            locale: "fr" | "en";
+            /** Format: date */
+            memberSince: string;
+            /** @description Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé). */
+            legalNameDeclared: boolean;
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2432,6 +2443,52 @@ export interface components {
                 listedOn: string | null;
             }[];
         };
+        ClientSessionRefresh: {
+            /** Format: date-time */
+            accessExpiresAt: string;
+        };
+        SignupResult: {
+            /** Format: uuid */
+            accountId: string;
+            /**
+             * Format: uuid
+             * @description À conserver par l'appareil : il sert à demander les défis de connexion.
+             */
+            deviceId: string;
+            /** Format: date-time */
+            accessExpiresAt: string;
+        };
+        DeviceChallengeRequest: {
+            /** Format: uuid */
+            deviceId: string;
+        };
+        /** @description D71 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `molopay.client-login.v1\u0000<challengeId>\u0000<deviceId>\u0000` suivis des 32 octets du défi décodé. Appareil inconnu : défi de même forme, jamais valable. */
+        ClientLoginChallenge: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @description 32 octets aléatoires en base64url. */
+            challenge: string;
+            /**
+             * Format: date-time
+             * @description 2 minutes.
+             */
+            expiresAt: string;
+        };
+        ClientLoginRequest: {
+            /** Format: uuid */
+            challengeId: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** @description Signature Ed25519 (64 octets) en base64. */
+            signature: string;
+            pin: string;
+        };
+        ClientLoginResult: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date-time */
+            accessExpiresAt: string;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -2566,9 +2623,10 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Code envoyé par le canal officiel */
-            202: {
+            /** @description OK */
+            201: {
                 headers: {
+                    "Cache-Control"?: "no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -2576,39 +2634,9 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             429: components["responses"]["TooManyRequests"];
             503: components["responses"]["Unavailable"];
-        };
-    };
-    verifyOtpChallenge: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                challengeId: components["parameters"]["ChallengeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OtpVerifyRequest"];
-            };
-        };
-        responses: {
-            /** @description Code vérifié */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OtpVerification"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            409: components["responses"]["Conflict"];
-            429: components["responses"]["TooManyRequests"];
         };
     };
     createSignup: {
@@ -2626,22 +2654,26 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Compte créé, cookies de session posés */
+            /** @description OK */
             201: {
                 headers: {
+                    "Cache-Control"?: "no-store";
+                    /** @description `client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), HttpOnly et Secure ; absents d'une réponse rejouée. */
                     "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionSummary"];
+                    "application/json": components["schemas"]["SignupResult"];
                 };
             };
             400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
         };
     };
-    createSession: {
+    createClientSession: {
         parameters: {
             query?: never;
             header: {
@@ -2652,24 +2684,27 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SessionRequest"];
+                "application/json": components["schemas"]["ClientLoginRequest"];
             };
         };
         responses: {
-            /** @description Session ouverte, cookies httpOnly posés */
-            200: {
+            /** @description OK */
+            201: {
                 headers: {
+                    "Cache-Control"?: "no-store";
+                    /** @description `client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), HttpOnly et Secure ; absents d'une réponse rejouée. */
                     "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionSummary"];
+                    "application/json": components["schemas"]["ClientLoginResult"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
-            429: components["responses"]["TooManyRequests"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
         };
     };
     deleteSession: {
@@ -2796,6 +2831,7 @@ export interface operations {
             /** @description Profil */
             200: {
                 headers: {
+                    "Cache-Control"?: "private, no-store";
                     [name: string]: unknown;
                 };
                 content: {
@@ -5261,6 +5297,68 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             503: components["responses"]["Unavailable"];
+        };
+    };
+    refreshClientSession: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Session renouvelée ; nouveaux cookies */
+            201: {
+                headers: {
+                    /** @description `client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), tous deux HttpOnly et Secure ; absents d'une réponse rejouée. */
+                    "Set-Cookie"?: string;
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientSessionRefresh"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    issueClientLoginChallenge: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientLoginChallenge"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
         };
     };
 }

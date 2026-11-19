@@ -7,12 +7,13 @@ import { PG_POOL, withTransaction, type Database } from '../../http/database';
 import { assertIdempotencyKey, runIdempotent } from '../../http/idempotency';
 import type { HttpRequest } from '../../http/express-types';
 import { CurrentCustomer, CustomerSessionGuard, readSessionCookie } from '../../http/session.guard';
+import { CLEARED_SESSION_COOKIES } from './client-cookies';
 import type { AuthenticatedCustomer } from './session.store';
 import { assertSecurityBody, mutateAccountSecurity, readAccountSecurity, type SecurityAction } from './account-security.store';
 
 type CookieResponse = { setHeader(name: string, value: readonly string[]): void };
-const CLEAR_COOKIES = ['client_session', 'client_refresh'].map((name) =>
-  `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+// Déconnexion et blocage : les deux cookies, aux deux chemins possibles du rafraîchissement.
+const CLEAR_COOKIES = CLEARED_SESSION_COOKIES;
 
 @Controller()
 @UseGuards(CustomerSessionGuard)

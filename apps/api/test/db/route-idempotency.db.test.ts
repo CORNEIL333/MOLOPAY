@@ -38,6 +38,14 @@ const SIGNATURE = Buffer.alloc(64, 1).toString('base64');
 /** Chemin déclaré (paramètres remplacés) → corps valide. */
 const CASES: Readonly<Record<string, object | undefined>> = {
   '/v1/goals': { model: 'SAVE_THEN_BUY', offerId: OFFER, planId: 'plan-a', durationMonths: 3, acceptTermsVersion: '2026-10-26-v1' },
+  '/v1/auth/session-refreshes': {},
+  '/v1/auth/otp-challenges': { phone: '+237690000555', purpose: 'SIGNUP' },
+  '/v1/auth/signups': {
+    challengeId: GOAL, code: '123456', pin: PIN, deviceName: 'Itel', acceptTermsVersion: '2026-10-26-v1',
+    devicePublicKey: generateKeyPairSync('ed25519').publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
+  },
+  '/v1/auth/device-challenges': { deviceId: GOAL },
+  '/v1/auth/sessions': { challengeId: GOAL, deviceId: GOAL, signature: SIGNATURE, pin: PIN },
   [`/v1/offers/${OFFER}/quotes`]: { planId: 'plan-a', durationMonths: 3 },
   '/v1/auth/signouts': undefined,
   '/v1/me/security/block': { reason: 'LOST_OR_STOLEN' },
@@ -150,7 +158,8 @@ async function session(accountId: string): Promise<{ cookie: string; privateKey:
      VALUES ($1, $2, $3, 0, NULL, now())`,
     [device, accountId, await hashPin(PIN, PEPPER)],
   );
-  return { cookie: `client_session=${sessionCookieValue(sessionId, token.accessToken)}`, privateKey };
+  // Le cookie de rafraîchissement accompagne la session : la route de renouvellement (C2) l'exige.
+  return { cookie: `client_session=${sessionCookieValue(sessionId, token.accessToken)}; client_refresh=${sessionCookieValue(sessionId, token.refreshToken)}`, privateKey };
 }
 
 function declaredPostRoutes(): string[] {

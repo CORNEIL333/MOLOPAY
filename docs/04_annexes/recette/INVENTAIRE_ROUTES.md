@@ -6,12 +6,17 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **77 routes.**
+- **83 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
 | `GET` | `/health` | public | (défaut) | non | non | — | — | État de disponibilité de l'API |
+| `POST` | `/v1/auth/device-challenges` | public | no-store | oui | oui | — | poivre PIN | Défi de connexion d'un appareil enregistré (D71) |
+| `POST` | `/v1/auth/otp-challenges` | public | no-store | oui | oui | — | poivre PIN | Envoyer un code d'inscription par SMS (F-ACC-001) |
+| `POST` | `/v1/auth/session-refreshes` | public | no-store | oui | oui | — | — | Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001) |
+| `POST` | `/v1/auth/sessions` | public | no-store | oui | oui | — | poivre PIN | Se connecter : défi signé par l'appareil, puis PIN (SEC-AUTH-001, D71) |
 | `POST` | `/v1/auth/signouts` | client | private, no-store | oui | oui | — | — | Fermer la session courante |
+| `POST` | `/v1/auth/signups` | public | no-store | oui | oui | — | poivre PIN | Créer son compte avec le code reçu : appareil, PIN, conditions, première session (F-ACC-001/002/004) |
 | `POST` | `/v1/backoffice/admin/approvals` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Préparer une demande maker-checker (rôles, paramètre financier) |
 | `POST` | `/v1/backoffice/admin/approvals/{requestId}/decision` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Décider une demande, par une autre personne (I-7) |
 | `POST` | `/v1/backoffice/admin/settings` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Publier un paramètre financier approuvé (par son préparateur) |
@@ -59,6 +64,7 @@
 | `GET` | `/v1/goals/{goalId}/contributions` | client | private, no-store | non | non | — | — | Historique des versements confirmés |
 | `POST` | `/v1/goals/{goalId}/lock` | client | private, no-store | oui | oui | GOAL_SIGNED_ACTION | poivre PIN | Verrouiller un objectif actif (PIN) |
 | `GET` | `/v1/goals/{goalId}/signing-payload` | client | private, no-store | non | non | — | poivre PIN | Octets à signer par l'appareil (D28) |
+| `GET` | `/v1/me` | client | private, no-store | non | non | — | — | Profil du client connecté |
 | `GET` | `/v1/me/data-rights` | client | private, no-store | non | non | DATA_RIGHTS_READ | — | Historique des demandes de droits du compte connecte |
 | `POST` | `/v1/me/data-rights` | client | private, no-store | oui | oui | DATA_RIGHTS_SUBMIT | — | Enregistrer une demande de droits sur ses donnees |
 | `POST` | `/v1/me/legal-name` | client | private, no-store | oui | oui | LEGAL_NAME_DECLARE | — | Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68) |

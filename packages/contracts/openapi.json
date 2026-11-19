@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.31.0",
+    "version": "0.34.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -67,7 +67,7 @@
     "/v1/auth/otp-challenges": {
       "post": {
         "operationId": "issueOtpChallenge",
-        "summary": "Envoyer un code OTP au numéro demandé",
+        "summary": "Envoyer un code d'inscription par SMS (F-ACC-001)",
         "tags": [
           "Authentification"
         ],
@@ -88,8 +88,16 @@
           }
         },
         "responses": {
-          "202": {
-            "description": "Code envoyé par le canal officiel",
+          "201": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -101,68 +109,23 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
           }
-        }
-      }
-    },
-    "/v1/auth/otp-challenges/{challengeId}/verify": {
-      "post": {
-        "operationId": "verifyOtpChallenge",
-        "summary": "Vérifier un code OTP d'inscription",
-        "tags": [
-          "Authentification"
-        ],
-        "security": [],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/ChallengeId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OtpVerifyRequest"
-              }
-            }
-          }
         },
-        "responses": {
-          "200": {
-            "description": "Code vérifié",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OtpVerification"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          }
-        }
+        "description": "Fermé par défaut : 503 SMS_UNCONFIGURED tant qu'aucun prestataire SMS n'est branché (aucune simulation). 503 SMS_DELIVERY_FAILED si l'envoi échoue (aucun défi enregistré)."
       }
     },
     "/v1/auth/signups": {
       "post": {
         "operationId": "createSignup",
-        "summary": "Créer un compte après vérification OTP",
+        "summary": "Créer son compte avec le code reçu : appareil, PIN, conditions, première session (F-ACC-001/002/004)",
         "tags": [
           "Authentification"
         ],
@@ -184,9 +147,16 @@
         },
         "responses": {
           "201": {
-            "description": "Compte créé, cookies de session posés",
+            "description": "OK",
             "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
               "Set-Cookie": {
+                "description": "`client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), HttpOnly et Secure ; absents d'une réponse rejouée.",
                 "schema": {
                   "type": "string"
                 }
@@ -195,7 +165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionSummary"
+                  "$ref": "#/components/schemas/SignupResult"
                 }
               }
             }
@@ -203,19 +173,26 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
-        }
+        },
+        "description": "Le code est vérifié et son essai décompté même en cas de refus (IDENTITY_OTP_INVALID, IDENTITY_OTP_LOCKED). Numéro déjà inscrit : 409 IDENTITY_ACCOUNT_EXISTS."
       }
     },
     "/v1/auth/sessions": {
       "post": {
-        "operationId": "createSession",
-        "summary": "Ouvrir une session avec téléphone et PIN",
+        "operationId": "createClientSession",
+        "summary": "Se connecter : défi signé par l'appareil, puis PIN (SEC-AUTH-001, D71)",
         "tags": [
           "Authentification"
         ],
@@ -230,16 +207,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionRequest"
+                "$ref": "#/components/schemas/ClientLoginRequest"
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Session ouverte, cookies httpOnly posés",
+          "201": {
+            "description": "OK",
             "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
               "Set-Cookie": {
+                "description": "`client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), HttpOnly et Secure ; absents d'une réponse rejouée.",
                 "schema": {
                   "type": "string"
                 }
@@ -248,7 +232,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionSummary"
+                  "$ref": "#/components/schemas/ClientLoginResult"
                 }
               }
             }
@@ -262,10 +246,14 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
-        }
+        },
+        "description": "Refus uniforme 401 IDENTITY_SESSION_INVALID (défi, appareil, signature). PIN faux : 422 IDENTITY_PIN_INVALID, essai décompté ; 403 IDENTITY_PIN_LOCKED après 5 essais."
       }
     },
     "/v1/auth/signouts": {
@@ -491,6 +479,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
                 }
               }
             }
@@ -5141,6 +5137,125 @@
           }
         }
       }
+    },
+    "/v1/auth/session-refreshes": {
+      "post": {
+        "operationId": "refreshClientSession",
+        "summary": "Renouveler la session client (jeton de rafraîchissement à usage unique, SEC-AUTH-001)",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [
+          {
+            "refreshCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session renouvelée ; nouveaux cookies",
+            "headers": {
+              "Set-Cookie": {
+                "description": "`client_session` (Path=/, SameSite=Lax) et `client_refresh` (Path=/v1/auth, SameSite=Strict), tous deux HttpOnly et Secure ; absents d'une réponse rejouée.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientSessionRefresh"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/v1/auth/device-challenges": {
+      "post": {
+        "operationId": "issueClientLoginChallenge",
+        "summary": "Défi de connexion d'un appareil enregistré (D71)",
+        "tags": [
+          "Authentification"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceChallengeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLoginChallenge"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5165,6 +5280,12 @@
         "in": "cookie",
         "name": "staff_session",
         "description": "D62 / ADR-0007 (proposé) : session WebAuthn du personnel, 15 min au plus."
+      },
+      "refreshCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "client_refresh",
+        "description": "Jeton de rafraîchissement à usage unique (`<sessionId>.<jeton>`), HttpOnly, Secure, SameSite=Strict, Path=/v1/auth."
       }
     },
     "parameters": {
@@ -5577,165 +5698,82 @@
         "type": "object",
         "required": [
           "phone",
-          "locale"
+          "purpose"
         ],
+        "additionalProperties": false,
         "properties": {
           "phone": {
             "type": "string",
-            "pattern": "^\\+[1-9][0-9]{7,14}$"
+            "description": "Numéro E.164 (ex. +237690000000)."
           },
-          "locale": {
+          "purpose": {
             "type": "string",
             "enum": [
-              "fr",
-              "en"
-            ]
+              "SIGNUP"
+            ],
+            "description": "Inscription seulement pour l'instant ; « nouvel appareil » viendra avec la récupération."
           }
-        },
-        "additionalProperties": false
+        }
       },
       "OtpChallenge": {
         "type": "object",
         "required": [
           "challengeId",
-          "expiresAt",
-          "resendAfterSeconds"
-        ],
-        "properties": {
-          "challengeId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resendAfterSeconds": {
-            "type": "integer",
-            "minimum": 30
-          }
-        },
-        "additionalProperties": false
-      },
-      "OtpVerifyRequest": {
-        "type": "object",
-        "required": [
-          "code"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "pattern": "^[0-9]{6}$"
-          }
-        },
-        "additionalProperties": false
-      },
-      "OtpVerification": {
-        "type": "object",
-        "required": [
-          "challengeId",
-          "signupToken",
           "expiresAt"
         ],
+        "additionalProperties": false,
         "properties": {
           "challengeId": {
             "type": "string",
             "format": "uuid"
-          },
-          "signupToken": {
-            "type": "string",
-            "minLength": 32
           },
           "expiresAt": {
             "type": "string",
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "description": "Réponse identique que le numéro soit déjà inscrit ou non."
       },
       "SignupRequest": {
         "type": "object",
         "required": [
-          "phone",
           "challengeId",
-          "signupToken",
+          "code",
           "pin",
-          "locale"
+          "devicePublicKey",
+          "deviceName",
+          "acceptTermsVersion"
         ],
+        "additionalProperties": false,
         "properties": {
-          "phone": {
-            "type": "string",
-            "pattern": "^\\+[1-9][0-9]{7,14}$"
-          },
           "challengeId": {
             "type": "string",
             "format": "uuid"
           },
-          "signupToken": {
+          "code": {
             "type": "string",
-            "minLength": 32
+            "pattern": "^[0-9]{6}$",
+            "description": "Code reçu par SMS."
           },
           "pin": {
             "type": "string",
-            "pattern": "^[0-9]{6}$"
+            "pattern": "^[0-9]{6}$",
+            "description": "Nouveau PIN : 6 chiffres, ni répétés ni suite (IDENTITY_PIN_WEAK)."
           },
-          "locale": {
+          "devicePublicKey": {
             "type": "string",
-            "enum": [
-              "fr",
-              "en"
-            ]
+            "description": "Clé publique Ed25519 de l'appareil, SPKI DER en base64 (générée dans le Keystore / Secure Enclave ; la clé privée ne quitte jamais l'appareil)."
+          },
+          "deviceName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "acceptTermsVersion": {
+            "type": "string",
+            "description": "Version courante des conditions acceptée (F-ACC-004)."
           }
-        },
-        "additionalProperties": false
-      },
-      "SessionRequest": {
-        "type": "object",
-        "required": [
-          "phone",
-          "pin"
-        ],
-        "properties": {
-          "phone": {
-            "type": "string",
-            "pattern": "^\\+[1-9][0-9]{7,14}$"
-          },
-          "pin": {
-            "type": "string",
-            "pattern": "^[0-9]{6}$"
-          }
-        },
-        "additionalProperties": false
-      },
-      "SessionSummary": {
-        "type": "object",
-        "required": [
-          "accountId",
-          "displayName",
-          "locale",
-          "expiresAt"
-        ],
-        "properties": {
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "locale": {
-            "type": "string",
-            "enum": [
-              "fr",
-              "en"
-            ]
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
+        }
       },
       "AccountSecurity": {
         "type": "object",
@@ -5859,40 +5897,26 @@
         "required": [
           "accountId",
           "phoneMasked",
-          "displayName",
-          "kycLevel",
-          "city",
-          "locale"
+          "memberSince",
+          "legalNameDeclared"
         ],
+        "description": "C2 / contrat 1.0 : profil minimal. Ni numéro en clair, ni nom légal, ni niveau KYC (D77).",
         "properties": {
           "accountId": {
             "type": "string",
             "format": "uuid"
           },
           "phoneMasked": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "kycLevel": {
             "type": "string",
-            "enum": [
-              "NONE",
-              "BASIC",
-              "STANDARD",
-              "STRONG"
-            ]
+            "description": "Indicatif et premier chiffre, puis seulement les deux derniers chiffres (ex. +2376•••••••34)."
           },
-          "city": {
-            "$ref": "#/components/schemas/City"
-          },
-          "locale": {
+          "memberSince": {
             "type": "string",
-            "enum": [
-              "fr",
-              "en"
-            ]
+            "format": "date"
+          },
+          "legalNameDeclared": {
+            "type": "boolean",
+            "description": "Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé)."
           }
         },
         "additionalProperties": false
@@ -8784,6 +8808,127 @@
           }
         },
         "additionalProperties": false
+      },
+      "ClientSessionRefresh": {
+        "type": "object",
+        "required": [
+          "accessExpiresAt"
+        ],
+        "properties": {
+          "accessExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SignupResult": {
+        "type": "object",
+        "required": [
+          "accountId",
+          "deviceId",
+          "accessExpiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "À conserver par l'appareil : il sert à demander les défis de connexion."
+          },
+          "accessExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceChallengeRequest": {
+        "type": "object",
+        "required": [
+          "deviceId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ClientLoginChallenge": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "challenge",
+          "expiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "challenge": {
+            "type": "string",
+            "description": "32 octets aléatoires en base64url."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "2 minutes."
+          }
+        },
+        "description": "D71 : l'appareil signe avec sa clé Ed25519 les octets UTF-8 de `molopay.client-login.v1\\u0000<challengeId>\\u0000<deviceId>\\u0000` suivis des 32 octets du défi décodé. Appareil inconnu : défi de même forme, jamais valable."
+      },
+      "ClientLoginRequest": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "deviceId",
+          "signature",
+          "pin"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signature": {
+            "type": "string",
+            "description": "Signature Ed25519 (64 octets) en base64."
+          },
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        }
+      },
+      "ClientLoginResult": {
+        "type": "object",
+        "required": [
+          "accountId",
+          "accessExpiresAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accessExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "responses": {
