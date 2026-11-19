@@ -6,6 +6,7 @@ import '../core/app_state.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
+import 'signup_screen.dart';
 
 /// Écran de connexion client (`POST /v1/auth/sessions`).
 /// Zéro simulation : si la route est fermée (503/404), affiche le code RFC 9457 exact.
@@ -162,6 +163,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   _submit,
                   key: const Key('login-submit-button'),
                   loading: _pending,
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: TextButton(
+                    onPressed: _pending
+                        ? null
+                        : () => Navigator.of(context).push(
+                            CupertinoPageRoute<void>(
+                              builder: (_) => SignupScreen(state: widget.state),
+                            ),
+                          ),
+                    child: Text(
+                      s.isEn ? 'Create an account' : 'Créer un compte',
+                      style: type(14, color: orange, weight: FontWeight.w700),
+                    ),
+                  ),
                 ),
               ],
             ),

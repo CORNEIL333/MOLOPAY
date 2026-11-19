@@ -147,3 +147,5 @@ void main() {
     });
   });
 }
+
+  // Widget test pour SignupScreen (Contrat 0.34.0 : OTP 503 sans simulation)
