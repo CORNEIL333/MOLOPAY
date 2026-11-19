@@ -13,7 +13,7 @@ type Failure = { readonly ok: false; readonly problem: ProblemSummary };
 /** Appels injectés (`browserSanctionsPorts`) ; droits et auteur ≠ examinateur vérifiés côté serveur et en base. */
 export type SanctionsPorts = {
   readonly screen: (partnerId: string) => Promise<{ readonly ok: true; readonly screening: Screening } | Failure>;
-  readonly review: (screeningId: string, decision: Decision, reason: string) => Promise<{ readonly ok: true } | Failure>;
+  readonly review: (screeningId: string, decision: Decision, reason: string) => Promise<{ readonly ok: true; readonly status: 'PROPOSED' | 'RECORDED' } | Failure>;
   /** D74 : détail (nom filtré, noms listés) ; consultation motivée et journalisée côté serveur. */
   readonly detail: (screeningId: string, reason: string) => Promise<{ readonly ok: true; readonly detail: Detail } | Failure>;
 };
@@ -35,7 +35,7 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
   const [decision, setDecision] = useState<Decision>('FALSE_POSITIVE');
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | undefined>(undefined);
-  const [reviewed, setReviewed] = useState(false);
+  const [reviewed, setReviewed] = useState<'PROPOSED' | 'RECORDED' | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -60,7 +60,7 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
     setPartnerError(undefined);
     setScreening(null);
     setDetail(null);
-    setReviewed(false);
+    setReviewed(null);
     await guard(async () => {
       const result = await ports.screen(partnerId);
       if (result.ok) setScreening(result.screening);
@@ -98,7 +98,7 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
         return;
       }
       setDetail(result.detail);
-      setReviewed(result.detail.review !== null);
+      setReviewed(result.detail.review === null ? null : 'RECORDED');
       setScreening({
         screeningId: result.detail.screeningId,
         partnerId: result.detail.subjectId,
@@ -119,7 +119,7 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
     setReasonError(undefined);
     await guard(async () => {
       const result = await ports.review(screening.screeningId, decision, reason.trim());
-      if (result.ok) setReviewed(true);
+      if (result.ok) setReviewed(result.status);
       else setProblem(result.problem);
     });
   }
@@ -166,7 +166,7 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
           </ul>
         </section>
       )}
-      {screening?.outcome !== 'POTENTIAL_MATCH' || reviewed ? null : (
+      {screening?.outcome !== 'POTENTIAL_MATCH' || reviewed !== null ? null : (
         <form onSubmit={(event) => void review(event)} noValidate>
           <h2>Examen du rapprochement</h2>
           <div className="achat-field">
@@ -180,7 +180,8 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
           <Button type="submit" disabled={pending}>Enregistrer l’examen</Button>
         </form>
       )}
-      {reviewed ? <p>Examen enregistré.</p> : null}
+      {reviewed === 'RECORDED' ? <p role="status">Examen enregistré.</p> : null}
+      {reviewed === 'PROPOSED' ? <p role="status">Proposition d’écartement enregistrée. Une autre personne de la Conformité doit la confirmer pour qu’elle prenne effet.</p> : null}
     </section>
   );
 }

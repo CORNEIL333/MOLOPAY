@@ -28,7 +28,7 @@ let admin: Client;
 let database: Database;
 let app: INestApplication;
 let migrations: string[];
-let cookies: Record<'network' | 'compliance' | 'ops', string>;
+let cookies: Record<'network' | 'compliance' | 'compliance2' | 'ops', string>;
 
 function payload(response: request.Response): { code?: string; screeningId?: string } {
   return response.body as { code?: string; screeningId?: string };
@@ -88,7 +88,7 @@ beforeEach(async () => {
   }
   const uri = db.getConnectionUri();
   const result: Partial<typeof cookies> = {};
-  for (const [slot, login, roles] of [['network', 'net.un', ['PARTNER_NETWORK']], ['compliance', 'comp.un', ['COMPLIANCE']], ['ops', 'ops.un', ['OPERATIONS']]] as const) {
+  for (const [slot, login, roles] of [['network', 'net.un', ['PARTNER_NETWORK']], ['compliance', 'comp.un', ['COMPLIANCE']], ['compliance2', 'comp.deux', ['COMPLIANCE']], ['ops', 'ops.un', ['OPERATIONS']]] as const) {
     const { key } = await createStaffWithKey(uri, { login, roles: [...roles] });
     result[slot] = staffCookie(await loginOverHttp(server(), login, key, 1));
   }
@@ -98,11 +98,11 @@ beforeEach(async () => {
 describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
   it('sans liste importée : 422 KYC_LIST_UNAVAILABLE ; partenaire inconnu : 404', async () => {
     await dossier('merchant-9', 'Quincaillerie du Centre');
-    const unavailable = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    const unavailable = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance, {});
     expect(unavailable.status).toBe(422);
     expect(payload(unavailable).code).toBe('KYC_LIST_UNAVAILABLE');
     await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
-    const unknown = await post('/v1/backoffice/partners/inconnu-1/screenings', cookies.network, {});
+    const unknown = await post('/v1/backoffice/partners/inconnu-1/screenings', cookies.compliance, {});
     expect(unknown.status).toBe(404);
     expect(payload(unknown).code).toBe('KYC_SUBJECT_NOT_FOUND');
   });
@@ -111,7 +111,12 @@ describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
     await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
     await dossier('merchant-9', 'Quincaillerie du Centre');
     await dossier('merchant-9', 'Butembo Airlines SARL');
-    const screened = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    // I-3 : le réseau partenaires ne filtre que dans son périmètre ; aucun périmètre partenaire n'est attribué au personnel (D63).
+    const outOfScope = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    expect(outOfScope.status).toBe(403);
+    expect(payload(outOfScope).code).toBe('ADMIN_SCOPE_DENIED');
+    expect((await request(server()).get('/v1/backoffice/partners/merchant-9/screening').set('Cookie', cookies.network)).status).toBe(403);
+    const screened = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance2, {});
     expect(screened.status, JSON.stringify(screened.body)).toBe(201);
     expect(screened.headers['cache-control']).toBe('private, no-store');
     expect(screened.body).toMatchObject({ outcome: 'POTENTIAL_MATCH', matchedReferences: ['CDe.002'] });
@@ -121,6 +126,7 @@ describe('REG-LBC-002 / D66 filtrage des partenaires au back-office', () => {
     expect((await post(path, cookies.compliance, { decision: 'FALSE_POSITIVE' })).status).toBe(400);
     const reviewed = await post(path, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'société distincte, RCCM vérifié' });
     expect(reviewed.status, JSON.stringify(reviewed.body)).toBe(200);
+    expect(reviewed.body).toEqual({ screeningId: payload(screened).screeningId, decision: 'FALSE_POSITIVE', status: 'RECORDED' });
     expect((await status()).body).toEqual({ partnerId: 'merchant-9', status: 'FALSE_POSITIVE' });
   });
 
@@ -143,7 +149,7 @@ describe('REG-LBC-002 / F-BO-004 consultation d’un filtrage par la Conformité
   it('nom filtré et entrées rapprochées (noms listés) ; motif obligatoire ; journalisé ; réseau partenaires refusé', async () => {
     await withTransaction(database, (client) => importUnSanctionsList(client, { versionId: uuidv7(), xml: EXCERPT, sourceUrl: 'https://scsanctions.un.org/resources/xml/en/consolidated.xml', actorId: 'comp.un' }));
     await dossier('merchant-9', 'Butembo Airlines SARL');
-    const screened = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    const screened = await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance2, {});
     const id = payload(screened).screeningId ?? '';
     const path = `/v1/backoffice/screenings/${id}`;
     expect((await request(server()).get(path).set('Cookie', cookies.compliance)).status).toBe(400);
@@ -190,14 +196,22 @@ describe('F-BO-003 / D75 rapprochements en attente d’examen dans la file de tr
     await seedCustomerAccount(admin, customer, 'NONE');
     const match = await withTransaction(database, (client) => declareLegalNameAndScreen(client, { accountId: customer, legalName: 'Eric Badege' }));
     await dossier('merchant-9', 'Quincaillerie du Centre');
-    await post('/v1/backoffice/partners/merchant-9/screenings', cookies.network, {});
+    await post('/v1/backoffice/partners/merchant-9/screenings', cookies.compliance2, {});
     const queue = (): request.Test => request(server()).get('/v1/backoffice/queue').query({ reason: 'revue quotidienne' }).set('Cookie', cookies.compliance);
     const first = await queue();
     expect(first.status, JSON.stringify(first.body)).toBe(200);
     const pending = (first.body as { pendingSanctionsReviews: Record<string, unknown>[] }).pendingSanctionsReviews;
     expect(pending).toEqual([{ screeningId: match.screeningId, subjectType: 'CUSTOMER', screenedAt: expect.any(String) as unknown }]);
     expect(JSON.stringify(first.body)).not.toMatch(/BADEGE|Badege|CDi\.001/);
-    await post(`/v1/backoffice/screenings/${match.screeningId}/review`, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'date de naissance différente' });
+    const proposed = await post(`/v1/backoffice/screenings/${match.screeningId}/review`, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'date de naissance différente' });
+    expect(proposed.body).toMatchObject({ status: 'PROPOSED' });
+    // I-4 : une proposition seule n'écarte rien ; le rapprochement reste dans la file jusqu'à la confirmation.
+    expect(((await queue()).body as { pendingSanctionsReviews: unknown[] }).pendingSanctionsReviews).toHaveLength(1);
+    const self = await post(`/v1/backoffice/screenings/${match.screeningId}/review`, cookies.compliance, { decision: 'FALSE_POSITIVE', reason: 'je confirme' });
+    expect(self.status).toBe(403);
+    expect(payload(self).code).toBe('MAKER_CANNOT_APPROVE');
+    const confirmed = await post(`/v1/backoffice/screenings/${match.screeningId}/review`, cookies.compliance2, { decision: 'FALSE_POSITIVE', reason: 'pièce vérifiée, homonyme' });
+    expect(confirmed.body).toMatchObject({ status: 'RECORDED' });
     expect(((await queue()).body as { pendingSanctionsReviews: unknown[] }).pendingSanctionsReviews).toEqual([]);
   });
 });

@@ -184,6 +184,14 @@ describe('ABAC · périmètre, plafond et motif', () => {
     expect(decision).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
   });
 
+  it('I-3 limite le filtrage sanctions d’un partenaire au périmètre du réseau partenaires (ADMIN_SCOPE_DENIED)', () => {
+    const network = principal('network-1', ['PARTNER_NETWORK']);
+    expect(authorize(network, 'SCREEN_PARTNER', { ...CONTEXT, partnerId: 'partner-2' })).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
+    expect(authorize(network, 'SCREEN_PARTNER', {})).toMatchObject({ allowed: false, code: 'ADMIN_SCOPE_DENIED' });
+    expect(authorize(network, 'SCREEN_PARTNER', { ...CONTEXT, partnerId: 'partner-1' })).toMatchObject({ allowed: true });
+    expect(authorize(principal('comp-1', ['COMPLIANCE']), 'SCREEN_PARTNER', { partnerId: 'partner-2' })).toMatchObject({ allowed: true });
+  });
+
   it('applique la portée partenaire aussi à un rôle composite', () => {
     const composite = principal('comp-1', ['COMPLIANCE', 'PARTNER_NETWORK']);
     const decision = authorize(composite, 'APPROVE_PARTNER', {

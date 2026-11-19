@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.30.0",
+    "version": "0.31.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -4947,7 +4947,8 @@
           "503": {
             "$ref": "#/components/responses/Unavailable"
           }
-        }
+        },
+        "description": "I-7 / I-4 : l'auteur du filtrage ne l'examine pas ; un faux positif client est proposé puis confirmé par une autre personne (MAKER_CANNOT_APPROVE sinon). Une correspondance se confirme par une personne."
       }
     },
     "/v1/me/legal-name": {
@@ -8548,7 +8549,8 @@
         "type": "object",
         "required": [
           "screeningId",
-          "decision"
+          "decision",
+          "status"
         ],
         "properties": {
           "screeningId": {
@@ -8561,6 +8563,14 @@
               "FALSE_POSITIVE",
               "CONFIRMED_MATCH"
             ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "RECORDED"
+            ],
+            "description": "I-4 : écarter un rapprochement client exige deux personnes ; la première décision « faux positif » est une proposition (PROPOSED), la confirmation par une autre personne enregistre l'examen (RECORDED)."
           }
         },
         "additionalProperties": false

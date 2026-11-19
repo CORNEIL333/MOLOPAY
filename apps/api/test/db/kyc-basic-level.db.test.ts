@@ -21,6 +21,7 @@ const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'pay
 const EXCERPT = readFileSync(resolve(process.cwd(), 'apps/api/src/modules/kyc/fixtures/un-consolidated-excerpt.xml'), 'utf8');
 const CUSTOMER = '019ab500-0000-7000-8000-0000000000c1';
 const COMPLIANCE: AdminPrincipal = { actorId: 'comp-1', roles: ['COMPLIANCE'] };
+const SECOND_COMPLIANCE: AdminPrincipal = { actorId: 'comp-2', roles: ['COMPLIANCE'] };
 
 let container: TestDatabase;
 let admin: Client;
@@ -115,7 +116,9 @@ describe('REG-LBC-001 niveau 1 : nom déclaré et filtré (D68)', () => {
     expect(direct).toBe('SCREENING_CONFIRMED_MATCH');
     expect(await level()).toBe('NONE');
     const again = await declare('Eric Badege Junior');
-    await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: again.screeningId, decision: 'FALSE_POSITIVE', reason: 'date de naissance différente' }));
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: again.screeningId, decision: 'FALSE_POSITIVE', reason: 'date de naissance différente' }))).toBe('PROPOSED');
+    expect(await level()).toBe('NONE');
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: SECOND_COMPLIANCE, screeningId: again.screeningId, decision: 'FALSE_POSITIVE', reason: 'pièce vérifiée, homonyme' }))).toBe('RECORDED');
     expect(await level()).toBe('BASIC');
   });
 
@@ -124,6 +127,51 @@ describe('REG-LBC-001 niveau 1 : nom déclaré et filtré (D68)', () => {
     const pending = await declare('Eric Badege');
     await admin.query(`UPDATE identity.account SET status = 'BLOCKED', blocked_at = now(), block_channel = 'APP', block_reason = 'LOST_OR_STOLEN' WHERE id = $1`, [CUSTOMER]);
     await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'homonyme' }));
+    await transact((client) => reviewSanctionsMatch(client, { principal: SECOND_COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'homonyme confirmé' }));
+    expect(await level()).toBe('NONE');
+  });
+
+  it('I-4 / I-7 un rapprochement client ne s’écarte qu’à deux personnes ; une seule personne : MAKER_CANNOT_APPROVE ; la base refuse un écartement sans proposition', async () => {
+    await importList();
+    const pending = await declare('Eric Badege');
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'homonyme' }))).toBe('PROPOSED');
+    expect(await level()).toBe('NONE');
+    const self = await failure(() => transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'je confirme' })));
+    expect(self.code).toBe('MAKER_CANNOT_APPROVE');
+    expect(await level()).toBe('NONE');
+    const direct = await failure(() =>
+      transact((client) => client.query(`INSERT INTO kyc.screening_review (screening_id, decision, reason, reviewed_by, reviewed_at) VALUES ($1, 'FALSE_POSITIVE', 'x', 'comp-1', now())`, [pending.screeningId])),
+    );
+    expect(direct.message).toMatch(/^MAKER_CANNOT_APPROVE/);
+    const other = await declare('Eric Badege Junior');
+    const unproposed = await failure(() =>
+      transact((client) => client.query(`INSERT INTO kyc.screening_review (screening_id, decision, reason, reviewed_by, reviewed_at) VALUES ($1, 'FALSE_POSITIVE', 'x', 'comp-9', now())`, [other.screeningId])),
+    );
+    expect(unproposed.message).toMatch(/^KYC_INVALID_REQUEST: écartement d'un rapprochement client sans proposition préalable/);
+    const proposalOfScreener = await failure(() =>
+      transact((client) => client.query(`INSERT INTO kyc.screening_review_proposal (screening_id, decision, reason, proposed_by, proposed_at) VALUES ($1, 'FALSE_POSITIVE', 'x', 'kyc-self-declaration', now())`, [other.screeningId])),
+    );
+    expect(proposalOfScreener.message).toMatch(/^MAKER_CANNOT_APPROVE/);
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: SECOND_COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'pièce vérifiée' }))).toBe('RECORDED');
+    // La dernière déclaration (« Junior ») attend encore son propre examen à deux personnes.
+    expect(await level()).toBe('NONE');
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: SECOND_COMPLIANCE, screeningId: other.screeningId, decision: 'FALSE_POSITIVE', reason: 'homonyme' }))).toBe('PROPOSED');
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: other.screeningId, decision: 'FALSE_POSITIVE', reason: 'pièce vérifiée' }))).toBe('RECORDED');
+    expect(await level()).toBe('BASIC');
+    const late = await failure(() =>
+      transact((client) => client.query(`INSERT INTO kyc.screening_review_proposal (screening_id, decision, reason, proposed_by, proposed_at) VALUES ($1, 'FALSE_POSITIVE', 'x', 'comp-3', now())`, [pending.screeningId])),
+    );
+    expect(late.message).toMatch(/^KYC_INVALID_REQUEST: rapprochement déjà examiné/);
+    const mutation = await failure(() => transact((client) => client.query(`UPDATE kyc.screening_review_proposal SET proposed_by = 'comp-2'`)));
+    expect(mutation.message).toMatch(/^(KYC_APPEND_ONLY|permission denied)/);
+  });
+
+  it('I-4 une correspondance confirmée reste décidée par une personne (sens restrictif)', async () => {
+    await importList();
+    const pending = await declare('Eric Badege');
+    expect(await transact((client) => reviewSanctionsMatch(client, { principal: COMPLIANCE, screeningId: pending.screeningId, decision: 'CONFIRMED_MATCH', reason: 'correspondance avérée' }))).toBe('RECORDED');
+    const after = await failure(() => transact((client) => reviewSanctionsMatch(client, { principal: SECOND_COMPLIANCE, screeningId: pending.screeningId, decision: 'FALSE_POSITIVE', reason: 'revu' })));
+    expect(after.message).toMatch(/^KYC_INVALID_REQUEST: rapprochement déjà examiné/);
     expect(await level()).toBe('NONE');
   });
 

@@ -1440,7 +1440,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Examiner un rapprochement (Conformité, D66) */
+        /**
+         * Examiner un rapprochement (Conformité, D66)
+         * @description I-7 / I-4 : l'auteur du filtrage ne l'examine pas ; un faux positif client est proposé puis confirmé par une autre personne (MAKER_CANNOT_APPROVE sinon). Une correspondance se confirme par une personne.
+         */
         post: operations["reviewSanctionsMatch"];
         delete?: never;
         options?: never;
@@ -2371,6 +2374,11 @@ export interface components {
             screeningId: string;
             /** @enum {string} */
             decision: "FALSE_POSITIVE" | "CONFIRMED_MATCH";
+            /**
+             * @description I-4 : écarter un rapprochement client exige deux personnes ; la première décision « faux positif » est une proposition (PROPOSED), la confirmation par une autre personne enregistre l'examen (RECORDED).
+             * @enum {string}
+             */
+            status: "PROPOSED" | "RECORDED";
         };
         LegalNameDeclaration: {
             legalName: string;

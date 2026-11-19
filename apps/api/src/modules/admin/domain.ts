@@ -169,6 +169,7 @@ const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'PREPARE_PARTNER',
   'APPROVE_PARTNER',
   'DECLARE_MERCHANT_DEFAULT',
+  'SCREEN_PARTNER',
 ]);
 
 const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([

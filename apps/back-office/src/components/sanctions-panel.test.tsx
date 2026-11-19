@@ -9,7 +9,7 @@ const SCREENING = { screeningId: '019ab400-0000-7000-8000-000000000001', partner
 function ports(overrides: Partial<SanctionsPorts> = {}): SanctionsPorts {
   return {
     screen: vi.fn<SanctionsPorts['screen']>(() => Promise.resolve({ ok: true, screening: SCREENING })),
-    review: vi.fn<SanctionsPorts['review']>(() => Promise.resolve({ ok: true })),
+    review: vi.fn<SanctionsPorts['review']>(() => Promise.resolve({ ok: true, status: 'RECORDED' })),
     detail: vi.fn<SanctionsPorts['detail']>(() =>
       Promise.resolve({
         ok: true,
@@ -91,6 +91,20 @@ describe('REG-LBC-002 / D66 filtrage sanctions au back-office', () => {
     await user.click(screen.getByRole('button', { name: 'Enregistrer l’examen' }));
     await waitFor(() => { expect(injected.review).toHaveBeenCalledWith(SCREENING.screeningId, 'FALSE_POSITIVE', 'société distincte'); });
     expect(injected.screen).not.toHaveBeenCalled();
+  });
+
+  it('I-4 faux positif client : proposition enregistrée, confirmation par une autre personne annoncée, formulaire retiré', async () => {
+    const injected = ports({ review: vi.fn<SanctionsPorts['review']>(() => Promise.resolve({ ok: true, status: 'PROPOSED' })) });
+    const user = userEvent.setup();
+    render(<SanctionsPanel ports={injected} />);
+    await user.type(screen.getByLabelText('Identifiant du filtrage'), SCREENING.screeningId);
+    await user.type(screen.getByLabelText('Motif de la consultation'), 'examen de la file');
+    await user.click(screen.getByRole('button', { name: 'Ouvrir le filtrage' }));
+    await user.type(await screen.findByLabelText('Motif de l’examen'), 'homonyme, date de naissance différente');
+    await user.click(screen.getByRole('button', { name: 'Enregistrer l’examen' }));
+    expect(await screen.findByText(/Une autre personne de la Conformité doit la confirmer/)).toBeVisible();
+    expect(screen.queryByText('Examen enregistré.')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Enregistrer l’examen' })).toBeNull();
   });
 
   it('identifiant de filtrage invalide : aucun appel', async () => {

@@ -57,8 +57,8 @@ export class BackofficeKycController {
     const reason = requiredText(value['reason'], REASON);
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
     const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `bo-screening-review:${staff.actorId}:${id}`, key, request: { decision, reason } }, async (client) => {
-      await reviewSanctionsMatch(client, { principal: staff, screeningId: id, decision, reason });
-      return { status: 200, body: { screeningId: id, decision } };
+      const status = await reviewSanctionsMatch(client, { principal: staff, screeningId: id, decision, reason });
+      return { status: 200, body: { screeningId: id, decision, status } };
     });
     return result.body;
   }

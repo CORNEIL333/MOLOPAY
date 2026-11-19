@@ -169,7 +169,7 @@ export const browserSanctionsPorts: SanctionsPort = {
       body: { decision, reason },
       cache: 'no-store',
     });
-    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, status: result.data.status };
   },
   async detail(screeningId, reason) {
     const result = await api().GET('/v1/backoffice/screenings/{screeningId}', { params: { path: { screeningId }, query: { reason } }, cache: 'no-store' });
