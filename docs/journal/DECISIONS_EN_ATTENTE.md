@@ -634,3 +634,27 @@
 - **Option appliquée :** le statut réel est conservé (400–599 ; hors bornes → 500) ; cinq codes génériques couvrent les refus de la couche HTTP (`REQUEST_UNAUTHENTICATED`, `REQUEST_METHOD_NOT_ALLOWED`, `REQUEST_TOO_LARGE`, `REQUEST_UNSUPPORTED_MEDIA_TYPE`, `SERVICE_UNAVAILABLE`) ; les autres 4xx gardent leur statut avec `REQUEST_INVALID` ; aucune 5xx n'expose de détail.
 - **Retour arrière :** revenir à l'ancien classement (déconseillé) en une fonction du filtre.
 - **À trancher :** les interfaces (Gemini) et le back-office (Claude) doivent traiter ces cinq codes ; exemples à ajouter au contrat (Claude).
+
+### D105 · Épinglage des images de conteneur (NF-PORT-001, L2)
+- **Constat :** l'image de base de l'API (`node:24-bookworm-slim`) n'est épinglée que par version majeure ; celle de PostgreSQL l'est par empreinte (reprise du harnais de tests base). Une étiquette peut être republiée ; une empreinte ne le peut pas. L'empreinte Node ne peut pas être inventée depuis le poste (Docker absent, D2), et l'hébergement n'est pas choisi (ADR-0004).
+- **Option appliquée :** PostgreSQL épinglé par empreinte (`postgres:16.15-alpine@sha256:0cefaabd…`), Node en version majeure avec exigence d'empreinte écrite dans `infra/api.Dockerfile` et `CONFIGURATION.md` ; la composition refuse de démarrer sans `POSTGRES_IMAGE`.
+- **Retour arrière :** aucune donnée en jeu ; modifier l'étiquette dans `infra/.env` sans toucher au code.
+- **À trancher :** qui fournit les empreintes (`@sha256:…`) des images de base et des images tierces au moment de l'hébergement, et comment elles sont vérifiées par le pipeline.
+
+### D106 · TypeScript exécuté par tsx dans l'image de production (NF-PORT-001)
+- **Constat :** le `tsconfig` racine est en `noEmit` et les paquets internes exposent leur source TypeScript ; aucune construction JavaScript n'existe. Sans ajout de dépendance, l'image d'exécution embarque les dépendances de développement (`tsx`).
+- **Option appliquée :** `pnpm install --frozen-lockfile --prod=false` et `node --import tsx apps/api/src/main.ts`, utilisateur non root, aucune dépendance ajoutée. L'image est plus grosse et embarque des outils de développement ; elle ne contient aucun secret.
+- **Retour arrière :** passer à une construction JavaScript dédiée dès qu'un ADR la définit.
+- **À trancher :** stratégie de construction de production (émission JavaScript, `pnpm deploy`, ou déplacement de `tsx` en dépendance d'exécution) ; ADR-0001 n'a pas prévu ce détail.
+
+### D107 · Configuration des parties de confiance, poivres et clé de signature (L2)
+- **Constat :** `main.ts` ne lit pas `STAFF_RP`, `PARTNER_RP`, `HANDOVER_PEPPER`, `PLATFORM_SIGNING_KEY` : les routes du personnel, du portail partenaire, de remise et d'instruction restent fermées (503) en déploiement. Les formats (JSON, PEM, base64) et les valeurs n'existent pas encore.
+- **Option appliquée :** ne rien inventer ; documenter la fermeture par défaut (`CONFIGURATION.md` § 3) en attendant les décisions D63 (domaines et origines WebAuthn) et les valeurs du fondateur. Aucune route n'est ouverte par défaut.
+- **Retour arrière :** aucune configuration n'a été ajoutée.
+- **À trancher :** formats exacts des variables, qui les pose (orchestrateur ou gestionnaire de secrets), et rotation.
+
+### D108 · Politique de sauvegarde de production (OPS-BAK-001/002/003, L3)
+- **Constat :** les scripts locaux (`infra/backup/dump.sh`, `restore.sh`) prennent une sauvegarde complète et la restaurent de façon vérifiée, mais OPS-BAK exige en production une réplication synchrone, des journaux continus (PITR), le chiffrement, l'immuabilité ≥ 35 jours, une copie hors site et des clés séparées. Aucun hébergeur, stockage objet ni KMS n'est choisi (ADR-0004, D2).
+- **Option appliquée :** outillage local exécuté et prouvé (voir `docs/04_annexes/exploitation/SAUVEGARDE_ET_RESTAURATION.md`) ; les gardes refusent tout hôte non local ; aucun chiffrement ni copie hors site n'est simulé.
+- **Retour arrière :** aucune ressource externe créée.
+- **À trancher :** hébergeur et stockage objet, détenteur des clés de chiffrement, fréquence exacte, emplacement du second site, premier test mensuel daté, et outil d'export d'une base restaurée vers le vérificateur indépendant.

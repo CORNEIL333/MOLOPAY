@@ -1,0 +1,70 @@
+# Composition LOCALE et jetable (dev/recette) — NF-PORT-001.
+# Aucune donnée réelle : ADR-0004 ouvert, données synthétiques uniquement.
+# Les valeurs sensibles viennent de infra/.env (non versionné, cf. .env.example).
+# La composition de production dépend de l'hébergement (D2, ADR-0004).
+name: molopay-local
+
+services:
+  database:
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE requis (ex. postgres:16-bookworm)}
+    environment:
+      POSTGRES_DB: molopay
+      POSTGRES_USER: molopay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U molopay -d molopay -h 127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+
+  # Applique les migrations versionnées dans l'ordre, une seule fois par
+  # démarrage de la composition. En production, le pipeline signé avec
+  # approbation humaine reste seul autorisé (OPS-CHG-001).
+  migrations:
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE requis (ex. postgres:16-bookworm)}
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}
+    volumes:
+      - ../db/migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        for file in /migrations/*.sql; do
+          echo "migration: $file"
+          psql -v ON_ERROR_STOP=1 -h database -U molopay -d molopay -q -f "$file"
+        done
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://molopay:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}@database:5432/molopay
+      DATABASE_ROLE: app_rw
+      PORT: "3000"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  database-data:
