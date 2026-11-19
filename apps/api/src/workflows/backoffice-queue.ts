@@ -30,8 +30,9 @@ const STAGE_SQL = (table: string, decision: string, instruction: string, executi
     AND NOT EXISTS (SELECT 1 FROM ${decision} r WHERE r.${key} = t.id AND r.decision = 'REJECTED')`;
 
 /**
- * D62 / F-BO-003 / F-BO-004 : file de travail du back-office, un seul
- * instantané, consultation motivée et journalisée dans l'audit chaîné (même
+ * D62 / F-BO-003 / F-BO-004 : file de travail du back-office (sections lues
+ * par des requêtes successives en READ COMMITTED, pas un instantané unique :
+ * l'audit ajouté dans la même transaction l'interdit), consultation motivée et journalisée dans l'audit chaîné (même
  * transaction). Seuls des identifiants internes, montants et états.
  */
 export async function readBackofficeQueue(client: SqlClient, principal: AdminPrincipal, reason: string): Promise<BackofficeQueue> {

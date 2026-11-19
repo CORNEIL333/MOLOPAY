@@ -8,7 +8,7 @@ import { listContributionsForAgreement } from '../modules/payments/receipt.store
 /**
  * F-PAY-006 / D39 : versements confirmés d'un objectif, au seul client de
  * l'objectif (objectif d'un autre client : même « introuvable »). Lecture
- * dans un instantané unique.
+ * dans un instantané unique (REPEATABLE READ, lecture seule).
  */
 @Controller('v1/goals/:goalId/contributions')
 @UseGuards(CustomerSessionGuard)
@@ -22,6 +22,6 @@ export class GoalContributionsController {
       await getGoalForCustomer(client, actor.accountId, goalId);
       const asOf = (await client.query<{ now: Date }>('SELECT statement_timestamp() AS now')).rows[0]?.now ?? new Date(0);
       return { contributions: await listContributionsForAgreement(client, { customerId: actor.accountId, agreementId: goalId }), asOf: asOf.toISOString() };
-    });
+    }, { readOnlySnapshot: true });
   }
 }

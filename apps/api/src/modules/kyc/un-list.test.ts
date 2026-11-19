@@ -52,6 +52,11 @@ describe('REG-LBC-002 liste consolidée ONU', () => {
     ['référence en double', (xml: string) => xml.replace('<REFERENCE_NUMBER>CDi.002</REFERENCE_NUMBER>', '<REFERENCE_NUMBER>CDi.001</REFERENCE_NUMBER>'), /référence en double/],
     ['entité inconnue', (xml: string) => xml.replace('&amp;', '&inconnu;'), /entité inconnue/],
     ['vide', () => '', /taille/],
+    ['caractère nul (&#0;)', (xml: string) => xml.replace('&amp;', '&#0;'), /caractère interdit en XML/],
+    ['caractère de contrôle (&#x1F;)', (xml: string) => xml.replace('&amp;', '&#x1F;'), /caractère interdit en XML/],
+    ['demi-substitut (&#xD800;)', (xml: string) => xml.replace('&amp;', '&#xD800;'), /caractère interdit en XML/],
+    ['non-caractère (&#xFFFE;)', (xml: string) => xml.replace('&amp;', '&#xFFFE;'), /caractère interdit en XML/],
+    ['plus de 64 Mio en UTF-8 (moins de 64 Mi unités UTF-16)', (xml: string) => xml.replace('</CONSOLIDATED_LIST>', `<!--${'é'.repeat(33 * 1024 * 1024)}--></CONSOLIDATED_LIST>`), /taille/],
   ] as const)('refuse : %s', (_label, alter, message) => {
     let caught: unknown;
     try {

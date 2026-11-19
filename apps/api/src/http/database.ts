@@ -46,10 +46,16 @@ export function createDatabase(config: DatabaseConfig): Database {
 export async function withTransaction<T>(
   database: Database,
   action: (client: PoolClient) => Promise<T>,
+  options: { readonly readOnlySnapshot?: boolean } = {},
 ): Promise<T> {
   const client = await database.pool.connect();
   try {
     await client.query('BEGIN');
+    if (options.readOnlySnapshot === true) {
+      // Lecture pure : toutes les requêtes voient le même instantané (en READ
+      // COMMITTED, chaque requête prend le sien) et aucune écriture n'est possible.
+      await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+    }
     if (database.role !== null) {
       // Valeur issue d'une liste blanche, jamais d'une entrée utilisateur.
       await client.query(`SET LOCAL ROLE ${database.role}`);

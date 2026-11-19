@@ -39,12 +39,15 @@ function decode(raw: string): string {
     if (numeric === undefined) invalid(`entité inconnue ${whole}`);
     const point = numeric.startsWith('x') ? Number.parseInt(numeric.slice(1), 16) : Number.parseInt(numeric, 10);
     if (point > 0x10ffff) invalid('caractère hors Unicode');
+    // XML 1.0 « Char » : ni caractère nul, ni contrôle, ni demi-substitut, ni U+FFFE/U+FFFF.
+    const allowed = point === 0x9 || point === 0xa || point === 0xd || (point >= 0x20 && point <= 0xd7ff) || (point >= 0xe000 && point <= 0xfffd) || point >= 0x10000;
+    if (!allowed) invalid(`caractère interdit en XML ${whole}`);
     return String.fromCodePoint(point);
   });
 }
 
 function parseTree(xml: string): Node {
-  if (xml.length === 0 || xml.length > MAX_BYTES) invalid('taille');
+  if (xml.length === 0 || Buffer.byteLength(xml, 'utf8') > MAX_BYTES) invalid('taille');
   let body = xml.replace(/^\uFEFF/, '');
   const declaration = /^<\?xml[^?]*\?>/.exec(body);
   if (declaration !== null) body = body.slice(declaration[0].length);

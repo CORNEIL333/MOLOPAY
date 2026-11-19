@@ -39,7 +39,7 @@ export class BackofficeOversightController {
     return result.body;
   }
 
-  /** F-BO-003 / D62 : file de travail (lecture seule, instantané unique). */
+  /** F-BO-003 / D62 : file de travail (aucune écriture métier ; consultation journalisée). */
   @Get('queue')
   @Header('Cache-Control', 'private, no-store')
   public queue(@CurrentStaff() staff: AdminPrincipal, @Query() query: unknown): Promise<unknown> {

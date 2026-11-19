@@ -23,7 +23,8 @@ export type ExportedEntry = {
 /**
  * INT-VER-001 / F-REP : toutes les écritures dans l'ordre de la chaîne, avec
  * exactement le contenu haché (horodatage à la milliseconde UTC, montants en
- * chaîne d'entiers). Lecture seule, sous un même instantané.
+ * chaîne d'entiers). Lecture seule ; pour un instantané unique (écritures et
+ * imputations cohérentes), l'appelant ouvre une transaction REPEATABLE READ.
  */
 export async function exportLedgerEntries(client: SqlClient): Promise<readonly ExportedEntry[]> {
   const entries = await client.query<{

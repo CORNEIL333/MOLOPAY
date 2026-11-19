@@ -23,7 +23,10 @@ export type BackofficeDashboard = {
 };
 
 /**
- * F-BO-003 / D65 : tableau de bord agrégé, un seul instantané. Montants
+ * F-BO-003 / D65 : tableau de bord agrégé. Les sections sont lues par des
+ * requêtes successives en READ COMMITTED (pas un instantané unique : une
+ * écriture validée entre deux requêtes peut apparaître dans l'une et pas
+ * dans l'autre ; l'audit ajouté dans la même transaction l'interdit). Montants
  * dérivés des contributions confirmées (I-9), sommés en `bigint` et rendus
  * en texte (jamais de flottant). Univers et villes viennent de la version
  * d'offre figée à l'accord ; un accord C (sans offre) n'a ni univers ni
