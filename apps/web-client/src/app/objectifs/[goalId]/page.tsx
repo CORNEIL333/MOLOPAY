@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { ErrorState } from '@achat/ui';
 import { GoalOverview } from '../../../components/goal-overview';
+import { GoalActionsPanel } from '../../../components/goal-actions-panel';
 import { BeneficiaryPanel } from '../../../components/beneficiary-panel';
 import { ContributionsView } from '../../../components/contributions-view';
 import { ClaimPanel } from '../../../components/claim-panel';
@@ -25,6 +26,7 @@ export default async function GoalPage({ params }: { readonly params: Promise<{ 
     return <div className="goal-detail">
       <h1 className="page-title">{labels.goals.title}</h1>
       <GoalOverview goal={goal.data} labels={labels.goals} locale={locale} />
+      <GoalActionsPanel goal={goal.data} locale={locale} />
       <BeneficiaryPanel goal={goal.data} receipt={receipt} locale={locale} />
       {contributions.data === undefined ? <ErrorState problem={problemFrom(contributions.error, contributions.response, labels.goals.errorTitle)} /> : <ContributionsView data={contributions.data} labels={labels.goals} locale={locale} />}
       <ClaimPanel goalId={goalId} locale={locale} />
