@@ -42,7 +42,8 @@ export function BeneficiaryActions({
   readonly ports: BeneficiaryPorts;
 }): ReactElement | null {
   const labels = getDictionary(locale).goals.beneficiary;
-  const ids = { kind: useId(), file: useId(), pin: useId() };
+  const ids = { kind: useId(), file: useId(), pin: useId(), summary: useId() };
+  const [confirming, setConfirming] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [kind, setKind] = useState<DocumentKind>('LEASE');
   const [pin, setPin] = useState('');
@@ -186,23 +187,47 @@ export function BeneficiaryActions({
         </Button>
         {done === 'DOCUMENT' ? <p role="status">{labels.documentSubmitted}</p> : null}
       </form>
-      <form onSubmit={(event) => void pay(event)} noValidate>
-        <h3>{labels.payTitle}</h3>
+      <section aria-labelledby={ids.summary}>
+        <h3 id={ids.summary}>{confirming ? labels.paySummaryTitle : labels.payTitle}</h3>
         <p>{labels.payHelp}</p>
-        <TextField
-          id={ids.pin}
-          label={labels.pin}
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          value={pin}
-          error={pinError}
-          onChange={(event) => { setPin(event.target.value); }}
-        />
-        <Button type="submit" disabled={pending}>
-          {labels.paySubmit}
-        </Button>
-      </form>
+        {!confirming ? (
+          <Button type="button" disabled={pending} onClick={() => { setConfirming(true); setPinError(undefined); }}>
+            {labels.payPrepare}
+          </Button>
+        ) : (
+          <>
+            <dl>
+              <div>
+                <dt>{labels.paySummaryAmount}</dt>
+                <dd><AmountXaf amount={goal.savedXaf} /></dd>
+              </div>
+              <div>
+                <dt>{labels.paySummaryBeneficiary}</dt>
+                <dd>{goal.beneficiaryId ?? '—'}</dd>
+              </div>
+            </dl>
+            <p><strong>{labels.payIrreversible}</strong></p>
+            <form onSubmit={(event) => void pay(event)} noValidate>
+              <TextField
+                id={ids.pin}
+                label={labels.pin}
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                value={pin}
+                error={pinError}
+                onChange={(event) => { setPin(event.target.value); }}
+              />
+              <Button type="submit" disabled={pending}>
+                {labels.paySubmit}
+              </Button>
+              <Button type="button" disabled={pending} onClick={() => { setConfirming(false); setPin(''); setPinError(undefined); }}>
+                {labels.payCancel}
+              </Button>
+            </form>
+          </>
+        )}
+      </section>
     </section>
   );
 }

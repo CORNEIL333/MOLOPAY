@@ -69,6 +69,7 @@ describe('F-PLN-002/003 actions du client sur le bénéficiaire (modèle C)', ()
     const user = userEvent.setup();
     const injected = ports();
     render(<BeneficiaryActions goal={FUNDED_C} receipt={null} locale="fr" ports={injected} />);
+    await user.click(screen.getByRole('button', { name: 'Préparer le règlement' }));
     await user.type(screen.getByLabelText('PIN (6 chiffres)'), '12a');
     await user.click(screen.getByRole('button', { name: 'Confirmer le règlement' }));
     expect(screen.getByText('Le PIN comporte 6 chiffres.')).toBeVisible();
@@ -81,6 +82,21 @@ describe('F-PLN-002/003 actions du client sur le bénéficiaire (modèle C)', ()
     expect(screen.getByLabelText('PIN (6 chiffres)')).toHaveValue('');
   });
 
+  it('NF-UX-005 : confirmation explicite avec résumé avant le règlement irréversible ; annulation possible', async () => {
+    const user = userEvent.setup();
+    const injected = ports();
+    render(<BeneficiaryActions goal={FUNDED_C} receipt={null} locale="fr" ports={injected} />);
+    expect(screen.queryByLabelText('PIN (6 chiffres)')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Préparer le règlement' }));
+    const summary = screen.getByRole('region', { name: 'Résumé du règlement' });
+    expect(summary).toHaveTextContent(/260\s000\sFCFA/);
+    expect(summary).toHaveTextContent('landlord-1');
+    expect(summary).toHaveTextContent('irréversible');
+    await user.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByLabelText('PIN (6 chiffres)')).toBeNull();
+    expect(injected.payBeneficiary).not.toHaveBeenCalled();
+  });
+
   it('affiche le problème renvoyé par le serveur (pièce non validée)', async () => {
     const user = userEvent.setup();
     const injected = ports({
@@ -89,6 +105,7 @@ describe('F-PLN-002/003 actions du client sur le bénéficiaire (modèle C)', ()
       ),
     });
     render(<BeneficiaryActions goal={FUNDED_C} receipt={null} locale="fr" ports={injected} />);
+    await user.click(screen.getByRole('button', { name: 'Préparer le règlement' }));
     await user.type(screen.getByLabelText('PIN (6 chiffres)'), '284917');
     await user.click(screen.getByRole('button', { name: 'Confirmer le règlement' }));
     await waitFor(() => { expect(screen.getByText(/pièce du bénéficiaire non validée/)).toBeVisible(); });

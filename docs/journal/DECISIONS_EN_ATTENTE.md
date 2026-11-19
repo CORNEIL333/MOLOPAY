@@ -547,3 +547,7 @@
 - **Constat :** les écrans du portail partenaire (destiné aux marchands) étaient écrits en dur en français ; NF-UX-002 exige français et anglais au lancement, textes externalisés.
 - **Appliqué :** dictionnaires `apps/partner-portal/src/i18n/{fr,en}.ts` (mêmes clés vérifiées par test), langue choisie par cookie `achat_locale` puis langue du navigateur puis français (même règle que le client web), route `/langue/{fr|en}`, attribut `lang` du document, lien de bascule dans la navigation ; les 7 composants reçoivent la langue. 7 tests (dont tous les écrans en anglais) ; forcer le français fait échouer 4 tests.
 - **Reste :** les titres des problèmes renvoyés par l'API (RFC 9457) sont en français quelle que soit la langue (comportement commun aux trois applications) ; le back-office (personnel interne) reste en français seul — à confirmer si NF-UX-002 s'applique aux outils internes.
+
+### NF-UX-005 · Confirmation explicite avant le règlement C (19 novembre)
+- **Constat :** sur le client web, le règlement au bénéficiaire (irréversible, cité par NF-UX-005) partait dès la saisie du PIN, sans résumé.
+- **Appliqué :** étape « Préparer le règlement » qui affiche le résumé (montant réglé, bénéficiaire, caractère irréversible), puis PIN et « Confirmer le règlement », avec « Annuler » (aucun appel serveur). FR/EN. 1 test ajouté, 2 tests adaptés ; 2 mutations détectées. L'annulation d'un objectif n'a pas d'écran web (parcours mobile sous signature d'appareil).
