@@ -630,3 +630,16 @@
   - masque du numéro aligné sur le contrat, test à valeur littérale ; test « compte bloqué » sur un vrai défi ; réponses 409 ajoutées au contrat.
 - **Mutations :** 13 mutants tués ; 3 équivalents (deux couches se recouvrent : contexte signé et objet du défi, domaine qui refuse un compte bloqué, contrainte de la base sur l'objet).
 - **Reste ⚖ (D81) :** limite par adresse IP ou globale de l'envoi de SMS (coût, prise de numéro par essais : ≈ 25 essais par numéro et par heure) ; préfixe `__Host-` des cookies (exige `Path=/`, incompatible avec le chemin restreint du rafraîchissement) à arbitrer.
+
+### D82 · Ajout d'un nouveau téléphone sur le même numéro (20 novembre)
+- **Constat :** SEC-AUTH-001 prévoit un OTP sur nouvel appareil ; la base l'exige déjà (OTP « nouvel appareil » lié à l'identifiant de l'appareil, migration 0066). Mais un OTP seul expose au **détournement de carte SIM** (fraude courante : l'escroc obtient le numéro, reçoit le code, enrôle son téléphone et choisit un nouveau PIN). Le changement de **numéro** (récupération) exige un KYC renforcé et un délai de 24 h (SEC-AUTH-007), bloqué par le prestataire de vérification.
+- **Option appliquée :** aucune route d'ajout d'appareil (fermé par défaut) ; un client qui change de téléphone ne peut pas encore se reconnecter.
+- **⚖ À décider (recommandation : A + C) :**
+  - **A.** approbation par un téléphone déjà enregistré (signature de l'ancien appareil) + OTP sur le nouveau ;
+  - **B.** OTP + délai de sécurité (ex. 24 h, avec avis sur les anciens appareils) pendant lequel le nouvel appareil ne peut faire aucune opération financière ;
+  - **C.** sans ancien téléphone : passage par l'agence ou le support avec contrôle d'identité (procédure humaine à écrire).
+- Rien ne sera ouvert avant le prestataire SMS (D1) de toute façon.
+
+### Suites d'attaque du compte client (20 novembre)
+- 5 attaques ajoutées (`tests/attack/identity.attack.test.ts`) : une signature de connexion ne vaut ni pour un renouvellement, ni pour un autre appareil ou défi ; clés d'appareil RSA ou P-256 refusées ; cookie de rafraîchissement dupliqué refusé (fixation de session) ; cookies toujours `HttpOnly; Secure` ; numéro masqué (200 tirages).
+- Back-office : la session du personnel dure 15 minutes au plus en absolu (migration 0056), plus strict que les 15 minutes d'inactivité de SEC-AUTH-005 — conforme.
