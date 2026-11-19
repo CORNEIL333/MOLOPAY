@@ -2,6 +2,7 @@
 
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
+import { getDictionary, type Locale } from '../i18n';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 
 /** Appels injectés : position du navigateur et route réelle de remise (`browserCounterPorts`). */
@@ -25,7 +26,8 @@ function coordinate(value: number, limit: number): string | null {
  * position du comptoir est jointe. Partenaire et vendeur viennent de la
  * session (serveur), jamais de ce formulaire.
  */
-export function CounterHandover({ ports }: { readonly ports: CounterHandoverPorts }): ReactElement {
+export function CounterHandover({ ports, locale = 'fr' }: { readonly ports: CounterHandoverPorts; readonly locale?: Locale }): ReactElement {
+  const t = getDictionary(locale).counter;
   const codeId = useId();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
@@ -37,7 +39,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
     event.preventDefault();
     const compact = code.toUpperCase().replace(/[\s-]/g, '');
     if (!CODE.test(compact)) {
-      setError('Le code de remise compte 10 caractères (lettres et chiffres).');
+      setError(t.invalidCode);
       return;
     }
     setError(undefined);
@@ -55,7 +57,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
         position = null;
       }
       if (position === null) {
-        setProblem({ title: 'Position indisponible', detail: 'Autorisez la localisation du comptoir : la remise doit être géolocalisée.' });
+        setProblem({ title: t.noPositionTitle, detail: t.noPositionDetail });
         return;
       }
       const result = await ports.confirm({ code: `${compact.slice(0, 5)}-${compact.slice(5)}`, ...position });
@@ -66,7 +68,7 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
         setProblem(result.problem);
       }
     } catch {
-      setProblem({ title: 'Remise non confirmée', detail: 'Le service ne répond pas. Ne remettez pas l’article ; réessayez.' });
+      setProblem({ title: t.failedTitle, detail: t.failedDetail });
     } finally {
       setPending(false);
     }
@@ -74,12 +76,12 @@ export function CounterHandover({ ports }: { readonly ports: CounterHandoverPort
 
   return (
     <section>
-      <h1>Remise au comptoir</h1>
-      {done === null ? null : <p role="status">Remise confirmée pour la commande {done.agreementId} à <time dateTime={done.validatedAt}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(done.validatedAt))}</time>. Vous pouvez remettre l’article.</p>}
+      <h1>{t.title}</h1>
+      {done === null ? null : <p role="status">{t.doneLead(done.agreementId)}<time dateTime={done.validatedAt}>{new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(done.validatedAt))}</time>{t.doneTail}</p>}
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void submit(event)} noValidate>
-        <TextField id={codeId} label="Code de remise du client" autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value); }} />
-        <Button type="submit" disabled={pending}>Confirmer la remise</Button>
+        <TextField id={codeId} label={t.code} autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value); }} />
+        <Button type="submit" disabled={pending}>{t.submit}</Button>
       </form>
     </section>
   );

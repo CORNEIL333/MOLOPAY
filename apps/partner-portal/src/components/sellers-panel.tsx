@@ -3,6 +3,7 @@
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import { useCallback, useEffect, useId, useState, type FormEvent, type ReactElement } from 'react';
+import { getDictionary, type Locale } from '../i18n';
 
 type PartnerUser = { readonly userId: string; readonly login: string; readonly role: 'MANAGER' | 'SELLER'; readonly active: boolean };
 type Failure = { readonly ok: false; readonly problem: ProblemSummary };
@@ -22,7 +23,9 @@ const LOGIN = /^[a-z][a-z0-9._-]{2,63}$/;
  * d'enrôlement (affiché une seule fois, jamais conservé ici après remise)
  * et les désactive avec un motif.
  */
-export function SellersPanel({ ports }: { readonly ports: SellersPorts }): ReactElement {
+export function SellersPanel({ ports, locale = 'fr' }: { readonly ports: SellersPorts; readonly locale?: Locale }): ReactElement {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.sellers;
   const ids = { login: useId(), reason: useId() };
   const [users, setUsers] = useState<readonly PartnerUser[] | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
@@ -41,8 +44,8 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
   }, [ports]);
 
   useEffect(() => {
-    reload().catch(() => { setProblem({ title: 'Chargement impossible', detail: 'Le service ne répond pas. Réessayez.' }); });
-  }, [reload]);
+    reload().catch(() => { setProblem({ title: dictionary.common.loadFailed, detail: dictionary.common.serviceDown }); });
+  }, [reload, dictionary]);
 
   async function run(action: () => Promise<{ readonly ok: boolean; readonly problem?: ProblemSummary }>, after: () => void): Promise<void> {
     setPending(true);
@@ -56,7 +59,7 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
         setProblem(result.problem);
       }
     } catch {
-      setProblem({ title: 'Action impossible', detail: 'Le service ne répond pas. Réessayez.' });
+      setProblem({ title: dictionary.common.actionFailed, detail: dictionary.common.serviceDown });
     } finally {
       setPending(false);
     }
@@ -65,7 +68,7 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
   async function create(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!LOGIN.test(login)) {
-      setLoginError('Identifiant invalide (minuscules, chiffres, point, tiret ; 3 caractères au moins).');
+      setLoginError(t.invalidLogin);
       return;
     }
     setLoginError(undefined);
@@ -88,7 +91,7 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
     if (disabling === null) return;
     const trimmed = reason.trim();
     if (trimmed.length === 0) {
-      setReasonError('Le motif est obligatoire.');
+      setReasonError(t.reasonRequired);
       return;
     }
     setReasonError(undefined);
@@ -97,31 +100,31 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
 
   return (
     <section>
-      <h1>Personnel</h1>
+      <h1>{t.title}</h1>
       {problem === null ? null : <ErrorState problem={problem} />}
       {code === null ? null : (
         <div role="status">
-          <p>Code d’enrôlement de {code.login}, valable 5 minutes, à remettre en main propre. Il ne sera plus affiché.</p>
-          <p><code aria-label="Code d’enrôlement à remettre en main propre">{code.value}</code></p>
-          <Button type="button" onClick={() => { setCode(null); }}>J’ai remis le code</Button>
+          <p>{t.codeIntro(code.login)}</p>
+          <p><code aria-label={t.codeLabel}>{code.value}</code></p>
+          <Button type="button" onClick={() => { setCode(null); }}>{t.codeHanded}</Button>
         </div>
       )}
       {users === null ? null : (
-        <table aria-label="Personnel">
+        <table aria-label={t.table}>
           <thead>
-            <tr><th scope="col">Identifiant</th><th scope="col">Rôle</th><th scope="col">État</th><th scope="col">Actions</th></tr>
+            <tr><th scope="col">{t.columns.login}</th><th scope="col">{t.columns.role}</th><th scope="col">{t.columns.state}</th><th scope="col">{t.columns.actions}</th></tr>
           </thead>
           <tbody>
             {users.map((user) => (
               <tr key={user.userId}>
                 <td>{user.login}</td>
-                <td>{user.role === 'MANAGER' ? 'Gérant' : 'Vendeur'}</td>
-                <td>{user.active ? 'Actif' : 'Désactivé'}</td>
+                <td>{user.role === 'MANAGER' ? t.manager : t.seller}</td>
+                <td>{user.active ? t.active : t.disabled}</td>
                 <td>
                   {user.role === 'SELLER' && user.active ? (
                     <>
-                      <Button type="button" disabled={pending} aria-label={`Émettre un code d’enrôlement pour ${user.login}`} onClick={() => void issue(user)}>Code d’enrôlement</Button>
-                      <Button type="button" disabled={pending} aria-label={`Désactiver ${user.login}`} onClick={() => { setDisabling(user); setReason(''); setReasonError(undefined); }}>Désactiver</Button>
+                      <Button type="button" disabled={pending} aria-label={t.enrollmentLabel(user.login)} onClick={() => void issue(user)}>{t.enrollmentButton}</Button>
+                      <Button type="button" disabled={pending} aria-label={t.disableLabel(user.login)} onClick={() => { setDisabling(user); setReason(''); setReasonError(undefined); }}>{t.disableButton}</Button>
                     </>
                   ) : null}
                 </td>
@@ -132,15 +135,15 @@ export function SellersPanel({ ports }: { readonly ports: SellersPorts }): React
       )}
       {disabling === null ? null : (
         <form onSubmit={(event) => void disable(event)} noValidate>
-          <h2>Désactiver {disabling.login}</h2>
-          <TextField id={ids.reason} label="Motif de la désactivation" value={reason} error={reasonError} onChange={(event) => { setReason(event.target.value); }} />
-          <Button type="submit" disabled={pending}>Confirmer la désactivation</Button>
+          <h2>{t.disableTitle(disabling.login)}</h2>
+          <TextField id={ids.reason} label={t.reason} value={reason} error={reasonError} onChange={(event) => { setReason(event.target.value); }} />
+          <Button type="submit" disabled={pending}>{t.confirmDisable}</Button>
         </form>
       )}
       <form onSubmit={(event) => void create(event)} noValidate>
-        <h2>Nouveau vendeur</h2>
-        <TextField id={ids.login} label="Identifiant du nouveau vendeur" autoComplete="off" value={login} error={loginError} onChange={(event) => { setLogin(event.target.value.trim()); }} />
-        <Button type="submit" disabled={pending}>Créer le vendeur</Button>
+        <h2>{t.newTitle}</h2>
+        <TextField id={ids.login} label={t.newLogin} autoComplete="off" value={login} error={loginError} onChange={(event) => { setLogin(event.target.value.trim()); }} />
+        <Button type="submit" disabled={pending}>{t.create}</Button>
       </form>
     </section>
   );

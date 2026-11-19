@@ -4,6 +4,7 @@ import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
 import { AmountXaf, EmptyState, ErrorState } from '@achat/ui';
 import { useEffect, useState, type ReactElement } from 'react';
+import { getDictionary, type Locale } from '../i18n';
 
 export type PartnerOrderRow = components['schemas']['PartnerOrder'];
 export type PartnerPayoutRow = components['schemas']['PartnerPayout'];
@@ -15,30 +16,11 @@ export type BoardPorts = {
   readonly loadPayouts: () => Promise<Loaded<PartnerPayoutRow>>;
 };
 
-const ORDER_STATUS: Readonly<Record<PartnerOrderRow['status'], string>> = {
-  ACTIVE: 'Épargne en cours',
-  FUNDED: 'Financée à 100 %',
-  HANDED_OVER: 'Remise',
-  PAID_TO_BENEFICIARY: 'Réglée au bénéficiaire',
-  CANCELLED_BY_CUSTOMER: 'Annulée par le client',
-  DISPUTED: 'En litige',
-  FROZEN: 'Gelée',
-  REFUNDED: 'Remboursée',
-  CLOSED: 'Clôturée',
-};
+function dateFormat(locale: Locale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'medium', timeZone: 'Africa/Douala' });
+}
 
-const PAYOUT_STATUS: Readonly<Record<PartnerPayoutRow['status'], string>> = {
-  PREPARED: 'Préparé',
-  APPROVED: 'Approuvé',
-  REJECTED: 'Refusé',
-  INSTRUCTED: 'Ordre transmis',
-  EXECUTED: 'Payé',
-  EXECUTION_REJECTED: 'Paiement rejeté',
-};
-
-const DATE = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Africa/Douala' });
-
-function useLoad<T>(load: () => Promise<Loaded<T>>): { readonly rows: readonly T[] | null; readonly problem: ProblemSummary | null } {
+function useLoad<T>(load: () => Promise<Loaded<T>>, failureTitle: string, failureDetail: string): { readonly rows: readonly T[] | null; readonly problem: ProblemSummary | null } {
   const [rows, setRows] = useState<readonly T[] | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   useEffect(() => {
@@ -50,36 +32,38 @@ function useLoad<T>(load: () => Promise<Loaded<T>>): { readonly rows: readonly T
         else setProblem(result.problem);
       })
       .catch(() => {
-        if (live) setProblem({ title: 'Chargement impossible', detail: 'Le service ne répond pas. Réessayez.' });
+        if (live) setProblem({ title: failureTitle, detail: failureDetail });
       });
     return () => { live = false; };
-  }, [load]);
+  }, [load, failureTitle, failureDetail]);
   return { rows, problem };
 }
 
 /** F-PRT-004 / D63 : commandes du partenaire, sans donnée client ; export CSV proposé au gérant. */
-export function OrdersBoard({ ports, role }: { readonly ports: BoardPorts; readonly role: 'MANAGER' | 'SELLER' }): ReactElement {
-  const { rows, problem } = useLoad(ports.loadOrders);
+export function OrdersBoard({ ports, role, locale = 'fr' }: { readonly ports: BoardPorts; readonly role: 'MANAGER' | 'SELLER'; readonly locale?: Locale }): ReactElement {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.orders;
+  const { rows, problem } = useLoad(ports.loadOrders, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
     <section>
-      <h1>Commandes</h1>
-      {role === 'MANAGER' ? <p><a href="/v1/partner/orders/export" download>Exporter les commandes (CSV)</a></p> : null}
+      <h1>{t.title}</h1>
+      {role === 'MANAGER' ? <p><a href="/v1/partner/orders/export" download>{t.export}</a></p> : null}
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
-        <EmptyState title="Aucune commande pour le moment." description="Les commandes de vos clients apparaîtront ici dès leur premier versement." />
+        <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
       ) : (
-        <table aria-label="Commandes">
+        <table aria-label={t.table}>
           <thead>
-            <tr><th scope="col">Offre</th><th scope="col">État</th><th scope="col">Montant</th><th scope="col">Progression</th><th scope="col">Remise</th></tr>
+            <tr><th scope="col">{t.columns.offer}</th><th scope="col">{t.columns.status}</th><th scope="col">{t.columns.amount}</th><th scope="col">{t.columns.progress}</th><th scope="col">{t.columns.handover}</th></tr>
           </thead>
           <tbody>
             {rows.map((order) => (
               <tr key={order.orderId}>
                 <td>{order.offerTitle ?? order.offerId ?? '—'}</td>
-                <td>{ORDER_STATUS[order.status]}</td>
+                <td>{t.status[order.status]}</td>
                 <td><AmountXaf amount={order.targetXaf} /></td>
                 <td>{`${Math.floor(order.progressBasisPoints / 100).toString()} %`}</td>
-                <td>{order.handedOverAt === null ? '—' : <time dateTime={order.handedOverAt}>{DATE.format(new Date(order.handedOverAt))}</time>}</td>
+                <td>{order.handedOverAt === null ? '—' : <time dateTime={order.handedOverAt}>{dateFormat(locale).format(new Date(order.handedOverAt))}</time>}</td>
               </tr>
             ))}
           </tbody>
@@ -90,18 +74,20 @@ export function OrdersBoard({ ports, role }: { readonly ports: BoardPorts; reado
 }
 
 /** F-PRT-003/004 / D63 : règlements, réservés au gérant (le serveur refuse le vendeur). */
-export function PayoutsBoard({ ports }: { readonly ports: BoardPorts }): ReactElement {
-  const { rows, problem } = useLoad(ports.loadPayouts);
+export function PayoutsBoard({ ports, locale = 'fr' }: { readonly ports: BoardPorts; readonly locale?: Locale }): ReactElement {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.payouts;
+  const { rows, problem } = useLoad(ports.loadPayouts, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
     <section>
-      <h1>Règlements</h1>
+      <h1>{t.title}</h1>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
-        <EmptyState title="Aucun règlement pour le moment." description="Les règlements apparaissent après chaque remise confirmée." />
+        <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
       ) : (
-        <table aria-label="Règlements">
+        <table aria-label={t.table}>
           <thead>
-            <tr><th scope="col">Commande</th><th scope="col">Brut</th><th scope="col">Commission</th><th scope="col">Net</th><th scope="col">État</th><th scope="col">Référence</th></tr>
+            <tr><th scope="col">{t.columns.order}</th><th scope="col">{t.columns.gross}</th><th scope="col">{t.columns.commission}</th><th scope="col">{t.columns.net}</th><th scope="col">{t.columns.status}</th><th scope="col">{t.columns.reference}</th></tr>
           </thead>
           <tbody>
             {rows.map((payout) => (
@@ -110,7 +96,7 @@ export function PayoutsBoard({ ports }: { readonly ports: BoardPorts }): ReactEl
                 <td><AmountXaf amount={payout.grossXaf} /></td>
                 <td><AmountXaf amount={payout.commissionXaf} /></td>
                 <td><AmountXaf amount={payout.netXaf} /></td>
-                <td>{PAYOUT_STATUS[payout.status]}</td>
+                <td>{t.status[payout.status]}</td>
                 <td>{payout.bankReference ?? '—'}</td>
               </tr>
             ))}

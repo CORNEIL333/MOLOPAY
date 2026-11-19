@@ -2,6 +2,7 @@
 
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
+import { getDictionary, type Locale } from '../i18n';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { fromBase64url, toBase64url } from '../lib/base64url';
 
@@ -26,7 +27,8 @@ const CODE = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a
  * l'authentificateur (vérification de l'utilisateur exigée) ; seuls la clé
  * publique et les preuves sont envoyées.
  */
-export function PartnerEnrollment({ ports }: { readonly ports: PartnerEnrollmentPorts }): ReactElement {
+export function PartnerEnrollment({ ports, locale = 'fr' }: { readonly ports: PartnerEnrollmentPorts; readonly locale?: Locale }): ReactElement {
+  const t = getDictionary(locale).enrollment;
   const ids = { login: useId(), code: useId() };
   const [login, setLogin] = useState('');
   const [code, setCode] = useState('');
@@ -39,11 +41,11 @@ export function PartnerEnrollment({ ports }: { readonly ports: PartnerEnrollment
     event.preventDefault();
     const parts = CODE.exec(code);
     if (!LOGIN.test(login)) {
-      setError('Identifiant invalide (minuscules, chiffres, point, tiret).');
+      setError(t.invalidLogin);
       return;
     }
     if (parts === null) {
-      setError('Code d’enrôlement invalide : recopiez le code remis, en un seul bloc.');
+      setError(t.invalidCode);
       return;
     }
     const [, challengeId, challenge, enrollmentToken] = parts;
@@ -70,7 +72,7 @@ export function PartnerEnrollment({ ports }: { readonly ports: PartnerEnrollment
         setProblem(result.problem);
       }
     } catch {
-      setProblem({ title: 'Enrôlement impossible', detail: 'La clé de sécurité n’a pas été créée. Réessayez ou demandez un nouveau code.' });
+      setProblem({ title: t.failedTitle, detail: t.failedDetail });
     } finally {
       setPending(false);
     }
@@ -78,13 +80,13 @@ export function PartnerEnrollment({ ports }: { readonly ports: PartnerEnrollment
 
   return (
     <section>
-      <h1>Enrôler ma clé de sécurité</h1>
-      {done ? <p role="status">Clé enregistrée. Vous pouvez vous connecter.</p> : null}
+      <h1>{t.title}</h1>
+      {done ? <p role="status">{t.done}</p> : null}
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void submit(event)} noValidate>
-        <TextField id={ids.login} label="Identifiant" autoComplete="username" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
-        <TextField id={ids.code} label="Code d’enrôlement" autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value.trim()); }} />
-        <Button type="submit" disabled={pending}>Enregistrer ma clé de sécurité</Button>
+        <TextField id={ids.login} label={t.login} autoComplete="username" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
+        <TextField id={ids.code} label={t.code} autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value.trim()); }} />
+        <Button type="submit" disabled={pending}>{t.submit}</Button>
       </form>
     </section>
   );

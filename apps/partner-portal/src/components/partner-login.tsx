@@ -2,6 +2,7 @@
 
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
+import { getDictionary, type Locale } from '../i18n';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { fromBase64url, toBase64url } from '../lib/base64url';
 
@@ -30,7 +31,8 @@ const LOGIN = /^[a-z][a-z0-9._-]{2,63}$/;
  * Le rôle renvoyé par le serveur ne sert qu'à l'orientation : chaque route
  * revérifie le rôle côté serveur.
  */
-export function PartnerLogin({ ports, onSignedIn }: { readonly ports: PartnerLoginPorts; readonly onSignedIn: (role: PartnerRole) => void }): ReactElement {
+export function PartnerLogin({ ports, onSignedIn, locale = 'fr' }: { readonly ports: PartnerLoginPorts; readonly onSignedIn: (role: PartnerRole) => void; readonly locale?: Locale }): ReactElement {
+  const t = getDictionary(locale).login;
   const loginId = useId();
   const [login, setLogin] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
@@ -40,7 +42,7 @@ export function PartnerLogin({ ports, onSignedIn }: { readonly ports: PartnerLog
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!LOGIN.test(login)) {
-      setError('Identifiant invalide (minuscules, chiffres, point, tiret).');
+      setError(t.invalidLogin);
       return;
     }
     setError(undefined);
@@ -66,7 +68,7 @@ export function PartnerLogin({ ports, onSignedIn }: { readonly ports: PartnerLog
         setProblem(session.problem);
       }
     } catch {
-      setProblem({ title: 'Connexion impossible', detail: 'La clé de sécurité n’a pas confirmé la connexion. Réessayez.' });
+      setProblem({ title: t.failedTitle, detail: t.failedDetail });
     } finally {
       setPending(false);
     }
@@ -74,12 +76,12 @@ export function PartnerLogin({ ports, onSignedIn }: { readonly ports: PartnerLog
 
   return (
     <section>
-      <h1>Portail partenaire MoloPay</h1>
+      <h1>{t.title}</h1>
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void submit(event)} noValidate>
-        <TextField id={loginId} label="Identifiant" autoComplete="username webauthn" value={login} error={error} onChange={(event) => { setLogin(event.target.value.trim()); }} />
+        <TextField id={loginId} label={t.login} autoComplete="username webauthn" value={login} error={error} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>
-          Se connecter avec ma clé de sécurité
+          {t.submit}
         </Button>
       </form>
     </section>

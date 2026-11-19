@@ -542,3 +542,8 @@
 - **Constat (18 novembre) :** NF-MNT-002 exige ≥ 90 % des lignes et 100 % des transitions sur `ledger`, `payments`, `settlement` (≥ 75 % ailleurs) ; aucun outil de mesure n'est installé, la couverture n'a donc jamais été mesurée (critère de « terminé », AGENTS § 10). Les tests de mutation manuels (scripts de l'agent) compensent en partie, sans chiffre global.
 - **Option appliquée :** aucune dépendance ajoutée sans revue (AGENTS § 8).
 - **⚖ À décider :** ajouter `@vitest/coverage-v8` épinglé à la version de Vitest déjà utilisée (même éditeur), avec seuils NF-MNT-002 dans la CI ; et Stryker (prévu par ADR-0001) pour le score de mutation du grand livre.
+
+### NF-UX-002 · Portail partenaire en français et en anglais (19 novembre)
+- **Constat :** les écrans du portail partenaire (destiné aux marchands) étaient écrits en dur en français ; NF-UX-002 exige français et anglais au lancement, textes externalisés.
+- **Appliqué :** dictionnaires `apps/partner-portal/src/i18n/{fr,en}.ts` (mêmes clés vérifiées par test), langue choisie par cookie `achat_locale` puis langue du navigateur puis français (même règle que le client web), route `/langue/{fr|en}`, attribut `lang` du document, lien de bascule dans la navigation ; les 7 composants reçoivent la langue. 7 tests (dont tous les écrans en anglais) ; forcer le français fait échouer 4 tests.
+- **Reste :** les titres des problèmes renvoyés par l'API (RFC 9457) sont en français quelle que soit la langue (comportement commun aux trois applications) ; le back-office (personnel interne) reste en français seul — à confirmer si NF-UX-002 s'applique aux outils internes.
