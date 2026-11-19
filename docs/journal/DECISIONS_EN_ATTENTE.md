@@ -602,3 +602,23 @@
 ### D80 · Import de la liste ONU et noms vocalisés (19 novembre)
 - ⚖ Qui détient le rôle `kyc_list_importer` en exploitation, et l'import doit-il être confirmé par une seconde personne ?
 - ⚖ Accepter les noms arabes vocalisés (étendre les marques normalisées en base et en application, avec preuve d'identité des deux normalisations) ? Option appliquée : refus (le nom sans voyelles reste accepté).
+
+## 2026-11-19 · Qoder (plateforme, observabilité)
+
+### D100 · Destination et rétention des journaux en production (NF-OBS-001)
+- **Constat :** NF-OBS-001 exige des journaux structurés corrélés de bout en bout. Le lot Q2 les produit, mais aucun collecteur, SIEM ni politique de rétention n'est fourni ni accessible depuis le poste.
+- **Option appliquée :** une ligne JSON par événement sur la sortie standard ; puits injecté explicitement (`LOG_SINK`, nul en test, `stdoutLogSink` en production) pour brancher un transport sans toucher les appelants ; aucune requête 4xx journalisée ; aucun échantillonnage.
+- **Retour arrière :** remplacer le puits dans `main.ts` (un adaptateur) ; le format et les champs ne changent pas.
+- **À trancher :** collecteur/SIEM cible, durée de conservation, personnes autorisées à lire, volume attendu, source de temps (SEC-LOG-002/003).
+
+### D101 · En-tête de corrélation fourni par le client (NF-OBS-001)
+- **Constat :** reprendre `X-Correlation-Id` d'un client permet de suivre un parcours de bout en bout (web, mobile, back-office), mais un client peut alors regrouper ou scinder des traces ; aucun effet sur l'autorisation.
+- **Option appliquée :** l'en-tête n'est repris que s'il correspond à `^[A-Za-z0-9_-]{8,64}$` ; il est renvoyé tel quel, sinon un UUID v4 est généré. Aucun autre en-tête n'est journalisé.
+- **Retour arrière :** toujours générer côté serveur (une ligne de `CorrelationMiddleware`) ; les clients lisent l'en-tête de réponse.
+- **À trancher :** propagation inter-services de l'en-tête client ou génération serveur seule ; ajout de l'en-tête au contrat OpenAPI, propriété de Claude (demande consignée dans `ATTRIBUTIONS.md`).
+
+### D102 · Quels refus HTTP sont tracés (SEC-LOG, NF-OBS-001)
+- **Constat :** le filtre journalise les 5xx (`http_error`) mais aucun 4xx ; or les refus 401/403/429 intéressent la sécurité, sans qu'il faille écrire un journal HTTP complet.
+- **Option appliquée :** aucun 4xx dans le journal HTTP au lot Q2 (volume et données personnelles) ; seuls les 5xx sont tracés, avec corrélation, statut, code métier et nom de classe, jamais le message ni la pile.
+- **Retour arrière :** ajouter un événement de sécurité dédié (chaîne d'audit ou SIEM), plutôt que d'élargir le journal HTTP.
+- **À trancher :** refus à tracer (401/403/429, verrouillages), destination (chaîne d'audit ou SIEM) et durée de conservation.

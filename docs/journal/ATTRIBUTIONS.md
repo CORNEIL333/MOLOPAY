@@ -25,15 +25,18 @@
 
 | Lot | Contenu | Branche | Échéance | Statut |
 |---|---|---|---|---|
-| Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | À démarrer |
-| Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | À démarrer |
+| Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | Livré — [PR #2](https://github.com/CORNEIL333/MOLOPAY/pull/2) |
+| Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | Livré — [PR #6](https://github.com/CORNEIL333/MOLOPAY/pull/6) (revue attendue) |
 | Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | À démarrer |
 | Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | À démarrer |
 | Q5 | CRM : fiche client 360° (lecture motivée et journalisée), interactions de support et tâches de suivi en ajout seul, écrans du back-office | `agent/qoder/crm` | J6 | À démarrer |
 | Q6 | Archivage : archives signées du grand livre et de l'audit, conservation selon le registre, restauration vérifiée | `agent/qoder/archivage` | J6 | À démarrer |
 | Q7 | Procédures d'exploitation, exercice de restauration chronométré, test de charge | `agent/qoder/exploitation` | J9 | À démarrer |
 
+**Bloqués par un accès externe :** Q4 (Docker absent du poste — D2 : images non constructibles ici, composition et procédures à valider sur un poste équipé) ; Q6 (témoins d'ancrage et autorité d'horodatage — D6). Q2, Q3, Q5 et Q7 ne sont pas bloqués.
+
 ## Demandes de contrat (remplies par Gemini et Qoder, traitées par Claude)
 
 | Demandé par | Besoin (route, champ) | Lot concerné | Statut |
 |---|---|---|---|
+| Qoder | En-tête de réponse `X-Correlation-Id` sur toutes les routes ; en-tête de requête facultatif du même nom (NF-OBS-001) | Q2 | Demandé — [PR #6](https://github.com/CORNEIL333/MOLOPAY/pull/6) |
