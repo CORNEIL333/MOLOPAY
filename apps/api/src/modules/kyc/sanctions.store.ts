@@ -64,7 +64,7 @@ export async function screenName(
   const normalized = normalizeName(input.name);
   if (normalized === '' || normalized.length > 500) invalid('nom à filtrer vide ou trop long');
   const version = (await client.query<{ id: string }>(
-    'SELECT id FROM kyc.sanctions_list_version ORDER BY generated_at DESC, imported_at DESC LIMIT 1',
+    'SELECT id FROM kyc.sanctions_list_version ORDER BY generated_at DESC, imported_at DESC, id DESC LIMIT 1',
   )).rows[0];
   if (version === undefined) {
     throw new BusinessError('KYC_LIST_UNAVAILABLE', 'aucune liste de sanctions importée');
@@ -96,6 +96,25 @@ export async function recordScreeningReview(
     `INSERT INTO kyc.screening_review (screening_id, decision, reason, reviewed_by, reviewed_at) VALUES ($1, $2, $3, $4, now())`,
     [input.screeningId, input.decision, reason, input.actorId],
   );
+}
+
+/** I-4 : proposition motivée d'écarter un rapprochement client (confirmée ensuite par une autre personne). */
+export async function recordScreeningReviewProposal(
+  client: SqlClient,
+  input: { readonly screeningId: string; readonly reason: string; readonly actorId: string },
+): Promise<void> {
+  const reason = input.reason.trim();
+  if (reason.length === 0 || reason.length > 1000 || !ACTOR.test(input.actorId)) invalid('motif ou acteur invalide');
+  await client.query(
+    `INSERT INTO kyc.screening_review_proposal (screening_id, decision, reason, proposed_by, proposed_at) VALUES ($1, 'FALSE_POSITIVE', $2, $3, now())`,
+    [input.screeningId, reason, input.actorId],
+  );
+}
+
+/** Auteur de la proposition d'écartement d'un filtrage, s'il en existe une (la base revérifie à l'examen). */
+export async function getScreeningReviewProposer(client: SqlClient, screeningId: string): Promise<string | null> {
+  const row = (await client.query<{ proposed_by: string }>('SELECT proposed_by FROM kyc.screening_review_proposal WHERE screening_id = $1', [screeningId])).rows[0];
+  return row?.proposed_by ?? null;
 }
 
 /**
