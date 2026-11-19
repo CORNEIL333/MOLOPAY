@@ -72,7 +72,10 @@ void main() {
       expect(profile.phoneMasked, '+2376•••••••34');
       expect(profile.legalNameDeclared, isTrue);
 
-      final refreshed = await client.refreshSession();
+      final refreshed = await client.refreshSession(
+        challengeId: '55555555-5555-4555-8555-555555555555',
+        signature: base64Encode(List<int>.filled(64, 2)),
+      );
       expect(refreshCookieSent, 'client_refresh=ref_v1');
       expect(idempotencySent, isNotEmpty);
       expect(refreshed.accessExpiresAt, DateTime.utc(2026, 11, 20, 13));
@@ -96,7 +99,10 @@ void main() {
       );
 
       await expectLater(
-        () => client.refreshSession(),
+        () => client.refreshSession(
+          challengeId: '55555555-5555-4555-8555-555555555555',
+          signature: base64Encode(List<int>.filled(64, 2)),
+        ),
         throwsA(
           isA<ApiProblemException>()
               .having((e) => e.problem.status, 'status', 401)
