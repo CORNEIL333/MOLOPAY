@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/app_state.dart';
 import '../core/models.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
+import 'planned_expense_screen.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({
@@ -78,6 +80,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
   }
 
+  Future<void> _openNewPlannedExpense() async {
+    final created = await Navigator.of(context).push<Goal>(
+      CupertinoPageRoute<Goal>(
+        builder: (_) => NewPlannedExpenseScreen(state: widget.state),
+      ),
+    );
+    if (created != null && mounted) {
+      await _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppStrings.of(widget.state.locale);
@@ -97,39 +110,48 @@ class _GoalsScreenState extends State<GoalsScreen> {
             actionLabel: s.signInButton,
             onAction: widget.onOpenLogin,
           )
-        else if (_loading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 36),
-              child: CircularProgressIndicator(color: orange),
-            ),
-          )
-        else if (_problem != null)
-          ProblemBanner(problem: _problem!, strings: s, onRetry: _load)
-        else if (_goalList == null || _goalList!.goals.isEmpty)
-          Blank(
-            CupertinoIcons.flag,
-            s.noGoalsTitle,
-            s.noGoalsDetail,
-            actionLabel: s.refresh,
-            onAction: _load,
-          )
         else ...[
-          Text(s.dataAsOf(_goalList!.asOf), style: type(12, color: muted)),
-          const SizedBox(height: 12),
-          for (final goal in _goalList!.goals)
-            _GoalCard(
-              goal: goal,
-              strings: s,
-              onTap: () => Navigator.of(context).push(
-                CupertinoPageRoute<void>(
-                  builder: (_) => GoalDetailScreen(
-                    goal: goal,
-                    state: widget.state,
+          Tile(
+            CupertinoIcons.plus_circle,
+            s.newPlannedExpense,
+            '',
+            _openNewPlannedExpense,
+          ),
+          const SizedBox(height: 8),
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 36),
+                child: CircularProgressIndicator(color: orange),
+              ),
+            )
+          else if (_problem != null)
+            ProblemBanner(problem: _problem!, strings: s, onRetry: _load)
+          else if (_goalList == null || _goalList!.goals.isEmpty)
+            Blank(
+              CupertinoIcons.flag,
+              s.noGoalsTitle,
+              s.noGoalsDetail,
+              actionLabel: s.refresh,
+              onAction: _load,
+            )
+          else ...[
+            Text(s.dataAsOf(_goalList!.asOf), style: type(12, color: muted)),
+            const SizedBox(height: 12),
+            for (final goal in _goalList!.goals)
+              _GoalCard(
+                goal: goal,
+                strings: s,
+                onTap: () => Navigator.of(context).push(
+                  CupertinoPageRoute<void>(
+                    builder: (_) => GoalDetailScreen(
+                      goal: goal,
+                      state: widget.state,
+                    ),
                   ),
                 ),
               ),
-            ),
+          ],
         ],
       ],
     );
@@ -239,14 +261,30 @@ class GoalDetailScreen extends StatefulWidget {
 }
 
 class _GoalDetailScreenState extends State<GoalDetailScreen> {
+  late Goal _goal;
   bool _loading = true;
   ContributionList? _contributions;
+  BeneficiaryReceipt? _beneficiaryReceipt;
   ApiProblem? _problem;
+  ApiProblem? _actionProblem;
+  String? _actionStatus;
+
+  final TextEditingController _claimDetailsController = TextEditingController();
+  ClaimReason _claimReason = ClaimReason.paymentNotReceived;
+  ClaimReceipt? _claimReceipt;
+  bool _claimPending = false;
 
   @override
   void initState() {
     super.initState();
+    _goal = widget.goal;
     _load();
+  }
+
+  @override
+  void dispose() {
+    _claimDetailsController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -255,12 +293,21 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       _problem = null;
     });
     try {
-      final result = await widget.state.api.listContributions(
-        widget.goal.goalId,
-      );
+      final result = await widget.state.api.listContributions(_goal.goalId);
+      BeneficiaryReceipt? receipt;
+      if (_goal.model == OfferModel.plannedExpense &&
+          (_goal.status == GoalStatus.paidToBeneficiary ||
+              _goal.status == GoalStatus.closed)) {
+        try {
+          receipt = await widget.state.api.getBeneficiaryReceipt(_goal.goalId);
+        } on ApiProblemException {
+          receipt = null;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _contributions = result;
+        _beneficiaryReceipt = receipt;
         _loading = false;
       });
     } on ApiProblemException catch (error) {
@@ -272,10 +319,83 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     }
   }
 
+  Future<void> _promptLock(AppStrings s) async {
+    final pinController = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.lockGoalButton),
+        content: TextField(
+          controller: pinController,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(labelText: s.pinLabel),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(s.back),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, pinController.text),
+            child: Text(s.lockGoalButton),
+          ),
+        ],
+      ),
+    );
+    pinController.clear();
+    pinController.dispose();
+    if (pin == null || !RegExp(r'^[0-9]{6}$').hasMatch(pin) || !mounted) return;
+
+    setState(() {
+      _actionProblem = null;
+      _actionStatus = null;
+    });
+    try {
+      final updated = await widget.state.api.lockGoal(_goal.goalId, pin: pin);
+      if (!mounted) return;
+      setState(() {
+        _goal = updated;
+        _actionStatus = s.lockGoalDone;
+      });
+    } on ApiProblemException catch (error) {
+      if (!mounted) return;
+      setState(() => _actionProblem = error.problem);
+    }
+  }
+
+  Future<void> _submitClaim() async {
+    final details = _claimDetailsController.text.trim();
+    if (details.length < 10 || _claimPending) return;
+    setState(() {
+      _claimPending = true;
+      _actionProblem = null;
+    });
+    try {
+      final receipt = await widget.state.api.submitClaim(
+        _goal.goalId,
+        reason: _claimReason,
+        details: details,
+      );
+      if (!mounted) return;
+      _claimDetailsController.clear();
+      setState(() => _claimReceipt = receipt);
+    } on ApiProblemException catch (error) {
+      if (!mounted) return;
+      setState(() => _actionProblem = error.problem);
+    } finally {
+      if (mounted) {
+        setState(() => _claimPending = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppStrings.of(widget.state.locale);
-    final goal = widget.goal;
+    final goal = _goal;
     final title = goal.offerTitle ?? s.modelName(goal.model);
 
     return Scaffold(
@@ -327,7 +447,11 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                             const SizedBox(width: 6),
                             Text(
                               s.lockedLabel,
-                              style: type(12, color: orange, weight: FontWeight.w700),
+                              style: type(
+                                12,
+                                color: orange,
+                                weight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
@@ -335,8 +459,71 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
-                Text(s.contributionsTitle, style: type(18, weight: FontWeight.w700)),
+                const SizedBox(height: 16),
+                if (_actionStatus != null) ...[
+                  Text(
+                    _actionStatus!,
+                    style: type(14, color: orange, weight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_actionProblem != null) ...[
+                  ProblemBanner(problem: _actionProblem!, strings: s),
+                  const SizedBox(height: 12),
+                ],
+                if (goal.status == GoalStatus.active && !goal.locked) ...[
+                  Primary(
+                    s.lockGoalButton,
+                    () => _promptLock(s),
+                    key: const Key('goal-lock-button'),
+                    dark: true,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (goal.status == GoalStatus.draft ||
+                    (goal.status == GoalStatus.active && !goal.locked)) ...[
+                  Text(s.signedActionUnavailable, style: type(12, color: muted)),
+                  const SizedBox(height: 12),
+                ],
+                if (goal.model == OfferModel.saveThenBuy &&
+                    goal.status == GoalStatus.funded) ...[
+                  Text(s.handoverPendingNotice, style: type(12, color: muted)),
+                  const SizedBox(height: 12),
+                ],
+                if (_beneficiaryReceipt != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFF3ECE5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.beneficiarySectionTitle,
+                          style: type(15, weight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${_beneficiaryReceipt!.amountXaf.format(locale: s.locale)} · ${_beneficiaryReceipt!.bankReference}',
+                          style: type(14, weight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Ledger: ${_beneficiaryReceipt!.entryHashPrefix}',
+                          style: type(12, color: muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Text(
+                  s.contributionsTitle,
+                  style: type(18, weight: FontWeight.w700),
+                ),
                 const SizedBox(height: 12),
                 if (_loading)
                   const Center(
@@ -397,6 +584,62 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                         ],
                       ),
                     ),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  s.claimSectionTitle,
+                  style: type(18, weight: FontWeight.w700),
+                ),
+                const SizedBox(height: 10),
+                if (_claimReceipt != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0E4),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${s.receiptPrefix} : ${_claimReceipt!.reference} (${_claimReceipt!.status})',
+                      style: type(14, weight: FontWeight.w700),
+                    ),
+                  )
+                else ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final reason in ClaimReason.values)
+                        ChoiceChip(
+                          label: Text(s.claimReasonName(reason)),
+                          selected: _claimReason == reason,
+                          onSelected: (_) =>
+                              setState(() => _claimReason = reason),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('claim-details-field'),
+                    controller: _claimDetailsController,
+                    maxLines: 3,
+                    enabled: !_claimPending,
+                    decoration: InputDecoration(
+                      labelText: s.claimDetailsLabel,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Primary(
+                    s.submitClaimButton,
+                    _submitClaim,
+                    key: const Key('claim-submit-button'),
+                    loading: _claimPending,
+                  ),
                 ],
               ],
             ),

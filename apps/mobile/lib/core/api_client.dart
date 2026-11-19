@@ -145,6 +145,184 @@ class MoloPayApiClient {
     return ContributionList.fromJson(_decodeJsonObject(response));
   }
 
+  /// Calcule un échéancier côté API (`POST /v1/offers/{offerId}/quotes`).
+  Future<Quote> requestQuote({
+    required String offerId,
+    required String planId,
+    required int durationMonths,
+  }) async {
+    final response = await _sendPost(
+      '/v1/offers/${Uri.encodeComponent(offerId)}/quotes',
+      body: {'planId': planId, 'durationMonths': durationMonths},
+    );
+    return Quote.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Crée un brouillon d'objectif Modèle A ou Modèle C (`POST /v1/goals`).
+  Future<Goal> createGoal({
+    required OfferModel model,
+    String? offerId,
+    String? beneficiaryId,
+    MoneyXaf? targetXaf,
+    required String planId,
+    required int durationMonths,
+    required String acceptTermsVersion,
+  }) async {
+    final body = <String, Object?>{
+      'model': model.apiValue,
+      'planId': planId,
+      'durationMonths': durationMonths,
+      'acceptTermsVersion': acceptTermsVersion,
+      'offerId': ?offerId,
+      'beneficiaryId': ?beneficiaryId,
+      if (targetXaf != null) 'targetXaf': targetXaf.toApiString(),
+    };
+    final response = await _sendPost('/v1/goals', body: body);
+    return Goal.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Récupère les octets à signer par l'appareil (`GET /v1/goals/{goalId}/signing-payload`).
+  Future<GoalSigningPayload> getSigningPayload(
+    String goalId, {
+    required String transition,
+  }) async {
+    final response = await _sendGet(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/signing-payload',
+      queryParameters: {'transition': transition},
+      authenticated: true,
+    );
+    return GoalSigningPayload.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Active un objectif brouillon (`POST /v1/goals/{goalId}/activation`).
+  Future<Goal> activateGoal(
+    String goalId, {
+    required String pin,
+    required String signature,
+  }) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/activation',
+      body: {'pin': pin, 'signature': signature},
+    );
+    return Goal.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Verrouille un objectif actif (`POST /v1/goals/{goalId}/lock`).
+  Future<Goal> lockGoal(String goalId, {required String pin}) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/lock',
+      body: {'pin': pin},
+    );
+    return Goal.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Annule un objectif actif non verrouillé (`POST /v1/goals/{goalId}/cancellation`).
+  Future<Goal> cancelGoal(
+    String goalId, {
+    required String pin,
+    required String signature,
+  }) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/cancellation',
+      body: {'pin': pin, 'signature': signature},
+    );
+    return Goal.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Dépose l'empreinte SHA-256 de la pièce justificative du bénéficiaire C.
+  Future<BeneficiaryDocument> submitBeneficiaryDocument(
+    String goalId, {
+    required BeneficiaryDocumentKind kind,
+    required String sha256,
+  }) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/beneficiary-documents',
+      body: {'kind': kind.apiValue, 'sha256': sha256},
+    );
+    return BeneficiaryDocument.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Demande le règlement au bénéficiaire d'un objectif C financé (`POST .../beneficiary-payment`).
+  Future<Goal> payBeneficiary(String goalId, {required String pin}) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/beneficiary-payment',
+      body: {'pin': pin},
+    );
+    return Goal.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Reçu du règlement au bénéficiaire C (`GET .../beneficiary-receipt`).
+  Future<BeneficiaryReceipt> getBeneficiaryReceipt(String goalId) async {
+    final response = await _sendGet(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/beneficiary-receipt',
+      authenticated: true,
+    );
+    return BeneficiaryReceipt.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Ouvre une réclamation sur un objectif (`POST /v1/goals/{goalId}/claims`).
+  Future<ClaimReceipt> submitClaim(
+    String goalId, {
+    required ClaimReason reason,
+    required String details,
+  }) async {
+    final response = await _sendPost(
+      '/v1/goals/${Uri.encodeComponent(goalId)}/claims',
+      body: {'reason': reason.apiValue, 'details': details},
+    );
+    return ClaimReceipt.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Consulte appareils et sessions du compte (`GET /v1/me/security`).
+  Future<AccountSecurity> getAccountSecurity() async {
+    final response = await _sendGet('/v1/me/security', authenticated: true);
+    return AccountSecurity.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Ferme les autres sessions du compte (`POST /v1/me/security/revoke-other-sessions`).
+  Future<void> revokeOtherSessions() async {
+    await _sendPost(
+      '/v1/me/security/revoke-other-sessions',
+      body: const <String, Object?>{},
+    );
+  }
+
+  /// Bloque le compte depuis l'application (`POST /v1/me/security/block`).
+  Future<void> blockAccount() async {
+    try {
+      await _sendPost(
+        '/v1/me/security/block',
+        body: const {'reason': 'LOST_OR_STOLEN'},
+      );
+    } finally {
+      clearSession();
+    }
+  }
+
+  /// Historique des demandes de droits sur les données (`GET /v1/me/data-rights`).
+  Future<DataRightHistory> listDataRights() async {
+    final response = await _sendGet('/v1/me/data-rights', authenticated: true);
+    return DataRightHistory.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Enregistre une demande de droits sur ses données (`POST /v1/me/data-rights`).
+  Future<DataRightReceipt> submitDataRight(DataRightKind kind) async {
+    final response = await _sendPost(
+      '/v1/me/data-rights',
+      body: {'kind': kind.apiValue},
+    );
+    return DataRightReceipt.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Déclare son nom légal (KYC niveau 1, accusé neutre unique D68/D77).
+  Future<KycVerification> declareLegalName(String legalName) async {
+    final response = await _sendPost(
+      '/v1/me/legal-name',
+      body: {'legalName': legalName},
+    );
+    return KycVerification.fromJson(_decodeJsonObject(response));
+  }
+
   Future<http.Response> _sendGet(
     String path, {
     Map<String, String>? queryParameters,

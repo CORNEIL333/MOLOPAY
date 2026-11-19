@@ -451,3 +451,341 @@ Map<String, Object?> _asMap(Object? value, String label) {
   }
   throw FormatException('Objet JSON attendu pour $label');
 }
+
+final class Installment {
+  const Installment({required this.dueDate, required this.amountXaf});
+
+  final String dueDate;
+  final MoneyXaf amountXaf;
+
+  factory Installment.fromJson(Map<String, Object?> json) {
+    return Installment(
+      dueDate: _reqString(json, 'dueDate'),
+      amountXaf: MoneyXaf.parse(_reqString(json, 'amountXaf')),
+    );
+  }
+}
+
+final class Quote {
+  const Quote({
+    required this.quoteId,
+    required this.offerId,
+    required this.model,
+    required this.planId,
+    required this.durationMonths,
+    required this.totalXaf,
+    required this.feesXaf,
+    required this.installments,
+    required this.expiresAt,
+    this.downPaymentXaf,
+    this.tegPercent,
+  });
+
+  final String quoteId;
+  final String offerId;
+  final OfferModel model;
+  final String planId;
+  final int durationMonths;
+  final MoneyXaf totalXaf;
+  final MoneyXaf feesXaf;
+  final MoneyXaf? downPaymentXaf;
+  final String? tegPercent;
+  final List<Installment> installments;
+  final DateTime expiresAt;
+
+  factory Quote.fromJson(Map<String, Object?> json) {
+    final rawInstallments = json['installments'];
+    if (rawInstallments is! List<Object?>) {
+      throw const FormatException('Champ installments attendu.');
+    }
+    final downRaw = _optString(json, 'downPaymentXaf');
+    return Quote(
+      quoteId: _reqString(json, 'quoteId'),
+      offerId: _reqString(json, 'offerId'),
+      model: OfferModel.parse(_reqString(json, 'model')),
+      planId: _reqString(json, 'planId'),
+      durationMonths: _reqInt(json, 'durationMonths'),
+      totalXaf: MoneyXaf.parse(_reqString(json, 'totalXaf')),
+      feesXaf: MoneyXaf.parse(_reqString(json, 'feesXaf')),
+      downPaymentXaf: downRaw != null ? MoneyXaf.parse(downRaw) : null,
+      tegPercent: _optString(json, 'tegPercent'),
+      installments: rawInstallments
+          .map((item) => Installment.fromJson(_asMap(item, 'installment')))
+          .toList(),
+      expiresAt: DateTime.parse(_reqString(json, 'expiresAt')),
+    );
+  }
+}
+
+final class GoalSigningPayload {
+  const GoalSigningPayload({
+    required this.transition,
+    required this.payloadBase64,
+    required this.seq,
+  });
+
+  final String transition;
+  final String payloadBase64;
+  final int seq;
+
+  factory GoalSigningPayload.fromJson(Map<String, Object?> json) {
+    return GoalSigningPayload(
+      transition: _reqString(json, 'transition'),
+      payloadBase64: _reqString(json, 'payloadBase64'),
+      seq: _reqInt(json, 'seq'),
+    );
+  }
+}
+
+enum BeneficiaryDocumentKind {
+  lease('LEASE'),
+  landTitle('LAND_TITLE');
+
+  const BeneficiaryDocumentKind(this.apiValue);
+  final String apiValue;
+}
+
+final class BeneficiaryDocument {
+  const BeneficiaryDocument({
+    required this.documentId,
+    required this.goalId,
+    required this.kind,
+    required this.sha256,
+    required this.reviewStatus,
+  });
+
+  final String documentId;
+  final String goalId;
+  final String kind;
+  final String sha256;
+  final String reviewStatus;
+
+  factory BeneficiaryDocument.fromJson(Map<String, Object?> json) {
+    return BeneficiaryDocument(
+      documentId: _reqString(json, 'documentId'),
+      goalId: _reqString(json, 'goalId'),
+      kind: _reqString(json, 'kind'),
+      sha256: _reqString(json, 'sha256'),
+      reviewStatus: _reqString(json, 'reviewStatus'),
+    );
+  }
+}
+
+final class BeneficiaryReceipt {
+  const BeneficiaryReceipt({
+    required this.goalId,
+    required this.payoutId,
+    required this.beneficiaryId,
+    required this.amountXaf,
+    required this.executedAt,
+    required this.bankReference,
+    required this.entryHashPrefix,
+  });
+
+  final String goalId;
+  final String payoutId;
+  final String beneficiaryId;
+  final MoneyXaf amountXaf;
+  final DateTime executedAt;
+  final String bankReference;
+  final String entryHashPrefix;
+
+  factory BeneficiaryReceipt.fromJson(Map<String, Object?> json) {
+    return BeneficiaryReceipt(
+      goalId: _reqString(json, 'goalId'),
+      payoutId: _reqString(json, 'payoutId'),
+      beneficiaryId: _reqString(json, 'beneficiaryId'),
+      amountXaf: MoneyXaf.parse(_reqString(json, 'amountXaf')),
+      executedAt: DateTime.parse(_reqString(json, 'executedAt')),
+      bankReference: _reqString(json, 'bankReference'),
+      entryHashPrefix: _reqString(json, 'entryHashPrefix'),
+    );
+  }
+}
+
+enum ClaimReason {
+  paymentNotReceived('PAYMENT_NOT_RECEIVED'),
+  handoverRefused('HANDOVER_REFUSED'),
+  offerMismatch('OFFER_MISMATCH'),
+  other('OTHER');
+
+  const ClaimReason(this.apiValue);
+  final String apiValue;
+}
+
+final class ClaimReceipt {
+  const ClaimReceipt({
+    required this.claimId,
+    required this.reference,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String claimId;
+  final String reference;
+  final String status;
+  final DateTime createdAt;
+
+  factory ClaimReceipt.fromJson(Map<String, Object?> json) {
+    return ClaimReceipt(
+      claimId: _reqString(json, 'claimId'),
+      reference: _reqString(json, 'reference'),
+      status: _reqString(json, 'status'),
+      createdAt: DateTime.parse(_reqString(json, 'createdAt')),
+    );
+  }
+}
+
+final class AccountDevice {
+  const AccountDevice({
+    required this.deviceId,
+    required this.name,
+    required this.status,
+    required this.registeredAt,
+    required this.current,
+  });
+
+  final String deviceId;
+  final String name;
+  final String status;
+  final DateTime registeredAt;
+  final bool current;
+
+  factory AccountDevice.fromJson(Map<String, Object?> json) {
+    return AccountDevice(
+      deviceId: _reqString(json, 'deviceId'),
+      name: _reqString(json, 'name'),
+      status: _reqString(json, 'status'),
+      registeredAt: DateTime.parse(_reqString(json, 'registeredAt')),
+      current: _reqBool(json, 'current'),
+    );
+  }
+}
+
+final class AccountSession {
+  const AccountSession({
+    required this.sessionId,
+    required this.deviceName,
+    required this.createdAt,
+    required this.accessExpiresAt,
+    required this.refreshExpiresAt,
+    required this.current,
+  });
+
+  final String sessionId;
+  final String deviceName;
+  final DateTime createdAt;
+  final DateTime accessExpiresAt;
+  final DateTime refreshExpiresAt;
+  final bool current;
+
+  factory AccountSession.fromJson(Map<String, Object?> json) {
+    return AccountSession(
+      sessionId: _reqString(json, 'sessionId'),
+      deviceName: _reqString(json, 'deviceName'),
+      createdAt: DateTime.parse(_reqString(json, 'createdAt')),
+      accessExpiresAt: DateTime.parse(_reqString(json, 'accessExpiresAt')),
+      refreshExpiresAt: DateTime.parse(_reqString(json, 'refreshExpiresAt')),
+      current: _reqBool(json, 'current'),
+    );
+  }
+}
+
+final class AccountSecurity {
+  const AccountSecurity({
+    required this.devices,
+    required this.sessions,
+    required this.asOf,
+  });
+
+  final List<AccountDevice> devices;
+  final List<AccountSession> sessions;
+  final DateTime asOf;
+
+  factory AccountSecurity.fromJson(Map<String, Object?> json) {
+    final rawDevices = json['devices'];
+    final rawSessions = json['sessions'];
+    if (rawDevices is! List<Object?> || rawSessions is! List<Object?>) {
+      throw const FormatException('Champs devices et sessions attendus.');
+    }
+    return AccountSecurity(
+      devices: rawDevices
+          .map((item) => AccountDevice.fromJson(_asMap(item, 'device')))
+          .toList(),
+      sessions: rawSessions
+          .map((item) => AccountSession.fromJson(_asMap(item, 'session')))
+          .toList(),
+      asOf: DateTime.parse(_reqString(json, 'asOf')),
+    );
+  }
+}
+
+enum DataRightKind {
+  access('ACCESS'),
+  rectification('RECTIFICATION'),
+  objection('OBJECTION'),
+  erasure('ERASURE');
+
+  const DataRightKind(this.apiValue);
+  final String apiValue;
+
+  static DataRightKind parse(String raw) {
+    for (final value in values) {
+      if (value.apiValue == raw) return value;
+    }
+    throw FormatException('Type de droit inconnu : $raw');
+  }
+}
+
+final class DataRightReceipt {
+  const DataRightReceipt({
+    required this.requestId,
+    required this.kind,
+    required this.status,
+    required this.receivedAt,
+  });
+
+  final String requestId;
+  final DataRightKind kind;
+  final String status;
+  final DateTime receivedAt;
+
+  factory DataRightReceipt.fromJson(Map<String, Object?> json) {
+    return DataRightReceipt(
+      requestId: _reqString(json, 'requestId'),
+      kind: DataRightKind.parse(_reqString(json, 'kind')),
+      status: _reqString(json, 'status'),
+      receivedAt: DateTime.parse(_reqString(json, 'receivedAt')),
+    );
+  }
+}
+
+final class DataRightHistory {
+  const DataRightHistory({required this.items, required this.asOf});
+
+  final List<DataRightReceipt> items;
+  final DateTime asOf;
+
+  factory DataRightHistory.fromJson(Map<String, Object?> json) {
+    final rawItems = json['items'];
+    if (rawItems is! List<Object?>) {
+      throw const FormatException('Champ items attendu.');
+    }
+    return DataRightHistory(
+      items: rawItems
+          .map((item) => DataRightReceipt.fromJson(_asMap(item, 'item')))
+          .toList(),
+      asOf: DateTime.parse(_reqString(json, 'asOf')),
+    );
+  }
+}
+
+final class KycVerification {
+  const KycVerification({required this.verification});
+
+  final String verification;
+
+  factory KycVerification.fromJson(Map<String, Object?> json) {
+    return KycVerification(verification: _reqString(json, 'verification'));
+  }
+}

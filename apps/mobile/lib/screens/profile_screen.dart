@@ -5,6 +5,7 @@ import '../core/app_state.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
 import '../ui/design.dart';
+import 'account_screens.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -190,6 +191,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        if (session != null) ...[
+          Tile(
+            CupertinoIcons.shield,
+            s.securityTitle,
+            '',
+            () => Navigator.of(context).push(
+              CupertinoPageRoute<void>(
+                builder: (_) => AccountSecurityScreen(state: widget.state),
+              ),
+            ),
+          ),
+          Tile(
+            CupertinoIcons.doc_plaintext,
+            s.dataRightsTitle,
+            '',
+            () => Navigator.of(context).push(
+              CupertinoPageRoute<void>(
+                builder: (_) => DataRightsScreen(state: widget.state),
+              ),
+            ),
+          ),
+          Tile(
+            CupertinoIcons.person_badge_plus,
+            s.legalNameTitle,
+            '',
+            () => Navigator.of(context).push(
+              CupertinoPageRoute<void>(
+                builder: (_) => LegalNameScreen(state: widget.state),
+              ),
+            ),
+          ),
+        ],
         Tile(
           CupertinoIcons.antenna_radiowaves_left_right,
           s.apiStatusLabel,

@@ -172,6 +172,83 @@ final class AppStrings {
     };
   }
 
+  String get newPlannedExpense =>
+      isEn ? 'Plan an expense (Model C)' : 'Planifier une dépense (Modèle C)';
+  String get beneficiaryIdLabel =>
+      isEn ? 'Verified beneficiary ID' : 'Identifiant du bénéficiaire vérifié';
+  String get targetAmountLabel =>
+      isEn ? 'Target amount (XAF)' : 'Montant cible (FCFA)';
+  String get targetAmountInvalid => isEn
+      ? 'Enter a positive integer XAF amount (no decimals).'
+      : 'Saisissez un montant entier positif en FCFA, sans décimale.';
+  String get durationLabel => isEn ? 'Duration (months)' : 'Durée (mois)';
+  String get termsAcceptLabel => isEn
+      ? 'I accept the terms and settlement conditions.'
+      : 'J’accepte les conditions du plan et du règlement.';
+  String get termsRequired => isEn
+      ? 'You must accept the terms to continue.'
+      : 'Vous devez accepter les conditions pour continuer.';
+  String get createGoalButton =>
+      isEn ? 'Create draft goal' : 'Créer le brouillon';
+  String get simulatePlanButton =>
+      isEn ? 'Compute schedule on server' : 'Calculer l’échéancier (serveur)';
+  String get modelBNotice => isEn
+      ? 'Model B credit is granted solely by a licensed lender, never by MoloPay.'
+      : 'Le crédit Modèle B est octroyé par un financeur agréé, jamais par MoloPay.';
+  String get lockGoalButton => isEn ? 'Lock goal' : 'Verrouiller l’objectif';
+  String get lockGoalDone =>
+      isEn ? 'Goal is now locked.' : 'L’objectif est désormais verrouillé.';
+  String get signedActionUnavailable => isEn
+      ? 'Signed activation/cancellation requires an enrolled device key.'
+      : 'L’activation ou l’annulation signée exige une clé d’appareil enrôlée.';
+  String get handoverPendingNotice => isEn
+      ? 'Single-use handover code emission awaits server route D69.'
+      : 'L’émission du code de remise à usage unique attend la route serveur D69.';
+  String get beneficiarySectionTitle =>
+      isEn ? 'Beneficiary settlement (Model C)' : 'Règlement bénéficiaire (Modèle C)';
+  String get docShaLabel =>
+      isEn ? 'Document SHA-256 hash (64 hex chars)' : 'Empreinte SHA-256 de la pièce (64 hex)';
+  String get submitDocButton =>
+      isEn ? 'Submit document hash' : 'Déposer l’empreinte';
+  String get payBeneficiaryButton =>
+      isEn ? 'Request beneficiary payout' : 'Demander le règlement bénéficiaire';
+  String get claimSectionTitle =>
+      isEn ? 'Open a support claim' : 'Ouvrir une réclamation';
+  String get claimDetailsLabel =>
+      isEn ? 'Describe your issue (10-1000 chars)' : 'Décrivez votre demande (10 à 1000 car.)';
+  String get submitClaimButton =>
+      isEn ? 'Submit claim' : 'Envoyer la réclamation';
+  String get securityTitle =>
+      isEn ? 'Account security' : 'Sécurité du compte';
+  String get dataRightsTitle =>
+      isEn ? 'My data rights' : 'Mes droits sur mes données';
+  String get legalNameTitle =>
+      isEn ? 'Legal name (KYC level 1)' : 'Nom légal (KYC niveau 1)';
+  String get legalNameReceived => isEn
+      ? 'Your declaration has been recorded.'
+      : 'Votre déclaration a bien été enregistrée.';
+
+  String claimReasonName(ClaimReason r) {
+    return switch (r) {
+      ClaimReason.paymentNotReceived =>
+        isEn ? 'Payment not received' : 'Paiement non reçu',
+      ClaimReason.handoverRefused =>
+        isEn ? 'Handover refused' : 'Remise refusée',
+      ClaimReason.offerMismatch =>
+        isEn ? 'Offer mismatch' : 'Article non conforme',
+      ClaimReason.other => isEn ? 'Other' : 'Autre',
+    };
+  }
+
+  String dataRightName(DataRightKind k) {
+    return switch (k) {
+      DataRightKind.access => isEn ? 'Access' : 'Accès',
+      DataRightKind.rectification => isEn ? 'Rectification' : 'Rectification',
+      DataRightKind.objection => isEn ? 'Objection' : 'Opposition',
+      DataRightKind.erasure => isEn ? 'Erasure' : 'Effacement',
+    };
+  }
+
   String goalStatusName(GoalStatus s) {
     return switch (s) {
       GoalStatus.draft => isEn ? 'Draft' : 'Brouillon',

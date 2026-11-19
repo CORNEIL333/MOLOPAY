@@ -323,6 +323,10 @@ class OfferDetailScreen extends StatelessWidget {
                   value: offer.cities.map(s.cityName).join(', '),
                 ),
                 const SizedBox(height: 18),
+                if (offer.models.contains(OfferModel.financedPurchase)) ...[
+                  Text(s.modelBNotice, style: type(12, color: muted)),
+                  const SizedBox(height: 12),
+                ],
                 Text(s.plansLabel, style: type(18, weight: FontWeight.w700)),
                 const SizedBox(height: 10),
                 if (compatiblePlans.isEmpty)
