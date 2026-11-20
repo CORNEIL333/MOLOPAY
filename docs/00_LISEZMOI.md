@@ -15,7 +15,7 @@ Le fondateur a tranché le 21 octobre 2026 : **tout ouvre au lancement, rien n'e
 - **Trois modèles** : A · épargne-achat · B · achat financé · C · dépense planifiée.
 - **Quatre univers** : essentiels · technologie et équipement · logement et immobilier · mobilité et activité professionnelle.
 - **Deux villes** : Yaoundé et Douala, simultanément.
-- **Trois interfaces** : application client (Android, iOS, web léger, USSD) · portail partenaire · back-office interne.
+- **Trois interfaces** : application client (Android, iOS, web léger, USSD) · portail partenaire · back-office interne ; **plus un site public marketplace** d'acquisition (ajout du 20 novembre 2026, ADR-0006).
 
 Rien n'ouvre tant que la **porte de lancement unique** n'est pas franchie (voir `04_annexes/checklist_porte_lancement.md`).
 
@@ -42,7 +42,8 @@ Rien n'ouvre tant que la **porte de lancement unique** n'est pas franchie (voir 
 | | `COLLABORATION_ET_GARDE_FOUS.md` | Rôles, portes d'approbation, interdits, escalade, sécurité des agents | Fondateur, agents |
 | | `PLAN_DE_LOTS.md` | Découpage du build en lots exécutables par agents, dépendances, définition de « terminé » | Fondateur, agents |
 | | `PROMPT_MAITRE_QODER.md` | Prompt de lancement du sprint MVP (jour 1) pour Qoder, et réglages préalables | Fondateur, Qoder |
-| `04_annexes/` | `adr/ADR-0001…0005` | Décisions d'architecture | Architecte, agents |
+| `04_annexes/` | `adr/ADR-0001…0006` | Décisions d'architecture | Architecte, agents |
+| | `maquettes/` | Identité UI/UX et maquettes : app mobile, écrans web, site public | Produit, agents |
 | | `registre_des_risques.md` | Risques, cotation, parades, propriétaires | Fondateur |
 | | `matrice_de_tracabilite.md` | Exigence → norme → test → preuve | QA, auditeurs |
 | | `registre_des_traitements.md` | Traitements de données personnelles (loi 2024/017) | Conformité |

@@ -13,6 +13,8 @@
 | T-07 | Notifications | Informer | Clients, partenaires | Téléphone, contenu des messages | Exécution du contrat | Prestataire SMS (sous-traitant) | 12 mois (journaux) | ADR-0004 |
 | T-08 | Contributions diaspora | Financer l'objectif d'un proche | Payeurs, clients | Identité du payeur, montants, pays | Exécution du contrat ; obligation légale | Canal de transfert agréé | Délai LBC/FT | ADR-0004 |
 | T-09 | Journal d'audit et de sécurité | Sécurité, preuve | Utilisateurs internes, partenaires, clients | Actions, horodatages, identifiants | Obligation légale / intérêt légitime | Audit, régulateurs sur demande | ≥ 10 ans (à confirmer) | ADR-0004 |
+| T-11 | Mesure d'audience du site public | Améliorer le site et mesurer la conversion | Visiteurs | Pages vues, événements de parcours, agrégés, sans identifiant publicitaire ni cookie tiers | Intérêt légitime (à confirmer) | Équipe produit | 13 mois (à confirmer) | ADR-0004 / ADR-0006 |
+| T-12 | Candidatures partenaires du site public | Qualifier les futurs partenaires | Représentants de commerces, bailleurs, écoles | Nom, téléphone, activité, ville | Mesures précontractuelles | Réseau partenaires | 12 mois sans suite (à confirmer) | ADR-0004 |
 | T-10 | Statistiques et pilotage | Améliorer le service | Tous | Données agrégées ou pseudonymisées | Intérêt légitime | Direction | 5 ans | ADR-0004 |
 
 ## Mesures transverses

@@ -1,0 +1,812 @@
+<title>Pistes d'identité MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : une galerie d'écrans en tête (la preuve), puis la fiche d'identité en sections courtes. */
+:root {
+  /* Page (suit le thème du lecteur) */
+  --pg-bg: #eceeea; --pg-bg2: #f6f5ef; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  /* Marque : base noir et blanc */
+  --ink: #0f1012; --ink-2: #1c1d21; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e7e8e3; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  /* Les quatre univers */
+  --u-essentiels: #d9f26b;   /* citron */
+  --u-tech: #8fddf5;         /* ciel */
+  --u-logement: #c3bdff;     /* lilas */
+  --u-mobilite: #ffa8c5;     /* hibiscus */
+  --success: #1f7a4a; --danger: #c4262e;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-bg2: #141518; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-bg2: #141518; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 76rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; font-weight: 500; }
+p { margin: 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pg-muted); font-weight: 600; }
+
+.hero { padding-top: 48px; }
+.hero .wrap { display: grid; gap: 18px; padding-bottom: 8px; }
+.hero h1 { font-size: clamp(2.3rem, 6vw, 4.2rem); line-height: 1; letter-spacing: -0.035em; font-weight: 400; }
+.hero h1 em { font-style: normal; background: var(--u-essentiels); color: var(--ink); padding: 0 0.18em; border-radius: 0.3em; }
+.hero p { max-width: 64ch; color: var(--pg-muted); font-size: 1.05rem; }
+.keys { display: flex; flex-wrap: wrap; gap: 8px; }
+.keys span { font-size: 0.85rem; padding: 6px 14px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); }
+
+/* Galerie de téléphones */
+.gallery-scroll { overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.gallery { display: flex; gap: 20px; padding-block: 36px 40px; width: max-content; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.gallery .shot { scroll-snap-align: center; margin: 0; width: 276px; }
+.shot { display: grid; gap: 12px; justify-items: center; }
+.shot figcaption { font-size: 0.85rem; color: var(--pg-muted); text-align: center; max-width: 30ch; }
+.phone { width: 276px; max-width: 100%; aspect-ratio: 276 / 590; border-radius: 44px; padding: 8px; background: #0a0a0b; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; }
+.screen { position: relative; height: 100%; border-radius: 37px; overflow: hidden; font-family: var(--text); color: var(--ink); display: flex; flex-direction: column; }
+.island { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 84px; height: 24px; border-radius: 20px; background: #000; z-index: 3; }
+.sbar { display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 0.72rem; font-weight: 600; font-variant-numeric: tabular-nums; height: 34px; flex: none; }
+.body { flex: 1; padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.ibtn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--paper); border: 0; color: var(--ink); flex: none; box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+.ibtn.dark { background: var(--ink-2); color: #fff; }
+.ibtn svg { width: 16px; height: 16px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+
+/* Écran 1 : accueil */
+.s-home { background: linear-gradient(180deg, #f7f7f2 0%, #eeefe9 55%, #f4f6d8 100%); }
+.hi small { display: block; color: var(--muted); font-size: 0.75rem; }
+.hi strong { font-family: var(--display); font-weight: 500; font-size: 1.15rem; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--u-logement); display: grid; place-items: center; font-weight: 600; font-size: 0.8rem; }
+.total { display: grid; gap: 2px; }
+.total span { font-size: 0.75rem; color: var(--muted); }
+.total .num { font-size: 2.3rem; font-weight: 400; line-height: 1; }
+.total .num small { font-size: 0.9rem; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.seg { display: flex; gap: 6px; }
+.seg span { font-size: 0.72rem; padding: 6px 12px; border-radius: 999px; background: var(--paper); font-weight: 500; }
+.seg span.on { background: var(--ink); color: #fff; }
+.stack { position: relative; height: 250px; margin-top: 2px; }
+.gcard { position: absolute; left: 0; right: 0; border-radius: 26px; padding: 14px 16px; display: grid; gap: 6px; color: var(--ink); }
+.gcard .tag { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.gcard .item { font-family: var(--display); font-size: 1.05rem; font-weight: 500; }
+.gcard .amt { font-size: 1.35rem; font-weight: 500; }
+.gcard .amt small { font-size: 0.72rem; font-weight: 400; opacity: 0.7; letter-spacing: 0; }
+.thin { height: 6px; border-radius: 999px; background: rgba(15,16,18,0.14); overflow: hidden; }
+.thin i { display: block; height: 100%; background: var(--ink); border-radius: inherit; }
+.gcard.c3 { top: 0; transform: scale(0.9); transform-origin: top center; background: var(--u-tech); padding-bottom: 40px; }
+.gcard.c2 { top: 44px; transform: scale(0.95); transform-origin: top center; background: var(--u-logement); padding-bottom: 40px; box-shadow: 0 -8px 20px -14px rgba(15,16,18,0.35); }
+.gcard.c1 { top: 90px; background: var(--u-mobilite); box-shadow: 0 -10px 24px -14px rgba(15,16,18,0.4); }
+.gcard .go { position: absolute; right: 12px; top: 12px; }
+.navpill { margin-top: auto; align-self: center; display: flex; gap: 4px; padding: 6px; border-radius: 999px; background: var(--ink); }
+.navpill span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #c9cbd0; }
+.navpill span.on { background: #fff; color: var(--ink); }
+.navpill svg { width: 18px; height: 18px; }
+
+/* Écran 2 : objectif */
+.s-goal { background: var(--u-mobilite); }
+.s-goal .head h3 { font-size: 1.6rem; line-height: 1.05; letter-spacing: -0.02em; }
+.s-goal .head p { font-size: 0.78rem; opacity: 0.75; margin-top: 4px; }
+.gauge { position: relative; display: grid; place-items: center; margin-top: 4px; }
+.gauge svg { width: 200px; height: 112px; overflow: visible; }
+.gauge .val { position: absolute; bottom: 4px; text-align: center; }
+.gauge .val .num { font-size: 2.2rem; font-weight: 500; line-height: 1; }
+.gauge .val small { display: block; font-size: 0.7rem; opacity: 0.75; }
+.sheet { margin: auto -16px -16px; background: var(--paper); border-radius: 30px 30px 0 0; padding: 16px; display: grid; gap: 10px; }
+.kv { display: flex; justify-content: space-between; font-size: 0.8rem; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 0.72rem; font-weight: 500; padding: 6px 11px; border-radius: 999px; background: var(--mist); border: 0; color: var(--ink); font-family: var(--text); }
+.chip.on { background: var(--ink); color: #fff; }
+.pill { height: 48px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-family: var(--text); font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; cursor: pointer; }
+.pill.light { background: #fff; color: var(--ink); }
+.pill:focus-visible, .chip:focus-visible, .key:focus-visible, .thumb:focus-visible { outline: 3px solid var(--u-essentiels); outline-offset: 2px; }
+
+/* Écran 3 : verser (sombre) */
+.s-pay { background: radial-gradient(120% 60% at 50% 0%, #1e2024 0%, #0b0b0d 60%); color: #fff; }
+.s-pay .to { display: flex; align-items: center; gap: 8px; align-self: center; background: var(--ink-2); padding: 5px 12px 5px 5px; border-radius: 999px; font-size: 0.75rem; }
+.s-pay .to i { width: 24px; height: 24px; border-radius: 50%; background: var(--u-mobilite); display: block; }
+.amount { text-align: center; display: grid; gap: 4px; margin-top: 6px; }
+.amount .num { font-size: 2.6rem; font-weight: 400; line-height: 1; }
+.amount .num small { font-size: 0.95rem; color: var(--muted-dark); margin-left: 4px; letter-spacing: 0; }
+.amount .hint { font-size: 0.7rem; color: var(--muted-dark); min-height: 1.1em; }
+.amount .hint.warn { color: #ffb3b6; }
+.s-pay .chips { justify-content: center; }
+.s-pay .chip { background: var(--ink-2); color: #e6e7ea; cursor: pointer; }
+.s-pay .chip.on { background: #fff; color: var(--ink); }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: auto; }
+.key { height: 42px; border: 0; background: transparent; color: #fff; font-family: var(--display); font-size: 1.3rem; font-weight: 400; border-radius: 14px; cursor: pointer; }
+.key:active { background: var(--ink-2); }
+.slider { position: relative; height: 52px; border-radius: 999px; background: var(--ink-2); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--muted-dark); user-select: none; touch-action: none; }
+.thumb { position: absolute; left: 4px; top: 4px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--u-essentiels); color: var(--ink); display: grid; place-items: center; cursor: grab; }
+.thumb svg { width: 18px; height: 18px; }
+.done-view { position: absolute; inset: 0; background: radial-gradient(120% 60% at 50% 20%, #1e2024 0%, #0b0b0d 60%); color: #fff; display: flex; flex-direction: column; padding: 70px 18px 18px; gap: 14px; text-align: center; }
+.check { width: 64px; height: 64px; border-radius: 50%; background: var(--u-essentiels); color: var(--ink); display: grid; place-items: center; align-self: center; }
+.check svg { width: 28px; height: 28px; }
+.done-view .num { font-size: 2.2rem; font-weight: 400; }
+.receipt { background: var(--ink-2); border-radius: 22px; padding: 14px; display: grid; gap: 8px; text-align: left; }
+.receipt .kv span:first-child { color: var(--muted-dark); }
+.done-view .pill { margin-top: auto; }
+
+/* Écran 4 : nouvel objectif (étapes) */
+.s-new { background: var(--paper); }
+.steps { display: flex; align-items: flex-start; justify-content: space-between; position: relative; margin-top: 4px; }
+.steps::before { content: ""; position: absolute; top: 13px; left: 14%; right: 14%; height: 2px; background: var(--ink); }
+.step { position: relative; display: grid; justify-items: center; gap: 6px; font-size: 0.66rem; color: var(--muted); width: 33%; text-align: center; }
+.dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; }
+.dot svg { width: 12px; height: 12px; }
+.dot.cur { background: #fff; border: 2px solid var(--ink); }
+.dot.cur::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+.step.done, .step.now { color: var(--ink); }
+.label { font-size: 0.75rem; font-weight: 600; }
+.field { background: var(--mist); border-radius: 16px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+.field small { display: block; font-size: 0.66rem; color: var(--muted); }
+.rhythm { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rhythm span { padding: 10px 12px; border-radius: 16px; background: var(--mist); font-size: 0.75rem; display: grid; gap: 2px; }
+.rhythm span b { font-family: var(--display); font-weight: 500; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.rhythm span.on { background: var(--u-essentiels); }
+.lock { display: flex; gap: 8px; font-size: 0.7rem; color: var(--muted); align-items: flex-start; }
+.lock svg { flex: none; width: 14px; height: 14px; margin-top: 1px; }
+.s-new .pill { margin-top: auto; flex: none; }
+.s-new .body { gap: 10px; }
+
+/* Écran 5 : code de remise */
+.s-code { background: linear-gradient(180deg, #f7f7f2, #e8eaf9); }
+.ticket { background: var(--ink); color: #fff; border-radius: 28px; padding: 18px; display: grid; gap: 12px; position: relative; }
+.ticket .tag { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--u-essentiels); font-weight: 600; }
+.ticket .item { font-family: var(--display); font-size: 1.2rem; }
+.code { display: flex; gap: 5px; justify-content: center; }
+.code span { width: 28px; height: 40px; border-radius: 10px; background: var(--ink-2); display: grid; place-items: center; font-family: var(--display); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.perf { border-top: 2px dashed #34363b; margin-inline: -18px; }
+.ticket .kv span:first-child { color: var(--muted-dark); }
+.timer { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.72rem; color: var(--muted); }
+
+/* Sections de la fiche */
+.part { border-top: 1px solid var(--pg-line); padding-block: 48px; display: grid; gap: 24px; }
+.part > header { display: grid; gap: 8px; max-width: 66ch; }
+.part h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); letter-spacing: -0.03em; line-height: 1.05; }
+.part > header p { color: var(--pg-muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sw { border-radius: 24px; overflow: hidden; background: var(--pg-surface); border: 1px solid var(--pg-line); display: grid; }
+.sw .chipc { height: 92px; padding: 12px 14px; display: flex; align-items: flex-end; justify-content: space-between; font-family: var(--display); font-size: 1.15rem; }
+.sw .meta { padding: 10px 14px 14px; display: grid; gap: 2px; font-size: 0.82rem; }
+.sw .meta b { font-weight: 600; }
+.sw code { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.76rem; color: var(--pg-muted); }
+.ratio { font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--pg-muted); }
+.type { display: grid; gap: 14px; background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 28px; padding: 24px; }
+.type .t1 { font-family: var(--display); font-weight: 300; font-size: clamp(2.2rem, 6vw, 3.6rem); letter-spacing: -0.04em; line-height: 1; }
+.type .t2 { font-family: var(--display); font-weight: 500; font-size: 1.5rem; letter-spacing: -0.02em; }
+.type .t3 { max-width: 60ch; }
+.type .spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; font-size: 0.82rem; color: var(--pg-muted); border-top: 1px solid var(--pg-line); padding-top: 14px; }
+.type .spec b { display: block; color: var(--pg-ink); font-weight: 600; }
+.comp { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.tile { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 28px; padding: 20px; display: grid; gap: 14px; align-content: start; }
+.tile h3 { font-size: 1rem; font-weight: 600; font-family: var(--text); }
+.tile p { font-size: 0.85rem; color: var(--pg-muted); }
+.tile .demo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tile .pill { width: auto; padding: 0 22px; }
+.tile .pill.ghost { background: transparent; color: var(--pg-ink); border: 1.5px solid var(--pg-ink); }
+.tile .ibtn { background: var(--mist); }
+.logos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.logo { border-radius: 28px; height: 150px; display: grid; place-items: center; }
+.logo .lockup { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 600; font-size: 2rem; letter-spacing: -0.04em; }
+.voice { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.say { display: grid; gap: 8px; font-size: 0.9rem; }
+.say div { padding: 10px 12px; border-radius: 14px; background: var(--pg-bg); }
+.say small { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pg-muted); }
+.say .no { color: var(--pg-muted); text-decoration: line-through; }
+.say .no small { text-decoration: none; }
+.alert { border-radius: 28px; padding: 22px; background: var(--pg-surface); border: 1.5px solid var(--danger); display: grid; gap: 8px; }
+.alert h3 { font-family: var(--text); font-weight: 600; font-size: 1.05rem; }
+.alert p { color: var(--pg-muted); }
+.next p { color: var(--pg-muted); max-width: 66ch; }
+@media (prefers-reduced-motion: no-preference) {
+  .pill, .chip, .key { transition: transform 120ms ease, background 160ms ease; }
+  .pill:active { transform: scale(0.97); }
+  .done-view { transition: opacity 260ms ease, transform 260ms ease; }
+  .thumb.back { transition: left 220ms ease; }
+}
+.done-view[hidden] { display: none !important; }
+/* ===== Marketplace ===== */
+.mk-head { display: grid; gap: 8px; max-width: 66ch; padding-top: 24px; }
+.mk-head h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); letter-spacing: -0.03em; line-height: 1.05; }
+.mk-head p { color: var(--pg-muted); }
+.s-cat { background: linear-gradient(180deg, #f7f7f2 0%, #eeefe9 100%); }
+.loc { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; background: var(--paper); padding: 8px 12px; border-radius: 999px; }
+.loc svg { width: 12px; height: 12px; }
+.ask { font-family: var(--display); font-weight: 400; font-size: 1.55rem; line-height: 1.05; letter-spacing: -0.03em; }
+.search { display: flex; gap: 6px; }
+.search .fld { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--paper); border-radius: 999px; padding: 0 14px; height: 40px; font-size: 0.78rem; color: var(--muted); min-width: 0; }
+.search .fld svg { width: 14px; height: 14px; flex: none; }
+.uchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; flex: none; }
+.uchips::-webkit-scrollbar { display: none; }
+.uchip { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 500; padding: 7px 12px; border-radius: 999px; background: var(--paper); border: 0; color: var(--ink); font-family: var(--text); cursor: pointer; }
+.uchip i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.uchip.on { background: var(--ink); color: #fff; }
+.promo { border-radius: 24px; background: var(--u-essentiels); padding: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: center; flex: none; }
+.promo b { font-family: var(--display); font-weight: 500; font-size: 1rem; display: block; }
+.promo span { font-size: 0.7rem; }
+.promo svg { width: 46px; height: 46px; flex: none; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; overflow: hidden; align-content: start; }
+.ptile { background: var(--paper); border-radius: 20px; padding: 6px 6px 10px; display: grid; gap: 4px; }
+.ptile .pic { border-radius: 15px; height: 74px; display: grid; place-items: center; }
+.ptile .pic svg { width: 54px; height: 54px; }
+.ptile .nm { font-size: 0.7rem; font-weight: 600; padding-inline: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ptile .pr { font-family: var(--display); font-size: 0.9rem; font-weight: 500; padding-inline: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ptile .dy { font-size: 0.62rem; color: var(--muted); padding-inline: 4px; white-space: nowrap; }
+.ptile[hidden] { display: none; }
+.s-cat .navpill { flex: none; }
+
+/* Filtres */
+.s-filter { background: #0b0b0d; }
+.s-filter .dim { padding: 10px 16px; display: grid; gap: 8px; opacity: 0.35; }
+.fsheet { margin-top: auto; background: var(--paper); border-radius: 30px 30px 37px 37px; padding: 10px 16px 16px; display: grid; gap: 12px; }
+.grab { width: 36px; height: 4px; border-radius: 4px; background: var(--mist-2); justify-self: center; }
+.fsheet h4 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1.15rem; }
+.fgroup { display: grid; gap: 6px; }
+.fgroup > span { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.range { position: relative; height: 22px; }
+.range .track { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 4px; background: var(--mist-2); }
+.range .fill { position: absolute; left: 18%; right: 30%; top: 9px; height: 4px; background: var(--ink); }
+.range .knob { position: absolute; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); }
+.rangev { display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.factions { display: flex; gap: 8px; align-items: center; }
+.factions .clear { font-size: 0.78rem; font-weight: 600; text-decoration: underline; padding: 0 6px; flex: none; }
+
+/* Fiche produit */
+.s-prod { background: var(--u-tech); }
+.hero-pic { display: grid; place-items: center; height: 150px; flex: none; }
+.hero-pic svg { width: 120px; height: 120px; }
+.dots { display: flex; gap: 4px; justify-content: center; margin-top: -6px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(15,16,18,0.25); display: block; }
+.dots i.on { width: 16px; border-radius: 6px; background: var(--ink); }
+.psheet { margin: auto -16px -16px; background: var(--paper); border-radius: 30px 30px 0 0; padding: 16px; display: grid; gap: 10px; }
+.vendor { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--muted); }
+.vendor b { color: var(--ink); font-weight: 600; }
+.ok { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; flex: none; }
+.ok svg { width: 8px; height: 8px; }
+.pname { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.pname h4 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1.25rem; letter-spacing: -0.02em; line-height: 1.1; }
+.pname .num { font-size: 1.25rem; font-weight: 500; white-space: nowrap; }
+.pname .num small { font-size: 0.65rem; color: var(--muted); letter-spacing: 0; }
+.toggle { display: grid; grid-template-columns: 1fr 1fr; background: var(--mist); border-radius: 999px; padding: 4px; }
+.toggle button { border: 0; background: transparent; border-radius: 999px; height: 34px; font-family: var(--text); font-size: 0.74rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+.toggle button.on { background: var(--ink); color: #fff; }
+.mode { display: grid; gap: 6px; font-size: 0.74rem; }
+.mode[hidden] { display: none; }
+.mode .kv span:last-child { white-space: nowrap; }
+.mode p { color: var(--muted); font-size: 0.68rem; line-height: 1.4; }
+.facts { display: flex; gap: 6px; flex-wrap: wrap; }
+.facts span { font-size: 0.64rem; background: var(--mist); padding: 4px 9px; border-radius: 999px; }
+
+/* Boutique */
+.s-shop { background: linear-gradient(180deg, #f7f7f2, #eceee8); }
+.shopcard { background: var(--ink); color: #fff; border-radius: 28px; padding: 16px; display: grid; gap: 10px; flex: none; }
+.shopcard .top { display: flex; gap: 10px; align-items: center; }
+.mono { width: 46px; height: 46px; border-radius: 16px; background: var(--u-logement); color: var(--ink); display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 1.05rem; flex: none; }
+.shopcard h4 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 1.1rem; }
+.shopcard small { font-size: 0.68rem; color: var(--muted-dark); display: flex; align-items: center; gap: 5px; }
+.shopcard .ok { background: var(--u-essentiels); color: var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stats div { background: var(--ink-2); border-radius: 14px; padding: 8px; display: grid; gap: 1px; }
+.stats b { font-family: var(--display); font-weight: 500; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 0.6rem; color: var(--muted-dark); }
+.lrow { display: flex; align-items: center; gap: 10px; background: var(--paper); border-radius: 20px; padding: 6px 10px 6px 6px; }
+.lrow .pic { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; flex: none; }
+.lrow .pic svg { width: 38px; height: 38px; }
+.lrow .tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.lrow .tx b { font-size: 0.74rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lrow .tx span { font-family: var(--display); font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.lrow .tx em { font-style: normal; font-size: 0.6rem; color: var(--muted); }
+.lrow .ibtn { width: 32px; height: 32px; background: var(--mist); }
+
+/* Comparer */
+.s-cmp { background: var(--paper); }
+.cmp { display: grid; gap: 8px; }
+.opt { border-radius: 24px; padding: 14px; display: grid; gap: 8px; border: 2px solid transparent; }
+.opt.a { background: var(--u-tech); border-color: var(--ink); }
+.opt.b { background: var(--mist); }
+.opt .t { display: flex; justify-content: space-between; align-items: center; }
+.opt .t b { font-family: var(--display); font-weight: 500; font-size: 1rem; }
+.opt .t .chip { font-size: 0.62rem; padding: 4px 9px; }
+.opt .kv { font-size: 0.72rem; white-space: nowrap; }
+.opt .kv span:first-child { color: rgba(15,16,18,0.65); }
+.opt .big { font-family: var(--display); font-size: 1.35rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.opt .big small { font-size: 0.65rem; font-weight: 400; letter-spacing: 0; color: rgba(15,16,18,0.65); }
+.note { font-size: 0.64rem; color: var(--muted); line-height: 1.4; }
+.s-cmp .pill { margin-top: auto; flex: none; }
+
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Identité UI/UX · nouvelle direction</span>
+    <h1>Noir, lumière, et une couleur par <em>projet</em>.</h1>
+    <p>Inspirée de vos références : base noir et blanc, boutons pilule, grands chiffres, écrans sombres pour les moments d'argent. La signature MoloPay : chacun des quatre univers a sa couleur vive. Le client reconnaît son projet d'un coup d'œil : rose pour la moto, lilas pour le loyer.</p>
+    <div class="keys"><span>Base noir et blanc</span><span>4 couleurs d'univers</span><span>Rayons 24 à 44 px</span><span>Outfit + Inter</span><span>Contrastes AAA</span></div>
+  </div>
+</header>
+
+<main>
+<div class="gallery-scroll"><section class="gallery" aria-label="Écrans de démonstration">
+
+  <!-- 1 Accueil -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-home">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><div class="hi"><small>Bonsoir</small><strong>Aïcha Ngo</strong></div>
+          <div class="row" style="gap:6px"><button class="ibtn" type="button" aria-label="Notifications"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7a4 4 0 0 1 8 0v3l1.2 2H2.8L4 10V7Z"/><path d="M6.5 13.5a1.6 1.6 0 0 0 3 0"/></svg></button><div class="avatar">AN</div></div></div>
+        <div class="total"><span>Épargné sur vos 3 projets</span><span class="num">618 000<small>FCFA</small></span></div>
+        <div class="seg"><span class="on">En cours</span><span>Terminés</span><span>Univers</span></div>
+        <div class="stack">
+          <div class="gcard c3"><span class="tag">Technologie</span><span class="item">Tecno Camon 30</span></div>
+          <div class="gcard c2"><span class="tag">Logement</span><span class="item">Caution, Bonamoussadi</span></div>
+          <div class="gcard c1">
+            <span class="tag">Mobilité</span>
+            <span class="item">Moto Bajaj Boxer 150</span>
+            <span class="amt num">412 500 <small>sur 650 000 FCFA</small></span>
+            <div class="thin"><i style="width:63%"></i></div>
+            <span class="ibtn go" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span>
+          </div>
+        </div>
+        <nav class="navpill" aria-label="Navigation">
+          <span class="on"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 9 3l6 5v7H3V8Z"/></svg></span>
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="5" height="5" rx="1.5"/><rect x="10" y="3" width="5" height="5" rx="1.5"/><rect x="3" y="10" width="5" height="5" rx="1.5"/><rect x="10" y="10" width="5" height="5" rx="1.5"/></svg></span>
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h10M4 9h10M4 12h6"/></svg></span>
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="6.5" r="3"/><path d="M3.5 15c1-3 3-4 5.5-4s4.5 1 5.5 4"/></svg></span>
+        </nav>
+      </div>
+    </div></div>
+    <figcaption>Accueil : les projets empilés, chacun dans la couleur de son univers.</figcaption>
+  </figure>
+
+  <!-- 2 Objectif -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-goal">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><button class="ibtn" type="button" aria-label="Plus d'options"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg></button></div>
+        <div class="head"><h3>Moto Bajaj<br>Boxer 150</h3><p>Moto Center Akwa · prix figé le 3 août</p></div>
+        <div class="gauge">
+          <svg viewBox="0 0 200 112" aria-hidden="true">
+            <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="rgba(15,16,18,0.15)" stroke-width="22" stroke-linecap="round"/>
+            <path id="arc" d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="#0f1012" stroke-width="22" stroke-linecap="round" pathLength="100" stroke-dasharray="63 100"/>
+          </svg>
+          <div class="val"><span class="num">63 %</span><small>412 500 / 650 000 FCFA</small></div>
+        </div>
+        <div class="sheet">
+          <div class="kv"><span>Reste à verser</span><span>237 500 FCFA</span></div>
+          <div class="kv"><span>Rythme</span><span>5 000 FCFA / jour ouvré</span></div>
+          <div class="kv"><span>Remise estimée</span><span>14 mars 2027</span></div>
+          <div class="chips"><span class="chip on">Versements</span><span class="chip">Accord</span><span class="chip">Sortie</span></div>
+          <button class="pill" type="button">Verser maintenant <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>Objectif : l'écran prend la couleur de l'univers ; jauge et chiffres exacts.</figcaption>
+  </figure>
+
+  <!-- 3 Verser -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-pay" id="pay">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn dark" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><span style="font-size:0.8rem;font-weight:600">Verser</span><span style="width:38px"></span></div>
+        <div class="to"><i></i>Moto Bajaj Boxer 150</div>
+        <div class="amount">
+          <span class="num" id="amt" aria-live="polite">5 000<small>FCFA</small></span>
+          <span class="hint" id="hint">Depuis MTN MoMo · 6•• •• •• 42</span>
+        </div>
+        <div class="chips" id="quick">
+          <button class="chip" type="button" data-v="1000">1 000</button>
+          <button class="chip on" type="button" data-v="5000">5 000</button>
+          <button class="chip" type="button" data-v="25000">25 000</button>
+          <button class="chip" type="button" data-v="237500">Tout le reste</button>
+        </div>
+        <div class="pad" id="pad">
+          <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+          <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+          <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+          <button class="key" type="button">00</button><button class="key" type="button">0</button><button class="key" type="button" aria-label="Effacer">⌫</button>
+        </div>
+        <div class="slider" id="slider"><span>Glissez pour verser</span>
+          <button class="thumb" id="thumb" type="button" aria-label="Confirmer le versement"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </div>
+      <div class="done-view" id="done" hidden>
+        <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+        <div><span class="num" id="doneAmt">5 000 FCFA</span><p style="font-size:0.8rem;color:var(--muted-dark)">versés sur Moto Bajaj Boxer 150</p></div>
+        <div class="receipt">
+          <div class="kv"><span>Reçu</span><span>N° MP-2026-004817</span></div>
+          <div class="kv"><span>Moyen</span><span>MTN MoMo</span></div>
+          <div class="kv"><span>Nouveau total</span><span id="doneTotal">417 500 FCFA</span></div>
+          <div class="kv"><span>Fonds gardés par</span><span>[banque partenaire]</span></div>
+        </div>
+        <button class="pill light" type="button" id="again">Terminé</button>
+      </div>
+    </div></div>
+    <figcaption>Verser : écran sombre et concentré. Essayez : le clavier et le glisser fonctionnent.</figcaption>
+  </figure>
+
+  <!-- 4 Nouvel objectif -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-new">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour" style="background:var(--mist)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><span class="chip">FR</span></div>
+        <div class="steps">
+          <div class="step done"><span class="dot"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="m2.5 6.2 2.2 2.2 4.8-4.8"/></svg></span>Offre</div>
+          <div class="step now"><span class="dot cur"></span>Rythme</div>
+          <div class="step"><span class="dot" style="background:var(--mist-2)"></span>Signature</div>
+        </div>
+        <div class="label">Choisissez votre rythme</div>
+        <div class="rhythm">
+          <span>Quotidien<b>5 000</b></span>
+          <span class="on">Hebdomadaire<b>27 500</b></span>
+          <span>Mensuel<b>110 000</b></span>
+          <span>Libre<b>Min. 1 000</b></span>
+        </div>
+        <div class="field"><div><small>Premier versement</small>Lundi 23 novembre</div><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg></div>
+        <div class="lock"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="6" width="9" height="6.5" rx="1.5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6"/></svg><span>Fin estimée le 15 mars 2027, en 17 versements. Prix figé à 650 000 FCFA ; annulation possible à tout moment, sans frais.</span></div>
+        <button class="pill" type="button">Continuer <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+      </div>
+    </div></div>
+    <figcaption>Créer un objectif : étapes claires, coût total et sortie affichés avant de s'engager.</figcaption>
+  </figure>
+
+  <!-- 5 Code de remise -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-code">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><span style="font-size:0.8rem;font-weight:600">Retrait en boutique</span><span style="width:38px"></span></div>
+        <h3 style="font-size:1.6rem;letter-spacing:-0.02em;line-height:1.05">C'est fait.<br>Votre moto vous attend.</h3>
+        <div class="ticket">
+          <span class="tag">100 % atteint</span>
+          <span class="item">Moto Bajaj Boxer 150</span>
+          <div class="code" aria-label="Code de remise 4 8 2 7 1 6"><span>4</span><span>8</span><span>2</span><span>7</span><span>1</span><span>6</span></div>
+          <div class="perf"></div>
+          <div class="kv"><span>Boutique</span><span>Moto Center Akwa</span></div>
+          <div class="kv"><span>Horaires</span><span>Lun–sam · 8 h–18 h</span></div>
+          <div class="kv"><span>À présenter avec</span><span>Votre CNI</span></div>
+        </div>
+        <div class="timer"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="5.5"/><path d="M7 4v3l2 1.5"/></svg>Valable jusqu'au 4 décembre · usage unique</div>
+        <button class="pill" type="button" style="margin-top:auto">Itinéraire vers la boutique</button>
+      </div>
+    </div></div>
+    <figcaption>Code de remise : le ticket qu'on montre au vendeur, à usage unique.</figcaption>
+  </figure>
+</section></div>
+
+<section class="wrap mk-head" aria-labelledby="mk">
+  <span class="eyebrow">Marketplace</span>
+  <h2 id="mk">Choisir, comparer, réserver à prix figé</h2>
+  <p>Le catalogue des partenaires vérifiés, organisé par univers. Chaque prix est accompagné de ce qu'il coûte par jour ou par mois, et de la façon de payer. Essayez : les puces d'univers filtrent le catalogue et la fiche produit bascule entre « Épargner » et « Financer ».</p>
+</section>
+<div class="gallery-scroll"><section class="gallery" aria-label="Écrans de la marketplace">
+
+  <!-- M1 Catalogue -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-cat">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><span class="loc"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 11s4-3.6 4-6.5a4 4 0 0 0-8 0C2 7.4 6 11 6 11Z"/><circle cx="6" cy="4.6" r="1.4"/></svg>Douala</span><button class="ibtn" type="button" aria-label="Favoris"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.5S2 10 2 6a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4-6 7.5-6 7.5Z"/></svg></button></div>
+        <div class="ask">Quel est votre<br>prochain projet ?</div>
+        <div class="search"><div class="fld"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4.3"/><path d="m9.3 9.3 3 3"/></svg>Moto, frigo, loyer…</div><button class="ibtn dark" type="button" aria-label="Filtres"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></svg></button></div>
+        <div class="uchips" id="uchips">
+          <button class="uchip on" type="button" data-u="all">Tout</button>
+          <button class="uchip" type="button" data-u="ess"><i style="background:var(--u-essentiels)"></i>Essentiels</button>
+          <button class="uchip" type="button" data-u="tech"><i style="background:var(--u-tech)"></i>Technologie</button>
+          <button class="uchip" type="button" data-u="log"><i style="background:var(--u-logement)"></i>Logement</button>
+          <button class="uchip" type="button" data-u="mob"><i style="background:var(--u-mobilite)"></i>Mobilité</button>
+        </div>
+        <div class="promo"><div><b>Rentrée de janvier</b><span>Fournitures et uniformes dès 500 FCFA par jour</span></div><svg data-ill="bag" viewBox="0 0 100 100"></svg></div>
+        <div class="tiles" id="tiles">
+          <div class="ptile" data-u="tech"><div class="pic" style="background:var(--u-tech)"><svg data-ill="phone" viewBox="0 0 100 100"></svg></div><span class="nm">Tecno Camon 30</span><span class="pr">165 000 FCFA</span><span class="dy">dès 1 835 FCFA/jour</span></div>
+          <div class="ptile" data-u="mob"><div class="pic" style="background:var(--u-mobilite)"><svg data-ill="moto" viewBox="0 0 100 100"></svg></div><span class="nm">Bajaj Boxer 150</span><span class="pr">650 000 FCFA</span><span class="dy">dès 5 000 FCFA/jour</span></div>
+          <div class="ptile" data-u="ess"><div class="pic" style="background:var(--u-essentiels)"><svg data-ill="sack" viewBox="0 0 100 100"></svg></div><span class="nm">Riz parfumé 25 kg</span><span class="pr">17 500 FCFA</span><span class="dy">dès 600 FCFA/jour</span></div>
+          <div class="ptile" data-u="tech"><div class="pic" style="background:var(--u-tech)"><svg data-ill="fridge" viewBox="0 0 100 100"></svg></div><span class="nm">Réfrigérateur 150 L</span><span class="pr">185 000 FCFA</span><span class="dy">dès 2 060 FCFA/jour</span></div>
+          <div class="ptile" data-u="ess" hidden><div class="pic" style="background:var(--u-essentiels)"><svg data-ill="gas" viewBox="0 0 100 100"></svg></div><span class="nm">Bouteille de gaz 12,5 kg</span><span class="pr">24 000 FCFA</span><span class="dy">dès 800 FCFA/jour</span></div>
+          <div class="ptile" data-u="log" hidden><div class="pic" style="background:var(--u-logement)"><svg data-ill="key"></svg></div><span class="nm">Avance loyer 6 mois</span><span class="pr">540 000 FCFA</span><span class="dy">dès 45 000 FCFA/mois</span></div>
+          <div class="ptile" data-u="tech" hidden><div class="pic" style="background:var(--u-tech)"><svg data-ill="laptop" viewBox="0 0 100 100"></svg></div><span class="nm">Ordinateur portable 15"</span><span class="pr">285 000 FCFA</span><span class="dy">dès 3 170 FCFA/jour</span></div>
+          <div class="ptile" data-u="log" hidden><div class="pic" style="background:var(--u-logement)"><svg data-ill="key" viewBox="0 0 100 100"></svg></div><span class="nm">Caution studio, Logpom</span><span class="pr">150 000 FCFA</span><span class="dy">dès 25 000 FCFA/mois</span></div>
+          <div class="ptile" data-u="mob" hidden><div class="pic" style="background:var(--u-mobilite)"><svg data-ill="machine" viewBox="0 0 100 100"></svg></div><span class="nm">Machine à coudre pro</span><span class="pr">210 000 FCFA</span><span class="dy">dès 2 340 FCFA/jour</span></div>
+        </div>
+        <nav class="navpill" aria-label="Navigation">
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 9 3l6 5v7H3V8Z"/></svg></span>
+          <span class="on"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="5" height="5" rx="1.5"/><rect x="10" y="3" width="5" height="5" rx="1.5"/><rect x="3" y="10" width="5" height="5" rx="1.5"/><rect x="10" y="10" width="5" height="5" rx="1.5"/></svg></span>
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h10M4 9h10M4 12h6"/></svg></span>
+          <span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="6.5" r="3"/><path d="M3.5 15c1-3 3-4 5.5-4s4.5 1 5.5 4"/></svg></span>
+        </nav>
+      </div>
+    </div></div>
+    <figcaption>Catalogue : univers en puces, prix et coût par jour sur chaque offre.</figcaption>
+  </figure>
+
+  <!-- M2 Filtres -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-filter">
+      <div class="island"></div>
+      <div class="sbar" style="color:#fff"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="dim" aria-hidden="true"><div class="ask" style="color:#fff">Technologie</div><div class="tiles"><div class="ptile"><div class="pic" style="background:var(--u-tech)"></div></div><div class="ptile"><div class="pic" style="background:var(--u-tech)"></div></div></div></div>
+      <div class="fsheet">
+        <div class="grab"></div>
+        <div class="row"><h4>Filtres</h4><span class="chip">48 offres</span></div>
+        <div class="fgroup"><span>Ville</span><div class="chips"><span class="chip on">Douala</span><span class="chip">Yaoundé</span><span class="chip">Bafoussam</span></div></div>
+        <div class="fgroup"><span>Prix</span><div class="range"><div class="track"></div><div class="fill"></div><div class="knob" style="left:calc(18% - 9px)"></div><div class="knob" style="left:calc(70% - 9px)"></div></div><div class="rangev"><span>50 000 FCFA</span><span>300 000 FCFA</span></div></div>
+        <div class="fgroup"><span>Façon de payer</span><div class="chips"><span class="chip on">Épargner puis recevoir</span><span class="chip">Recevoir tout de suite</span></div></div>
+        <div class="fgroup"><span>Marque</span><div class="chips"><span class="chip on">Tecno</span><span class="chip">Infinix</span><span class="chip on">Samsung</span><span class="chip">itel</span></div></div>
+        <div class="factions"><span class="clear">Effacer</span><button class="pill" type="button">Voir les 48 offres</button></div>
+      </div>
+    </div></div>
+    <figcaption>Filtres : ville, budget, façon de payer et marque, dans une feuille qui monte du bas.</figcaption>
+  </figure>
+
+  <!-- M3 Fiche produit -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-prod">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><button class="ibtn" type="button" aria-label="Ajouter aux favoris"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.5S2 10 2 6a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4-6 7.5-6 7.5Z"/></svg></button></div>
+        <div class="hero-pic"><svg data-ill="phone" viewBox="0 0 100 100"></svg></div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+        <div class="psheet">
+          <div class="vendor"><span class="ok"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m1.5 4.2 1.6 1.6 3.4-3.6"/></svg></span><b>Tech Mboa</b> · Mokolo, Yaoundé</div>
+          <div class="pname"><h4>Tecno Camon 30<br><span style="font-size:0.7rem;color:var(--muted);font-family:var(--text);font-weight:400">256 Go · noir</span></h4><span class="num">165 000<small> FCFA</small></span></div>
+          <div class="toggle" role="tablist" id="ptoggle"><button class="on" type="button" role="tab" aria-selected="true" data-m="a">Épargner</button><button type="button" role="tab" aria-selected="false" data-m="b">Financer</button></div>
+          <div class="mode" id="mode-a">
+            <div class="kv"><span>Sur 90 jours</span><span>≈ 1 835 FCFA/jour</span></div>
+            <div class="kv"><span>Coût total</span><span>165 000 FCFA · 0 frais</span></div>
+            <p>Prix figé dès la réservation. Le téléphone vous est remis quand vous atteignez 100 %.</p>
+          </div>
+          <div class="mode" id="mode-b" hidden>
+            <div class="kv"><span>Acompte 30 %</span><span>49 500 FCFA</span></div>
+            <div class="kv"><span>6 mensualités</span><span>20 457 FCFA</span></div>
+            <div class="kv"><span>Coût du crédit · TEG 21,5 %</span><span>7 240 FCFA</span></div>
+            <p>Téléphone remis tout de suite. Crédit accordé par [financeur agréé]. Chiffres d'exemple.</p>
+          </div>
+          <div class="facts"><span>Garantie 12 mois</span><span>4 en stock</span><span>Retrait en boutique</span></div>
+          <button class="pill" type="button">Réserver à ce prix</button>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>Fiche produit : la même offre, deux façons de payer, le coût total toujours visible.</figcaption>
+  </figure>
+
+  <!-- M4 Boutique -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-shop">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><span style="font-size:0.8rem;font-weight:600">Boutique</span><button class="ibtn" type="button" aria-label="Partager"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2.5M5 5l3-3 3 3M3.5 8v5h9V8"/></svg></button></div>
+        <div class="shopcard">
+          <div class="top"><div class="mono">ÉB</div><div><h4>Électro Bonapriso</h4><small><span class="ok"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m1.5 4.2 1.6 1.6 3.4-3.6"/></svg></span>Partenaire vérifié · RCCM contrôlé</small></div></div>
+          <div class="stats"><div><b>64</b><span>offres</span></div><div><b>2</b><span>points de remise</span></div><div><b>8–19 h</b><span>lun. au sam.</span></div></div>
+        </div>
+        <div class="seg"><span class="on">Tout</span><span>Froid</span><span>Cuisson</span><span>Écrans</span></div>
+        <div class="lrow"><div class="pic" style="background:var(--u-tech)"><svg data-ill="fridge" viewBox="0 0 100 100"></svg></div><div class="tx"><b>Réfrigérateur 150 L</b><span>185 000 FCFA</span><em>Épargner · Financer</em></div><span class="ibtn" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span></div>
+        <div class="lrow"><div class="pic" style="background:var(--u-tech)"><svg data-ill="tv" viewBox="0 0 100 100"></svg></div><div class="tx"><b>Téléviseur 43" Smart</b><span>210 000 FCFA</span><em>Épargner · Financer</em></div><span class="ibtn" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span></div>
+        <div class="lrow"><div class="pic" style="background:var(--u-tech)"><svg data-ill="gas" viewBox="0 0 100 100"></svg></div><div class="tx"><b>Cuisinière 4 feux</b><span>98 000 FCFA</span><em>Épargner</em></div><span class="ibtn" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span></div>
+      </div>
+    </div></div>
+    <figcaption>Boutique partenaire : identité vérifiée, points de remise et horaires avant d'acheter.</figcaption>
+  </figure>
+
+  <!-- M5 Comparer -->
+  <figure class="shot">
+    <div class="phone"><div class="screen s-cmp">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span>4G · 82 %</span></div>
+      <div class="body">
+        <div class="row"><button class="ibtn" type="button" aria-label="Retour" style="background:var(--mist)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><span style="font-size:0.8rem;font-weight:600">Tecno Camon 30</span><span style="width:38px"></span></div>
+        <div class="ask" style="font-size:1.4rem">Comment voulez-vous payer ?</div>
+        <div class="cmp">
+          <div class="opt a">
+            <div class="t"><b>Épargner d'abord</b><span class="chip on">Choisi</span></div>
+            <span class="big">165 000 <small>FCFA au total</small></span>
+            <div class="kv"><span>Frais</span><span>0 FCFA</span></div>
+            <div class="kv"><span>Remise</span><span>vers le 18 février</span></div>
+          </div>
+          <div class="opt b">
+            <div class="t"><b>Recevoir maintenant</b><span class="chip">Crédit</span></div>
+            <span class="big">172 240 <small>FCFA au total</small></span>
+            <div class="kv"><span>Coût du crédit</span><span>7 240 FCFA</span></div>
+            <div class="kv"><span>TEG</span><span>21,5 %</span></div>
+          </div>
+        </div>
+        <p class="note">Le crédit est accordé par un financeur agréé, pas par MoloPay. Montants de démonstration.</p>
+        <button class="pill" type="button">Continuer avec l'épargne</button>
+      </div>
+    </div></div>
+    <figcaption>Comparer : épargne ou crédit, le coût total de chaque option côte à côte.</figcaption>
+  </figure>
+</section></div>
+
+<section class="wrap part" aria-labelledby="col">
+  <header><span class="eyebrow">Couleurs</span><h2 id="col">Le noir porte la confiance, les couleurs portent les projets</h2>
+    <p>Les actions (boutons, navigation) restent toujours en noir, ou en blanc sur fond sombre. Les couleurs vives ne servent qu'aux univers : jamais pour un bouton, jamais pour une erreur. Ni jaune ni orange, pour ne pas évoquer MTN ou Orange Money.</p></header>
+  <div class="grid" id="swatches"></div>
+</section>
+
+<section class="wrap part" aria-labelledby="typ">
+  <header><span class="eyebrow">Typographie</span><h2 id="typ">Des chiffres grands, des mots simples</h2></header>
+  <div class="type">
+    <span class="t1 num">237 500 FCFA</span>
+    <span class="t2">Plus que 17 versements avant votre moto.</span>
+    <p class="t3">Le prix est figé le jour où vous réservez. Votre argent reste chez la banque partenaire jusqu'à la remise, et vous pouvez annuler à tout moment sans frais.</p>
+    <div class="spec"><span><b>Outfit Light 300</b>Montants, grands titres</span><span><b>Outfit Medium 500</b>Titres d'écran, noms de projets</span><span><b>Inter 400 à 600</b>Texte, libellés, reçus</span><span><b>Chiffres tabulaires</b>Montants alignés, espace fine avant FCFA</span></div>
+  </div>
+</section>
+
+<section class="wrap part" aria-labelledby="cmp">
+  <header><span class="eyebrow">Composants</span><h2 id="cmp">Une petite famille, toujours arrondie</h2></header>
+  <div class="comp">
+    <div class="tile"><h3>Boutons</h3><div class="demo"><button class="pill" type="button">Verser</button><button class="pill ghost" type="button">Plus tard</button></div><p>Pilule noire pleine pour l'action principale, une seule par écran. Hauteur 48 px minimum.</p></div>
+    <div class="tile"><h3>Boutons d'icône</h3><div class="demo"><button class="ibtn" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><button class="ibtn" type="button" aria-label="Appeler le support"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2.5h2l1 3-1.5 1a7 7 0 0 0 4 4l1-1.5 3 1v2a1.5 1.5 0 0 1-1.5 1.5A10.5 10.5 0 0 1 2.5 4 1.5 1.5 0 0 1 4 2.5Z"/></svg></button><button class="ibtn dark" type="button" aria-label="Ouvrir"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></button></div><p>Cercles de 38 à 44 px. Toujours un libellé pour les lecteurs d'écran.</p></div>
+    <div class="tile"><h3>Puces de choix</h3><div class="demo"><span class="chip on">Hebdomadaire</span><span class="chip">Quotidien</span><span class="chip">Mensuel</span></div><p>Noir quand c'est sélectionné, gris clair sinon.</p></div>
+    <div class="tile"><h3>Carte de projet</h3><div class="demo" style="display:block"><div class="gcard" style="position:relative;background:var(--u-logement)"><span class="tag">Logement</span><span class="item">Caution, Bonamoussadi</span><span class="amt num">120 000 <small>sur 300 000 FCFA</small></span><div class="thin"><i style="width:40%"></i></div></div></div><p>Fond plein dans la couleur de l'univers, barre fine noire.</p></div>
+    <div class="tile"><h3>Glisser pour confirmer</h3><div class="demo" style="display:block"><div class="slider" style="color:#9a9ca3;background:#1c1d21"><span>Glissez pour verser</span><span class="thumb" style="position:absolute"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></div></div><p>Pour chaque sortie d'argent, avant la saisie du PIN. Un appui long sur le rond fonctionne aussi, pour l'accessibilité.</p></div>
+    <div class="tile"><h3>Navigation flottante</h3><div class="demo"><nav class="navpill" aria-label="Exemple de navigation" style="margin:0"><span class="on"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 9 3l6 5v7H3V8Z"/></svg></span><span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="5" height="5" rx="1.5"/><rect x="10" y="3" width="5" height="5" rx="1.5"/><rect x="3" y="10" width="5" height="5" rx="1.5"/><rect x="10" y="10" width="5" height="5" rx="1.5"/></svg></span><span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="6.5" r="3"/><path d="M3.5 15c1-3 3-4 5.5-4s4.5 1 5.5 4"/></svg></span></nav></div><p>Accueil, Catalogue, Activité, Profil. L'onglet actif est un rond blanc.</p></div>
+  </div>
+</section>
+
+<section class="wrap part" aria-labelledby="logo">
+  <header><span class="eyebrow">Logo</span><h2 id="logo">L'anneau de cotisation</h2>
+    <p>Huit traits en cercle, comme les tours d'une tontine : ils se remplissent un à un. Le mot est en minuscules, en Outfit SemiBold. Le même anneau peut servir d'indicateur de chargement animé.</p></header>
+  <div class="logos">
+    <div class="logo" style="background:#ffffff;border:1px solid var(--pg-line)"><span class="lockup" style="color:#0f1012"><svg class="ring" data-fg="#0f1012" data-off="#d6d7d2" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay</span></div>
+    <div class="logo" style="background:#0f1012"><span class="lockup" style="color:#ffffff"><svg class="ring" data-fg="#ffffff" data-off="#3a3c41" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay</span></div>
+    <div class="logo" style="background:var(--u-essentiels)"><span class="lockup" style="color:#0f1012"><svg class="ring" data-fg="#0f1012" data-off="rgba(15,16,18,0.2)" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay</span></div>
+  </div>
+</section>
+
+<section class="wrap part" aria-labelledby="ton">
+  <header><span class="eyebrow">Ton</span><h2 id="ton">Sérieux, dynamique, chaleureux</h2><p>On vouvoie, on donne des chiffres exacts, et chaque erreur dit quoi faire.</p></header>
+  <div class="voice">
+    <div class="tile"><h3>Dire où est l'argent</h3><div class="say"><div><small>Oui</small>Vos fonds sont gardés par [banque partenaire] jusqu'à la remise.</div><div class="no"><small>Non</small>Votre argent est en sécurité, promis !</div></div></div>
+    <div class="tile"><h3>Parler du projet</h3><div class="say"><div><small>Oui</small>Plus que 237 500 FCFA. Votre moto le 14 mars.</div><div class="no"><small>Non</small>Objectif n° 4821 : 63 %.</div></div></div>
+    <div class="tile"><h3>Aider quand ça bloque</h3><div class="say"><div><small>Oui</small>Le paiement n'a pas abouti et rien n'a été débité. Réessayez ou passez par Orange Money.</div><div class="no"><small>Non</small>Erreur 502 : transaction échouée.</div></div></div>
+  </div>
+</section>
+
+<section class="wrap part" aria-labelledby="nom">
+  <div class="alert"><h3 id="nom">À régler avant de déposer le logo : le nom</h3><p>« MoloPay » est très proche de <strong>MoloMoloPay</strong>, application ivoirienne de paiement différé citée dans vos sources. Le Cameroun et la Côte d'Ivoire relèvent tous deux de l'OAPI. Faites vérifier la disponibilité à l'OAPI par un conseil en propriété industrielle. L'identité ci-dessus fonctionne avec un autre nom : seul le mot à côté de l'anneau changerait.</p></div>
+</section>
+
+<section class="wrap part next" aria-labelledby="ens">
+  <header><span class="eyebrow">Et ensuite</span><h2 id="ens">Vos retours, puis le design system</h2></header>
+  <p>Dites-moi ce qui vous plaît et ce qui ne vous plaît pas : les couleurs d'univers, le noir, la typographie, les écrans. Une fois validée, je construis le design system complet (jetons clair et sombre, tous les composants, règles) et je l'applique au code : <code>packages/ui</code> pour le web et le thème Flutter pour le mobile.</p>
+</section>
+</main>
+
+<script>
+(function () {
+  // Anneau de cotisation
+  function arc(cx, cy, r, a0, a1) {
+    return 'M' + (cx + r * Math.cos(a0)).toFixed(2) + ' ' + (cy + r * Math.sin(a0)).toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(a1)).toFixed(2) + ' ' + (cy + r * Math.sin(a1)).toFixed(2);
+  }
+  document.querySelectorAll('.ring').forEach(function (svg) {
+    var out = '';
+    for (var i = 0; i < 8; i++) {
+      var a0 = -Math.PI / 2 + i * Math.PI / 4 + 0.2, a1 = a0 + Math.PI / 4 - 0.4;
+      out += '<path d="' + arc(20, 20, 15, a0, a1) + '" fill="none" stroke="' + (i < 6 ? svg.dataset.fg : svg.dataset.off) + '" stroke-width="5.5" stroke-linecap="round"/>';
+    }
+    svg.innerHTML = out;
+  });
+
+  // Nuancier avec contraste mesuré contre le noir de marque
+  function rgb(h) { return [1, 3, 5].map(function (i) { return parseInt(h.substr(i, 2), 16) / 255; }); }
+  function lum(c) { c = c.map(function (x) { return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+  function ratio(a, b) { var x = lum(rgb(a)), y = lum(rgb(b)); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  var sw = [
+    ['Encre', '#0f1012', '#ffffff', 'Actions, texte, navigation'],
+    ['Papier', '#ffffff', '#0f1012', 'Surfaces, cartes'],
+    ['Brume', '#f2f2ee', '#0f1012', 'Champs, puces inactives'],
+    ['Essentiels', '#d9f26b', '#0f1012', 'Citron · riz, gaz, fournitures'],
+    ['Technologie', '#8fddf5', '#0f1012', 'Ciel · téléphones, ordinateurs'],
+    ['Logement', '#c3bdff', '#0f1012', 'Lilas · loyer, caution, terrain'],
+    ['Mobilité', '#ffa8c5', '#0f1012', 'Hibiscus · motos, machines'],
+    ['Erreur', '#c4262e', '#ffffff', 'Uniquement pour les erreurs']
+  ];
+  document.getElementById('swatches').innerHTML = sw.map(function (s) {
+    var r = ratio(s[1], s[2]);
+    return '<div class="sw"><div class="chipc" style="background:' + s[1] + ';color:' + s[2] + '"><span>' + s[0] + '</span><span>Aa</span></div>' +
+      '<div class="meta"><b>' + s[3] + '</b><code>' + s[1] + '</code><span class="ratio">Texte ' + (s[2] === '#ffffff' ? 'blanc' : 'noir') + ' ' + r.toFixed(1).replace('.', ',') + ':1 · ' + (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : 'insuffisant') + '</span></div></div>';
+  }).join('');
+
+  // Écran Verser interactif
+  var value = '5000', base = 412500, rest = 237500;
+  var amt = document.getElementById('amt'), hint = document.getElementById('hint');
+  var fmt = function (n) { return Number(n || 0).toLocaleString('fr-FR').replace(/ | /g, ' '); };
+  function paint() {
+    amt.innerHTML = fmt(value) + '<small>FCFA</small>';
+    var n = Number(value || 0);
+    hint.classList.remove('warn');
+    if (n > 0 && n < 500) { hint.textContent = 'Minimum 500 FCFA'; hint.classList.add('warn'); }
+    else if (n > rest) { hint.textContent = 'Au-delà du reste à verser (237 500 FCFA)'; hint.classList.add('warn'); }
+    else hint.textContent = 'Depuis MTN MoMo · 6•• •• •• 42';
+    document.querySelectorAll('#quick .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === String(n)); });
+  }
+  function valid() { var n = Number(value || 0); return n >= 500 && n <= rest; }
+  document.getElementById('pad').addEventListener('click', function (e) {
+    var k = e.target.closest('.key'); if (!k) return;
+    var t = k.textContent;
+    if (k.getAttribute('aria-label') === 'Effacer') value = value.slice(0, -1);
+    else if ((value + t).replace(/^0+/, '').length <= 7) value = (value + t).replace(/^0+/, '');
+    paint();
+  });
+  document.getElementById('quick').addEventListener('click', function (e) {
+    var c = e.target.closest('.chip'); if (!c) return; value = c.dataset.v; paint();
+  });
+  var slider = document.getElementById('slider'), thumb = document.getElementById('thumb'), done = document.getElementById('done');
+  var dragging = false, startX = 0, max = 0;
+  function confirmPay() {
+    if (!valid()) { paint(); thumb.classList.add('back'); thumb.style.left = '4px'; return; }
+    document.getElementById('doneAmt').textContent = fmt(value) + ' FCFA';
+    document.getElementById('doneTotal').textContent = fmt(base + Number(value)) + ' FCFA';
+    done.hidden = false;
+    document.getElementById('again').focus({ preventScroll: true });
+  }
+  thumb.addEventListener('pointerdown', function (e) {
+    dragging = true; startX = e.clientX; max = slider.clientWidth - thumb.offsetWidth - 8;
+    thumb.classList.remove('back'); thumb.setPointerCapture(e.pointerId);
+  });
+  thumb.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var x = Math.max(0, Math.min(max, e.clientX - startX));
+    thumb.style.left = (4 + x) + 'px';
+  });
+  thumb.addEventListener('pointerup', function (e) {
+    if (!dragging) return; dragging = false;
+    var x = e.clientX - startX;
+    if (x > max * 0.85) { thumb.style.left = (4 + max) + 'px'; setTimeout(confirmPay, 120); }
+    else { thumb.classList.add('back'); thumb.style.left = '4px'; }
+  });
+  thumb.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); confirmPay(); } });
+  document.getElementById('again').addEventListener('click', function () {
+    done.hidden = true; thumb.classList.add('back'); thumb.style.left = '4px'; thumb.focus({ preventScroll: true });
+  });
+  paint();
+  // ===== Marketplace =====
+  var I = {
+    phone: '<rect x="31" y="10" width="38" height="80" rx="9" fill="#fff" stroke="#0f1012" stroke-width="3"/><rect x="36" y="16" width="28" height="60" rx="4" fill="#0f1012"/><circle cx="42" cy="22" r="2.6" fill="#8fddf5"/><circle cx="49" cy="22" r="2.6" fill="#8fddf5"/><rect x="44" y="82" width="12" height="3" rx="1.5" fill="#0f1012"/>',
+    moto: '<circle cx="24" cy="66" r="14" fill="none" stroke="#0f1012" stroke-width="5"/><circle cx="76" cy="66" r="14" fill="none" stroke="#0f1012" stroke-width="5"/><path d="M24 66 40 46h22l14 20M40 46l-6-10h-8M56 46l8-12h8" fill="none" stroke="#0f1012" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="40" y="38" width="20" height="9" rx="4" fill="#0f1012"/>',
+    sack: '<path d="M30 30c-4 14-6 34 0 52 4 6 36 6 40 0 6-18 4-38 0-52Z" fill="#fff" stroke="#0f1012" stroke-width="3"/><path d="M34 30c2-6 6-10 16-10s14 4 16 10" fill="none" stroke="#0f1012" stroke-width="3"/><path d="M38 22h24" stroke="#0f1012" stroke-width="4" stroke-linecap="round"/><text x="50" y="62" text-anchor="middle" font-family="Outfit, sans-serif" font-weight="600" font-size="13" fill="#0f1012">RIZ</text>',
+    fridge: '<rect x="30" y="10" width="40" height="80" rx="7" fill="#fff" stroke="#0f1012" stroke-width="3"/><path d="M30 38h40" stroke="#0f1012" stroke-width="3"/><path d="M36 20v10M36 46v16" stroke="#0f1012" stroke-width="4" stroke-linecap="round"/>',
+    gas: '<rect x="30" y="28" width="40" height="58" rx="16" fill="#fff" stroke="#0f1012" stroke-width="3"/><rect x="42" y="14" width="16" height="14" rx="3" fill="#0f1012"/><path d="M34 56h32" stroke="#0f1012" stroke-width="3"/>',
+    laptop: '<rect x="22" y="22" width="56" height="40" rx="5" fill="#0f1012"/><rect x="27" y="27" width="46" height="30" rx="2" fill="#fff"/><path d="M14 66h72l-6 10H20Z" fill="#fff" stroke="#0f1012" stroke-width="3" stroke-linejoin="round"/>',
+    tv: '<rect x="14" y="20" width="72" height="46" rx="5" fill="#0f1012"/><rect x="19" y="25" width="62" height="36" rx="2" fill="#fff"/><path d="M38 80h24M50 66v14" stroke="#0f1012" stroke-width="4" stroke-linecap="round"/>',
+    key: '<circle cx="36" cy="50" r="16" fill="#fff" stroke="#0f1012" stroke-width="4"/><circle cx="36" cy="50" r="5" fill="#0f1012"/><path d="M52 50h32M74 50v12M82 50v8" stroke="#0f1012" stroke-width="5" stroke-linecap="round"/>',
+    machine: '<path d="M20 74h60M28 74V36a8 8 0 0 1 8-8h36a8 8 0 0 1 8 8v8H44v30" fill="#fff" stroke="#0f1012" stroke-width="4" stroke-linejoin="round"/><path d="M68 44v14M64 58h8" stroke="#0f1012" stroke-width="4" stroke-linecap="round"/>',
+    bag: '<rect x="22" y="34" width="56" height="48" rx="12" fill="#fff" stroke="#0f1012" stroke-width="4"/><path d="M38 34v-6a12 12 0 0 1 24 0v6" fill="none" stroke="#0f1012" stroke-width="4"/><rect x="38" y="52" width="24" height="12" rx="3" fill="#0f1012"/>'
+  };
+  document.querySelectorAll('svg[data-ill]').forEach(function (s) { s.innerHTML = I[s.dataset.ill] || ''; s.setAttribute('aria-hidden', 'true'); });
+  document.getElementById('uchips').addEventListener('click', function (e) {
+    var c = e.target.closest('.uchip'); if (!c) return;
+    document.querySelectorAll('#uchips .uchip').forEach(function (x) { x.classList.toggle('on', x === c); });
+    var u = c.dataset.u, shown = 0;
+    document.querySelectorAll('#tiles .ptile').forEach(function (t) {
+      var show = (u === 'all' ? shown < 4 : t.dataset.u === u);
+      t.hidden = !show; if (show) shown++;
+    });
+  });
+  document.getElementById('ptoggle').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#ptoggle button').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); });
+    document.getElementById('mode-a').hidden = b.dataset.m !== 'a';
+    document.getElementById('mode-b').hidden = b.dataset.m !== 'b';
+  });
+})();
+</script>
