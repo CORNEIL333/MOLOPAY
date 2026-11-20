@@ -33,7 +33,7 @@ Les fichiers de ce dossier font foi ; en cas d'écart avec une version publiée,
 
 ## Liens avec le reste du dossier
 
-- Exigences d'expérience : `CDC_02` NF-UX-001…005 (WCAG 2.2 AA, FR/EN, hors ligne), `CDC_01` § 15 et `CDC_02` § 11 (site public).
+- Exigences d'expérience : `CDC_02` NF-UX-001…007 (WCAG 2.2 AA, FR/EN, hors ligne, animations), `CDC_01` § 15 et `CDC_02` § 11 (site public).
 - Décision d'architecture du site public : `04_annexes/adr/ADR-0006-site-public-marketplace.md`.
 - Lots concernés : `03_agents_ia/PLAN_DE_LOTS.md` (19, 20, 21, 26, H8).
 
