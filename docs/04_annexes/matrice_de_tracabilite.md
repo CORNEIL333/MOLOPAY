@@ -38,6 +38,8 @@
 | REG-DPD-004 | Loi 2024/017 | ADR-0004 | Inspection | — | P |
 | REG-LBC-004 | Règl. LBC/FT CEMAC | 07, 17 | `notifications.no_tipping_off` | — | A |
 | REG-CON-004 | Loi de finances 2025 ; décision | 17 | Inspection | — | A |
+| NF-UX-006 | WCAG 2.2 SC 2.3.3 ; charte d'animation | 19, 20, 21, 26 | `*.motion.reduced_*` (Flutter `disableAnimations`, web `prefers-reduced-motion`) | — | P |
+| NF-UX-007 | WCAG 2.2 SC 2.2.2 et 2.3.1 ; F-SAV-002 | 19, 26 | `*.motion.pause_control`, `mobile.balance.no_anim_before_confirm` | — | P |
 | F-PUB-001 | Décision du 20 nov. 2026 (acquisition) | 26 | `site.catalog.public_browse.*` | — | P |
 | F-PUB-002 | F-PRT-001 ; maker-checker | 09, 26 | `site.catalog.unpublished_hidden` | — | P |
 | F-PUB-003 | NF-FUN-002 ; REG-CON | 26 | `site.simulator.parity_10k` | — | P |

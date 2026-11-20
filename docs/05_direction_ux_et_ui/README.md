@@ -12,9 +12,11 @@
 | `03_inspirations.md` | Références visuelles fournies par le fondateur et ce qui en a été retenu |
 | `04_catalogue_des_ecrans.md` | Liste de tous les écrans maquettés, par application, avec les exigences qu'ils couvrent |
 | `05_historique_des_decisions.md` | Chronologie des choix de direction et de leurs raisons |
+| `06_animations.md` | **Charte d'animation** : principes, jetons de durées, courbes et ressorts, catalogue des animations `M-xx`, haptique, réduction du mouvement, performance, sources |
 | `maquettes/identite-app-mobile.html` | Identité + 10 écrans de l'app mobile (dont 5 de marketplace) |
 | `maquettes/ecrans-web.html` | Portail partenaire, client web (PWA), back-office, CRM (8 écrans) |
 | `maquettes/site-public.html` | Site public marketplace d'acquisition (lot 26, ADR-0006) |
+| `maquettes/animations.html` | Démo rejouable de chaque animation `M-xx`, avec le mode « Réduire les animations » |
 
 Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plusieurs sont interactives (versement, comptoir de remise, filtres, simulateur). Noms, prix, TEG, boutiques et délais y sont **fictifs**.
 
@@ -25,6 +27,7 @@ Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plu
 | Identité et app mobile | https://claude.ai/artifact/4mPusaL3SqFjWiUkiej7or |
 | Écrans web | https://claude.ai/artifact/31Cd8bm8GJ4vSCURaoj27a |
 | Site public | https://claude.ai/artifact/JvviqmNBqMWe4FJWHq5TAc |
+| Animations | https://claude.ai/artifact/6eFyZNuZKuqVQK8UBY6Gxj |
 
 Les fichiers de ce dossier font foi ; en cas d'écart avec une version publiée, mettre à jour la version publiée.
 

@@ -13,6 +13,7 @@
 | 20 nov. 2026 | Marketplace mobile | 5 écrans ajoutés (catalogue, filtres, fiche produit, boutique, comparaison) : **validés** |
 | 20 nov. 2026 | Écrans web | Portail partenaire, PWA, back-office, CRM : **validés** |
 | 20 nov. 2026 | Site public | [Décision] Ajout d'un site public marketplace pour les visiteurs non inscrits ; intégré au plan (lot 26, ADR-0006, F-PUB, NF-PUB) |
+| 20 nov. 2026 | Animations | [Décision] Charte d'animation (`06_animations.md`) : jetons Material 3, « l'argent avance sûrement, il ne rebondit pas », aucun faux succès, WCAG 2.3.3 (AAA) visé, pas de Lottie ni de Rive au lancement ; bouton pause ajouté au site public (WCAG 2.2.2) |
 | 20 nov. 2026 | Corrections | Le frigo et l'électroménager relèvent de « Technologie et équipement », pas de « Logement » ; MoloMolo Pay est un concurrent **ivoirien** |
 
 ## Points ouverts

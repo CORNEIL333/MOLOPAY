@@ -35,6 +35,8 @@
 | NF-UX-002 | Français et anglais au lancement ; textes externalisés ; montants affichés « 25 000 FCFA ». |
 | NF-UX-003 | Une information clé (solde de l'objectif, prochain versement) DOIT être lisible en moins de 2 secondes sur l'écran d'accueil. |
 | NF-UX-004 | Mode hors ligne en lecture (dernier état connu affiché avec sa date) ; aucune opération financière hors ligne. |
+| NF-UX-006 | Les animations DOIVENT suivre la charte `05_direction_ux_et_ui/06_animations.md` (jetons, identifiants `M-xx`) ; toute animation déclenchée par une interaction DOIT pouvoir être réduite ou désactivée (préférence système et réglage de l'app), sauf si elle est essentielle (WCAG 2.3.3). |
+| NF-UX-007 | Aucun mouvement ni mise à jour automatique de plus de 5 s affiché à côté d'autre contenu sans moyen de le mettre en pause (WCAG 2.2.2) ; rien ne clignote plus de 3 fois par seconde (WCAG 2.3.1) ; aucun montant ni statut ne s'anime avant la confirmation du serveur. |
 | NF-UX-005 | Toute action irréversible (annulation, règlement C) DOIT demander une confirmation explicite avec résumé des conséquences. |
 
 ## 5. Fiabilité (NF-REL)
