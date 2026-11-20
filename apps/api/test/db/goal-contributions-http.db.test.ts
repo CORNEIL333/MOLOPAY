@@ -20,7 +20,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
 
 /** F-PAY-006 / D39 : historique des versements d'un objectif ; F-SUP-001 / D70 : réclamation du client sur son objectif. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab700-0000-7000-8000-0000000000c1';
 const OTHER = '019ab700-0000-7000-8000-0000000000c2';

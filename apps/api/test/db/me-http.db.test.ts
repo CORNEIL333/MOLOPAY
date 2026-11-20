@@ -18,7 +18,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
 
 /** C2 / contrat 1.0 : profil du client connecté (`GET /v1/me`) en HTTP réel, sans niveau KYC (D77) ni numéro en clair. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab800-0000-7000-8000-0000000000c1';
 const OTHER_CUSTOMER = '019ab800-0000-7000-8000-0000000000c2';

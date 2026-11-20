@@ -17,7 +17,7 @@ import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCo
 
 /** SEC-AUTHZ-003 / D62 : administration du back-office en HTTP réel (comptes, rôles, enrôlement, paramètres). */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 
 let db: TestDatabase;
 let admin: Client;

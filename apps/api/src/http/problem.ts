@@ -40,6 +40,9 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'IDENTITY_NONCE_REUSED',
   'IDENTITY_OTP_REPLAYED',
   'IDENTITY_ACCOUNT_EXISTS',
+  // CRM : une tâche déjà close ne se rejoue pas, et le registre est en ajout seul.
+  'CRM_TASK_CLOSED',
+  'CRM_APPEND_ONLY',
 ]);
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([

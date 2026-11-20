@@ -23,7 +23,7 @@ import { createStaffWithKey, loginBody, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TE
 
 /** D62 / SEC-AUTH-004/005 : connexion WebAuthn du personnel et première route du back-office, en HTTP réel. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER = '019aa500-0000-7000-8000-0000000000c1';
 const GOAL = '019aa500-0000-7000-8000-0000000000a1';
 const SCHOOL_GOAL = '019aa500-0000-7000-8000-0000000000a2';

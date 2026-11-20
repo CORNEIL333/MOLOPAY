@@ -14,7 +14,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  * toutes les migrations.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const EXCERPT = readFileSync(resolve(process.cwd(), 'apps/api/src/modules/kyc/fixtures/un-consolidated-excerpt.xml'), 'utf8');
 const SOURCE = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml';
 

@@ -17,7 +17,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  * seulement. PostgreSQL réel, toutes les migrations, extrait réel de la liste.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const EXCERPT = readFileSync(resolve(process.cwd(), 'apps/api/src/modules/kyc/fixtures/un-consolidated-excerpt.xml'), 'utf8');
 const CUSTOMER = '019ab500-0000-7000-8000-0000000000c1';
 const COMPLIANCE: AdminPrincipal = { actorId: 'comp-1', roles: ['COMPLIANCE'] };

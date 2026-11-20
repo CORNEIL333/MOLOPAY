@@ -44,7 +44,7 @@ import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCo
  * réclamations et alertes ouvertes ou fermées), PostgreSQL réel.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const CUSTOMER = '019ab300-0000-7000-8000-0000000000c1';
 const GOAL_A = '019ab300-0000-7000-8000-0000000000a1';
 const GOAL_C = '019ab300-0000-7000-8000-0000000000a2';

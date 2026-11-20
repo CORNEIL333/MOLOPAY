@@ -19,7 +19,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
 
 /** REG-LBC-001 / D68 : déclaration du nom légal par le client en HTTP réel ; aucune alerte du client (LBC). */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const EXCERPT = readFileSync(resolve(process.cwd(), 'apps/api/src/modules/kyc/fixtures/un-consolidated-excerpt.xml'), 'utf8');
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab600-0000-7000-8000-0000000000c1';

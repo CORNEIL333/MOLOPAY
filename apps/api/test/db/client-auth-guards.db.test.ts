@@ -15,7 +15,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  * défis de connexion en ajout seul. PostgreSQL réel, toutes les migrations.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const PHONE = '+237690000001';
 
 let container: TestDatabase;

@@ -11,7 +11,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
 const SCHEMAS = [
-  'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api',
+  'crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api',
   'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger',
 ];
 
@@ -20,7 +20,7 @@ const SCHEMAS = [
 // compteurs, file d'envoi, idempotence), protégé autrement.
 const APPEND_ONLY_SCHEMAS = [
   'ledger', 'audit', 'admin', 'catalog', 'agreements', 'payments',
-  'reconciliation', 'disputes', 'settlement', 'risk', 'kyc',
+  'reconciliation', 'disputes', 'settlement', 'risk', 'kyc', 'crm',
 ];
 
 let container: TestDatabase;

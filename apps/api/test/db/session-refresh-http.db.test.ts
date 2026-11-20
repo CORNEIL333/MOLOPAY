@@ -19,7 +19,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
 
 /** C2 / SEC-AUTH-001 / SEC-AUTH-005 : renouvellement de la session client, lié à l'appareil (défi signé) et au jeton de rafraîchissement à usage unique, en HTTP réel. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab810-0000-7000-8000-0000000000c1';
 

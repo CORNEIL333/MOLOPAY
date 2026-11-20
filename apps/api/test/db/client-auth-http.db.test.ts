@@ -22,7 +22,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
  * d'envoi est vérifiée fermée (503) sans prestataire configuré.
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
 const PHONE = '+237690000123';
 const PIN = '284917';

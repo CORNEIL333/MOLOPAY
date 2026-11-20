@@ -18,7 +18,7 @@ import { startTestDatabase, type TestDatabase } from './harness';
 
 /** C5 / F-NOT-001 : fil des notifications du client dans l'application (`GET /v1/me/notifications`), HTTP réel, sans prestataire. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ORIGIN = 'https://app.molopay.test';
 const CUSTOMER = '019ab830-0000-7000-8000-0000000000c1';
 const OTHER_CUSTOMER = '019ab830-0000-7000-8000-0000000000c2';

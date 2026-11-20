@@ -27,7 +27,7 @@ import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from '.
  */
 const ORIGIN = 'https://app.example.test';
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const ACCOUNT = '019aa400-0000-7000-8000-0000000000c1';
 const GOAL = '019aa400-0000-7000-8000-0000000000a1';
 const OFFER = '019aa400-0000-7000-8000-0000000000f1';
@@ -92,6 +92,9 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/partners/${GOAL}/screenings`]: {},
   [`/v1/backoffice/screenings/${GOAL}/review`]: { decision: 'FALSE_POSITIVE', reason: 'homonyme vérifié' },
   [`/v1/backoffice/customers/${GOAL}/block`]: { reason: 'Téléphone volé' },
+  [`/v1/backoffice/crm/customers/${GOAL}/interactions`]: { channel: 'PHONE', direction: 'INBOUND', summary: 'Appel client', occurredAt: '2026-01-15T10:00:00.000Z' },
+  [`/v1/backoffice/crm/customers/${GOAL}/tasks`]: { title: 'Rappeler le client', assignee: 'sup.deux' },
+  [`/v1/backoffice/crm/tasks/${GOAL}/transitions`]: { kind: 'COMPLETED', note: 'Client rappelé' },
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */

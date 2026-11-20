@@ -22,7 +22,7 @@ import { exportDocument } from './real-flows-scenario';
  * trou, chaîne vérifiée par le vérificateur indépendant (binaire Rust).
  */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
-const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const SCHEMAS = ['crm', 'kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
 const MANIFEST = resolve(process.cwd(), 'tools/verifier/Cargo.toml');
 const BINARY = resolve(process.cwd(), 'tools/verifier/target/release/verifier');
 const CUSTOMER = '019ab900-0000-7000-8000-0000000000c1';
