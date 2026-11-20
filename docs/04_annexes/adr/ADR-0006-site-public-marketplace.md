@@ -6,7 +6,7 @@
 
 ## Contexte
 
-Le fondateur a décidé d'ajouter un **site public** pour attirer les visiteurs non inscrits : catalogue consultable sans compte, simulateur, pages par univers, ville et offre, puis inscription. Le client web existant (PWA, `apps/web-client`) sert les clients **connectés** ; il n'est pas conçu pour l'indexation, le partage social ni des temps de chargement minimaux pour un visiteur inconnu. Exigences : `CDC_01` § 15 (F-PUB-*) et `CDC_02` § 11 (NF-PUB-*). Maquette : `04_annexes/maquettes/site-public.html`.
+Le fondateur a décidé d'ajouter un **site public** pour attirer les visiteurs non inscrits : catalogue consultable sans compte, simulateur, pages par univers, ville et offre, puis inscription. Le client web existant (PWA, `apps/web-client`) sert les clients **connectés** ; il n'est pas conçu pour l'indexation, le partage social ni des temps de chargement minimaux pour un visiteur inconnu. Exigences : `CDC_01` § 15 (F-PUB-*) et `CDC_02` § 11 (NF-PUB-*). Maquette : `05_direction_ux_et_ui/maquettes/site-public.html`.
 
 ## Décision proposée
 

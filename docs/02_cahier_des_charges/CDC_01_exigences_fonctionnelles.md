@@ -134,7 +134,7 @@
 
 ## 15. Site public et marketplace d'acquisition (F-PUB)
 
-> Ajout du 20 novembre 2026 ([Décision] du fondateur). Le site public est la porte d'entrée des visiteurs **non inscrits** : il montre le catalogue, simule et conduit à l'inscription. Il ne réalise **aucune** opération financière. Maquette de référence : `04_annexes/maquettes/site-public.html`. Architecture : ADR-0006.
+> Ajout du 20 novembre 2026 ([Décision] du fondateur). Le site public est la porte d'entrée des visiteurs **non inscrits** : il montre le catalogue, simule et conduit à l'inscription. Il ne réalise **aucune** opération financière. Maquette de référence : `05_direction_ux_et_ui/maquettes/site-public.html`. Architecture : ADR-0006.
 
 | ID | Exigence | Critère d'acceptation | Vérif. | Criticité |
 |---|---|---|---|---|

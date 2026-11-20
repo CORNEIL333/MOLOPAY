@@ -1,14 +1,14 @@
-# Maquettes et identité UI/UX
+# Identité visuelle validée
 
 > Version 1.0 · 20 novembre 2026 · Identité validée par le fondateur le 20 novembre 2026. Référence visuelle pour les lots 19 (app mobile), 20 (portail partenaire), 21 (back-office), 26 (site public) et pour `packages/ui`.
 
-Ces fichiers sont des **maquettes HTML autonomes** : ouvrez-les dans un navigateur. Les noms de clients, boutiques, prix, TEG et délais sont **fictifs** ; « MoloPay » est un nom commercial provisoire (voir l'alerte de marque dans `identite-app-mobile.html`).
+Les maquettes du dossier `maquettes/` sont des **fichiers HTML autonomes** : ouvrez-les dans un navigateur. Les noms de clients, boutiques, prix, TEG et délais sont **fictifs** ; « MoloPay » est un nom commercial provisoire (voir § Nom ci-dessous).
 
 | Fichier | Contenu | Lots |
 |---|---|---|
-| `identite-app-mobile.html` | Identité (couleurs, typographie, composants, logo, ton) et 10 écrans de l'app mobile, dont la marketplace | 19, `packages/ui` |
-| `ecrans-web.html` | Portail partenaire, client web (PWA), back-office et CRM | 20, 21, PWA |
-| `site-public.html` | Site public marketplace d'acquisition (simulateur, catalogue, fiche produit, inscription) | 26 |
+| `maquettes/identite-app-mobile.html` | Identité (couleurs, typographie, composants, logo, ton) et 10 écrans de l'app mobile, dont la marketplace | 19, `packages/ui` |
+| `maquettes/ecrans-web.html` | Portail partenaire, client web (PWA), back-office et CRM | 20, 21, PWA |
+| `maquettes/site-public.html` | Site public marketplace d'acquisition (simulateur, catalogue, fiche produit, inscription) | 26 |
 
 ## Règles d'identité à respecter
 
@@ -29,3 +29,7 @@ Ces fichiers sont des **maquettes HTML autonomes** : ouvrez-les dans un navigate
 - Écrans sombres pour les moments d'argent (verser, confirmer), « glisser pour confirmer » avant le PIN.
 - Logo : l'anneau de cotisation (8 traits qui se remplissent) et le mot en minuscules.
 - Ton : vouvoiement, chiffres exacts, chaque erreur dit ce qui s'est passé et quoi faire.
+
+## Nom
+
+« MoloPay » est très proche de **MoloMolo Pay**, application **ivoirienne** de paiement différé citée dans `01_projet/03_analyse_concurrentielle.md`. Le Cameroun et la Côte d'Ivoire relèvent tous deux de l'**OAPI** : un dépôt risque l'opposition et les clients pourraient confondre les deux services. Faire vérifier la disponibilité par un conseil en propriété industrielle avant de finaliser le logo (lot H8). Pistes de remplacement, **non vérifiées** : Kotiz, Pas à Pas, Objekti. L'identité fonctionne avec un autre nom : seul le mot à côté de l'anneau change.
