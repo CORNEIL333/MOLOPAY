@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProblemSummary } from '@achat/contracts/client';
 import { Badge, Button, EmptyState, ErrorState, TextField, formatXaf } from '@achat/ui';
 import { useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import { CrmInteractionForm } from './crm-interaction-form';
@@ -23,7 +24,7 @@ export function CrmCustomer360({ ports, initialAccountId = '' }: { readonly port
   const [reason, setReason] = useState('');
   const [file, setFile] = useState<CrmFile | null>(null);
   const [errors, setErrors] = useState<{ readonly account?: string; readonly reason?: string }>({});
-  const [problem, setProblem] = useState<{ readonly title: string; readonly detail?: string; readonly status: number } | null>(null);
+  const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
   const loading = useRef(false);
 

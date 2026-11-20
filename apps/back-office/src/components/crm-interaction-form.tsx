@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextArea, TextField } from '@achat/ui';
 import { useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import type { CrmInteractionInput, CrmResult } from './crm-ports';
@@ -39,7 +40,7 @@ export function CrmInteractionForm({ submit }: { readonly submit: (input: CrmInt
   const [occurredAt, setOccurredAt] = useState(localNow);
   const [summaryError, setSummaryError] = useState<string | undefined>(undefined);
   const [timeError, setTimeError] = useState<string | null>(null);
-  const [problem, setProblem] = useState<{ readonly title: string; readonly detail?: string; readonly status: number } | null>(null);
+  const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, setPending] = useState(false);
   const sending = useRef(false);

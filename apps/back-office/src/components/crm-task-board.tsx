@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProblemSummary } from '@achat/contracts/client';
 import { Badge, Button, EmptyState, ErrorState, TextArea, TextField } from '@achat/ui';
 import { useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import type { CrmResult, CrmTaskInput, CrmTaskView, CrmTransition } from './crm-ports';
@@ -31,7 +32,7 @@ function CloseTask({ taskId, transition, onDone }: { readonly taskId: string; re
   const ids = { note: useId() };
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
-  const [problem, setProblem] = useState<{ readonly title: string; readonly detail?: string; readonly status: number } | null>(null);
+  const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
   const sending = useRef(false);
 
@@ -89,7 +90,7 @@ export function CrmTaskBoard({ tasks, create, transition, onChanged }: {
   const [dueAt, setDueAt] = useState('');
   const [details, setDetails] = useState('');
   const [error, setError] = useState<{ readonly title?: string; readonly assignee?: string }>({});
-  const [problem, setProblem] = useState<{ readonly title: string; readonly detail?: string; readonly status: number } | null>(null);
+  const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
   const sending = useRef(false);
 
