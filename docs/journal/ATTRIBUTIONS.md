@@ -48,3 +48,4 @@
 | Qoder | En-tête `X-Correlation-Id` (réponse, requête facultative) | Q2 | Accepté : ajouté au contrat à l'intégration de la PR #6 (revue croisée publiée) |
 | Qoder | `Accept-Language` / `Content-Language` et cinq codes génériques de couche HTTP | Q3 | Accepté : ajouté au contrat à l'intégration de la PR #8 (revue croisée publiée : codes SMS à garder en 503 lors de la fusion) |
 | Claude (pour Gemini) | Écran Notifications du mobile et du web : `GET /v1/me/notifications` (contrat 0.37.0) ; écran de blocage au back-office déjà livré (`/clients/blocage`). | G3 / G4 | À brancher (Gemini) |
+| Qoder | `GET /health/ready` (sonde de disponibilité, 503 sans détail) | Q4 | Accepté : ajouté au contrat à l'intégration de la PR #9 (revue croisée publiée le 20 novembre : restauration sans droits, connexion de l'API en superutilisateur à corriger) |
