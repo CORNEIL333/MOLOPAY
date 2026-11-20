@@ -14,7 +14,9 @@
 | `05_historique_des_decisions.md` | Chronologie des choix de direction et de leurs raisons |
 | `06_animations.md` | **Charte d'animation** : principes, jetons de durées, courbes et ressorts, catalogue des animations `M-xx`, haptique, réduction du mouvement, performance, sources |
 | `07_psychologie_de_marque_et_ux.md` | **Recherche approfondie** : sciences comportementales de l'épargne, confiance au Cameroun, psychologie des couleurs et des formes, adoption par les partenaires, dark patterns et droit (loi 2011/012, CEMAC), fintechs de référence ; recommandations et liste de ce que MoloPay s'interdit |
-| `recherche/notes/` | Les six notes de recherche sourcées à l'origine du rapport |
+| `08_ux_inclusive_et_publics_cibles.md` | **Recherche approfondie n° 2** : usagers peu lettrés et téléphones d'entrée de gamme, USSD, inscription/KYC/activation (règlement CEMAC 02/24), diaspora, bailleurs et écoles ; recommandations priorisées et questions ouvertes |
+| `recherche/notes_01_psychologie/` | Les six notes sourcées du rapport 07 |
+| `recherche/notes_02_ux_inclusive/` | Les cinq notes sourcées du rapport 08 |
 | `maquettes/identite-app-mobile.html` | Identité + 10 écrans de l'app mobile (dont 5 de marketplace) |
 | `maquettes/ecrans-web.html` | Portail partenaire, client web (PWA), back-office, CRM (8 écrans) |
 | `maquettes/site-public.html` | Site public marketplace d'acquisition (lot 26, ADR-0006) |
