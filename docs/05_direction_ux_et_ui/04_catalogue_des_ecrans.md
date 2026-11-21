@@ -75,6 +75,17 @@ Prototype navigable de bout en bout, aligné sur la machine à états de `CDC_05
 | Retard (embranchement) | `IN_ARREARS` | Options concrètes, rappels limités, jamais de contact des proches ni de blocage du téléphone | F-FIN-005 |
 | Soldé | `REPAID → CLOSED` | Attestation, pas de célébration sur une dette, objectif d'épargne proposé | F-FIN-004 |
 
-## Encore à maquetter
+## Écrans complémentaires — `maquettes/ecrans-complementaires.html`
 
-Acceptation d'une contribution diaspora côté proche, validation des partenaires et vérification des baux en back-office, rapports régulateur, abonnements partenaires.
+| Application | Écran | Contenu | Exigences |
+|---|---|---|---|
+| App client | Contribution reçue (proche) | Qui contribue, combien, message ; l'argent reste dédié au projet ; refus = remboursement de l'expéditeur | F-DIA-001 |
+| App client | Projet partagé | Anneau mis à jour après accord, contributeurs sans classement, remerciement vocal | F-DIA-001 |
+| Back-office | Validation d'un partenaire | Pièces, contrôles (sanctions, PPE, doublons), visite de terrain, décision à double contrôle avec motif | F-PRT-001, SEC-AUTHZ |
+| Back-office | Vérification d'un bailleur | Exigences selon le montant, signaux expliqués, cliente prévenue, notaire obligatoire pour un terrain | F-PLN-001, F-PLN-002 |
+| Back-office | Rapports et exports | Indicateurs, exports signés avec racine de Merkle, cycle généré → approuvé → transmis → accusé | F-REP-001, F-REP-002 |
+| Portail partenaire | Abonnement | Trois formules par usage, commission en FCFA par vente, résiliation aussi visible que la souscription | F-PRT-005 |
+
+## Couverture
+
+Tous les parcours identifiés dans `01_inventaire_et_analyse.md` § 2 ont désormais une maquette, à l'exception des menus USSD avancés (raccourcis) et des écrans du canal de recouvrement côté financeur, qui relèvent du financeur. Les montants, seuils, prix et noms restent des exemples à fixer.

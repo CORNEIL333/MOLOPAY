@@ -22,6 +22,7 @@
 | `maquettes/site-public.html` | Site public marketplace d'acquisition (lot 26, ADR-0006) |
 | `maquettes/parcours-inclusifs.html` | Parcours issus de la recherche : montants en 4 façons avec voix, simulateur USSD, inscription et KYC, diaspora, bailleurs et écoles |
 | `maquettes/parcours-credit.html` | Prototype navigable du parcours crédit (modèle B), du choix au dernier remboursement, avec refus et retard |
+| `maquettes/ecrans-complementaires.html` | Acceptation d'une contribution par le proche, validation partenaire, vérification bailleur, rapports régulateur, abonnements partenaires |
 | `maquettes/animations.html` | Démo rejouable de chaque animation `M-xx`, avec le mode « Réduire les animations » |
 
 Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plusieurs sont interactives (versement, comptoir de remise, filtres, simulateur). Noms, prix, TEG, boutiques et délais y sont **fictifs**.
@@ -36,6 +37,7 @@ Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plu
 | Animations | https://claude.ai/artifact/6eFyZNuZKuqVQK8UBY6Gxj |
 | Parcours inclusifs | https://claude.ai/artifact/Pp4XakjyfxyuPaWEm4yFfg |
 | Parcours crédit | https://claude.ai/artifact/NF38SQG884Mjir97pHkbew |
+| Écrans complémentaires | https://claude.ai/artifact/Bfutc9w2HfsVg7Xu7SJtnM |
 
 Les fichiers de ce dossier font foi ; en cas d'écart avec une version publiée, mettre à jour la version publiée.
 
