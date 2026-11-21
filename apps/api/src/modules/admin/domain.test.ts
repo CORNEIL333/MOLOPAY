@@ -141,7 +141,7 @@ function settlementRequest(
   );
 }
 
-describe('SEC-AUTHZ-004 RBAC · matrice rôle × action exhaustive (autorisé, ou refusé avec ADMIN_FORBIDDEN)', () => {
+describe('F-BO-001 / SEC-AUTHZ-004 RBAC · matrice rôle × action exhaustive (autorisé, ou refusé avec ADMIN_FORBIDDEN)', () => {
   for (const role of INTERNAL_ROLES) {
     for (const action of ADMIN_ACTIONS) {
       const expected = EXPECTED_GRANTS[role].includes(action);

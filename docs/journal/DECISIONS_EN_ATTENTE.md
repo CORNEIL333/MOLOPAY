@@ -685,3 +685,7 @@
 - **Reste hors de mon périmètre :** planification nocturne et alerte de l'ordonnanceur sur code ≠ 0 (Qoder, Q7) ; export signé de production (têtes de Merkle, clé HSM, témoins : lot 23).
 - **⚖ D87 :** une vérification **impossible** (export absent, binaire en panne) doit-elle aussi geler ? Appliqué : non, alerte critique seulement (le plus réversible ; un gel à chaque panne de l'outil bloquerait les remises).
 
+### C10 · Administrateur technique : deux personnes au plus (F-BO-001, 21 novembre)
+- **Constat :** F-BO-001 limite le rôle « Administrateur technique » à deux personnes ; rien ne l'imposait (deux administrateurs pouvaient en approuver un troisième).
+- **Appliqué (migration 0073) :** la base refuse toute attribution qui donnerait `TECH_ADMIN` à une troisième personne active (`ADMIN_TECH_ADMIN_LIMIT`, 422), même approuvée ; rôles courants = dernière attribution ; compte désactivé non compté ; attributions simultanées sérialisées. 3 tests (dont la concurrence) ; 7 mutants tués. La matrice rôle × action cite désormais F-BO-001.
+
