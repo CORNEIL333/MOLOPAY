@@ -52,6 +52,7 @@ const CASES: Readonly<Record<string, object | undefined>> = {
   '/v1/me/security/revoke-other-sessions': undefined,
   '/v1/me/data-rights': { kind: 'ACCESS' },
   '/v1/me/legal-name': { legalName: 'Aïcha Ngono Mballa' },
+  '/v1/me/terms-acceptances': { version: '2026-10-26-v1' },
   [`/v1/goals/${GOAL}/claims`]: { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' },
   [`/v1/goals/${GOAL}/activation`]: { pin: PIN, signature: SIGNATURE },
   [`/v1/goals/${GOAL}/cancellation`]: { pin: PIN, signature: SIGNATURE },

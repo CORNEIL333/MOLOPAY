@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **88 routes.**
+- **89 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -76,6 +76,7 @@
 | `GET` | `/v1/me/security` | client | private, no-store | non | non | SECURITY_READ | — | Consulter ses appareils et sessions renouvelables |
 | `POST` | `/v1/me/security/block` | client | private, no-store | oui | oui | — | — | Bloquer son compte depuis l'application |
 | `POST` | `/v1/me/security/revoke-other-sessions` | client | private, no-store | oui | oui | REVOKE_OTHERS | — | Fermer les autres sessions du compte |
+| `POST` | `/v1/me/terms-acceptances` | client | private, no-store | oui | oui | — | — | Accepter les conditions en vigueur (F-ACC-004) |
 | `GET` | `/v1/offers` | public | (défaut) | non | non | — | — | Lister les offres publiées |
 | `GET` | `/v1/offers/{offerId}` | public | (défaut) | non | non | — | — | Détail d'une offre |
 | `POST` | `/v1/offers/{offerId}/quotes` | client | private, no-store | oui | oui | — | — | Calculer un échéancier côté API |

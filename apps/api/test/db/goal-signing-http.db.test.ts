@@ -40,6 +40,8 @@ const MIGRATIONS = [
   'db/migrations/0035_quota_policy_v1.sql',
   'db/migrations/0054_identity_quota_beneficiary.sql',
   'db/migrations/0055_identity_quota_goals.sql',
+  'db/migrations/0066_identity_client_auth.sql',
+  'db/migrations/0074_identity_terms_acceptance_check.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
@@ -295,6 +297,27 @@ describe('SEC-API-003 / D61 quota commun des actions signées', () => {
     expect(limited.status).toBe(429);
     expect((limited.body as ProblemBody).code).toBe('REQUEST_RATE_LIMITED');
     expect(await eventCount(goalId)).toBe(0);
+  });
+});
+
+describe('F-ACC-004 activation refusée sans acceptation des conditions en vigueur ; annulation toujours possible', () => {
+  it('nouvelle version non acceptée : activation 422 IDENTITY_TERMS_NOT_ACCEPTED avant tout essai de PIN ; annulation d’un objectif actif acceptée', async () => {
+    const active = await draft();
+    expect((await act(active, 'activation', await signedBody(active, 'ACTIVATE'), 'goal-terms-activate-01')).status).toBe(200);
+    const pending = await draft();
+    // Simule l'entrée en vigueur d'une nouvelle version : l'acceptation de la version courante disparaît
+    // (superutilisateur, test seulement ; l'application ne peut ni modifier ni supprimer une acceptation).
+    await admin.query('ALTER TABLE identity.terms_acceptance DISABLE TRIGGER terms_acceptance_no_update_delete');
+    await admin.query('DELETE FROM identity.terms_acceptance WHERE account_id = $1', [A]);
+    await admin.query('ALTER TABLE identity.terms_acceptance ENABLE ALWAYS TRIGGER terms_acceptance_no_update_delete');
+    const refused = await act(pending, 'activation', { ...(await signedBody(pending, 'ACTIVATE')), pin: '000000' }, 'goal-terms-activate-02');
+    expect([refused.status, (refused.body as ProblemBody).code]).toEqual([422, 'IDENTITY_TERMS_NOT_ACCEPTED']);
+    expect(await eventCount(pending)).toBe(0);
+    const failed = await admin.query<{ failed_attempts: number }>('SELECT failed_attempts FROM identity.pin_credential WHERE account_id = $1', [A]);
+    expect(failed.rows[0]?.failed_attempts).toBe(0);
+    const cancelled = await act(active, 'cancellation', await signedBody(active, 'CANCEL'), 'goal-terms-cancel-0001');
+    expect(cancelled.status).toBe(200);
+    expect((cancelled.body as Goal).status).toBe('CANCELLED_BY_CUSTOMER');
   });
 });
 

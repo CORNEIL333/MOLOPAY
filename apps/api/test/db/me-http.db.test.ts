@@ -102,6 +102,8 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
       phoneMasked: `+237•••••••${digits.slice(-2)}`,
       memberSince: phone?.created,
       legalNameDeclared: false,
+      currentTermsVersion: '2026-10-26-v1',
+      termsAccepted: true,
     });
     expect(JSON.stringify(response.body)).not.toContain(digits.slice(3, -2));
     expect(JSON.stringify(response.body)).not.toMatch(/kyc|level|BASIC|NONE/i);
@@ -120,4 +122,14 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
     expect(((await me(await session(OTHER_CUSTOMER))).body as { accountId?: string }).accountId).toBe(OTHER_CUSTOMER);
     expect(problem(await me(null))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
   });
+
+  it('F-ACC-004 sans acceptation de la version en vigueur : termsAccepted faux, version courante indiquée ; vrai après acceptation par la route', async () => {
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level) VALUES ($1, '+237690000444', now(), 'NONE')`, [OTHER_CUSTOMER]);
+    const cookie = await session(OTHER_CUSTOMER);
+    expect((await me(cookie)).body).toMatchObject({ currentTermsVersion: '2026-10-26-v1', termsAccepted: false });
+    const accepted = await request(server()).post('/v1/me/terms-acceptances').set('Cookie', cookie).set('Origin', ORIGIN).set('Idempotency-Key', 'me-terms-accept-0001').send({ version: '2026-10-26-v1' });
+    expect(accepted.status).toBe(201);
+    expect((await me(cookie)).body).toMatchObject({ termsAccepted: true });
+  });
 });
+

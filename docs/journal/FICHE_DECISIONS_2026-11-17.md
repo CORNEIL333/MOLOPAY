@@ -63,6 +63,7 @@
 | D85 | Client en cours d'examen de sanctions : refus de versement par **message neutre « vérification en cours »** identique pour tous (recommandé) / plafond minimal pendant l'examen | Aucun versement possible (agrégateur non branché). |
 | D86 | **Nombre maximal d'objectifs actifs** par client (NF-SAFE-002) : **3** (recommandé) / autre ; compter aussi les objectifs financés non remis ? | Aucune activation tant que le paramètre n'est pas publié. |
 | D87 | Contrôle nocturne du grand livre **impossible** (export absent, outil en panne) : **alerte seule** (appliqué) / gel aussi | Alerte seule. |
+| D88 | Conditions non réacceptées : refuser aussi les **versements** et le **règlement au bénéficiaire C** ? (appliqué : création et activation seulement) | Création et activation refusées. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

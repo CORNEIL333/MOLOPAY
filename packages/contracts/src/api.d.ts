@@ -1631,6 +1631,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/terms-acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepter les conditions en vigueur (F-ACC-004) */
+        post: operations["acceptCurrentTerms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1788,6 +1805,10 @@ export interface components {
             memberSince: string;
             /** @description Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé). */
             legalNameDeclared: boolean;
+            /** @description F-ACC-004 : version en vigueur des conditions générales et de la politique de confidentialité. */
+            currentTermsVersion: string;
+            /** @description F-ACC-004 : faux tant que la version en vigueur n’est pas acceptée ; aucun nouvel objectif ni activation n’est alors possible (IDENTITY_TERMS_NOT_ACCEPTED). */
+            termsAccepted: boolean;
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2687,6 +2708,18 @@ export interface components {
             /** @enum {string} */
             action: "FREEZE" | "UNFREEZE";
             reason: string;
+        };
+        TermsAcceptanceRequest: {
+            /** @description Doit être la version en vigueur (currentTermsVersion). */
+            version: string;
+        };
+        TermsAcceptance: {
+            version: string;
+            /**
+             * Format: date-time
+             * @description Horodatage posé par la base ; inchangé si la même version est acceptée de nouveau.
+             */
+            acceptedAt: string;
         };
     };
     responses: {
@@ -5722,6 +5755,36 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
+        };
+    };
+    acceptCurrentTerms: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermsAcceptanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Acceptation enregistrée (ou déjà enregistrée : horodatage d’origine) */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermsAcceptance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
 }
