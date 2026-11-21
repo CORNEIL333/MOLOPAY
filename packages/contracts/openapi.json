@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.39.0",
+    "version": "0.40.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -9503,6 +9503,7 @@
           "frozen",
           "since",
           "reason",
+          "divergence",
           "pending"
         ],
         "additionalProperties": false,
@@ -9521,6 +9522,32 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "divergence": {
+            "description": "INT-VER-002 : dernière divergence du vérificateur indépendant non suivie d'une levée confirmée ; tant qu'elle existe, les flux sortants sont gelés.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "code",
+                  "detectedAt"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+                  },
+                  "detectedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
             ]
           },
           "pending": {

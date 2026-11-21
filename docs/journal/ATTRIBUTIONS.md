@@ -24,6 +24,8 @@
 | C5 | Fil de notifications du client dans l'application (`GET /v1/me/notifications`), sans prestataire | `sprint/integration-t01urw` | J5 | Livré (contrat 0.37.0, migration 0069) |
 | C6 | Back-office : écrans des routes sans interface (litiges, validation des classes, historique d'un objectif), menu de navigation | `sprint/integration-t01urw` | J5 | Livré (contrat 0.38.0) |
 | C7 | Interrupteur d'arrêt des flux sortants à deux personnes (SEC-INC-003) : routes, base, écran `/incidents/gel` | `sprint/integration-t01urw` | J5 | Livré (contrat 0.39.0, migration 0070) |
+| C8 | Interdiction d'avertir le client d'un soupçon (REG-LBC-004) et plafond d'objectifs actifs par client (NF-SAFE-002) | `sprint/integration-t01urw` | J5 | Livré (migration 0071) |
+| C9 | Gel automatique des flux sortants sur divergence du vérificateur indépendant (INT-VER-002), outil `pnpm verify:nightly` | `sprint/integration-t01urw` | J5 | Livré (contrat 0.40.0, migration 0072) |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 
@@ -50,4 +52,5 @@
 | Qoder | En-tête `X-Correlation-Id` (réponse, requête facultative) | Q2 | Accepté : ajouté au contrat à l'intégration de la PR #6 (revue croisée publiée) |
 | Qoder | `Accept-Language` / `Content-Language` et cinq codes génériques de couche HTTP | Q3 | Accepté : ajouté au contrat à l'intégration de la PR #8 (revue croisée publiée : codes SMS à garder en 503 lors de la fusion) |
 | Claude (pour Gemini) | Écran Notifications du mobile et du web : `GET /v1/me/notifications` (contrat 0.37.0) ; écran de blocage au back-office déjà livré (`/clients/blocage`). | G3 / G4 | À brancher (Gemini) |
+| Claude (pour Qoder) | Q7 : planifier chaque nuit `pnpm verify:nightly --export <export signé> --public-key <clé hors bande>` avec un compte de connexion membre du rôle `integrity_reporter` (et de lui seul) ; alerte critique sur code de sortie 1 (divergence enregistrée, flux gelés) et 2 (vérification non exécutée). | Q7 | À faire (Qoder) ; export signé : lot 23 |
 | Qoder | `GET /health/ready` (sonde de disponibilité, 503 sans détail) | Q4 | Accepté : ajouté au contrat à l'intégration de la PR #9 (revue croisée publiée le 20 novembre : restauration sans droits, connexion de l'API en superutilisateur à corriger) |

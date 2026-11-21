@@ -15,6 +15,14 @@ export type OutgoingFreezePorts = {
   readonly confirm: (requestId: string) => Promise<{ readonly ok: true } | Failure>;
 };
 
+/** Cause affichée : gel demandé (motif) et/ou divergence du contrôle nocturne (INT-VER-002). */
+function freezeCause(state: FreezeState): string {
+  const parts: string[] = [];
+  if (state.reason !== null) parts.push(`motif : ${state.reason}`);
+  if (state.divergence !== null) parts.push(`divergence d’intégrité détectée par le vérificateur indépendant (${state.divergence.code})`);
+  return parts.length === 0 ? 'motif : —' : parts.join(' ; ');
+}
+
 const DATE = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' });
 
 /**
@@ -70,7 +78,7 @@ export function OutgoingFreeze({ ports }: { readonly ports: OutgoingFreezePorts 
       {state === null ? null : (
         <p role="status">
           {state.frozen
-            ? `Flux sortants gelés depuis le ${state.since === null ? '—' : DATE.format(new Date(state.since))} — motif : ${state.reason ?? '—'}`
+            ? `Flux sortants gelés depuis le ${state.since === null ? '—' : DATE.format(new Date(state.since))} — ${freezeCause(state)}`
             : 'Flux sortants ouverts.'}
         </p>
       )}

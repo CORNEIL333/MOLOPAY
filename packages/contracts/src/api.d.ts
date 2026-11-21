@@ -2666,6 +2666,12 @@ export interface components {
             /** Format: date-time */
             since: string | null;
             reason: string | null;
+            /** @description INT-VER-002 : dernière divergence du vérificateur indépendant non suivie d'une levée confirmée ; tant qu'elle existe, les flux sortants sont gelés. */
+            divergence: null | {
+                code: string;
+                /** Format: date-time */
+                detectedAt: string;
+            };
             pending: {
                 /** Format: uuid */
                 requestId: string;

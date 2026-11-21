@@ -12,6 +12,8 @@ export type FreezeState = {
   readonly since: string | null;
   /** Motif de la demande de gel en cours (null : flux ouverts). */
   readonly reason: string | null;
+  /** INT-VER-002 : dernière divergence du vérificateur non suivie d'une levée confirmée (null : aucune). */
+  readonly divergence: { readonly code: string; readonly detectedAt: string } | null;
   /** Demandes encore confirmables (moins d'une heure), pour la seconde personne. */
   readonly pending: readonly { readonly requestId: string; readonly action: FreezeAction; readonly reason: string; readonly requestedBy: string; readonly requestedAt: string }[];
 };
@@ -37,12 +39,21 @@ export async function confirmOutgoingFreeze(client: SqlClient, input: { readonly
   return row?.frozen ?? false;
 }
 
-/** État courant, motif et demandes en attente (aucune donnée personnelle). */
+/** État courant (dérivé par la base), motif, divergence en cours et demandes en attente (aucune donnée personnelle). */
 export async function readOutgoingFreezeState(client: SqlClient): Promise<FreezeState> {
+  const frozen = (await client.query<{ frozen: boolean }>('SELECT settlement.outgoing_frozen() AS frozen')).rows[0]?.frozen ?? false;
   const current = (await client.query<{ action: string; reason: string; confirmed_at: Date }>(
     `SELECT r.action, r.reason, c.confirmed_at FROM settlement.outgoing_freeze_confirmation c
        JOIN settlement.outgoing_freeze_request r ON r.id = c.request_id
       ORDER BY c.confirmed_at DESC, c.request_id DESC LIMIT 1`,
+  )).rows[0];
+  const divergence = (await client.query<{ code: string; detected_at: Date }>(
+    `SELECT d.code, d.detected_at FROM settlement.integrity_divergence d
+      WHERE d.detected_at > COALESCE((
+        SELECT max(c.confirmed_at) FROM settlement.outgoing_freeze_confirmation c
+          JOIN settlement.outgoing_freeze_request r ON r.id = c.request_id
+         WHERE r.action = 'UNFREEZE'), '-infinity'::timestamptz)
+      ORDER BY d.detected_at DESC, d.id DESC LIMIT 1`,
   )).rows[0];
   const pending = (await client.query<{ id: string; action: FreezeAction; reason: string; requested_by: string; requested_at: Date }>(
     `SELECT r.id, r.action, r.reason, r.requested_by, r.requested_at FROM settlement.outgoing_freeze_request r
@@ -50,11 +61,15 @@ export async function readOutgoingFreezeState(client: SqlClient): Promise<Freeze
         AND r.requested_at > clock_timestamp() - interval '1 hour'
       ORDER BY r.requested_at, r.id`,
   )).rows;
-  const frozen = current?.action === 'FREEZE';
+  const manual = current?.action === 'FREEZE' ? current : undefined;
+  // Depuis : le premier fait qui a gelé (gel confirmé ou divergence), le plus ancien des deux encore en vigueur.
+  const instants = [manual?.confirmed_at, divergence?.detected_at].filter((value): value is Date => value !== undefined);
+  const since = frozen && instants.length > 0 ? new Date(Math.min(...instants.map((value) => value.getTime()))) : null;
   return {
     frozen,
-    since: frozen && current !== undefined ? current.confirmed_at.toISOString() : null,
-    reason: frozen && current !== undefined ? current.reason : null,
+    since: since === null ? null : since.toISOString(),
+    reason: frozen && manual !== undefined ? manual.reason : null,
+    divergence: divergence === undefined ? null : { code: divergence.code, detectedAt: divergence.detected_at.toISOString() },
     pending: pending.map((row) => ({ requestId: row.id, action: row.action, reason: row.reason, requestedBy: row.requested_by, requestedAt: row.requested_at.toISOString() })),
   };
 }
