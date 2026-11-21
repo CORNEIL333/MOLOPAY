@@ -141,14 +141,14 @@ function settlementRequest(
   );
 }
 
-describe('RBAC · matrice rôle × action exhaustive', () => {
+describe('SEC-AUTHZ-004 RBAC · matrice rôle × action exhaustive (autorisé, ou refusé avec ADMIN_FORBIDDEN)', () => {
   for (const role of INTERNAL_ROLES) {
     for (const action of ADMIN_ACTIONS) {
-      it(`${role} × ${action}`, () => {
+      const expected = EXPECTED_GRANTS[role].includes(action);
+      it(`${role} × ${action} : ${expected ? 'autorisé' : 'refusé'}`, () => {
         const decision = authorize(principal('actor-1', [role]), action, CONTEXT);
-        const expected = EXPECTED_GRANTS[role].includes(action);
-        expect(decision.allowed, decision.allowed ? '' : decision.code).toBe(
-          expected,
+        expect(decision.allowed ? 'ALLOWED' : decision.code).toBe(
+          expected ? 'ALLOWED' : 'ADMIN_FORBIDDEN',
         );
       });
     }

@@ -81,7 +81,7 @@ describe('INT-VER-001/003 vérificateur indépendant sur un grand livre produit 
     ]);
   });
 
-  it('le binaire Rust vérifie équilibre, chaîne, Merkle, signature et témoin', () => {
+  it('INT-HASH-004 le binaire Rust (autre langage) recalcule à l’identique les empreintes produites par la base ; il vérifie équilibre, chaîne, Merkle, signature et témoin', () => {
     const result = runVerifier(exportDocument(entries, LOG_KEY.privateKey, LOG_ID));
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
@@ -99,5 +99,21 @@ describe('INT-VER-001/003 vérificateur indépendant sur un grand livre produit 
     const result = runVerifier(exportDocument(tampered, LOG_KEY.privateKey, LOG_ID));
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/ENTRY_UNBALANCED|HASH/);
+  });
+
+  it('INT-HASH-004 une altération qui garde l’écriture équilibrée (auteur, ou tous les montants à la fois) est détectée par le seul recalcul de l’empreinte (ENTRY_HASH_MISMATCH)', () => {
+    const index = entries.findIndex((entry) => entry.type === 'REFUND_SENT');
+    expect(index).toBeGreaterThan(0);
+    const alterations: ReadonlyArray<(entry: ExportedEntry) => ExportedEntry> = [
+      (entry) => ({ ...entry, actor: `${entry.actor}-x` }),
+      (entry) => ({ ...entry, postings: entry.postings.map((posting) => ({ ...posting, amount_xaf: (BigInt(posting.amount_xaf) * 2n).toString() })) }),
+    ];
+    for (const alter of alterations) {
+      const tampered = entries.map((entry, position) => (position === index ? alter(entry) : entry));
+      const result = runVerifier(exportDocument(tampered, LOG_KEY.privateKey, LOG_ID));
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/ENTRY_HASH_MISMATCH/);
+      expect(result.stderr).not.toMatch(/ENTRY_UNBALANCED/);
+    }
   });
 });
