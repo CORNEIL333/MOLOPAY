@@ -57,6 +57,24 @@
 | Bailleur sur téléphone basique | Confirmation par SMS avec code | F-PLN-003 | |
 | Frais de scolarité | Matricule, nom de l'élève affiché, grille par tranche | F-PLN-001 | |
 
+## Parcours crédit (modèle B) — `maquettes/parcours-credit.html`
+
+Prototype navigable de bout en bout, aligné sur la machine à états de `CDC_05` § 5.3.
+
+| Écran | État | Contenu | Exigences |
+|---|---|---|---|
+| Choix | — | Épargne à 0 FCFA et crédit côte à côte, même poids visuel, rien de présélectionné | F-FIN-003, REG-CON-001, loi 2011/012 art. 12 |
+| Simulation | `DRAFT` | Acompte et durée réglables ; mensualité, coût du crédit, TEG, coût total ; écart avec l'épargne | F-FIN-003, REG-CON-001 |
+| Capacité | `DRAFT` | Revenus déclarés ; alerte si la mensualité dépasse un tiers des revenus | F-FIN-001 |
+| Consentement | `DRAFT` | Données transmises listées, jamais d'accès aux contacts ; accord séparé et révocable | REG-DPD-008, F-FIN-001 |
+| Décision | `SUBMITTED_TO_LENDER` | Attente honnête, « le financeur décide, pas MoloPay » | F-FIN-002 |
+| Refus (embranchement) | `DECLINED` | Annonce respectueuse, épargne proposée, délai de carence sans relance | F-FIN-002 |
+| Offre ferme | `APPROVED` | Montant, TEG, coût total, échéancier complet, rétractation 14 jours, remboursement anticipé ; signature glisser + PIN | F-FIN-003, F-FIN-006 |
+| Acompte | `DOWN_PAYMENT_CONFIRMED` | Acompte confirmé, puis code de remise | F-FIN-002, F-SAV-004 |
+| Remboursement | `REPAYING` | Payé / reste, échéancier, montant pour solder aujourd'hui, reversement au financeur | F-FIN-004, F-FIN-006 |
+| Retard (embranchement) | `IN_ARREARS` | Options concrètes, rappels limités, jamais de contact des proches ni de blocage du téléphone | F-FIN-005 |
+| Soldé | `REPAID → CLOSED` | Attestation, pas de célébration sur une dette, objectif d'épargne proposé | F-FIN-004 |
+
 ## Encore à maquetter
 
-Parcours complet du modèle B, acceptation d'une contribution diaspora côté proche, validation des partenaires et vérification des baux en back-office, rapports régulateur, abonnements partenaires.
+Acceptation d'une contribution diaspora côté proche, validation des partenaires et vérification des baux en back-office, rapports régulateur, abonnements partenaires.
