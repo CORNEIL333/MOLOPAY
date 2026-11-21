@@ -16,6 +16,7 @@
 | 20 nov. 2026 | Animations | [Décision] Charte d'animation (`06_animations.md`) : jetons Material 3, « l'argent avance sûrement, il ne rebondit pas », aucun faux succès, WCAG 2.3.3 (AAA) visé, pas de Lottie ni de Rive au lancement ; bouton pause ajouté au site public (WCAG 2.2.2) |
 | 20 nov. 2026 | Recherche | Rapport `07_psychologie_de_marque_et_ux.md` : sciences comportementales au service du client, 15 pratiques interdites ; l'identité est confirmée (aplats colorés sous texte noir, anneau rempli seulement par de l'argent réellement versé) et doit ajouter des preuves de solidité |
 | 20 nov. 2026 | Recherche n° 2 | Rapport `08_ux_inclusive_et_publics_cibles.md` : montants affichés de quatre façons et relus avant le PIN, USSD en GSM-7 sans PIN MoMo, KYC « juste à temps » sous réserve juridique, diaspora sans promesse d'instantané, bailleurs payés en une fois avec quittances ventilées |
+| 21 nov. 2026 | Parcours inclusifs | Maquette `parcours-inclusifs.html` et règles d'identité issues de la recherche ajoutées à `02_identite_visuelle.md` |
 | 20 nov. 2026 | Corrections | Le frigo et l'électroménager relèvent de « Technologie et équipement », pas de « Logement » ; MoloMolo Pay est un concurrent **ivoirien** |
 
 ## Points ouverts

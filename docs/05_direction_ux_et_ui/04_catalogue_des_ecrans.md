@@ -41,6 +41,22 @@
 | Confiance | Circuit de l'argent et 4 promesses | F-PUB-006 | |
 | Diaspora, partenaires, FAQ, appel final | Conversion des différents publics | F-PUB-007 | |
 
+## Parcours inclusifs — `maquettes/parcours-inclusifs.html`
+
+| Écran | Contenu | Exigences | Interactif |
+|---|---|---|---|
+| Verser en 4 représentations | Chiffres, « 25 mille », billets, voix ; pastilles ; alerte au-delà de 10 fois le versement habituel | F-PAY-001, NF-UX-001 | Oui (montant, voix) |
+| Relecture avant PIN | Montant, projet et reste lus à voix haute ; mode assisté | NF-UX-005 | Oui (voix) |
+| Simulateur USSD | Langue, menu en 5 options, payer, solde avec anneau texte, rappel, blocage en une étape, reprise après coupure, reçu SMS | F-USSD-001/002, F-PAY-006 | Oui |
+| Inscription | L'objectif avant la paperasse, paliers P0/P1/P2 | F-ACC-001/003 | |
+| CGU en couches | 5 points, audio, FR/EN, consentements non précochés | F-ACC-004, REG-DPD | Oui |
+| Pièce d'identité | Demandée avant le premier retrait, capture guidée, envoi différé, alternative en boutique | F-ACC-003 | |
+| Diaspora : contribuer | Coût total EUR → FCFA avant engagement | F-DIA-001/002 | Oui (montant) |
+| Diaspora : suivi | Chronologie honnête, accord du proche, preuve par le fournisseur | F-DIA-001 | |
+| Pack d'entrée logement | Caution, avance, commission ventilées ; confirmation en 3 temps | F-PLN-001/002/003 | |
+| Bailleur sur téléphone basique | Confirmation par SMS avec code | F-PLN-003 | |
+| Frais de scolarité | Matricule, nom de l'élève affiché, grille par tranche | F-PLN-001 | |
+
 ## Encore à maquetter
 
-Menus USSD, KYC (envoi de pièces), parcours complet du modèle B, acceptation d'une contribution diaspora, validation des partenaires et vérification des baux en back-office, rapports régulateur, abonnements partenaires.
+Parcours complet du modèle B, acceptation d'une contribution diaspora côté proche, validation des partenaires et vérification des baux en back-office, rapports régulateur, abonnements partenaires.

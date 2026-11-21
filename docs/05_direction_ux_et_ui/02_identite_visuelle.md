@@ -33,3 +33,20 @@ Les maquettes du dossier `maquettes/` sont des **fichiers HTML autonomes** : ouv
 ## Nom
 
 « MoloPay » est très proche de **MoloMolo Pay**, application **ivoirienne** de paiement différé citée dans `01_projet/03_analyse_concurrentielle.md`. Le Cameroun et la Côte d'Ivoire relèvent tous deux de l'**OAPI** : un dépôt risque l'opposition et les clients pourraient confondre les deux services. Faire vérifier la disponibilité par un conseil en propriété industrielle avant de finaliser le logo (lot H8). Pistes de remplacement, **non vérifiées** : Kotiz, Pas à Pas, Objekti. L'identité fonctionne avec un autre nom : seul le mot à côté de l'anneau change.
+
+## Règles issues de la recherche (rapports 07 et 08)
+
+| Règle | Pourquoi |
+|---|---|
+| Les couleurs d'univers ne servent **que d'aplats sous du texte et des icônes noirs**, jamais comme couleur de texte sur blanc (contraste 1,25 à 1,80:1) | Contraste WCAG ; rapport 07 |
+| Un état n'est **jamais** signalé par la couleur seule : icône + mot + son | Publics peu alphabétisés ; rapport 08 |
+| Le citron reste nettement **vert**, jamais jaune ; aucun trio vert-rouge-jaune du drapeau | Confusion avec MTN ; signal politique ; rapport 07 |
+| Le rose hibiscus n'est jamais une couleur d'erreur ; l'erreur reste rouge `#c4262e` avec icône et texte | Distinction rose/rouge ; rapport 07 |
+| La chaleur des formes arrondies est compensée par des **preuves de solidité** : montants alignés, frais en un chiffre, banque partenaire nommée, reçus numérotés | Chaleur vs compétence ; rapport 07 |
+| Chaque montant d'argent s'affiche **de quatre façons** dans les parcours de paiement : chiffres, formule orale (« 25 mille »), billets CEMAC à liseré, voix | 30 % d'erreurs d'ordre de grandeur (CGAP) ; rapport 08 |
+| Bouton **« Écouter »** fixe sur chaque écran d'argent ; relecture à voix haute avant le PIN | Medhi ; J-PAL Ghana ; rapport 08 |
+| Séparateur de milliers : espace fine U+202F dans l'app (à tester sur Android d'entrée de gamme), **espace ordinaire** dans les SMS et l'USSD (U+202F hors GSM-7) | Rapport 08 |
+| USSD et SMS : 160 caractères au plus, alphabet GSM-7 (garder é, è, à ; retirer ê, â, î, ô, û, ç) ; anneau en texte `[####----] 4/8` | Rapport 08 |
+| Le badge « vérifié » (partenaire, bailleur, école) est noir et blanc **avec un mot**, jamais une simple couleur | Rapport 08 |
+
+Démonstration de ces règles : `maquettes/parcours-inclusifs.html`.

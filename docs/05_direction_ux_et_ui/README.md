@@ -20,6 +20,7 @@
 | `maquettes/identite-app-mobile.html` | Identité + 10 écrans de l'app mobile (dont 5 de marketplace) |
 | `maquettes/ecrans-web.html` | Portail partenaire, client web (PWA), back-office, CRM (8 écrans) |
 | `maquettes/site-public.html` | Site public marketplace d'acquisition (lot 26, ADR-0006) |
+| `maquettes/parcours-inclusifs.html` | Parcours issus de la recherche : montants en 4 façons avec voix, simulateur USSD, inscription et KYC, diaspora, bailleurs et écoles |
 | `maquettes/animations.html` | Démo rejouable de chaque animation `M-xx`, avec le mode « Réduire les animations » |
 
 Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plusieurs sont interactives (versement, comptoir de remise, filtres, simulateur). Noms, prix, TEG, boutiques et délais y sont **fictifs**.
@@ -32,6 +33,7 @@ Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plu
 | Écrans web | https://claude.ai/artifact/31Cd8bm8GJ4vSCURaoj27a |
 | Site public | https://claude.ai/artifact/JvviqmNBqMWe4FJWHq5TAc |
 | Animations | https://claude.ai/artifact/6eFyZNuZKuqVQK8UBY6Gxj |
+| Parcours inclusifs | https://claude.ai/artifact/Pp4XakjyfxyuPaWEm4yFfg |
 
 Les fichiers de ce dossier font foi ; en cas d'écart avec une version publiée, mettre à jour la version publiée.
 

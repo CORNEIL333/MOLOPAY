@@ -1,0 +1,560 @@
+<title>Parcours inclusifs MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=VT323&display=swap">
+<style>
+/* Mise en page : une section par public ; chaque section = rangée de téléphones (défilable) + règles issues de la recherche. */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e4e5df; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --ess: #d9f26b; --tech: #8fddf5; --log: #c3bdff; --mob: #ffa8c5; --ok: #1f7a4a; --ok-bg: #e2f2e8; --warn: #8a5300; --warn-bg: #fbedd0; --bad: #c4262e;
+  --lcd: #c7d3b0; --lcd-ink: #1d2a12;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif; --text: 'Inter', 'Segoe UI', system-ui, sans-serif; --pixel: 'VT323', 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 400; letter-spacing: -0.03em; text-wrap: balance; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ess); outline-offset: 2px; }
+.eyebrow { font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--pg-muted); }
+header.hero { padding-block: 48px 20px; display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(2.3rem, 5.5vw, 4rem); line-height: 1; font-weight: 300; letter-spacing: -0.05em; }
+.hero h1 b { font-weight: 600; }
+.hero p { color: var(--pg-muted); max-width: 66ch; font-size: 1.05rem; }
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--pg-bg); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--pg-bg); }
+.jump nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.jump a { flex: none; text-decoration: none; color: var(--pg-ink); font-size: 0.86rem; font-weight: 500; padding: 8px 14px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); }
+section.sec { padding-block: 40px; border-top: 1px solid var(--pg-line); display: grid; gap: 22px; scroll-margin-top: 64px; }
+.sec > header { display: grid; gap: 8px; max-width: 70ch; }
+.sec h2 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.02; }
+.sec > header p { color: var(--pg-muted); }
+.row { overflow-x: auto; scrollbar-width: thin; margin-inline: -16px; padding-inline: 16px; }
+.row > .in { display: flex; gap: 22px; width: max-content; padding-block: 6px 12px; }
+figure.shot { margin: 0; width: 272px; display: grid; gap: 10px; align-content: start; }
+figcaption { font-size: 0.86rem; color: var(--pg-muted); }
+figcaption b { color: var(--pg-ink); }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.rule { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 20px; padding: 14px 16px; display: grid; gap: 4px; font-size: 0.9rem; align-content: start; }
+.rule b { font-family: var(--display); font-weight: 500; font-size: 1.02rem; }
+.rule span { color: var(--pg-muted); }
+.src { font-size: 0.74rem; color: var(--pg-muted); font-weight: 600; letter-spacing: 0.02em; }
+
+/* Téléphone */
+.phone { width: 272px; aspect-ratio: 272 / 570; border-radius: 42px; padding: 8px; background: #0a0a0b; box-shadow: 0 24px 50px -28px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; }
+.scr { position: relative; height: 100%; border-radius: 35px; overflow: hidden; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; font-size: 13px; line-height: 1.4; }
+.scr.dark { background: radial-gradient(120% 60% at 50% 0%, #1e2024, #0b0b0d 60%); color: #fff; }
+.isl { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 20px; background: #000; z-index: 3; }
+.sb { display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 11px; font-weight: 600; height: 32px; flex: none; }
+.bd { flex: 1; padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ib { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--mist); border: 0; flex: none; color: var(--ink); }
+.dark .ib { background: var(--ink-2); color: #fff; }
+.ib svg { width: 15px; height: 15px; }
+.listen { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--ess); color: var(--ink); font-weight: 600; font-size: 12px; cursor: pointer; }
+.listen svg { width: 14px; height: 14px; }
+.pill { height: 46px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px; width: 100%; cursor: pointer; flex: none; }
+.pill.light { background: #fff; color: var(--ink); }
+.pill.lime { background: var(--ess); color: var(--ink); }
+.pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pill:disabled { opacity: 0.35; cursor: not-allowed; }
+.h { font-family: var(--display); font-size: 21px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; }
+.mut { color: var(--muted); font-size: 12px; }
+.dark .mut { color: var(--muted-dark); }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--mist-2); }
+.kv:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.dark .kv { border-color: var(--ink-3); }
+.dark .kv span:first-child { color: var(--muted-dark); }
+.card { border-radius: 20px; padding: 12px; display: grid; gap: 4px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--ink); color: #fff; justify-self: start; }
+.badge svg { width: 10px; height: 10px; }
+
+/* Montant 4 façons */
+.amt { text-align: center; display: grid; gap: 4px; justify-items: center; }
+.amt .n { font-family: var(--display); font-size: 40px; font-weight: 400; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; line-height: 1; }
+.amt .n small { font-size: 14px; color: var(--muted-dark); letter-spacing: 0; margin-left: 4px; }
+.oral { display: inline-flex; padding: 4px 12px; border-radius: 999px; background: var(--ess); color: var(--ink); font-weight: 700; font-size: 13px; }
+.words { font-size: 11.5px; color: var(--muted-dark); }
+.notes { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: 34px; }
+.note { height: 30px; min-width: 50px; padding: 0 6px; border-radius: 5px; border: 2px solid #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 600; font-size: 11px; color: var(--ink); }
+.coin { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: var(--ink); background: #d8d2c2; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chip { height: 34px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--ink-2); color: #e9eaec; font-size: 12px; font-weight: 600; cursor: pointer; }
+.chip.on { background: #fff; color: var(--ink); }
+.say { font-size: 12px; background: var(--ink-2); border-radius: 14px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; }
+.say svg { width: 16px; height: 16px; flex: none; color: var(--ess); margin-top: 1px; }
+.warnbox { background: var(--warn-bg); color: var(--warn); border-radius: 14px; padding: 10px 12px; font-size: 12px; font-weight: 600; }
+.pinrow { display: flex; gap: 8px; justify-content: center; }
+.pinrow i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; display: block; }
+.pinrow i.f { background: #fff; }
+.never { border: 1.5px dashed var(--ess); border-radius: 14px; padding: 10px; font-size: 12px; text-align: center; }
+
+/* USSD : téléphone basique */
+.fp { width: 250px; border-radius: 34px 34px 40px 40px; background: linear-gradient(180deg, #2a2c31, #17181b); padding: 22px 18px 18px; box-shadow: 0 24px 50px -28px rgba(0,0,0,0.5); display: grid; gap: 14px; }
+.fp .brand { text-align: center; color: #8a8d94; font-size: 10px; letter-spacing: 0.3em; font-weight: 700; }
+.lcd { background: var(--lcd); color: var(--lcd-ink); border-radius: 8px; height: 230px; padding: 8px 10px; font-family: var(--pixel); font-size: 19px; line-height: 1.05; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 2px 6px rgba(0,0,0,0.25); display: flex; flex-direction: column; }
+.lcd .txt { flex: 1; overflow: hidden; }
+.lcd .inp { border-top: 1px solid rgba(29,42,18,0.35); padding-top: 3px; min-height: 22px; }
+.lcd .meta { display: flex; justify-content: space-between; font-size: 15px; opacity: 0.75; }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.keys button { height: 36px; border-radius: 12px; border: 0; background: #3a3c42; color: #f1f2f4; font-weight: 600; font-size: 15px; cursor: pointer; }
+.keys button:active { background: #55575d; }
+.keys .send { background: #2d6a3e; } .keys .end { background: #8a2b2b; }
+.ussd-side { display: grid; gap: 10px; align-content: start; width: 300px; }
+.ussd-side .rule { font-size: 0.85rem; }
+.sms { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 18px; padding: 12px 14px; font-family: var(--pixel); font-size: 18px; line-height: 1.1; white-space: pre-wrap; }
+.sms small { display: block; font-family: var(--text); font-size: 11px; color: var(--pg-muted); margin-bottom: 4px; }
+.ctrl { display: flex; flex-wrap: wrap; gap: 6px; }
+.ctrl button { height: 34px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--pg-ink); background: transparent; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+/* Inscription */
+.steps { display: grid; gap: 6px; }
+.st { display: flex; gap: 10px; align-items: center; font-size: 12.5px; padding: 8px 10px; border-radius: 14px; background: var(--mist); }
+.st i { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700; flex: none; }
+.st.goal { background: var(--mob); }
+.st.later { background: transparent; border: 1.5px dashed var(--mist-2); color: var(--muted); }
+.st.later i { background: var(--mist-2); color: var(--muted); }
+.cg { display: grid; gap: 6px; font-size: 12px; }
+.cg div { display: flex; gap: 8px; align-items: flex-start; }
+.cg div b { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ess); font-size: 11px; flex: none; }
+.cons { display: grid; gap: 6px; }
+.tg { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; padding: 8px 10px; border-radius: 14px; background: var(--mist); cursor: pointer; }
+.tg input { appearance: none; -webkit-appearance: none; width: 38px; height: 22px; border-radius: 999px; background: var(--mist-2); position: relative; cursor: pointer; flex: none; margin: 0; }
+.tg input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 100ms; }
+.tg input:checked { background: var(--ink); }
+.tg input:checked::after { transform: translateX(16px); }
+.idframe { position: relative; height: 140px; border-radius: 18px; background: #1a1b1e; display: grid; place-items: center; overflow: hidden; }
+.idframe .c { width: 82%; aspect-ratio: 1.58; border-radius: 10px; border: 2.5px solid var(--ess); position: relative; display: grid; place-items: center; color: #bfc1c6; font-size: 11px; padding-left: 38%; text-align: center; }
+.idframe .c::before { content: ""; position: absolute; left: 8%; top: 18%; width: 24%; height: 58%; border-radius: 6px; background: #2e3035; }
+.check-li { display: flex; gap: 8px; font-size: 12px; align-items: center; }
+.check-li b { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; background: var(--ok); color: #fff; flex: none; }
+.check-li.no b { background: var(--warn); }
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.tiers div { border-radius: 12px; padding: 7px 6px; background: var(--mist); font-size: 10.5px; display: grid; gap: 1px; text-align: center; }
+.tiers div.on { background: var(--ink); color: #fff; }
+.tiers b { font-family: var(--display); font-size: 13px; font-weight: 600; }
+
+/* Diaspora */
+.fx { display: grid; gap: 6px; }
+.fx .big { font-family: var(--display); font-size: 30px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.fx input[type=range] { width: 100%; accent-color: var(--ink); }
+.tl { display: grid; gap: 0; }
+.ev { display: grid; grid-template-columns: 18px 1fr; gap: 10px; font-size: 12px; }
+.ev .rl { display: flex; flex-direction: column; align-items: center; }
+.ev .rl i { width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; flex: none; margin-top: 2px; }
+.ev.done .rl i { background: var(--ink); }
+.ev.wait .rl i { border-color: var(--warn); }
+.ev .rl::after { content: ""; width: 2px; flex: 1; background: var(--mist-2); margin: 2px 0; }
+.ev:last-child .rl::after { display: none; }
+.ev .c { padding-bottom: 10px; display: grid; gap: 1px; }
+.ev .c b { font-weight: 600; }
+.ev .c span { color: var(--muted); font-size: 11px; }
+.proof { border-radius: 20px; background: var(--log); padding: 12px; display: grid; gap: 6px; }
+.ring8 { font-family: var(--display); }
+
+/* Bailleur / école */
+.pack { display: grid; gap: 6px; }
+.pack div { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 9px 11px; border-radius: 14px; background: #fff; font-size: 12px; }
+.pack div b { font-weight: 600; }
+.pack div span { color: var(--muted); font-size: 11px; }
+.pack div em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; grid-row: span 2; align-self: center; }
+.mat { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 14px; background: var(--mist); font-size: 14px; font-weight: 600; letter-spacing: 0.08em; }
+.found { border-radius: 16px; background: var(--ok-bg); color: var(--ok); padding: 10px 12px; font-size: 12px; display: grid; gap: 2px; }
+.found b { color: var(--ink); font-size: 13px; }
+footer { padding-block: 32px 56px; border-top: 1px solid var(--pg-line); color: var(--pg-muted); font-size: 0.86rem; }
+</style>
+
+<header class="wrap hero">
+  <span class="eyebrow">Direction UX et UI · parcours inclusifs</span>
+  <h1>Pour ceux qui lisent peu, <b>téléphonent simple</b> et vivent loin.</h1>
+  <p>Les recommandations prioritaires des recherches n° 1 et n° 2 traduites en écrans. Chaque section rappelle la règle et sa source. Plusieurs écrans sont interactifs : changez le montant, écoutez-le, essayez le menu USSD sur le téléphone basique, cochez les consentements.</p>
+</header>
+<div class="jump"><nav class="wrap" aria-label="Sections"><a href="#montants">Montants et voix</a><a href="#ussd">USSD</a><a href="#inscription">Inscription et KYC</a><a href="#diaspora">Diaspora</a><a href="#beneficiaires">Bailleurs et écoles</a></nav></div>
+
+<main>
+<!-- ================= MONTANTS ================= -->
+<section class="wrap sec" id="montants" aria-labelledby="h-m">
+  <header><span class="eyebrow">Publics peu alphabétisés</span><h2 id="h-m">Un montant se lit de quatre façons, puis s'entend</h2>
+    <p>30 % des adultes se trompent d'ordre de grandeur sur un montant à 5 chiffres (enquête CGAP en Côte d'Ivoire). Chaque montant est donc affiché en chiffres, en formule orale, en billets, et lu à voix haute avant le PIN.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr dark"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="top"><span class="ib" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></span><b style="font-size:13px">Verser · Moto de Paul</b><button class="listen" type="button" id="say1" aria-label="Écouter le montant"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h2.5L9 3v10L5.5 10H3Z"/><path d="M11.5 5.5a3.5 3.5 0 0 1 0 5"/></svg>Écouter</button></div>
+          <div class="amt" aria-live="polite">
+            <span class="n" id="a-n">25 000<small>FCFA</small></span>
+            <span class="oral" id="a-oral">25 mille</span>
+            <span class="words" id="a-words">vingt-cinq mille francs</span>
+          </div>
+          <div class="notes" id="a-notes" aria-label="Billets"></div>
+          <div class="chips" id="a-chips"><button class="chip" type="button" data-v="1000">1 000</button><button class="chip" type="button" data-v="2000">2 000</button><button class="chip" type="button" data-v="5000">5 000</button><button class="chip" type="button" data-v="10000">10 000</button><button class="chip on" type="button" data-v="25000">25 000</button><button class="chip" type="button" data-v="250000">250 000</button></div>
+          <div class="warnbox" id="a-warn" hidden>C'est 10 fois votre versement habituel (25 000 FCFA). Vérifiez avant de continuer.</div>
+          <button class="pill lime" type="button" style="margin-top:auto">Continuer</button>
+        </div></div></div>
+      <figcaption><b>Saisie par pastilles</b>, aucun champ texte libre. Au-delà de 10 fois le versement habituel, une étape d'attention s'ajoute.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone"><div class="scr dark"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="top"><span class="ib" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></span><b style="font-size:13px">Vérifiez avant le code</b><span style="width:34px"></span></div>
+          <div class="card" style="background:var(--mob);color:var(--ink)"><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;opacity:0.7">MOBILITÉ</span><b style="font-family:var(--display);font-size:17px;font-weight:500">Moto de Paul</b><span style="font-size:12px">Moto Center Akwa · partenaire vérifié</span></div>
+          <div class="say" id="readback"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h2.5L9 3v10L5.5 10H3Z"/><path d="M11.5 5.5a3.5 3.5 0 0 1 0 5"/></svg><span id="rb-text">« Vous allez verser vingt-cinq mille francs pour la moto de Paul. Il restera deux cent douze mille cinq cents francs. »</span></div>
+          <button class="listen" type="button" id="say2" style="justify-self:start">Réécouter</button>
+          <div class="pinrow" aria-label="Code à 6 chiffres"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i></div>
+          <div class="never"><b>Mode assisté</b> : Rosine (Moto Center) vous aide.<br>Tapez votre code <b>vous-même</b>. Ne donnez jamais votre code.</div>
+          <button class="pill light" type="button" style="margin-top:auto">Glisser pour verser</button>
+        </div></div></div>
+      <figcaption><b>Relecture à voix haute</b> du montant, du projet et du reste, puis PIN. En mode assisté, l'écran et la voix rappellent que seul le client tape son code.</figcaption>
+    </figure>
+  </div></div>
+  <div class="rules">
+    <div class="rule"><b>Quatre représentations</b><span>Chiffres Outfit tabulaires, « 25 mille », billets CEMAC à liseré, audio au toucher.</span><span class="src">CGAP · MoWO · Medhi</span></div>
+    <div class="rule"><b>Voix humaine préenregistrée</b><span>Français et anglais au lancement, pidgin après test ; bouton « Écouter » fixe sur chaque écran d'argent.</span><span class="src">Medhi CHI 2009 · J-PAL Ghana</span></div>
+    <div class="rule"><b>Une action par écran</b><span>Pas de menu caché ni de défilement pour trouver une fonction ; conventions MoMo et Orange Money reprises.</span><span class="src">Medhi ToCHI 2011</span></div>
+    <div class="rule"><b>La couleur ne parle jamais seule</b><span>Un état = icône + mot + son. Les couleurs d'univers restent des aplats sous texte noir.</span><span class="src">Rapport 07 · WCAG</span></div>
+  </div>
+</section>
+
+<!-- ================= USSD ================= -->
+<section class="wrap sec" id="ussd" aria-labelledby="h-u">
+  <header><span class="eyebrow">Canal USSD · téléphone basique</span><h2 id="h-u">160 caractères, 20 secondes, et on reprend là où ça a coupé</h2>
+    <p>Essayez : composez avec le clavier, puis « Envoyer ». Chaque écran respecte la limite de 160 caractères en alphabet GSM-7 (sans ê, â, ô, ç). Coupez la session pendant un paiement, puis rappelez : MoloPay vous montre le paiement en cours au lieu d'en créer un second.</p></header>
+  <div class="row"><div class="in" style="align-items:flex-start">
+    <div class="fp">
+      <div class="brand">TÉLÉPHONE BASIQUE</div>
+      <div class="lcd" aria-live="polite"><div class="txt" id="u-txt"></div><div class="inp" id="u-inp"></div><div class="meta"><span id="u-cnt">0/160</span><span id="u-gsm">GSM-7</span></div></div>
+      <div class="keys" id="u-keys">
+        <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+        <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+        <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+        <button type="button">*</button><button type="button">0</button><button type="button">#</button>
+        <button type="button" class="end" data-k="end">Fin</button><button type="button" data-k="del">Eff.</button><button type="button" class="send" data-k="send">Envoyer</button>
+      </div>
+    </div>
+    <div class="ussd-side">
+      <div class="ctrl"><button type="button" id="u-dial">Composer *XXX#</button><button type="button" id="u-drop">Simuler une coupure</button></div>
+      <div class="sms" id="u-sms" hidden><small>SMS reçu · MoloPay</small><span id="u-smst"></span></div>
+      <div class="rule"><b>Jamais le PIN MoMo ou OM</b><span>Le paiement est autorisé par l'invite de l'opérateur. Le menu MoloPay ne demande que le PIN MoloPay, et seulement pour consulter.</span><span class="src">UIT FIGI · CGAP</span></div>
+      <div class="rule"><b>Reprise liée au numéro</b><span>L'identifiant de session change à chaque appel : l'état est gardé 10 à 15 min par numéro, avec une seule intention de paiement par objectif et montant.</span><span class="src">UIT · pratique d'intégration</span></div>
+      <div class="rule"><b>Bloquer : 1 étape, sans PIN</b><span>Débloquer : rappel d'un conseiller et délai après changement de SIM.</span><span class="src">Règl. 04/18 art. 43</span></div>
+      <div class="rule"><b>Pas de crédit par USSD</b><span>160 caractères ne suffisent pas pour présenter honnêtement TEG et coût total.</span><span class="src">Loi 2011/012 art. 9</span></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ================= INSCRIPTION ================= -->
+<section class="wrap sec" id="inscription" aria-labelledby="h-i">
+  <header><span class="eyebrow">Inscription, KYC, premiers jours</span><h2 id="h-i">L'objectif d'abord, la paperasse au moment où la loi l'exige</h2>
+    <p>Le règlement CEMAC 02/24 permet de vérifier l'identité « au plus tard avant la première transaction » (art. 55), mais place toute inscription à distance en vigilance renforcée (art. 22). La voie exacte est à valider par le juriste ; les écrans montrent le principe : demander chaque pièce au moment où elle sert, et dire pourquoi.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <span class="h">Votre moto en 4 étapes</span>
+          <div class="steps">
+            <div class="st"><i>✓</i>Langue · Français</div>
+            <div class="st"><i>✓</i>Téléphone et code SMS (lu automatiquement)</div>
+            <div class="st"><i>✓</i>Prénom et code secret (6 chiffres, 2 fois)</div>
+            <div class="st goal"><i>4</i><span><b>Votre projet</b> : Moto Bajaj, prix figé 650 000</span></div>
+            <div class="st later"><i>·</i>Pièce d'identité : avant votre premier retrait</div>
+          </div>
+          <div class="tiers" aria-label="Paliers">
+            <div class="on"><b>P0</b>Téléphone<br>plafond [à fixer]</div><div><b>P1</b>Pièce + photo<br>plafond [à fixer]</div><div><b>P2</b>Justificatifs<br>montants élevés</div>
+          </div>
+          <span class="mut">Chaque palier affiche son plafond en FCFA. Seuils à fixer avec le juriste et le partenaire agréé.</span>
+          <button class="pill" type="button" style="margin-top:auto">Faire mon premier versement</button>
+        </div></div></div>
+      <figcaption><b>L'objectif avant la paperasse</b>, puis un premier versement dans la même session (pastilles de 500 à 5 000 FCFA).</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="top"><span class="h">L'essentiel en 5 points</span><button class="listen" type="button" id="say3" aria-label="Écouter les conditions">Écouter</button></div>
+          <div class="cg">
+            <div><b>1</b><span>Votre argent est gardé par [banque partenaire], pas par MoloPay.</span></div>
+            <div><b>2</b><span>0 FCFA de frais pour épargner. Le prix de votre projet est figé.</span></div>
+            <div><b>3</b><span>Plafond actuel : [à fixer] FCFA. Il augmente avec votre pièce d'identité.</span></div>
+            <div><b>4</b><span>Un problème ? « Être rappelé », 7 j/7, réponse sous 72 h.</span></div>
+            <div><b>5</b><span>Vous pouvez annuler et fermer votre compte à tout moment.</span></div>
+          </div>
+          <span class="mut">Texte complet en français · <span style="text-decoration:underline">Full text in English</span></span>
+          <div class="cons">
+            <label class="tg">J'accepte les conditions (obligatoire)<input type="checkbox" class="c-req"></label>
+            <label class="tg">Messages d'offres (facultatif)<input type="checkbox"></label>
+          </div>
+          <button class="pill" type="button" id="c-go" disabled style="margin-top:auto">Continuer</button>
+        </div></div></div>
+      <figcaption><b>CGU en couches</b>, en français et en anglais, avec lecture audio. Consentements séparés, <b>jamais précochés</b> ; refuser les offres ne bloque rien.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone"><div class="scr dark"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <span class="h" style="color:#fff">Avant votre premier retrait</span>
+          <span class="mut">La loi nous oblige à vérifier votre identité avant votre premier retrait. Votre épargne continue pendant ce temps.</span>
+          <div class="idframe"><div class="c">Placez votre CNI dans le cadre</div></div>
+          <div class="check-li"><b>✓</b>Pièce nette, sans reflet</div>
+          <div class="check-li no"><b>!</b>Rapprochez un peu le téléphone</div>
+          <div class="cons">
+            <label class="tg" style="background:var(--ink-2);color:#fff">Vérifier mon visage (selfie), facultatif si vous passez en boutique<input type="checkbox"></label>
+          </div>
+          <span class="mut">Pas de réseau ? La photo partira plus tard, sans rien perdre.</span>
+          <button class="pill light" type="button" style="margin-top:auto">Ou me faire aider en boutique</button>
+        </div></div></div>
+      <figcaption><b>Pièce demandée au moment où elle sert</b>, avec la raison. Capture guidée et envoi différé. Le passage en boutique partenaire évite le selfie biométrique.</figcaption>
+    </figure>
+  </div></div>
+</section>
+
+<!-- ================= DIASPORA ================= -->
+<section class="wrap sec" id="diaspora" aria-labelledby="h-d">
+  <header><span class="eyebrow">Diaspora</span><h2 id="h-d">Offrir un projet, pas juste de l'argent</h2>
+    <p>Nommer le projet augmente les envois de 15 %, et payer directement l'école n'ajoute que 2,2 % (essai auprès de migrants philippins). Le produit est donc le projet nommé et illustré. Le coût total est montré avant tout engagement, et la chronologie ne promet jamais l'instantané.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>18:41 Paris</span><span>5G</span></div>
+        <div class="bd">
+          <div class="card" style="background:var(--mob)"><span style="font-size:10px;font-weight:700;letter-spacing:0.08em;opacity:0.7">MOBILITÉ · PROJET DE PAUL</span><b style="font-family:var(--display);font-size:17px;font-weight:500">Moto Bajaj Boxer 150</b><span class="ring8" style="font-size:12px">412 500 / 650 000 FCFA · reste 237 500</span></div>
+          <div class="fx">
+            <label for="eur" class="mut">Vous envoyez</label>
+            <span class="big" id="d-eur">100 €</span>
+            <input type="range" id="eur" min="20" max="400" step="10" value="100" aria-label="Montant en euros">
+          </div>
+          <div>
+            <div class="kv"><span>Taux (1 € =)</span><span>655,957 FCFA</span></div>
+            <div class="kv"><span>Frais</span><span id="d-fee">2,50 €</span></div>
+            <div class="kv"><span>Crédité au projet de Paul</span><span id="d-fcfa">64 000 FCFA</span></div>
+            <div class="kv"><span>Coût total pour vous</span><span id="d-tot">102,50 € (2,5 %)</span></div>
+          </div>
+          <span class="mut">Chiffres d'exemple. Paul doit accepter votre contribution.</span>
+          <button class="pill" type="button" style="margin-top:auto">Contribuer avec ma carte</button>
+        </div></div></div>
+      <figcaption><b>Coût total avant engagement</b>, dans la devise de l'expéditeur et en FCFA crédités au projet. Taux fixe EUR/FCFA.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>18:52 Paris</span><span>5G</span></div>
+        <div class="bd">
+          <span class="h">Votre contribution</span>
+          <div class="tl">
+            <div class="ev done"><div class="rl"><i></i></div><div class="c"><b>Paiement reçu · 102,50 €</b><span>20 nov. 18:42 Paris · 18:42 Douala</span></div></div>
+            <div class="ev done"><div class="rl"><i></i></div><div class="c"><b>Fonds transmis via [partenaire agréé]</b><span>20 nov. 19:10</span></div></div>
+            <div class="ev wait"><div class="rl"><i></i></div><div class="c"><b>En attente de l'accord de Paul</b><span>Il a reçu un SMS. Rien n'est crédité avant son accord.</span></div></div>
+            <div class="ev"><div class="rl"><i></i></div><div class="c"><b>Remise de la moto</b><span>Confirmée par Moto Center Akwa (partenaire vérifié)</span></div></div>
+          </div>
+          <div class="proof"><b style="font-family:var(--display);font-weight:500">Preuve de remise</b><span style="font-size:12px">Reçu PDF numéroté, confirmation du vendeur, photo horodatée. Page partageable sur WhatsApp.</span></div>
+          <button class="pill ghost" type="button" style="margin-top:auto">Suivre le projet avec Paul</button>
+        </div></div></div>
+      <figcaption><b>Chronologie honnête</b> : chaque étape s'affiche seulement une fois confirmée, avec l'heure de Paris et celle de Douala. Ton de fierté, jamais de surveillance.</figcaption>
+    </figure>
+  </div></div>
+  <div class="rules">
+    <div class="rule"><b>Preuve par le fournisseur</b><span>La remise est confirmée par le vendeur, l'école ou le bailleur vérifié, pas par une simple photo envoyée par le proche.</span><span class="src">Cas de fausses photos · rapport 08</span></div>
+    <div class="rule"><b>KYC du payeur renforcé</b><span>Passeport ou titre de séjour, selfie avec détection du vivant ; consentement séparé pour la biométrie.</span><span class="src">Règl. 02/24 art. 22, 30 · loi 2024/017</span></div>
+    <div class="rule"><b>Plusieurs contributeurs</b><span>Chacun voit l'anneau commun et sa propre part, sans classement entre proches.</span><span class="src">Rapport 07, interdits</span></div>
+  </div>
+</section>
+
+<!-- ================= BAILLEURS & ÉCOLES ================= -->
+<section class="wrap sec" id="beneficiaires" aria-labelledby="h-b">
+  <header><span class="eyebrow">Bailleurs, agents, écoles</span><h2 id="h-b">Payé en une fois, référencé, sans paperasse</h2>
+    <p>À Douala et Yaoundé, les bailleurs demandent souvent 6 à 12 mois d'avance et une caution. MoloPay épargne le « pack d'entrée » complet et le paie en une fois, avec une quittance par ligne. Le bailleur confirme depuis n'importe quel téléphone.</p></header>
+  <div class="row"><div class="in" style="align-items:flex-start">
+    <figure class="shot">
+      <div class="phone"><div class="scr" style="background:var(--log)"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;opacity:0.7">LOGEMENT</span>
+          <span class="h">Pack d'entrée, studio Logpom</span>
+          <span class="badge"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m2 5.2 2 2 4-4.4"/></svg>Bailleur vérifié · M. Ekambi</span>
+          <div class="pack">
+            <div><b>Caution (2 mois)</b><em>100 000</em><span>Remboursable, suivie comme telle</span></div>
+            <div><b>Avance (6 mois)</b><em>300 000</em><span>Du 1er déc. 2026 au 31 mai 2027</span></div>
+            <div><b>Commission de l'agent</b><em>50 000</em><span>Agent mandaté · M. Tchinda</span></div>
+          </div>
+          <div class="kv" style="border:0;padding:2px 0"><span>Total</span><span>450 000 FCFA</span></div>
+          <div class="steps" style="gap:4px">
+            <div class="st" style="padding:5px 8px;font-size:11.5px"><i>1</i>Vous : bail signé, clés remises</div>
+            <div class="st" style="padding:5px 8px;font-size:11.5px"><i>2</i>Le bailleur confirme par SMS</div>
+            <div class="st" style="padding:5px 8px;font-size:11.5px"><i>3</i>Paiement unique, 3 quittances</div>
+          </div>
+        </div></div></div>
+      <figcaption><b>Pack ventilé</b> : chaque ligne a son bénéficiaire et sa quittance. Paiement sur un portefeuille <b>au nom du bailleur</b>, jamais au mois.</figcaption>
+    </figure>
+    <div class="fp" style="width:240px">
+      <div class="brand">TÉLÉPHONE DU BAILLEUR</div>
+      <div class="lcd" style="height:250px"><div class="txt">MoloPay: Mme Ngo paie
+450 000 FCFA, studio Logpom:
+caution 100 000, avance
+6 mois 300 000, agent 50 000.
+1 Confirmer
+2 Refuser
+Code 4471</div><div class="meta"><span>136/160</span><span>GSM-7</span></div></div>
+      <div class="keys"><button type="button">1</button><button type="button">2</button><button type="button">3</button></div>
+    </div>
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:var(--muted)">ESSENTIELS · RENTRÉE 2027</span>
+          <span class="h">Frais de scolarité</span>
+          <label class="mut" for="mat">Matricule cartescolaire de l'élève</label>
+          <div class="mat" id="mat">CE-2026-118473</div>
+          <div class="found"><span>Élève trouvé</span><b>Ngo Bisseck Grâce · 4e B</b><span>Collège La Rosière, Yaoundé · école vérifiée</span></div>
+          <div>
+            <div class="kv"><span>Tranche 1 (septembre)</span><span>90 000 FCFA</span></div>
+            <div class="kv"><span>Tranche 2 (janvier)</span><span>80 000 FCFA</span></div>
+            <div class="kv"><span>Tranche 3 (avril)</span><span>80 000 FCFA</span></div>
+          </div>
+          <span class="mut">Montants selon la grille publiée par l'école. Exemple fictif.</span>
+          <button class="pill" type="button" style="margin-top:auto">Épargner pour la tranche 1</button>
+        </div></div></div>
+      <figcaption><b>Le nom de l'élève s'affiche avant toute confirmation.</b> MoloPay ne paie que selon la grille publiée, tranche par tranche, avec un reçu détaillé.</figcaption>
+    </figure>
+  </div></div>
+  <div class="rules">
+    <div class="rule"><b>KYC bailleur par paliers</b><span>CNI + portefeuille au même nom + photo du bail pour les petits montants ; titre foncier ou mandat écrit au-delà d'un seuil.</span><span class="src">Habitat informel &gt; 50 % · rapport 08</span></div>
+    <div class="rule"><b>Terrain : notaire obligatoire</b><span>Paiement sur compte séquestre notarial ; une photo de titre ne vaut pas preuve.</span><span class="src">Titres frauduleux · Banque mondiale</span></div>
+    <div class="rule"><b>Agents identifiés</b><span>Payés comme bénéficiaires identifiés avec mandat écrit, jamais pour le compte du bailleur.</span><span class="src">Forbes Afrique · rapport 08</span></div>
+  </div>
+</section>
+</main>
+<footer class="wrap">Maquette de démonstration : noms, montants, codes, plafonds, frais et écoles sont fictifs ou à fixer. Sources détaillées : <code>docs/05_direction_ux_et_ui/07_psychologie_de_marque_et_ux.md</code> et <code>08_ux_inclusive_et_publics_cibles.md</code>.</footer>
+
+<script>
+(function () {
+  // ---------- Nombres en lettres (français) ----------
+  var U = ['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+  var T = ['','dix','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  function lt100(n) {
+    if (n < 20) return U[n];
+    var t = Math.floor(n / 10), u = n % 10;
+    if (t === 7 || t === 9) return T[t] + (t === 7 && u === 1 ? '-et-' : '-') + U[10 + u];
+    if (u === 0) return T[t] + (t === 8 ? 's' : '');
+    return T[t] + (u === 1 && t !== 8 ? '-et-' : '-') + U[u];
+  }
+  function lt1000(n) {
+    var c = Math.floor(n / 100), r = n % 100, s = '';
+    if (c) s = (c > 1 ? U[c] + ' cent' + (r === 0 ? 's' : '') : 'cent');
+    if (r) s += (s ? ' ' : '') + lt100(r);
+    return s || 'zéro';
+  }
+  function words(n) {
+    var m = Math.floor(n / 1e6), k = Math.floor((n % 1e6) / 1000), r = n % 1000, out = [];
+    if (m) out.push((m > 1 ? lt1000(m) + ' millions' : 'un million'));
+    if (k) out.push(k > 1 ? lt1000(k).replace(/cents$/, 'cent') + ' mille' : 'mille');
+    if (r || !out.length) out.push(lt1000(r));
+    return out.join(' ');
+  }
+  var nb = function (n) { return n.toLocaleString('fr-FR').replace(/[   ]/g, ' '); };
+  function oral(n) { if (n >= 1e6) return (n / 1e6).toString().replace('.', ',') + ' million' + (n >= 2e6 ? 's' : ''); if (n >= 1000) return (n / 1000).toString().replace('.', ',') + ' mille'; return n + ' francs'; }
+
+  // ---------- Voix ----------
+  function speak(t) { try { var u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; u.rate = 0.92; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+
+  // ---------- Montant 4 façons ----------
+  var cur = 25000, usual = 25000, goalLeft = 237500;
+  var DEN = [[10000, '#c3bdff'], [5000, '#8fddf5'], [2000, '#ffa8c5'], [1000, '#d9f26b'], [500, '#ffffff']];
+  function paint() {
+    document.getElementById('a-n').innerHTML = nb(cur) + '<small>FCFA</small>';
+    document.getElementById('a-oral').textContent = oral(cur);
+    document.getElementById('a-words').textContent = words(cur) + ' francs';
+    var rest = cur, html = '', count = 0;
+    DEN.forEach(function (d) { var q = Math.floor(rest / d[0]); rest -= q * d[0]; for (var i = 0; i < q && count < 12; i++, count++) html += d[0] === 500 ? '<span class="coin">500</span>' : '<span class="note" style="background:' + d[1] + '">' + nb(d[0]) + '</span>'; if (q > 0 && count >= 12 && d[0] !== 500) html += ''; });
+    var totalNotes = 0, r2 = cur; DEN.forEach(function (d) { totalNotes += Math.floor(r2 / d[0]); r2 %= d[0]; });
+    if (totalNotes > 12) html += '<span class="note" style="background:#fff;min-width:0">+' + (totalNotes - 12) + '</span>';
+    document.getElementById('a-notes').innerHTML = html;
+    document.getElementById('a-warn').hidden = cur < usual * 10;
+    var left = Math.max(0, goalLeft - cur);
+    document.getElementById('rb-text').textContent = '« Vous allez verser ' + words(cur) + ' francs pour la moto de Paul. ' + (left > 0 ? 'Il restera ' + words(left) + ' francs. »' : 'La moto sera entièrement payée ; le surplus de ' + words(cur - goalLeft) + ' francs ne sera pas prélevé. »');
+    document.querySelectorAll('#a-chips .chip').forEach(function (c) { c.classList.toggle('on', +c.dataset.v === cur); });
+  }
+  document.getElementById('a-chips').addEventListener('click', function (e) { var c = e.target.closest('.chip'); if (!c) return; cur = +c.dataset.v; paint(); });
+  document.getElementById('say1').addEventListener('click', function () { speak(words(cur) + ' francs'); });
+  document.getElementById('say2').addEventListener('click', function () { speak(document.getElementById('rb-text').textContent.replace(/[«»]/g, '')); });
+  document.getElementById('say3').addEventListener('click', function () { speak([].map.call(document.querySelectorAll('.cg span'), function (s) { return s.textContent; }).join(' ')); });
+  paint();
+
+  // ---------- Consentements ----------
+  var req = document.querySelector('.c-req'), go = document.getElementById('c-go');
+  req.addEventListener('change', function () { go.disabled = !req.checked; });
+
+  // ---------- Diaspora ----------
+  var eur = document.getElementById('eur');
+  function fx() { var e = +eur.value, fee = Math.max(1.5, e * 0.025), f = Math.floor(e * 655.957 / 100) * 100;
+    document.getElementById('d-eur').textContent = e + ' €';
+    document.getElementById('d-fee').textContent = fee.toFixed(2).replace('.', ',') + ' €';
+    document.getElementById('d-fcfa').textContent = nb(f) + ' FCFA';
+    document.getElementById('d-tot').textContent = (e + fee).toFixed(2).replace('.', ',') + ' € (' + (fee / e * 100).toFixed(1).replace('.', ',') + ' %)'; }
+  eur.addEventListener('input', fx); fx();
+
+  // ---------- Simulateur USSD ----------
+  var GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+  var txt = document.getElementById('u-txt'), inp = document.getElementById('u-inp'), cnt = document.getElementById('u-cnt'), gsm = document.getElementById('u-gsm');
+  var smsBox = document.getElementById('u-sms'), smsT = document.getElementById('u-smst');
+  var state = 'idle', buf = '', ctx = {}, pending = null, lang = null;
+  var goals = [{ n: 'Moto Paul', left: 237500, on: 4 }, { n: 'Loyer', left: 180000, on: 3 }];
+  function bar(on) { return '[' + '####'.repeat(2).slice(0, on) + '--------'.slice(0, 8 - on) + ']'; }
+  function show(s) {
+    txt.textContent = s; buf = ''; inp.textContent = '';
+    var ok = [].every.call(s, function (ch) { return GSM.indexOf(ch) > -1; });
+    cnt.textContent = s.length + '/160'; gsm.textContent = ok ? 'GSM-7' : 'UCS-2 !';
+  }
+  function sms(s) { smsBox.hidden = false; smsT.textContent = s; }
+  function menu() { state = 'menu'; show('MoloPay\n1 Payer objectif\n2 Solde objectifs\n3 Etre rappele\n4 Bloquer compte\n5 Mon compte\n0 English'); }
+  function dial() {
+    smsBox.hidden = true;
+    if (pending) { state = 'resume'; show('Paiement en cours:\n' + nb(pending.amt) + ' FCFA vers ' + pending.goal + '\n1 Voir statut\n2 Reprendre\n3 Annuler'); return; }
+    if (!lang) { state = 'lang'; show('Bienvenue sur MoloPay\n1 Francais\n2 English'); return; }
+    menu();
+  }
+  function handle(v) {
+    switch (state) {
+      case 'lang': if (v === '1' || v === '2') { lang = v; menu(); } break;
+      case 'menu':
+        if (v === '1') { state = 'pick'; show('Payer quel objectif?\n1 ' + goals[0].n + ' (reste ' + nb(goals[0].left) + ')\n2 ' + goals[1].n + ' (reste ' + nb(goals[1].left) + ')\n0 Retour'); }
+        else if (v === '2') { state = 'end'; show(goals.map(function (g) { return g.n + ' ' + bar(g.on) + ' ' + g.on + '/8\nreste ' + nb(g.left) + ' FCFA'; }).join('\n') + '\n0 Retour'); }
+        else if (v === '3') { state = 'end'; show('Un conseiller vous rappelle sous 24 h, de 8 h a 20 h.\nRef: R-1191\n0 Retour'); sms('MoloPay: rappel demande. Ref R-1191. Un conseiller vous appelle sous 24 h.'); }
+        else if (v === '4') { state = 'end'; show('Compte bloque.\nAucun paiement ni retrait possible.\nPour debloquer: un conseiller vous rappelle.'); sms('MoloPay: votre compte est bloque a votre demande. Si ce n\'est pas vous, repondez STOP.'); }
+        else if (v === '5') { state = 'end'; show('Mon compte\nPalier P0\nLangue: Francais\n0 Retour'); }
+        else if (v === '0') { state = 'menu'; show('MoloPay\n1 Pay a goal\n2 Goal balances\n3 Call me back\n4 Block account\n5 My account\n0 Francais'); }
+        break;
+      case 'pick': if (v === '1' || v === '2') { ctx.g = goals[+v - 1]; state = 'amt'; show('Montant pour ' + ctx.g.n + '?\n1 1 000\n2 2 000\n3 5 000\n4 Autre montant'); } else if (v === '0') menu(); break;
+      case 'amt': var m = { '1': 1000, '2': 2000, '3': 5000 }[v]; if (m) { ctx.amt = m; state = 'conf'; show('Payer ' + nb(m) + ' FCFA vers "' + ctx.g.n + '".\nFrais 0.\n1 Confirmer\n2 Annuler'); } else if (v === '4') { state = 'free'; show('Tapez le montant (FCFA):'); } break;
+      case 'free': var a = parseInt(v, 10); if (a >= 500) { ctx.amt = a; state = 'conf'; show('Payer ' + nb(a) + ' FCFA vers "' + ctx.g.n + '".\nFrais 0.\n1 Confirmer\n2 Annuler'); } else show('Minimum 500 FCFA.\nTapez le montant:'); break;
+      case 'conf':
+        if (v === '1') { pending = { amt: ctx.amt, goal: ctx.g.n }; state = 'wait'; show('Validez la demande de\nMTN MoMo sur votre ecran.\nVous recevrez un SMS.\nMoloPay ne demande jamais\nvotre code MoMo.'); setTimeout(function () { if (!pending) return; finish(); }, 4500); }
+        else if (v === '2') { state = 'end'; show('Paiement annule.'); } break;
+      case 'resume':
+        if (v === '1') { state = 'end'; show('Statut: en attente de\nconfirmation MTN MoMo.\nAucun nouveau paiement\nn\'a ete cree.'); }
+        else if (v === '2') { state = 'wait'; show('Validez la demande de\nMTN MoMo sur votre ecran.'); setTimeout(finish, 3000); }
+        else if (v === '3') { pending = null; state = 'end'; show('Paiement annule.\nRien n\'a ete debite.'); } break;
+    }
+  }
+  function finish() {
+    if (!pending || state !== 'wait') return; var p = pending; pending = null;
+    var g = goals.filter(function (x) { return x.n === p.goal; })[0]; g.left -= p.amt;
+    sms('MoloPay Recu MP-004818\n' + nb(p.amt) + ' FCFA -> ' + p.goal + '\nReste ' + nb(g.left) + ' FCFA\n20/11 09:41');
+    if (state === 'wait') { state = 'end'; show('Paiement confirme.\nRecu envoye par SMS.\n0 Accueil'); }
+  }
+  document.getElementById('u-keys').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return; var k = b.dataset.k;
+    if (k === 'end') { state = 'idle'; show(''); txt.textContent = 'Session terminee.'; return; }
+    if (k === 'del') { buf = buf.slice(0, -1); inp.textContent = buf; return; }
+    if (k === 'send') {
+      if (state === 'idle') { if (buf.replace(/\s/g, '') === '*XXX#' || /^\*\d*#?$/.test(buf) || buf === '') dial(); return; }
+      if (state === 'end') { if (buf === '0') menu(); else { state = 'idle'; txt.textContent = 'Session terminee.'; inp.textContent = ''; } return; }
+      handle(buf); return;
+    }
+    buf += b.textContent; inp.textContent = buf;
+  });
+  document.getElementById('u-dial').addEventListener('click', dial);
+  document.getElementById('u-drop').addEventListener('click', function () {
+    state = 'idle'; txt.textContent = 'Connexion perdue.\n(Session USSD coupee)\n\nRecomposez *XXX#'; inp.textContent = ''; cnt.textContent = ''; gsm.textContent = '';
+  });
+  txt.textContent = 'Appuyez sur\n« Composer *XXX# »\nou Envoyer.';
+})();
+</script>
