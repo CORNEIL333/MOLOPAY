@@ -9,6 +9,7 @@ import type { ComplaintPorts as ComplaintPort } from '../components/complaint-de
 import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
 import type { CustomerBlockPorts } from '../components/customer-block';
+import type { GoalHistoryPorts } from '../components/goal-history';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -184,6 +185,15 @@ export const browserComplaintPorts: ComplaintPort = {
     const result = await api().GET('/v1/backoffice/complaints/{complaintId}', { params: { path: { complaintId }, query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, complaint: result.data };
   },
+  async openDispute(complaintId) {
+    const result = await api().POST('/v1/backoffice/complaints/{complaintId}/disputes', {
+      params: { path: { complaintId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: {},
+      cache: 'no-store',
+    });
+    const disputeId = (result.data as { disputeId?: unknown } | undefined)?.disputeId;
+    return typeof disputeId === 'string' ? { ok: true, disputeId } : { ok: false, problem: problemOf(result.error, result.response.status) };
+  },
 };
 
 /** C4 / F-ACC-006 : blocage d'un compte client par la route réelle ; une clé d'idempotence par confirmation. */
@@ -197,3 +207,17 @@ export const browserCustomerBlockPorts: CustomerBlockPorts = {
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, blockedAt: result.data.blockedAt };
   },
 };
+
+/** C6 / F-SUP-003 : historique d'un objectif (route réelle ; le motif est inscrit à l'audit). */
+export const browserGoalHistoryPorts: GoalHistoryPorts = {
+  async load(goalId, reason) {
+    const result = await api().GET('/v1/backoffice/goals/{goalId}/history', { params: { path: { goalId }, query: { reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, history: result.data };
+  },
+};
+
+/** C6 : déconnexion du personnel (révocation immédiate côté serveur). */
+export async function browserStaffSignOut(): Promise<void> {
+  await api().DELETE('/v1/staff/sessions/current', { params: { header: { 'Idempotency-Key': crypto.randomUUID() } }, cache: 'no-store' });
+}
+

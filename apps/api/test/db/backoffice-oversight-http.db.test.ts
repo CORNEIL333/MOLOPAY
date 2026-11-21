@@ -210,6 +210,28 @@ describe('F-BO-003 / D62 file de travail du back-office', () => {
   });
 });
 
+describe('C6 / D54 / D56 décisions en attente d’une seconde personne dans la file', () => {
+  it('proposition de classement non décidée et litige ouvert listés (identifiants, auteur) ; disparaissent une fois décidés', async () => {
+    const read = async (): Promise<{ pendingGapClassifications: Record<string, unknown>[]; openDisputes: Record<string, unknown>[] }> =>
+      (await request(server()).get('/v1/backoffice/queue').query({ reason: 'revue quotidienne des files' }).set('Cookie', cookies.finOne)).body as never;
+    const check = await withTransaction(database, (client) => recordSegregationCheck(client, { statementDate: '2026-11-11', statementBalanceXaf: 1n, outgoingInTransitXaf: 0n, actorId: 'fin.un' }));
+    const proposed = await post(`/v1/backoffice/reconciliation/incidents/${check.incidentId ?? ''}/classifications`, cookies.finOne, { classification: 'FEES', explanation: 'frais de tenue de compte du 11' });
+    const { proposalId } = proposed.body as { proposalId: string };
+    const complaint = await withTransaction(database, (client) => recordComplaint(client, { id: uuidv7(), customerId: CUSTOMER, agreementId: GOAL, channel: 'APP' }));
+    const opened = await post(`/v1/backoffice/complaints/${complaint.id}/disputes`, cookies.support, {});
+    const { disputeId } = opened.body as { disputeId: string };
+    const before = await read();
+    expect(before.pendingGapClassifications).toEqual([{ proposalId, incidentId: check.incidentId, classification: 'FEES', proposedBy: 'fin.un', proposedAt: expect.any(String) as unknown }]);
+    expect(before.openDisputes).toEqual([{ disputeId, agreementId: GOAL, openedBy: 'sup.deux', openedAt: expect.any(String) as unknown }]);
+    expect(JSON.stringify(before)).not.toMatch(/frais de tenue|\+237/);
+    expect((await post(`/v1/backoffice/reconciliation/classifications/${proposalId}/decision`, cookies.finTwo, { decision: 'APPROVED' })).status).toBe(200);
+    expect((await post(`/v1/backoffice/disputes/${disputeId}/resolution`, cookies.ops, {})).status).toBe(200);
+    const after = await read();
+    expect(after.pendingGapClassifications).toEqual([]);
+    expect(after.openDisputes).toEqual([]);
+  });
+});
+
 describe('F-SUP-003 / D62 historique d’un objectif pour le support', () => {
   it('motif obligatoire ; historique chronologique ; consultation journalisée avec l’identifiant du client ; droit requis', async () => {
     await pay(10_000n);

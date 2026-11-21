@@ -2241,6 +2241,28 @@ export interface components {
                 /** Format: date-time */
                 screenedAt: string;
             }[];
+            /** @description C6 / D54 : propositions de classement d'un écart en attente de la décision d'une autre personne (l'explication n'est pas reprise). */
+            pendingGapClassifications: {
+                /** Format: uuid */
+                proposalId: string;
+                /** Format: uuid */
+                incidentId: string;
+                /** @enum {string} */
+                classification: "IN_TRANSIT" | "FEES" | "DUPLICATE" | "UNKNOWN";
+                proposedBy: string;
+                /** Format: date-time */
+                proposedAt: string;
+            }[];
+            /** @description C6 / D56 : litiges ouverts, à lever par une autre personne que celle qui les a ouverts. */
+            openDisputes: {
+                /** Format: uuid */
+                disputeId: string;
+                /** Format: uuid */
+                agreementId: string;
+                openedBy: string;
+                /** Format: date-time */
+                openedAt: string;
+            }[];
         };
         ApprovalPrepareRequest: {
             /** Format: uuid */

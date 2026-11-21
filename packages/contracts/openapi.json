@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.37.0",
+    "version": "0.38.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -7846,15 +7846,17 @@
         "description": "F-BO-003 : actions en attente (identifiants internes, montants, états ; aucune donnée personnelle).",
         "required": [
           "asOf",
-          "refunds",
           "beneficiaryPayouts",
-          "settlements",
-          "overdueInstructions",
           "gapsToEscalate",
-          "unjustifiedSuspense",
+          "openDisputes",
           "openRiskAlerts",
           "overdueComplaints",
-          "pendingSanctionsReviews"
+          "overdueInstructions",
+          "pendingGapClassifications",
+          "pendingSanctionsReviews",
+          "refunds",
+          "settlements",
+          "unjustifiedSuspense"
         ],
         "properties": {
           "refunds": {
@@ -7993,6 +7995,78 @@
                 }
               },
               "additionalProperties": false
+            }
+          },
+          "pendingGapClassifications": {
+            "type": "array",
+            "description": "C6 / D54 : propositions de classement d'un écart en attente de la décision d'une autre personne (l'explication n'est pas reprise).",
+            "items": {
+              "type": "object",
+              "required": [
+                "proposalId",
+                "incidentId",
+                "classification",
+                "proposedBy",
+                "proposedAt"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "proposalId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "incidentId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "classification": {
+                  "type": "string",
+                  "enum": [
+                    "IN_TRANSIT",
+                    "FEES",
+                    "DUPLICATE",
+                    "UNKNOWN"
+                  ]
+                },
+                "proposedBy": {
+                  "type": "string"
+                },
+                "proposedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "openDisputes": {
+            "type": "array",
+            "description": "C6 / D56 : litiges ouverts, à lever par une autre personne que celle qui les a ouverts.",
+            "items": {
+              "type": "object",
+              "required": [
+                "disputeId",
+                "agreementId",
+                "openedBy",
+                "openedAt"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "disputeId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "agreementId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "openedBy": {
+                  "type": "string"
+                },
+                "openedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
             }
           }
         }
