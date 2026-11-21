@@ -10,6 +10,7 @@ import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-pa
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
 import type { CustomerBlockPorts } from '../components/customer-block';
 import type { GoalHistoryPorts } from '../components/goal-history';
+import type { OutgoingFreezePorts } from '../components/outgoing-freeze';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -220,4 +221,28 @@ export const browserGoalHistoryPorts: GoalHistoryPorts = {
 export async function browserStaffSignOut(): Promise<void> {
   await api().DELETE('/v1/staff/sessions/current', { params: { header: { 'Idempotency-Key': crypto.randomUUID() } }, cache: 'no-store' });
 }
+
+/** C7 / SEC-INC-003 : gel des flux sortants par les routes réelles. */
+export const browserOutgoingFreezePorts: OutgoingFreezePorts = {
+  async load() {
+    const result = await api().GET('/v1/backoffice/outgoing-freeze', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, state: result.data };
+  },
+  async request(action, reason) {
+    const result = await api().POST('/v1/backoffice/outgoing-freeze/requests', {
+      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { action, reason },
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+  async confirm(requestId) {
+    const result = await api().POST('/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation', {
+      params: { path: { requestId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: {},
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+};
 

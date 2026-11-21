@@ -40,6 +40,8 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'IDENTITY_NONCE_REUSED',
   'IDENTITY_OTP_REPLAYED',
   'IDENTITY_ACCOUNT_EXISTS',
+  'SETTLEMENT_OUTGOING_FROZEN',
+  'SETTLEMENT_FREEZE_STATE',
 ]);
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([

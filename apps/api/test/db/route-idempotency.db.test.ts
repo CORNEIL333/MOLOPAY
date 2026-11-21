@@ -92,6 +92,8 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/partners/${GOAL}/screenings`]: {},
   [`/v1/backoffice/screenings/${GOAL}/review`]: { decision: 'FALSE_POSITIVE', reason: 'homonyme vérifié' },
   [`/v1/backoffice/customers/${GOAL}/block`]: { reason: 'Téléphone volé' },
+  '/v1/backoffice/outgoing-freeze/requests': { action: 'FREEZE', reason: 'Incident de test' },
+  [`/v1/backoffice/outgoing-freeze/requests/${GOAL}/confirmation`]: {},
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */

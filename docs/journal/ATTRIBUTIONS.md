@@ -23,6 +23,7 @@
 | C4 | Blocage d'un compte client par le support (F-ACC-006) : route, base, écran `/clients/blocage` | `sprint/integration-t01urw` | J4 | Livré (contrat 0.36.0, migration 0068) |
 | C5 | Fil de notifications du client dans l'application (`GET /v1/me/notifications`), sans prestataire | `sprint/integration-t01urw` | J5 | Livré (contrat 0.37.0, migration 0069) |
 | C6 | Back-office : écrans des routes sans interface (litiges, validation des classes, historique d'un objectif), menu de navigation | `sprint/integration-t01urw` | J5 | Livré (contrat 0.38.0) |
+| C7 | Interrupteur d'arrêt des flux sortants à deux personnes (SEC-INC-003) : routes, base, écran `/incidents/gel` | `sprint/integration-t01urw` | J5 | Livré (contrat 0.39.0, migration 0070) |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 

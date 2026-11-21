@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **85 routes.**
+- **88 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -35,6 +35,9 @@
 | `GET` | `/v1/backoffice/dashboard` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Tableau de bord agrégé, consultation motivée et journalisée (F-BO-003, D65) |
 | `POST` | `/v1/backoffice/disputes/{disputeId}/resolution` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Lever un litige, par une autre personne (D56) |
 | `GET` | `/v1/backoffice/goals/{goalId}/history` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Historique d’un objectif pour le support (F-SUP-003, consultation motivée et journalisée) |
+| `GET` | `/v1/backoffice/outgoing-freeze` | personnel | private, no-store | non | non | — | partie de confiance du personnel | État du gel des flux sortants et demandes en attente (SEC-INC-003) |
+| `POST` | `/v1/backoffice/outgoing-freeze/requests` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Demander le gel ou la levée du gel des flux sortants (SEC-INC-003) |
+| `POST` | `/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Confirmer une demande de gel ou de levée, par une autre personne (I-7) |
 | `GET` | `/v1/backoffice/partners/{partnerId}/screening` | personnel | private, no-store | non | non | — | partie de confiance du personnel | État de filtrage d'un partenaire (D66) |
 | `POST` | `/v1/backoffice/partners/{partnerId}/screenings` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Filtrer un partenaire contre la liste ONU (REG-LBC-002, D66) |
 | `GET` | `/v1/backoffice/queue` | personnel | private, no-store | non | non | — | partie de confiance du personnel | File de travail du back-office (consultation motivée, journalisée) |

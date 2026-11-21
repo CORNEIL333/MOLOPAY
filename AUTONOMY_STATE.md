@@ -64,6 +64,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | SEC-API-005 : CSP à nonce pour back-office et portail partenaire ; REG-DPD-001 : registre T-11 à T-15 ; NF-UX-002 portail ; NF-UX-005 ; SEC-CRY-005/006 | |
 | DONE | Mineurs restants : codes métier exacts dans les tests de refus, jeton transplanté, défi inconnu indiscernable, détail uniforme des refus d'authentification ; D79 consigné | |
 | DONE | C2 : profil `GET /v1/me`, renouvellement de session, inscription par OTP (envoi SMS fermé sans prestataire), connexion appareil + PIN (D71 selon SEC-AUTH-001) | 0066, contrat 0.34.0 ; reste : adaptateur SMS (prestataire), nouvel appareil et récupération |
+| DONE | C4 blocage support (0068), C5 fil de notifications (0069), C6 écrans back-office manquants, C7 gel des flux sortants à deux personnes (0070, D84) | contrats 0.36.0 à 0.39.0 |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |

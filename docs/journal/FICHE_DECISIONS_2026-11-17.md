@@ -59,6 +59,7 @@
 | D71 | (Appliqué le 20 novembre conformément à SEC-AUTH-001 : appareil + PIN.) Confirmer ? | — |
 | D82 | **Nouveau téléphone** sur le même numéro : **A** approbation par l'ancien téléphone + OTP / **B** OTP + délai 24 h / **C** agence ou support avec contrôle d'identité (recommandé : A + C) | Aucun ajout d'appareil possible. |
 | D83 | **Blocage d'un compte client** par : support N1/N2 et risque (appliqué) — **Valider / Modifier** ; SMS au client lors du blocage ? procédure de déblocage ? | Appliqué ; aucun déblocage possible. |
+| D84 | **Gel des flux sortants** (SEC-INC-003) demandé et confirmé par deux personnes parmi finance, conformité, risque ; confirmation dans l'heure — **Valider / Modifier** ; alerte au fondateur lors d'un gel ? | Appliqué ; aucune alerte. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

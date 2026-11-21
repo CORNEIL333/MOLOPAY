@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.38.0",
+    "version": "0.39.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5404,6 +5404,216 @@
           }
         }
       }
+    },
+    "/v1/backoffice/outgoing-freeze": {
+      "get": {
+        "operationId": "getOutgoingFreeze",
+        "summary": "État du gel des flux sortants et demandes en attente (SEC-INC-003)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingFreezeState"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/outgoing-freeze/requests": {
+      "post": {
+        "operationId": "requestOutgoingFreeze",
+        "summary": "Demander le gel ou la levée du gel des flux sortants (SEC-INC-003)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutgoingFreezeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Demande enregistrée, à confirmer par une autre personne",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "requestId",
+                    "action"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "FREEZE",
+                        "UNFREEZE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation": {
+      "post": {
+        "operationId": "confirmOutgoingFreeze",
+        "summary": "Confirmer une demande de gel ou de levée, par une autre personne (I-7)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "État résultant",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "requestId",
+                    "frozen"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "frozen": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9284,6 +9494,93 @@
           "asOf": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "OutgoingFreezeState": {
+        "type": "object",
+        "required": [
+          "frozen",
+          "since",
+          "reason",
+          "pending"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "frozen": {
+            "type": "boolean"
+          },
+          "since": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "requestId",
+                "action",
+                "reason",
+                "requestedBy",
+                "requestedAt"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "FREEZE",
+                    "UNFREEZE"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "requestedBy": {
+                  "type": "string"
+                },
+                "requestedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "OutgoingFreezeRequest": {
+        "type": "object",
+        "required": [
+          "action",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "FREEZE",
+              "UNFREEZE"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000
           }
         }
       }

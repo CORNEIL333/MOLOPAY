@@ -61,6 +61,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'APPROVE_BENEFICIARY_PAYOUT',
     // D54 : classement des écarts de rapprochement.
     'CLASSIFY_RECONCILIATION_GAP',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',
@@ -78,9 +80,11 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
     'SCREEN_PARTNER',
     'REVIEW_SANCTIONS_MATCH',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
-  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT'],
+  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT', 'MANAGE_OUTGOING_FREEZE'],
   PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER'],
   AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
@@ -161,6 +165,12 @@ describe('RBAC · matrice rôle × action exhaustive', () => {
 });
 
 describe('ABAC · périmètre, plafond et motif', () => {
+  it('C7 / SEC-INC-003 le gel des flux sortants exige un motif (ADMIN_REASON_REQUIRED)', () => {
+    expect(authorize(principal('fin-1', ['FINANCE']), 'MANAGE_OUTGOING_FREEZE', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('fin-1', ['FINANCE']), 'MANAGE_OUTGOING_FREEZE', { reason: 'Incident' })).toMatchObject({ allowed: true });
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_OUTGOING_FREEZE', { reason: 'Incident' })).toMatchObject({ allowed: false, code: 'ADMIN_FORBIDDEN' });
+  });
+
   it('C4 / F-ACC-006 le blocage d’un compte client exige un motif (ADMIN_REASON_REQUIRED)', () => {
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', { reason: 'Téléphone volé' })).toMatchObject({ allowed: true });

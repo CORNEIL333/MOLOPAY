@@ -16,6 +16,7 @@ describe('C6 navigation du back-office', () => {
       ['Réclamations', '/reclamations'],
       ['Historique d’un objectif', '/objectifs'],
       ['Bloquer un compte client', '/clients/blocage'],
+      ['Gel des flux sortants', '/incidents/gel'],
       ['Administration', '/administration'],
     ]);
     expect(screen.getByRole('link', { name: 'File de travail' })).toHaveAttribute('aria-current', 'page');

@@ -10,6 +10,7 @@ const LINKS: readonly (readonly [string, string])[] = [
   ['/reclamations', 'Réclamations'],
   ['/objectifs', 'Historique d’un objectif'],
   ['/clients/blocage', 'Bloquer un compte client'],
+  ['/incidents/gel', 'Gel des flux sortants'],
   ['/administration', 'Administration'],
 ];
 
