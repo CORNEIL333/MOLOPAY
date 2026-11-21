@@ -65,6 +65,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | Mineurs restants : codes métier exacts dans les tests de refus, jeton transplanté, défi inconnu indiscernable, détail uniforme des refus d'authentification ; D79 consigné | |
 | DONE | C2 : profil `GET /v1/me`, renouvellement de session, inscription par OTP (envoi SMS fermé sans prestataire), connexion appareil + PIN (D71 selon SEC-AUTH-001) | 0066, contrat 0.34.0 ; reste : adaptateur SMS (prestataire), nouvel appareil et récupération |
 | DONE | C4 blocage support (0068), C5 fil de notifications (0069), C6 écrans back-office manquants, C7 gel des flux sortants à deux personnes (0070, D84) | contrats 0.36.0 à 0.39.0 |
+| DONE | C8 REG-LBC-004 ; NF-SAFE-002 plafond d'objectifs actifs (0071, D86) ; C9 gel automatique sur divergence du vérificateur (0072, D87) ; C10 TECH_ADMIN ≤ 2 (0073) ; C11 conditions réacceptées (0074, D88) ; traçabilité NF-MNT-004, NF-COMP-002 et citations | contrats 0.40.0 et 0.41.0 |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -82,4 +83,4 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-21 novembre : tous les lots de Claude indépendants des décisions du fondateur sont livrés (C2 partie sans décision, C4, C5, C6, C7, traçabilité SEC-AUTHZ-004, SEC-API-004, F-BO-002, INT-HASH-004). Aucune PR fusionnée ni nouvelle PR de Qoder depuis les revues des PR #6, #8 et #9. En attente : décisions D63–D84, ADR-0007 et D64 ; fusion des PR de Qoder (contrat : `X-Correlation-Id`, `Accept-Language`/`Content-Language`, codes génériques, `GET /health/ready`, et reprise des trois codes C7 dans `errors.ts`). Restent bloqués : nouvel appareil (D82), récupération (KYC renforcé), code de remise (D69), versements (agrégateur), SMS (D1), C3 (ADR-0007, D63, D64), INT-ANC-006 (clé HSM, lot 23).
+21 novembre (suite) : lots C8 à C11 livrés. Avant l'ouverture, publier `customer_commitment_limits` (D86), sinon aucune activation. Restent bloqués : décisions D63–D88, ADR-0007, D64 ; PR de Qoder #6/#8/#9 (contrat : corrélation, langues, codes génériques, sonde ; reprise des codes ajoutés dans `errors.ts`) ; Q7 planification de `pnpm verify:nightly` ; accès externes (SMS, agrégateur, clé HSM, témoins).
