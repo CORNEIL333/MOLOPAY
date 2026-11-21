@@ -62,7 +62,7 @@ beforeEach(async () => {
   [cookie, foreignCookie] = cookies as [string, string];
 });
 describe('F-ACC-005 · registre réel des demandes de droits', () => {
-  it('enregistre chaque type avec reçu serveur, sans toucher les données du compte', async () => {
+  it('REG-LBC-005 enregistre chaque type avec reçu serveur, sans toucher les données du compte (une demande d’effacement ne supprime rien pendant la conservation légale)', async () => {
     for (const kind of ['ACCESS', 'RECTIFICATION', 'OBJECTION', 'ERASURE']) {
       const response = await command(kind, `data-rights-create-${kind}`).expect(201);
       const receipt = response.body as Receipt;

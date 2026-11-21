@@ -122,7 +122,7 @@ beforeEach(async () => {
   await admin.query(metadataMigrationSql);
 });
 
-describe('journal d’audit · chaîne et ajout seul (base réelle)', () => {
+describe('INT-HASH-005 journal d’audit · chaîne et ajout seul (base réelle)', () => {
   it('accepte un premier événement à la séquence 1 avec prev_hash nul', async () => {
     await transact('app_rw', async (client) => {
       await insertEvent(client, {

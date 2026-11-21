@@ -72,7 +72,7 @@ afterAll(async () => {
   await db.stop();
 });
 
-describe('NF-SAFE-002 plafond d’objectifs actifs par client', () => {
+describe('NF-SAFE-002 / NF-PORT-003 plafond d’objectifs actifs par client (donnée versionnée)', () => {
   it('refus par défaut : sans plafond publié, aucune activation (AGREEMENT_LIMITS_NOT_CONFIGURED)', async () => {
     expect(await refusal(activate(admin, await draft(CUSTOMER)))).toBe('AGREEMENT_LIMITS_NOT_CONFIGURED');
   });

@@ -369,7 +369,7 @@ describe('F-SET-003 décision maker-checker', () => {
     expect(result.message).toMatch(/^SETTLEMENT_INCOMPLETE/);
   });
 
-  it('I-8 la base refuse une commission versée ailleurs qu’en produits 7100 (SETTLEMENT_INCOMPLETE)', async () => {
+  it('I-8 / REG-FIS-002 la base refuse une commission versée ailleurs qu’en produits 7100 (SETTLEMENT_INCOMPLETE)', async () => {
     await settings(250);
     const prepared = await prepare();
     const result = await failure(() =>
