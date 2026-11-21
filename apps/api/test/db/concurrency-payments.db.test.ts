@@ -11,7 +11,7 @@ import { exportLedgerEntries } from '../../src/modules/ledger/export.store';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import { createSaveThenBuyAgreement } from '../../src/modules/agreements/agreement.store';
-import { PLAN_A, publishKycLimits, publishOfferA, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateMerchant } from './agreement-fixture';
+import { PLAN_A, publishKycLimits, publishOfferA, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateMerchant, publishCommitmentLimits } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { exportDocument } from './real-flows-scenario';
 
@@ -52,6 +52,7 @@ beforeAll(async () => {
   for (const name of readdirSync(DIRECTORY).filter((file) => file.endsWith('.sql')).sort()) {
     await admin.query(readFileSync(resolve(DIRECTORY, name), 'utf8'));
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_SMALL);

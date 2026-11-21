@@ -321,3 +321,8 @@ export async function publishSetting(admin: Client, key: string, value: JsonValu
     [key, JSON.stringify(value), requestId],
   );
 }
+
+/** NF-SAFE-002 : plafond d'objectifs actifs par client (paramètre versionné, deux personnes ; valeur de test). */
+export async function publishCommitmentLimits(admin: Client, maxActiveGoals = 5): Promise<void> {
+  await publishSetting(admin, 'customer_commitment_limits', { max_active_goals: maxActiveGoals });
+}

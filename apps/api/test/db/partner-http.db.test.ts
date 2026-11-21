@@ -30,6 +30,7 @@ import {
   seedLedgerGenesis,
   seedPaymentPlan,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerCredentialBody, partnerKey, partnerLoginBody, type PartnerKey, type Transact } from './partner-fixture';
@@ -149,6 +150,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7(), 'merchant-1');
   await validateMerchant(admin, uuidv7(), 'merchant-2');

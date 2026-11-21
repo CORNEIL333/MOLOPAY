@@ -26,6 +26,7 @@ import {
   seedLedgerGenesis,
   seedPaymentPlan,
   validateLandlord,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
@@ -92,6 +93,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);

@@ -17,7 +17,7 @@ import { issueEnrollment } from '../../src/modules/admin/staff.store';
 import { verifyRefundInstruction, type RefundInstructionDocument } from '../../src/modules/settlement/refund.store';
 import { payBeneficiaryForCustomer } from '../../src/workflows/beneficiary-payment';
 import { prepareRefund } from '../../src/workflows/refund';
-import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateBeneficiary, validateLandlord } from './agreement-fixture';
+import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateBeneficiary, validateLandlord, publishCommitmentLimits } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginBody, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie, type StaffKey } from './staff-fixture';
 
@@ -113,6 +113,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);

@@ -136,4 +136,25 @@ describe('Migrations : chaîne complète et ordonnée', () => {
     // existante par le propriétaire sont prouvés par les tests INT-LED-003 de `ledger.db.test.ts`.
     expect(await attempt(null, 'TRUNCATE ledger.posting'), 'propriétaire · TRUNCATE posting').toMatch(/^P0001 LEDGER_APPEND_ONLY/);
   });
+
+  it('REG-LBC-004 la boîte d’envoi vers le client n’accepte que des types d’événements métier ; aucun ne relève d’un filtrage ou d’un soupçon', async () => {
+    const checks = (await admin.query<{ definition: string }>(
+      `SELECT pg_get_constraintdef(c.oid) AS definition FROM pg_constraint c
+        WHERE c.conrelid = 'notifications.outbox'::regclass AND c.contype = 'c' AND pg_get_constraintdef(c.oid) LIKE '%event_type%'`,
+    )).rows.map((row) => row.definition);
+    expect(checks).toHaveLength(1);
+    const types = [...(checks[0] ?? '').matchAll(/'([A-Z_]+)'/g)].map((match) => match[1]).sort();
+    expect(types).toEqual(['DISPUTE_UPDATED', 'GOAL_FUNDED', 'HANDOVER_READY', 'PAYMENT_CONFIRMED', 'PAYMENT_REMINDER', 'SETTLEMENT_CONFIRMED']);
+    await admin.query('BEGIN');
+    try {
+      const refused = await admin.query(
+        `INSERT INTO notifications.outbox (recipient_id, event_key, channel, event_type, locale, created_at)
+         VALUES ('0192f6a0-0000-7000-8000-000000000001', '0192f6a0-0000-7000-8000-000000000002', 'SMS', 'SCREENING_MATCH', 'fr', now())`,
+      ).then(() => 'accepted', (error: { code?: string }) => error.code ?? '');
+      expect(refused).toBe('23514');
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+  });
 });
+
