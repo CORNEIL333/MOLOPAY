@@ -9,11 +9,11 @@
 | Lot | Contenu | Branche | Échéance | Statut |
 |---|---|---|---|---|
 | G1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/gemini/arrivee` | J1 | À démarrer |
-| G2 | `apps/mobile` : application client Flutter à partir du design de `apps/mobile-showcase` ; connexion, catalogue, objectifs branchés sur l'API réelle | `agent/gemini/mobile-socle` | J2 | Repris par Claude (24 nov.) |
-| G3 | Parcours mobile et bureau A, B, C (versements, reçus, remise, annulation, bénéficiaire C), FR/EN, accessibilité, hors connexion lisible | `agent/gemini/mobile-parcours` | J6 | Repris par Claude (24 nov.) |
-| G4 | Application web client : écrans manquants au regard des routes de `INVENTAIRE_ROUTES.md` | `agent/gemini/web-client` | J6 | Repris par Claude (24 nov.) |
-| G5 | Portail partenaire : écrans manquants, parcours de bout en bout | `agent/gemini/portail-partenaire` | J6 | Repris par Claude (24 nov.) |
-| G6 | Tests de bout en bout des parcours (mobile, bureau, web) | `agent/gemini/e2e` | J8 | Repris par Claude (24 nov.) |
+| G2 | `apps/mobile` : application client Flutter à partir du design de `apps/mobile-showcase` ; connexion, catalogue, objectifs branchés sur l'API réelle | `agent/gemini/mobile-socle` | J2 | Intégré (24 nov.) ; clé d'appareil de plateforme en attente de D90 |
+| G3 | Parcours mobile et bureau A, B, C (versements, reçus, remise, annulation, bénéficiaire C), FR/EN, accessibilité, hors connexion lisible | `agent/gemini/mobile-parcours` | J6 | Intégré (24 nov.) ; versements (agrégateur), code de remise (D69), actions signées (D90) bloqués |
+| G4 | Application web client : écrans manquants au regard des routes de `INVENTAIRE_ROUTES.md` | `agent/gemini/web-client` | J6 | Intégré (24 nov.) ; conditions en vigueur, inscription et connexion par clé du navigateur (D89) |
+| G5 | Portail partenaire : écrans manquants, parcours de bout en bout | `agent/gemini/portail-partenaire` | J6 | Intégré (24 nov.) |
+| G6 | Tests de bout en bout des parcours (mobile, bureau, web) | `agent/gemini/e2e` | J8 | Intégré (24 nov.) ; bout en bout web bloqué par le build Next.js (D64) |
 
 ## Claude — serveur métier et back-office
 
