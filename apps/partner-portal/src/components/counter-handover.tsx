@@ -3,7 +3,7 @@
 import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import { getDictionary, type Locale } from '../i18n';
-import { useId, useState, type FormEvent, type ReactElement } from 'react';
+import { useEffect, useId, useState, type FormEvent, type ReactElement } from 'react';
 
 /** Appels injectés : position du navigateur et route réelle de remise (`browserCounterPorts`). */
 export type CounterHandoverPorts = {
@@ -34,9 +34,23 @@ export function CounterHandover({ ports, locale = 'fr' }: { readonly ports: Coun
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [done, setDone] = useState<{ readonly agreementId: string; readonly validatedAt: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    const onOffline = (): void => { setOnline(false); };
+    const onOnline = (): void => { setOnline(true); };
+    setOnline(navigator.onLine);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (!online || pending) return;
     const compact = code.toUpperCase().replace(/[\s-]/g, '');
     if (!CODE.test(compact)) {
       setError(t.invalidCode);
@@ -77,11 +91,12 @@ export function CounterHandover({ ports, locale = 'fr' }: { readonly ports: Coun
   return (
     <section>
       <h1>{t.title}</h1>
+      {!online ? <p role="status">{t.offline}</p> : null}
       {done === null ? null : <p role="status">{t.doneLead(done.agreementId)}<time dateTime={done.validatedAt}>{new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(done.validatedAt))}</time>{t.doneTail}</p>}
       {problem === null ? null : <ErrorState problem={problem} />}
       <form onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={codeId} label={t.code} autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value); }} />
-        <Button type="submit" disabled={pending}>{t.submit}</Button>
+        <Button type="submit" disabled={pending || !online}>{t.submit}</Button>
       </form>
     </section>
   );
