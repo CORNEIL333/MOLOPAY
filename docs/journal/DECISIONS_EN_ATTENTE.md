@@ -700,3 +700,10 @@
 - **⚖ D88 :** étendre le refus aux **versements** (dès l'agrégateur branché) et au **règlement au bénéficiaire C** ? Appliqué : création et activation seulement (un règlement bloqué piégerait des fonds déjà versés). La nouvelle version elle-même dépend des textes juridiques (D23).
 - **Pour Gemini :** si `termsAccepted` est faux, afficher les conditions et appeler `POST /v1/me/terms-acceptances` avant de proposer un nouvel objectif.
 
+### G4 · Client web repris de Gemini ; inscription et connexion par clé de navigateur (24 novembre)
+- **Repris sur instruction du fondateur :** branches `agent/gemini/web-client` (G4) et `agent/gemini/portail-partenaire` (G5) relues puis intégrées (aucun conflit de code ; tests verts). Toutes les routes client du contrat ont désormais un écran web, sauf `GET /v1/goals/{goalId}/handover-code` (D69).
+- **Conditions en vigueur (F-ACC-004) :** `/compte` affiche la version et invite à l'accepter ; version unique partagée avec le serveur (`@achat/contracts/terms`).
+- **Constat :** sur le web, inscription et connexion étaient impossibles (aucune clé d'appareil dans le navigateur ; les formulaires renvoyaient vers l'application mobile).
+- **Appliqué :** le navigateur génère une clé **Ed25519 non exportable** (WebCrypto), conservée dans IndexedDB ; la clé publique part en SPKI au serveur, qui traite le navigateur comme un appareil (D71 inchangé : défi signé + PIN). Navigateur sans Ed25519 : message clair, aucune clé de remplacement. Tests : clé non exportable, signature vérifiée par `node:crypto` comme le fait le serveur, parcours inscription → connexion.
+- **⚖ D89 :** accepter le **navigateur comme appareil** du client (appliqué ; le plus simple pour le web léger) — ou réserver le client web à la consultation et exiger le mobile pour l'inscription ? Risque connu : un script injecté peut faire signer la clé tant que la page est ouverte (elle ne peut pas être copiée) ; la politique CSP à nonce et le PIN limitent ce risque.
+

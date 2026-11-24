@@ -29,7 +29,7 @@ describe('Contrat 0.34.0 / 0.35.0 — DeviceSignupForm et DeviceLoginForm', () =
 
   it('DeviceLoginForm affiche l’indisponibilité sans clé d’appareil (zéro simulation)', async () => {
     const { container } = render(<DeviceLoginForm locale="fr" />);
-    expect(screen.getByRole('status')).toHaveTextContent(/clé d’appareil enrôlée/i);
+    expect(screen.getByRole('status')).toHaveTextContent(/Aucune clé d’appareil n’est enrôlée dans ce navigateur/i);
     expect((await axe.run(container)).violations).toHaveLength(0);
   });
 

@@ -144,9 +144,16 @@ export function DeviceSignupForm({
       } else {
         setProblem(outcome.problem);
       }
-    } catch {
+    } catch (error) {
       setPin('');
-      setProblem({ title: errorTitle });
+      setProblem(error instanceof Error && error.message === 'DEVICE_KEY_UNSUPPORTED'
+        ? {
+            title: errorTitle,
+            detail: isEn
+              ? 'This browser cannot create a secure device key. Use the mobile application or an up-to-date browser.'
+              : 'Ce navigateur ne permet pas de créer une clé d’appareil sécurisée. Utilisez l’application mobile ou un navigateur à jour.',
+          }
+        : { title: errorTitle });
     } finally {
       submitting.current = false;
       setPending(false);
@@ -296,8 +303,8 @@ export function DeviceLoginForm({
       {!hasDeviceKey ? (
         <p role="status">
           {isEn
-            ? 'Client sign-in requires an enrolled device key (D71) and PIN.'
-            : 'La connexion client exige une clé d’appareil enrôlée (D71) et votre code PIN.'}
+            ? 'No device key is enrolled in this browser. Sign in from the device used to create your account, or create an account here.'
+            : 'Aucune clé d’appareil n’est enrôlée dans ce navigateur. Connectez-vous depuis l’appareil utilisé à l’inscription, ou créez un compte ici.'}
         </p>
       ) : (
         <form className="auth-form" noValidate onSubmit={(e) => { void submit(e); }}>
