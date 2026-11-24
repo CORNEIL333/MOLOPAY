@@ -32,6 +32,7 @@ import {
   seedPaymentPlan,
   validateBeneficiary,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { createPartnerStaff } from './partner-fixture';
 
@@ -104,6 +105,7 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
   for (const name of readdirSync(DIRECTORY).filter((file) => file.endsWith('.sql')).sort()) {
     await admin.query(readFileSync(resolve(DIRECTORY, name), 'utf8'));
   }
+  await publishCommitmentLimits(admin);
   await transact(uri, 'app_rw', async (client) => {
     await validateBeneficiary(client, uuidv7(), 'school-1', 'SCHOOL');
     await validateMerchant(client, uuidv7());

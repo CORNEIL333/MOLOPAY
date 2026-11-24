@@ -50,6 +50,7 @@ export const ADMIN_ACTIONS = [
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
   'BLOCK_CUSTOMER_ACCOUNT',
+  'MANAGE_OUTGOING_FREEZE',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -123,6 +124,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'APPROVE_BENEFICIARY_PAYOUT',
     // D54 / INT-REC-003 : classement des écarts (proposition puis validation par une autre personne).
     'CLASSIFY_RECONCILIATION_GAP',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
   ]),
   COMPLIANCE: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
@@ -140,6 +143,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
     'SCREEN_PARTNER',
     'REVIEW_SANCTIONS_MATCH',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -149,6 +154,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECIDE_RISK_ALERT',
     // C4 / F-ACC-006 : blocage d'un compte client sur fraude présumée.
     'BLOCK_CUSTOMER_ACCOUNT',
+    // C7 / SEC-INC-003 : gel des flux sortants (deux personnes).
+    'MANAGE_OUTGOING_FREEZE',
   ]),
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
@@ -169,6 +176,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
   'BLOCK_CUSTOMER_ACCOUNT',
+  'MANAGE_OUTGOING_FREEZE',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([

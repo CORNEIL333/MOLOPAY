@@ -41,6 +41,8 @@ const MIGRATIONS = [
   'db/migrations/0035_quota_policy_v1.sql',
   'db/migrations/0054_identity_quota_beneficiary.sql',
   'db/migrations/0055_identity_quota_goals.sql',
+  'db/migrations/0066_identity_client_auth.sql',
+  'db/migrations/0074_identity_terms_acceptance_check.sql',
 ].map((path) => resolve(process.cwd(), path));
 
 type Goal = components['schemas']['Goal'];
@@ -288,6 +290,56 @@ describe('SEC-API-003 / D61 quota de création d’objectifs', () => {
     expect((limited.body as ProblemBody).code).toBe('REQUEST_RATE_LIMITED');
     const after = await admin.query<{ n: number }>('SELECT count(*)::int AS n FROM agreements.agreement');
     expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
+  });
+});
+
+describe('F-ACC-004 conditions en vigueur acceptées avant tout nouvel engagement', () => {
+  const C = '019ab900-0000-7000-8000-0000000000c3';
+  function accept(cookie: string, body: object, key: string): request.Test {
+    return request(server()).post('/v1/me/terms-acceptances').set('Cookie', cookie).set('Origin', ORIGIN).set('Idempotency-Key', key).send(body);
+  }
+
+  it('sans acceptation de la version en vigueur : création refusée (IDENTITY_TERMS_NOT_ACCEPTED), rien d’enregistré', async () => {
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level) VALUES ($1, '+237690000333', now(), 'STRONG')`, [C]);
+    const cookie = await session(C);
+    const refused = await post(GOAL_A, 'goal-terms-refused-01', cookie);
+    expect([refused.status, (refused.body as ProblemBody).code]).toEqual([422, 'IDENTITY_TERMS_NOT_ACCEPTED']);
+    expect((await admin.query('SELECT count(*)::int AS n FROM agreements.agreement WHERE customer_id = $1', [C])).rows[0]).toEqual({ n: 0 });
+  });
+
+  it('acceptation de la version courante seulement, corps en liste blanche ; rejeu et nouvelle clé : une seule acceptation, horodatage d’origine ; création ensuite possible', async () => {
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level) VALUES ($1, '+237690000333', now(), 'STRONG')`, [C]);
+    const cookie = await session(C);
+    for (const body of [{ version: '2020-01-01-v1' }, { version: TERMS, extra: true }, {}, { version: 1 }]) {
+      const bad = await accept(cookie, body, `terms-bad-${Math.random().toString(36).slice(2, 12)}`);
+      expect([bad.status, (bad.body as ProblemBody).code], JSON.stringify(body)).toEqual([400, 'REQUEST_INVALID']);
+    }
+    expect((await request(server()).post('/v1/me/terms-acceptances').set('Origin', ORIGIN).set('Idempotency-Key', 'terms-anon-000001').send({ version: TERMS })).status).toBe(401);
+    const first = await accept(cookie, { version: TERMS }, 'terms-accept-000001');
+    expect(first.status).toBe(201);
+    expect(first.headers['cache-control']).toBe('private, no-store');
+    const body = first.body as { version: string; acceptedAt: string };
+    expect(body.version).toBe(TERMS);
+    expect(Number.isFinite(Date.parse(body.acceptedAt))).toBe(true);
+    expect((await accept(cookie, { version: TERMS }, 'terms-accept-000001')).body).toEqual(body);
+    expect((await accept(cookie, { version: TERMS }, 'terms-accept-000002')).body).toEqual(body);
+    expect((await admin.query('SELECT count(*)::int AS n FROM identity.terms_acceptance WHERE account_id = $1', [C])).rows[0]).toEqual({ n: 1 });
+    expect((await post(GOAL_A, 'goal-terms-accepted-01', cookie)).status).toBe(201);
+  });
+
+  it('base : un compte non actif, ou une version antérieure seulement, n’a pas les conditions en vigueur « acceptées »', async () => {
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level, status, blocked_at, block_channel, block_reason)
+                       VALUES ($1, '+237690000333', now(), 'STRONG', 'BLOCKED', now(), 'APP', 'LOST_OR_STOLEN')`, [C]);
+    await admin.query('INSERT INTO identity.terms_acceptance (account_id, version, accepted_at) VALUES ($1, $2, now())', [C, TERMS]);
+    const row = await admin.query<{ accepted: boolean }>('SELECT identity.has_accepted_terms($1, $2) AS accepted', [C, TERMS]);
+    expect(row.rows[0]).toEqual({ accepted: false });
+    const ok = await admin.query<{ accepted: boolean }>('SELECT identity.has_accepted_terms($1, $2) AS accepted', [A, TERMS]);
+    expect(ok.rows[0]).toEqual({ accepted: true });
+    // Une version antérieure acceptée ne vaut pas acceptation de la version en vigueur.
+    const D = '019ab900-0000-7000-8000-0000000000c4';
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level) VALUES ($1, '+237690000444', now(), 'STRONG')`, [D]);
+    await admin.query('INSERT INTO identity.terms_acceptance (account_id, version, accepted_at) VALUES ($1, $2, now())', [D, '2025-01-01-v1']);
+    expect((await admin.query<{ accepted: boolean }>('SELECT identity.has_accepted_terms($1, $2) AS accepted', [D, TERMS])).rows[0]).toEqual({ accepted: false });
   });
 });
 

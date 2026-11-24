@@ -52,6 +52,7 @@ const CASES: Readonly<Record<string, object | undefined>> = {
   '/v1/me/security/revoke-other-sessions': undefined,
   '/v1/me/data-rights': { kind: 'ACCESS' },
   '/v1/me/legal-name': { legalName: 'Aïcha Ngono Mballa' },
+  '/v1/me/terms-acceptances': { version: '2026-10-26-v1' },
   [`/v1/goals/${GOAL}/claims`]: { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' },
   [`/v1/goals/${GOAL}/activation`]: { pin: PIN, signature: SIGNATURE },
   [`/v1/goals/${GOAL}/cancellation`]: { pin: PIN, signature: SIGNATURE },
@@ -95,6 +96,8 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   [`/v1/backoffice/crm/customers/${GOAL}/interactions`]: { channel: 'PHONE', direction: 'INBOUND', summary: 'Appel client', occurredAt: '2026-01-15T10:00:00.000Z' },
   [`/v1/backoffice/crm/customers/${GOAL}/tasks`]: { title: 'Rappeler le client', assignee: 'sup.deux' },
   [`/v1/backoffice/crm/tasks/${GOAL}/transitions`]: { kind: 'COMPLETED', note: 'Client rappelé' },
+  '/v1/backoffice/outgoing-freeze/requests': { action: 'FREEZE', reason: 'Incident de test' },
+  [`/v1/backoffice/outgoing-freeze/requests/${GOAL}/confirmation`]: {},
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */

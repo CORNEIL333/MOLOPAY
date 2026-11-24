@@ -1,3 +1,4 @@
+import { CURRENT_TERMS_VERSION } from '@achat/contracts';
 import { createHash } from 'node:crypto';
 import { canonicalize, computeEntryHash, genesisPrevHash, type EntryContent, type JsonValue } from '@achat/chain';
 import type { Client } from 'pg';
@@ -228,6 +229,12 @@ export async function seedCustomerAccount(
      VALUES ($1, $2, now(), $3)`,
     [customerId, `+2376${suffix}`, kycLevel],
   );
+  // F-ACC-004 : un client inscrit a accepté les conditions en vigueur (comme à l'inscription réelle),
+  // lorsque la pile de migrations du test les connaît.
+  const known = await admin.query<{ present: boolean }>(`SELECT to_regclass('identity.terms_acceptance') IS NOT NULL AS present`);
+  if (known.rows[0]?.present === true) {
+    await admin.query('INSERT INTO identity.terms_acceptance (account_id, version, accepted_at) VALUES ($1, $2, now())', [customerId, CURRENT_TERMS_VERSION]);
+  }
 }
 
 /**
@@ -320,4 +327,9 @@ export async function publishSetting(admin: Client, key: string, value: JsonValu
        FROM admin.setting_version WHERE key = $1`,
     [key, JSON.stringify(value), requestId],
   );
+}
+
+/** NF-SAFE-002 : plafond d'objectifs actifs par client (paramètre versionné, deux personnes ; valeur de test). */
+export async function publishCommitmentLimits(admin: Client, maxActiveGoals = 5): Promise<void> {
+  await publishSetting(admin, 'customer_commitment_limits', { max_active_goals: maxActiveGoals });
 }

@@ -59,6 +59,15 @@
 | D71 | (Appliqué le 20 novembre conformément à SEC-AUTH-001 : appareil + PIN.) Confirmer ? | — |
 | D82 | **Nouveau téléphone** sur le même numéro : **A** approbation par l'ancien téléphone + OTP / **B** OTP + délai 24 h / **C** agence ou support avec contrôle d'identité (recommandé : A + C) | Aucun ajout d'appareil possible. |
 | D83 | **Blocage d'un compte client** par : support N1/N2 et risque (appliqué) — **Valider / Modifier** ; SMS au client lors du blocage ? procédure de déblocage ? | Appliqué ; aucun déblocage possible. |
+| D84 | **Gel des flux sortants** (SEC-INC-003) demandé et confirmé par deux personnes parmi finance, conformité, risque ; confirmation dans l'heure — **Valider / Modifier** ; alerte au fondateur lors d'un gel ? | Appliqué ; aucune alerte. |
+| D85 | Client en cours d'examen de sanctions : refus de versement par **message neutre « vérification en cours »** identique pour tous (recommandé) / plafond minimal pendant l'examen | Aucun versement possible (agrégateur non branché). |
+| D86 | **Nombre maximal d'objectifs actifs** par client (NF-SAFE-002) : **3** (recommandé) / autre ; compter aussi les objectifs financés non remis ? | Aucune activation tant que le paramètre n'est pas publié. |
+| D87 | Contrôle nocturne du grand livre **impossible** (export absent, outil en panne) : **alerte seule** (appliqué) / gel aussi | Alerte seule. |
+| D88 | Conditions non réacceptées : refuser aussi les **versements** et le **règlement au bénéficiaire C** ? (appliqué : création et activation seulement) | Création et activation refusées. |
+| D89 | Client web : le **navigateur** est un appareil (clé Ed25519 non exportable + PIN) — **Valider** / réserver l'inscription au mobile | Appliqué. |
+| D90 | Clé d'appareil mobile : **A** accepter aussi P-256 matériel (Secure Enclave / Keystore, recommandé) / **B** Ed25519 logiciel protégé par clé matérielle / **C** Android 13+ seulement | Mobile : ni inscription ni connexion (aucune clé de plateforme). |
+| D1 | Prestataire SMS : **Twilio** (tranché le 24 novembre) ; adaptateur livré, identifiants à fournir | — |
+| D92 | Versements au lancement : **aucun** (tranché le 24 novembre) | — |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

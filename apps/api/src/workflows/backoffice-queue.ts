@@ -11,6 +11,10 @@ export type BackofficeQueue = {
   readonly settlements: readonly { readonly payoutId: string; readonly netXaf: string; readonly stage: string; readonly preparedBy: string }[];
   readonly overdueInstructions: readonly { readonly kind: string; readonly instructionId: string; readonly instructedAt: string }[];
   readonly gapsToEscalate: readonly { readonly incidentId: string; readonly gapXaf: string; readonly openedAt: string }[];
+  /** C6 / D54 : propositions de classement en attente d'une seconde personne (l'explication n'est pas reprise). */
+  readonly pendingGapClassifications: readonly { readonly proposalId: string; readonly incidentId: string; readonly classification: string; readonly proposedBy: string; readonly proposedAt: string }[];
+  /** C6 / D56 : litiges ouverts, à lever par une autre personne que celle qui les a ouverts. */
+  readonly openDisputes: readonly { readonly disputeId: string; readonly agreementId: string; readonly openedBy: string; readonly openedAt: string }[];
   readonly unjustifiedSuspense: readonly { readonly entryId: string; readonly amountXaf: string; readonly direction: string }[];
   readonly openRiskAlerts: readonly { readonly alertId: string; readonly rule: string; readonly subjectType: string; readonly detectedAt: string }[];
   readonly overdueComplaints: readonly { readonly complaintId: string; readonly reference: string; readonly beyondMaximum: boolean }[];
@@ -79,6 +83,16 @@ export async function readBackofficeQueue(client: SqlClient, principal: AdminPri
     'SELECT complaint_id, reference, beyond_maximum FROM disputes.overdue_complaints($1)',
     [now],
   );
+  const proposals = await client.query<{ id: string; incident_id: string; classification: string; proposed_by: string; proposed_at: Date }>(
+    `SELECT p.id, p.incident_id, p.classification, p.proposed_by, p.proposed_at FROM reconciliation.classification_proposal p
+      WHERE NOT EXISTS (SELECT 1 FROM reconciliation.classification_decision d WHERE d.proposal_id = p.id)
+      ORDER BY p.proposed_at, p.id`,
+  );
+  const disputes = await client.query<{ id: string; agreement_id: string; opened_by: string; opened_at: Date }>(
+    `SELECT d.id, d.agreement_id, d.opened_by, d.opened_at FROM disputes.dispute d
+      WHERE NOT EXISTS (SELECT 1 FROM disputes.dispute_resolution r WHERE r.dispute_id = d.id)
+      ORDER BY d.opened_at, d.id`,
+  );
   const screenings = await client.query<{ id: string; subject_type: string; screened_at: Date }>(
     `SELECT s.id, s.subject_type, s.screened_at FROM kyc.screening s
       WHERE s.outcome = 'POTENTIAL_MATCH' AND NOT EXISTS (SELECT 1 FROM kyc.screening_review r WHERE r.screening_id = s.id)
@@ -94,6 +108,8 @@ export async function readBackofficeQueue(client: SqlClient, principal: AdminPri
     unjustifiedSuspense: suspense.rows.map((row) => ({ entryId: row.entry_id, amountXaf: row.amount_xaf, direction: row.direction })),
     openRiskAlerts: alerts.rows.map((row) => ({ alertId: row.id, rule: row.rule, subjectType: row.subject_type, detectedAt: row.detected_at.toISOString() })),
     overdueComplaints: complaints.rows.map((row) => ({ complaintId: row.complaint_id, reference: row.reference, beyondMaximum: row.beyond_maximum })),
+    pendingGapClassifications: proposals.rows.map((row) => ({ proposalId: row.id, incidentId: row.incident_id, classification: row.classification, proposedBy: row.proposed_by, proposedAt: row.proposed_at.toISOString() })),
+    openDisputes: disputes.rows.map((row) => ({ disputeId: row.id, agreementId: row.agreement_id, openedBy: row.opened_by, openedAt: row.opened_at.toISOString() })),
     pendingSanctionsReviews: screenings.rows.map((row) => ({ screeningId: row.id, subjectType: row.subject_type, screenedAt: row.screened_at.toISOString() })),
   });
 }

@@ -1571,6 +1571,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/outgoing-freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du gel des flux sortants et demandes en attente (SEC-INC-003)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        get: operations["getOutgoingFreeze"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/outgoing-freeze/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demander le gel ou la levée du gel des flux sortants (SEC-INC-003)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        post: operations["requestOutgoingFreeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmer une demande de gel ou de levée, par une autre personne (I-7)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        post: operations["confirmOutgoingFreeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/terms-acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepter les conditions en vigueur (F-ACC-004) */
+        post: operations["acceptCurrentTerms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1728,6 +1805,10 @@ export interface components {
             memberSince: string;
             /** @description Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé). */
             legalNameDeclared: boolean;
+            /** @description F-ACC-004 : version en vigueur des conditions générales et de la politique de confidentialité. */
+            currentTermsVersion: string;
+            /** @description F-ACC-004 : faux tant que la version en vigueur n’est pas acceptée ; aucun nouvel objectif ni activation n’est alors possible (IDENTITY_TERMS_NOT_ACCEPTED). */
+            termsAccepted: boolean;
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2241,6 +2322,28 @@ export interface components {
                 /** Format: date-time */
                 screenedAt: string;
             }[];
+            /** @description C6 / D54 : propositions de classement d'un écart en attente de la décision d'une autre personne (l'explication n'est pas reprise). */
+            pendingGapClassifications: {
+                /** Format: uuid */
+                proposalId: string;
+                /** Format: uuid */
+                incidentId: string;
+                /** @enum {string} */
+                classification: "IN_TRANSIT" | "FEES" | "DUPLICATE" | "UNKNOWN";
+                proposedBy: string;
+                /** Format: date-time */
+                proposedAt: string;
+            }[];
+            /** @description C6 / D56 : litiges ouverts, à lever par une autre personne que celle qui les a ouverts. */
+            openDisputes: {
+                /** Format: uuid */
+                disputeId: string;
+                /** Format: uuid */
+                agreementId: string;
+                openedBy: string;
+                /** Format: date-time */
+                openedAt: string;
+            }[];
         };
         ApprovalPrepareRequest: {
             /** Format: uuid */
@@ -2578,6 +2681,45 @@ export interface components {
             nextBefore: string | null;
             /** Format: date-time */
             asOf: string;
+        };
+        OutgoingFreezeState: {
+            frozen: boolean;
+            /** Format: date-time */
+            since: string | null;
+            reason: string | null;
+            /** @description INT-VER-002 : dernière divergence du vérificateur indépendant non suivie d'une levée confirmée ; tant qu'elle existe, les flux sortants sont gelés. */
+            divergence: null | {
+                code: string;
+                /** Format: date-time */
+                detectedAt: string;
+            };
+            pending: {
+                /** Format: uuid */
+                requestId: string;
+                /** @enum {string} */
+                action: "FREEZE" | "UNFREEZE";
+                reason: string;
+                requestedBy: string;
+                /** Format: date-time */
+                requestedAt: string;
+            }[];
+        };
+        OutgoingFreezeRequest: {
+            /** @enum {string} */
+            action: "FREEZE" | "UNFREEZE";
+            reason: string;
+        };
+        TermsAcceptanceRequest: {
+            /** @description Doit être la version en vigueur (currentTermsVersion). */
+            version: string;
+        };
+        TermsAcceptance: {
+            version: string;
+            /**
+             * Format: date-time
+             * @description Horodatage posé par la base ; inchangé si la même version est acceptée de nouveau.
+             */
+            acceptedAt: string;
         };
     };
     responses: {
@@ -5516,6 +5658,133 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description État */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingFreezeState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    requestOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutgoingFreezeRequest"];
+            };
+        };
+        responses: {
+            /** @description Demande enregistrée, à confirmer par une autre personne */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        requestId: string;
+                        /** @enum {string} */
+                        action: "FREEZE" | "UNFREEZE";
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    confirmOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description État résultant */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        requestId: string;
+                        frozen: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    acceptCurrentTerms: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermsAcceptanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Acceptation enregistrée (ou déjà enregistrée : horodatage d’origine) */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermsAcceptance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
 }

@@ -15,7 +15,7 @@ import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
-import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateLandlord } from './agreement-fixture';
+import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateLandlord, publishCommitmentLimits } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /** F-PAY-006 / D39 : historique des versements d'un objectif ; F-SUP-001 / D70 : réclamation du client sur son objectif. */
@@ -104,6 +104,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);

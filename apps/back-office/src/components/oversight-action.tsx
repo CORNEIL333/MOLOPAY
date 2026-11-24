@@ -4,7 +4,7 @@ import type { ProblemSummary } from '@achat/contracts/client';
 import { Button, ErrorState, TextField } from '@achat/ui';
 import { useId, useState, type ReactElement } from 'react';
 
-export type OversightKind = 'alert' | 'gap' | 'suspense' | 'complaint';
+export type OversightKind = 'alert' | 'gap' | 'suspense' | 'complaint' | 'gapDecision' | 'dispute';
 export type OversightPort = (input: {
   readonly path: string;
   readonly body: Readonly<Record<string, string>>;
@@ -13,7 +13,8 @@ export type OversightPort = (input: {
 /**
  * D53–D56 / D62 : action de contrôle depuis la file — alerte de fraude
  * (motif obligatoire), classement d'un écart, justification du suspens,
- * clôture d'une réclamation. Le serveur et la base gardent les règles
+ * clôture d'une réclamation ; C6 : validation ou refus de la classe proposée
+ * par un autre, levée d'un litige. Le serveur et la base gardent les règles
  * (maker-checker, rôles) ; les refus sont affichés tels quels.
  */
 export function OversightAction({
@@ -95,6 +96,24 @@ export function OversightAction({
           Proposer la classe
         </Button>
       </>
+    );
+  } else if (kind === 'gapDecision') {
+    controls = (
+      <>
+        <TextField id={ids.text} label="Motif du refus" value={text} error={error} onChange={(event) => { setText(event.target.value); }} />
+        <Button disabled={pending} onClick={() => void send(`/v1/backoffice/reconciliation/classifications/${encoded}/decision`, { decision: 'APPROVED' })}>
+          Valider la classe
+        </Button>
+        <Button variant="danger" disabled={pending} onClick={() => { requireText((reason) => void send(`/v1/backoffice/reconciliation/classifications/${encoded}/decision`, { decision: 'REJECTED', reason })); }}>
+          Refuser la classe
+        </Button>
+      </>
+    );
+  } else if (kind === 'dispute') {
+    controls = (
+      <Button disabled={pending} onClick={() => void send(`/v1/backoffice/disputes/${encoded}/resolution`, {})}>
+        Lever le litige
+      </Button>
     );
   } else if (kind === 'suspense') {
     controls = (

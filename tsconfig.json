@@ -33,7 +33,8 @@
     "vitest.db.config.ts",
     "vitest.attack.config.ts",
     "vitest.e2e.config.ts",
-    "vitest.tsa.config.ts"
+    "vitest.tsa.config.ts",
+    "vitest.sms.config.ts"
   ],
   "exclude": ["node_modules", "dist", ".toolchains", "packages/ui", "apps/web-client", "apps/partner-portal", "apps/back-office"]
 }

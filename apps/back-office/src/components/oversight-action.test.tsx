@@ -32,6 +32,28 @@ describe('D53–D56 actions de contrôle depuis la file', () => {
     expect(act).toHaveBeenCalledWith({ path: `/v1/backoffice/reconciliation/incidents/${ID}/classifications`, body: { classification: 'FEES', explanation: 'frais de tenue de compte' } });
   });
 
+  it('C6 / D54 classe proposée par un autre : validation directe, refus avec motif obligatoire', async () => {
+    const user = userEvent.setup();
+    const act = ok();
+    render(<OversightAction kind="gapDecision" id={ID} act={act} onDone={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: 'Refuser la classe' }));
+    expect(screen.getByText(/Motif obligatoire/)).toBeVisible();
+    expect(act).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Valider la classe' }));
+    expect(act).toHaveBeenCalledWith({ path: `/v1/backoffice/reconciliation/classifications/${ID}/decision`, body: { decision: 'APPROVED' } });
+    await user.type(screen.getByLabelText('Motif du refus'), 'relevé contradictoire');
+    await user.click(screen.getByRole('button', { name: 'Refuser la classe' }));
+    expect(act).toHaveBeenLastCalledWith({ path: `/v1/backoffice/reconciliation/classifications/${ID}/decision`, body: { decision: 'REJECTED', reason: 'relevé contradictoire' } });
+  });
+
+  it('C6 / D56 litige ouvert : levée par une autre personne (le serveur refuse l’auteur)', async () => {
+    const user = userEvent.setup();
+    const act = ok();
+    render(<OversightAction kind="dispute" id={ID} act={act} onDone={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: 'Lever le litige' }));
+    expect(act).toHaveBeenCalledWith({ path: `/v1/backoffice/disputes/${ID}/resolution`, body: {} });
+  });
+
   it('suspens : justifier, ou valider la justification d’un autre', async () => {
     const user = userEvent.setup();
     const act = ok();

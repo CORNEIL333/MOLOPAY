@@ -13,6 +13,7 @@ import { createDatabase, withTransaction, type Database } from '../../src/http/d
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../src/modules/payments/attempt.store';
 import { issueHandoverCode } from '../../src/modules/settlement/handover.store';
+import { recordIntegrityDivergence } from '../../src/modules/settlement/integrity-divergence.store';
 import { confirmPaymentAndFundAgreement } from '../../src/workflows/payment-confirmation';
 import { confirmHandoverAtPartner } from '../../src/workflows/handover';
 import {
@@ -25,6 +26,7 @@ import {
   seedLedgerGenesis,
   seedPaymentPlan,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff } from './partner-fixture';
@@ -95,6 +97,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_A);
@@ -130,6 +133,158 @@ async function handedOver(): Promise<void> {
     confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: counter.seller.userId, latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }),
   );
 }
+
+describe('C7 / SEC-INC-003 gel des flux sortants, activé et levé par deux personnes', () => {
+  function freeze(cookie: string, action: 'FREEZE' | 'UNFREEZE', reason = 'Incident : relevé incohérent de l’établissement'): request.Test {
+    return post('/v1/backoffice/outgoing-freeze/requests', cookie, { action, reason });
+  }
+  function confirm(cookie: string, requestId: string): request.Test {
+    return post(`/v1/backoffice/outgoing-freeze/requests/${requestId}/confirmation`, cookie, {});
+  }
+  function state(cookie: string): request.Test {
+    return request(server()).get('/v1/backoffice/outgoing-freeze').set('Cookie', cookie);
+  }
+
+  it('gel demandé par l’un, confirmé par un autre : toute nouvelle instruction est refusée (SETTLEMENT_OUTGOING_FROZEN) ; préparation et décision restent possibles ; levée à deux personnes', async () => {
+    await handedOver();
+    const prepared = await post('/v1/backoffice/settlements', cookies.ops, { agreementId: GOAL, cityId: 'douala' });
+    const { payoutId } = prepared.body as { payoutId: string };
+    const requested = await freeze(cookies.finOne, 'FREEZE');
+    expect(requested.status, JSON.stringify(requested.body)).toBe(201);
+    const { requestId } = requested.body as { requestId: string };
+    expect(((await state(cookies.finTwo)).body as { frozen: boolean }).frozen).toBe(false);
+    const self = await confirm(cookies.finOne, requestId);
+    expect([self.status, (self.body as { code?: string }).code]).toEqual([403, 'MAKER_CANNOT_APPROVE']);
+    expect((await confirm(cookies.finTwo, requestId)).status).toBe(200);
+    const frozen = (await state(cookies.ops)).body as { frozen: boolean; since: string | null; reason: string | null };
+    expect(frozen).toMatchObject({ frozen: true, reason: 'Incident : relevé incohérent de l’établissement' });
+    expect((await post(`/v1/backoffice/settlements/${payoutId}/decision`, cookies.finOne, { decision: 'APPROVED', cityId: 'douala' })).status).toBe(200);
+    const blocked = await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' });
+    expect([blocked.status, (blocked.body as { code?: string }).code]).toEqual([409, 'SETTLEMENT_OUTGOING_FROZEN']);
+    expect((await admin.query('SELECT count(*)::int AS n FROM settlement.payout_instruction')).rows[0]).toEqual({ n: 0 });
+    const unfreeze = await freeze(cookies.finTwo, 'UNFREEZE', 'Relevé corrigé par l’établissement');
+    const { requestId: unfreezeId } = unfreeze.body as { requestId: string };
+    expect((await confirm(cookies.finOne, unfreezeId)).status).toBe(200);
+    expect(((await state(cookies.ops)).body as { frozen: boolean }).frozen).toBe(false);
+    expect((await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' })).status).toBe(201);
+  });
+
+  it('refus : action incohérente avec l’état (déjà gelé / non gelé), motif absent, rôle sans droit, demande confirmée deux fois', async () => {
+    expect((await freeze(cookies.finOne, 'UNFREEZE')).body).toMatchObject({ code: 'SETTLEMENT_FREEZE_STATE' });
+    expect((await post('/v1/backoffice/outgoing-freeze/requests', cookies.finOne, { action: 'FREEZE' })).status).toBe(400);
+    expect((await freeze(cookies.ops, 'FREEZE')).body).toMatchObject({ code: 'ADMIN_FORBIDDEN' });
+    const requested = await freeze(cookies.finOne, 'FREEZE');
+    const { requestId } = requested.body as { requestId: string };
+    expect((await confirm(cookies.finTwo, requestId)).status).toBe(200);
+    const twice = await confirm(cookies.finTwo, requestId);
+    expect([twice.status, (twice.body as { code?: string }).code]).toEqual([409, 'REQUEST_CONFLICT']);
+    expect((await freeze(cookies.finOne, 'FREEZE')).body).toMatchObject({ code: 'SETTLEMENT_FREEZE_STATE' });
+    const audit = await admin.query(`SELECT action, actor_id FROM audit.event WHERE action IN ('OUTGOING_FREEZE_REQUESTED', 'OUTGOING_FREEZE_CONFIRMED') ORDER BY seq`);
+    expect(audit.rows).toEqual([{ action: 'OUTGOING_FREEZE_REQUESTED', actor_id: 'fin.dla1' }, { action: 'OUTGOING_FREEZE_CONFIRMED', actor_id: 'fin.dla2' }]);
+  });
+
+  it('base garante : instruction directe refusée pendant le gel ; demande expirée (1 h) non confirmable ; tables en ajout seul', async () => {
+    const requested = await freeze(cookies.finOne, 'FREEZE');
+    const { requestId } = requested.body as { requestId: string };
+    // Voyage dans le temps (superutilisateur, test seulement) : la demande a 2 heures.
+    await admin.query('ALTER TABLE settlement.outgoing_freeze_request DISABLE TRIGGER outgoing_freeze_request_no_update_delete');
+    await admin.query(`UPDATE settlement.outgoing_freeze_request SET requested_at = requested_at - interval '2 hours' WHERE id = $1`, [requestId]);
+    await admin.query('ALTER TABLE settlement.outgoing_freeze_request ENABLE ALWAYS TRIGGER outgoing_freeze_request_no_update_delete');
+    const late = await confirm(cookies.finTwo, requestId);
+    expect([late.status, (late.body as { code?: string }).code]).toEqual([422, 'SETTLEMENT_FREEZE_EXPIRED']);
+    const again = await freeze(cookies.finOne, 'FREEZE');
+    await confirm(cookies.finTwo, (again.body as { requestId: string }).requestId);
+    const frozen = await admin.query<{ frozen: boolean }>('SELECT settlement.outgoing_frozen() AS frozen');
+    expect(frozen.rows[0]).toEqual({ frozen: true });
+    const mutation = await admin.query('UPDATE settlement.outgoing_freeze_confirmation SET confirmed_by = $1', ['x']).then(() => 'accepted', (error: { message?: string }) => error.message ?? '');
+    expect(mutation).toMatch(/^SETTLEMENT_APPEND_ONLY/);
+    // Les trois tables d'instructions signées sont gardées (le déclencheur passe avant toute autre vérification de la ligne).
+    for (const table of ['payout_instruction', 'refund_instruction', 'beneficiary_payout_instruction']) {
+      const refused = await admin.query(`INSERT INTO settlement.${table} DEFAULT VALUES`).then(() => 'accepted', (error: { message?: string }) => error.message ?? '');
+      expect(refused, table).toMatch(/^SETTLEMENT_OUTGOING_FROZEN/);
+    }
+  });
+});
+
+describe('C9 / INT-VER-002 gel automatique sur divergence du vérificateur indépendant', () => {
+  async function divergence(code: string): Promise<void> {
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL ROLE integrity_reporter');
+      await recordIntegrityDivergence(admin, code);
+      await admin.query('COMMIT');
+    } catch (error) {
+      await admin.query('ROLLBACK');
+      throw error;
+    }
+  }
+  async function attempt(role: string, sql: string, values: readonly unknown[] = []): Promise<string> {
+    await admin.query('BEGIN');
+    try {
+      await admin.query(`SET LOCAL ROLE ${role}`);
+      await admin.query(sql, [...values]);
+      return 'accepted';
+    } catch (error) {
+      return (error as { code?: string }).code ?? '';
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+  }
+
+  it('une divergence gèle aussitôt les sorties ; une levée demandée avant une nouvelle divergence ne l’efface pas ; levée à deux personnes ensuite', async () => {
+    await handedOver();
+    const prepared = await post('/v1/backoffice/settlements', cookies.ops, { agreementId: GOAL, cityId: 'douala' });
+    const { payoutId } = prepared.body as { payoutId: string };
+    expect((await post(`/v1/backoffice/settlements/${payoutId}/decision`, cookies.finOne, { decision: 'APPROVED', cityId: 'douala' })).status).toBe(200);
+    await divergence('ENTRY_HASH_MISMATCH');
+    const state = (await request(server()).get('/v1/backoffice/outgoing-freeze').set('Cookie', cookies.ops)).body as { frozen: boolean; reason: string | null; since: string | null; divergence: { code: string; detectedAt: string } | null };
+    expect(state).toMatchObject({ frozen: true, reason: null, divergence: { code: 'ENTRY_HASH_MISMATCH' } });
+    expect(state.since).toBe(state.divergence?.detectedAt);
+    const blocked = await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' });
+    expect([blocked.status, (blocked.body as { code?: string }).code]).toEqual([409, 'SETTLEMENT_OUTGOING_FROZEN']);
+    // Déjà gelé : un gel manuel est sans effet.
+    expect((await post('/v1/backoffice/outgoing-freeze/requests', cookies.finOne, { action: 'FREEZE', reason: 'Doublon' })).body).toMatchObject({ code: 'SETTLEMENT_FREEZE_STATE' });
+    const early = await post('/v1/backoffice/outgoing-freeze/requests', cookies.finOne, { action: 'UNFREEZE', reason: 'Export corrigé' });
+    expect(early.status).toBe(201);
+    await divergence('PREV_HASH_MISMATCH');
+    const stale = await post(`/v1/backoffice/outgoing-freeze/requests/${(early.body as { requestId: string }).requestId}/confirmation`, cookies.finTwo, {});
+    expect([stale.status, (stale.body as { code?: string }).code]).toEqual([409, 'SETTLEMENT_FREEZE_STATE']);
+    const fresh = await post('/v1/backoffice/outgoing-freeze/requests', cookies.finTwo, { action: 'UNFREEZE', reason: 'Chaîne revérifiée après correction' });
+    const self = await post(`/v1/backoffice/outgoing-freeze/requests/${(fresh.body as { requestId: string }).requestId}/confirmation`, cookies.finTwo, {});
+    expect([self.status, (self.body as { code?: string }).code]).toEqual([403, 'MAKER_CANNOT_APPROVE']);
+    expect((await post(`/v1/backoffice/outgoing-freeze/requests/${(fresh.body as { requestId: string }).requestId}/confirmation`, cookies.finOne, {})).status).toBe(200);
+    expect((await request(server()).get('/v1/backoffice/outgoing-freeze').set('Cookie', cookies.ops)).body).toMatchObject({ frozen: false, since: null, reason: null, divergence: null });
+    expect((await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' })).status).toBe(201);
+  });
+
+  it('base garante : le rôle de rapport n’écrit qu’une divergence ; l’application ne peut pas en fabriquer ni en effacer ; ajout seul', async () => {
+    const id = uuidv7();
+    const insert = `INSERT INTO settlement.integrity_divergence (id, source, code, reported_by, detected_at) VALUES ($1, 'LEDGER_VERIFIER', 'ENTRY_UNBALANCED', 'x', now())`;
+    expect(await attempt('app_rw', insert, [id])).toBe('42501');
+    expect(await attempt('integrity_reporter', 'SELECT 1 FROM settlement.outgoing_freeze_request')).toBe('42501');
+    expect(await attempt('integrity_reporter', `INSERT INTO settlement.outgoing_freeze_confirmation (request_id, confirmed_by, confirmed_at) VALUES ($1, 'x', now())`, [uuidv7()])).toBe('42501');
+    expect(await attempt('integrity_reporter', 'SELECT 1 FROM settlement.payout_instruction')).toBe('42501');
+    expect(await attempt('integrity_reporter', insert.replace("'ENTRY_UNBALANCED'", "'invalide'"), [uuidv7()])).toBe('23514');
+    expect(await attempt('integrity_reporter', insert.replace("'LEDGER_VERIFIER'", "'MANUEL'"), [uuidv7()])).toBe('23514');
+    // Auteur et instant fournis par l'appelant : ignorés.
+    expect(await attempt('integrity_reporter', `INSERT INTO settlement.integrity_divergence (id, source, code, reported_by, detected_at)
+      VALUES ($1, 'LEDGER_VERIFIER', 'ENTRY_UNBALANCED', 'forge', '2000-01-01T00:00:00Z')`, [uuidv7()])).toBe('accepted');
+    await admin.query('BEGIN');
+    await admin.query('SET LOCAL ROLE integrity_reporter');
+    await admin.query(`INSERT INTO settlement.integrity_divergence (id, source, code, reported_by, detected_at)
+      VALUES ($1, 'LEDGER_VERIFIER', 'ENTRY_UNBALANCED', 'forge', '2000-01-01T00:00:00Z')`, [uuidv7()]);
+    await admin.query('COMMIT');
+    const row = (await admin.query<{ reported_by: string; recent: boolean }>(
+      `SELECT reported_by, detected_at > now() - interval '1 minute' AS recent FROM settlement.integrity_divergence`,
+    )).rows;
+    // Auteur et horodatage posés par la base, jamais par l'appelant.
+    expect(row).toEqual([{ reported_by: 'integrity_reporter', recent: true }]);
+    expect(await attempt('integrity_reporter', 'DELETE FROM settlement.integrity_divergence')).toBe('42501');
+    const erase = await admin.query('DELETE FROM settlement.integrity_divergence').then(() => 'accepted', (error: { message?: string }) => error.message ?? '');
+    expect(erase).toMatch(/^SETTLEMENT_APPEND_ONLY/);
+    expect((await admin.query<{ frozen: boolean }>('SELECT settlement.outgoing_frozen() AS frozen')).rows[0]).toEqual({ frozen: true });
+  });
+});
 
 describe('D46 / D62 règlement marchand au back-office', () => {
   it('circuit complet à Douala : net calculé par la base, commission, instruction signée, exécution par une autre personne', async () => {

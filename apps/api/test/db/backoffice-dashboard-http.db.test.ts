@@ -33,6 +33,7 @@ import {
   seedPaymentPlan,
   validateLandlord,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff } from './partner-fixture';
@@ -107,6 +108,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7(), 'merchant-1');
   await validateLandlord(admin, uuidv7());

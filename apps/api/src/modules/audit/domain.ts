@@ -133,6 +133,9 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       PLAN_ACTIVATED: ['plan_id', 'offer_id', 'model'],
       PLAN_ACTIVATION_DENIED: ['plan_id', 'offer_id', 'model', 'error_code'],
       MERCHANT_DEFAULT_DECLARED: ['incident_id', 'frozen_agreements'],
+      // C7 / SEC-INC-003 : gel des flux sortants (demande, confirmation par une autre personne).
+      OUTGOING_FREEZE_REQUESTED: ['request_id', 'freeze_action'],
+      OUTGOING_FREEZE_CONFIRMED: ['request_id', 'freeze_action'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

@@ -43,6 +43,8 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   // CRM : une tâche déjà close ne se rejoue pas, et le registre est en ajout seul.
   'CRM_TASK_CLOSED',
   'CRM_APPEND_ONLY',
+  'SETTLEMENT_OUTGOING_FROZEN',
+  'SETTLEMENT_FREEZE_STATE',
 ]);
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([

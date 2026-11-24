@@ -100,7 +100,7 @@ describe('REG-LBC-001 / D68 nom légal du client', () => {
     expect((await admin.query('SELECT kyc_level FROM identity.account WHERE id = $1', [CUSTOMER])).rows[0]).toEqual({ kyc_level: 'BASIC' });
   });
 
-  it('B-1 rapprochement : réponse identique octet pour octet à celle d’un nom sans rapprochement (aucune alerte du client)', async () => {
+  it('B-1 / REG-LBC-004 rapprochement : réponse identique octet pour octet à celle d’un nom sans rapprochement (aucune alerte du client)', async () => {
     const clean = await declare(await session(CUSTOMER), { legalName: 'Aïcha Ngono Mballa' });
     await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
     const matched = await declare(await session(OTHER_CUSTOMER), { legalName: 'Eric Badege' });

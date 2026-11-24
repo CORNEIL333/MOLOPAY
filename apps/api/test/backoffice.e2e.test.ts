@@ -22,6 +22,7 @@ import { prepareRefund } from '../src/workflows/refund';
 import {
   createAgreementC,
   PLAN_C,
+  publishCommitmentLimits,
   publishKycLimits,
   seedCustomerAccount,
   seedLedgerGenesis,
@@ -99,6 +100,7 @@ beforeAll(async () => {
   for (const name of readdirSync(DIRECTORY).filter((file) => file.endsWith('.sql')).sort()) {
     await admin.query(readFileSync(resolve(DIRECTORY, name), 'utf8'));
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);
