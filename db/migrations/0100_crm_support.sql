@@ -89,6 +89,9 @@ CREATE TRIGGER follow_up_task_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON
   FOR EACH STATEMENT EXECUTE FUNCTION crm.reject_mutation();
 CREATE TRIGGER follow_up_task_event_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON crm.follow_up_task_event
   FOR EACH STATEMENT EXECUTE FUNCTION crm.reject_mutation();
+ALTER TABLE crm.interaction ENABLE ALWAYS TRIGGER interaction_append_only;
+ALTER TABLE crm.follow_up_task ENABLE ALWAYS TRIGGER follow_up_task_append_only;
+ALTER TABLE crm.follow_up_task_event ENABLE ALWAYS TRIGGER follow_up_task_event_append_only;
 
 -- Interaction : le compte doit exister ; l'instant de l'échange est fourni par
 -- l'agent (avec une tolérance d'horloge de 5 minutes vers le futur), l'instant
