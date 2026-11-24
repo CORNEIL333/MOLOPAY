@@ -72,7 +72,9 @@ class _SignupScreenState extends State<SignupScreen> {
       _pending = true;
     });
     try {
-      final challenge = await widget.state.api.requestOtpChallenge(phone: phone);
+      final challenge = await widget.state.api.requestOtpChallenge(
+        phone: phone,
+      );
       if (!mounted) return;
       setState(() => _challenge = challenge);
     } on ApiProblemException catch (error) {
@@ -93,7 +95,9 @@ class _SignupScreenState extends State<SignupScreen> {
     final pin = _pinController.text;
     final deviceName = _deviceNameController.text.trim();
 
-    if (!_sixDigits.hasMatch(code) || !_sixDigits.hasMatch(pin) || deviceName.isEmpty) {
+    if (!_sixDigits.hasMatch(code) ||
+        !_sixDigits.hasMatch(pin) ||
+        deviceName.isEmpty) {
       setState(() => _formError = s.invalidPin);
       return;
     }
@@ -101,7 +105,10 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _formError = s.termsRequired);
       return;
     }
-    if (widget.provideDevicePublicKey == null) {
+    final provider = widget.state.deviceKeys;
+    final providePublicKey =
+        widget.provideDevicePublicKey ?? provider?.createPublicKey;
+    if (providePublicKey == null) {
       setState(() => _formError = s.signedActionUnavailable);
       return;
     }
@@ -112,7 +119,7 @@ class _SignupScreenState extends State<SignupScreen> {
       _pending = true;
     });
     try {
-      final pubKey = await widget.provideDevicePublicKey!();
+      final pubKey = await providePublicKey();
       final res = await widget.state.api.signUp(
         challengeId: challenge.challengeId,
         code: code,
@@ -122,6 +129,8 @@ class _SignupScreenState extends State<SignupScreen> {
         acceptTermsVersion: SignupScreen.termsVersion,
       );
       _pinController.clear();
+      // Clé associée à l'appareil rendu par le serveur : connexion suivante possible (D71).
+      await provider?.bind(res.deviceId);
       if (!mounted) return;
       setState(() => _result = res);
     } on ApiProblemException catch (error) {
@@ -167,7 +176,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     '${_result!.accountId} · ${_result!.deviceId}',
                   )
                 else if (_challenge == null) ...[
-                  Text(s.phoneLabel, style: type(13, color: muted, weight: FontWeight.w600)),
+                  Text(
+                    s.phoneLabel,
+                    style: type(13, color: muted, weight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     key: const Key('signup-phone-field'),
@@ -200,7 +212,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     maxLength: 6,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
-                      labelText: s.isEn ? 'SMS code (6 digits)' : 'Code SMS (6 chiffres)',
+                      labelText: s.isEn
+                          ? 'SMS code (6 digits)'
+                          : 'Code SMS (6 chiffres)',
                       counterText: '',
                       filled: true,
                       fillColor: Colors.white,
@@ -251,9 +265,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         activeColor: orange,
                         onChanged: _pending
                             ? null
-                            : (v) => setState(() => _acceptedTerms = v ?? false),
+                            : (v) =>
+                                  setState(() => _acceptedTerms = v ?? false),
                       ),
-                      Expanded(child: Text(s.termsAcceptLabel, style: type(13))),
+                      Expanded(
+                        child: Text(s.termsAcceptLabel, style: type(13)),
+                      ),
                     ],
                   ),
                   if (_formError != null) ...[

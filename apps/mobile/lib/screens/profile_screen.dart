@@ -63,6 +63,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  bool _acceptingTerms = false;
+
+  /// F-ACC-004 : acceptation de la version en vigueur, puis profil relu.
+  Future<void> _acceptTerms() async {
+    final profile = _accountProfile;
+    if (profile == null || _acceptingTerms) return;
+    setState(() => _acceptingTerms = true);
+    try {
+      await widget.state.api.acceptCurrentTerms(profile.currentTermsVersion);
+      await _loadProfile();
+    } on ApiProblemException {
+      // Refus affiché par l'état inchangé ; aucune acceptation supposée.
+    } finally {
+      if (mounted) setState(() => _acceptingTerms = false);
+    }
+  }
+
   Future<void> _checkHealth() async {
     setState(() => _checkingHealth = true);
     try {
@@ -124,7 +141,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                session?.displayName ?? s.notSignedIn,
+                session == null
+                    ? s.notSignedIn
+                    : (session.displayName ?? s.signedIn),
                 style: type(20, weight: FontWeight.w700),
               ),
               if (_accountProfile != null) ...[
@@ -138,10 +157,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _accountProfile!.legalNameDeclared
                       ? (s.isEn ? 'Legal name declared' : 'Nom légal déclaré')
                       : (s.isEn
-                          ? 'Legal name not declared yet'
-                          : 'Nom légal non encore déclaré'),
+                            ? 'Legal name not declared yet'
+                            : 'Nom légal non encore déclaré'),
                   style: type(12, color: ink, weight: FontWeight.w600),
                 ),
+                if (!_accountProfile!.termsAccepted) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    s.isEn
+                        ? 'New terms (version ${_accountProfile!.currentTermsVersion}) must be accepted before starting or activating a goal.'
+                        : 'De nouvelles conditions (version ${_accountProfile!.currentTermsVersion}) doivent être acceptées avant de créer ou d’activer un objectif.',
+                    key: const Key('profile-terms-notice'),
+                    style: type(13, color: ink),
+                  ),
+                  const SizedBox(height: 8),
+                  Primary(
+                    s.isEn
+                        ? 'Accept the terms in force'
+                        : 'Accepter les conditions en vigueur',
+                    _acceptTerms,
+                    key: const Key('profile-terms-accept'),
+                    loading: _acceptingTerms,
+                  ),
+                ],
               ],
               const SizedBox(height: 16),
               if (session != null)

@@ -65,6 +65,7 @@
 | D87 | Contrôle nocturne du grand livre **impossible** (export absent, outil en panne) : **alerte seule** (appliqué) / gel aussi | Alerte seule. |
 | D88 | Conditions non réacceptées : refuser aussi les **versements** et le **règlement au bénéficiaire C** ? (appliqué : création et activation seulement) | Création et activation refusées. |
 | D89 | Client web : le **navigateur** est un appareil (clé Ed25519 non exportable + PIN) — **Valider** / réserver l'inscription au mobile | Appliqué. |
+| D90 | Clé d'appareil mobile : **A** accepter aussi P-256 matériel (Secure Enclave / Keystore, recommandé) / **B** Ed25519 logiciel protégé par clé matérielle / **C** Android 13+ seulement | Mobile : ni inscription ni connexion (aucune clé de plateforme). |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

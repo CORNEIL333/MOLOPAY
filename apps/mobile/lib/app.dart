@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
 import 'core/app_state.dart';
+import 'core/device_key.dart';
 import 'l10n/strings.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/goals_screen.dart';
@@ -15,10 +16,14 @@ class MoloPayApp extends StatefulWidget {
   const MoloPayApp({
     super.key,
     this.apiClient,
+    this.deviceKeys,
     this.initialLocale = 'fr',
   });
 
   final MoloPayApiClient? apiClient;
+
+  /// Clé d'appareil de la plateforme (D71) ; aucune tant que D90 n'est pas tranchée.
+  final DeviceKeyProvider? deviceKeys;
   final String initialLocale;
 
   @override
@@ -34,12 +39,17 @@ class _MoloPayAppState extends State<MoloPayApp> {
   void initState() {
     super.initState();
     _ownsClient = widget.apiClient == null;
-    _client = widget.apiClient ??
+    _client =
+        widget.apiClient ??
         MoloPayApiClient(
           baseUrl: MoloPayApiClient.defaultBaseUrl,
           origin: MoloPayApiClient.defaultOrigin,
         );
-    _state = AppState(api: _client, initialLocale: widget.initialLocale);
+    _state = AppState(
+      api: _client,
+      deviceKeys: widget.deviceKeys,
+      initialLocale: widget.initialLocale,
+    );
   }
 
   @override
@@ -74,7 +84,8 @@ class _MoloPayAppState extends State<MoloPayApp> {
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
               disableAnimations:
-                  _state.reduceMotion || MediaQuery.disableAnimationsOf(context),
+                  _state.reduceMotion ||
+                  MediaQuery.disableAnimationsOf(context),
             ),
             child: child!,
           ),
@@ -221,7 +232,8 @@ class _MainShellState extends State<_MainShell> {
                             border: Border.all(color: const Color(0xFFF1E7DD)),
                           ),
                           child: Text(
-                            widget.state.session!.displayName,
+                            widget.state.session!.displayName ??
+                                AppStrings.of(widget.state.locale).signedIn,
                             style: type(12, weight: FontWeight.w600),
                           ),
                         ),

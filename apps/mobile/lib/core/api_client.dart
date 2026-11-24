@@ -101,20 +101,6 @@ class MoloPayApiClient {
     }).toList();
   }
 
-  /// Connexion client (`POST /v1/auth/sessions`).
-  /// Si la route est fermée (503 / 404 / 501), lève [ApiProblemException] sans simuler de session.
-  Future<SessionSummary> signIn({
-    required String phone,
-    required String pin,
-  }) async {
-    final response = await _sendPost(
-      '/v1/auth/sessions',
-      body: {'phone': phone, 'pin': pin},
-    );
-    _captureSessionCookie(response.headers);
-    return SessionSummary.fromJson(_decodeJsonObject(response));
-  }
-
   /// Déconnexion client (`POST /v1/auth/signouts`).
   Future<void> signOut() async {
     try {
@@ -432,6 +418,11 @@ class MoloPayApiClient {
     return CustomerNotificationFeed.fromJson(_decodeJsonObject(response));
   }
 
+  /// F-ACC-004 : accepte la version en vigueur des conditions (`POST /v1/me/terms-acceptances`, contrat 0.41.0).
+  Future<void> acceptCurrentTerms(String version) async {
+    await _sendPost('/v1/me/terms-acceptances', body: {'version': version});
+  }
+
   /// Profil minimal du client connecté (`GET /v1/me`, OpenAPI 0.33.0).
   Future<AccountProfile> getCurrentAccount() async {
     final response = await _sendGet('/v1/me', authenticated: true);
@@ -579,7 +570,8 @@ class MoloPayApiClient {
     if (match != null) {
       _sessionCookie = 'client_session=${match.group(1)}';
     }
-    final refreshMatch = RegExp(r'client_refresh=([^;,\s]+)').firstMatch(rawSetCookie);
+    final refreshMatch = RegExp(r'client_refresh=([^;,\s]+)')
+        .firstMatch(rawSetCookie);
     if (refreshMatch != null) {
       _refreshCookie = 'client_refresh=${refreshMatch.group(1)}';
     }

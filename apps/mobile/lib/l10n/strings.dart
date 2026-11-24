@@ -62,8 +62,9 @@ final class AppStrings {
   String get inStockEmpty => isEn ? 'Out of stock' : 'Rupture de stock';
   String inStockUnits(int units) =>
       isEn ? '$units unit(s) available' : '$units unité(s) disponible(s)';
-  String preorderDays(int days) =>
-      isEn ? 'Pre-order · $days day(s) lead time' : 'Précommande · délai $days j';
+  String preorderDays(int days) => isEn
+      ? 'Pre-order · $days day(s) lead time'
+      : 'Précommande · délai $days j';
 
   String get loginTitle => isEn ? 'Sign in' : 'Connexion';
   String get loginCaption => isEn
@@ -109,6 +110,10 @@ final class AppStrings {
       : 'Session, langue, accessibilité et connexion à l’API.';
   String get notSignedIn => isEn ? 'Not signed in' : 'Non connecté';
   String get signedInAs => isEn ? 'Signed in as' : 'Connecté en tant que';
+  String get signedIn => isEn ? 'Signed in' : 'Connecté';
+  String get noDeviceKey => isEn
+      ? 'No device key is enrolled on this device. Create an account here, or sign in from the device used to create it.'
+      : 'Aucune clé d’appareil n’est enrôlée sur cet appareil. Créez un compte ici, ou connectez-vous depuis l’appareil utilisé à l’inscription.';
   String get languageLabel => isEn ? 'Language' : 'Langue';
   String get reduceMotionLabel =>
       isEn ? 'Reduce animations' : 'Réduire les animations';
@@ -117,8 +122,9 @@ final class AppStrings {
   String get apiOffline => isEn ? 'Unavailable' : 'Indisponible';
   String get checkApi => isEn ? 'Check connection' : 'Vérifier la connexion';
 
-  String get offlineTitle =>
-      isEn ? 'Offline or server unreachable' : 'Hors connexion ou serveur inaccessible';
+  String get offlineTitle => isEn
+      ? 'Offline or server unreachable'
+      : 'Hors connexion ou serveur inaccessible';
   String get offlineDetail => isEn
       ? 'Check your network connection and retry. No data is simulated.'
       : 'Vérifiez votre connexion réseau et réessayez. Aucune donnée n’est simulée.';
@@ -155,7 +161,8 @@ final class AppStrings {
 
   String modelName(OfferModel m) {
     return switch (m) {
-      OfferModel.saveThenBuy => isEn ? 'Save then buy (A)' : 'Épargne puis achat (A)',
+      OfferModel.saveThenBuy =>
+        isEn ? 'Save then buy (A)' : 'Épargne puis achat (A)',
       OfferModel.financedPurchase =>
         isEn ? 'Financed purchase (B)' : 'Achat financé (B)',
       OfferModel.plannedExpense =>
@@ -204,22 +211,25 @@ final class AppStrings {
   String get handoverPendingNotice => isEn
       ? 'Single-use handover code emission awaits server route D69.'
       : 'L’émission du code de remise à usage unique attend la route serveur D69.';
-  String get beneficiarySectionTitle =>
-      isEn ? 'Beneficiary settlement (Model C)' : 'Règlement bénéficiaire (Modèle C)';
-  String get docShaLabel =>
-      isEn ? 'Document SHA-256 hash (64 hex chars)' : 'Empreinte SHA-256 de la pièce (64 hex)';
+  String get beneficiarySectionTitle => isEn
+      ? 'Beneficiary settlement (Model C)'
+      : 'Règlement bénéficiaire (Modèle C)';
+  String get docShaLabel => isEn
+      ? 'Document SHA-256 hash (64 hex chars)'
+      : 'Empreinte SHA-256 de la pièce (64 hex)';
   String get submitDocButton =>
       isEn ? 'Submit document hash' : 'Déposer l’empreinte';
-  String get payBeneficiaryButton =>
-      isEn ? 'Request beneficiary payout' : 'Demander le règlement bénéficiaire';
+  String get payBeneficiaryButton => isEn
+      ? 'Request beneficiary payout'
+      : 'Demander le règlement bénéficiaire';
   String get claimSectionTitle =>
       isEn ? 'Open a support claim' : 'Ouvrir une réclamation';
-  String get claimDetailsLabel =>
-      isEn ? 'Describe your issue (10-1000 chars)' : 'Décrivez votre demande (10 à 1000 car.)';
+  String get claimDetailsLabel => isEn
+      ? 'Describe your issue (10-1000 chars)'
+      : 'Décrivez votre demande (10 à 1000 car.)';
   String get submitClaimButton =>
       isEn ? 'Submit claim' : 'Envoyer la réclamation';
-  String get securityTitle =>
-      isEn ? 'Account security' : 'Sécurité du compte';
+  String get securityTitle => isEn ? 'Account security' : 'Sécurité du compte';
   String get dataRightsTitle =>
       isEn ? 'My data rights' : 'Mes droits sur mes données';
   String get legalNameTitle =>

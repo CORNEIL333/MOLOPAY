@@ -205,22 +205,27 @@ final class PaymentPlan {
 final class SessionSummary {
   const SessionSummary({
     required this.accountId,
-    required this.displayName,
     required this.locale,
     required this.expiresAt,
+    this.displayName,
   });
 
   final String accountId;
-  final String displayName;
   final String locale;
   final DateTime expiresAt;
 
-  factory SessionSummary.fromJson(Map<String, Object?> json) {
+  /// Le contrat n'expose aucun nom (D77) ; réservé à un libellé local éventuel.
+  final String? displayName;
+
+  /// Session ouverte par `POST /v1/auth/sessions` (appareil + PIN, D71).
+  factory SessionSummary.fromLogin(
+    ClientLoginResult result, {
+    required String locale,
+  }) {
     return SessionSummary(
-      accountId: _reqString(json, 'accountId'),
-      displayName: _reqString(json, 'displayName'),
-      locale: _reqString(json, 'locale'),
-      expiresAt: DateTime.parse(_reqString(json, 'expiresAt')),
+      accountId: result.accountId,
+      locale: locale,
+      expiresAt: result.accessExpiresAt,
     );
   }
 }
@@ -337,7 +342,9 @@ final class GoalList {
       throw const FormatException('Champ goals attendu.');
     }
     return GoalList(
-      goals: rawList.map((item) => Goal.fromJson(_asMap(item, 'goal'))).toList(),
+      goals: rawList
+          .map((item) => Goal.fromJson(_asMap(item, 'goal')))
+          .toList(),
       asOf: DateTime.parse(_reqString(json, 'asOf')),
     );
   }
@@ -797,6 +804,8 @@ final class AccountProfile {
     required this.phoneMasked,
     required this.memberSince,
     required this.legalNameDeclared,
+    required this.currentTermsVersion,
+    required this.termsAccepted,
   });
 
   final String accountId;
@@ -804,12 +813,18 @@ final class AccountProfile {
   final String memberSince;
   final bool legalNameDeclared;
 
+  /// F-ACC-004 (contrat 0.41.0) : version en vigueur et son acceptation.
+  final String currentTermsVersion;
+  final bool termsAccepted;
+
   factory AccountProfile.fromJson(Map<String, Object?> json) {
     return AccountProfile(
       accountId: _reqString(json, 'accountId'),
       phoneMasked: _reqString(json, 'phoneMasked'),
       memberSince: _reqString(json, 'memberSince'),
       legalNameDeclared: _reqBool(json, 'legalNameDeclared'),
+      currentTermsVersion: _reqString(json, 'currentTermsVersion'),
+      termsAccepted: _reqBool(json, 'termsAccepted'),
     );
   }
 }

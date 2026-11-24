@@ -7,14 +7,18 @@ import 'package:http/testing.dart';
 import 'package:molopay_mobile/app.dart';
 import 'package:molopay_mobile/core/api_client.dart';
 
+import 'support/fake_device_keys.dart';
+
 MoloPayApiClient _buildMockApi({
   bool loginUnavailable = false,
   bool offline = false,
+  void Function(http.Request request)? onRequest,
 }) {
   return MoloPayApiClient(
     baseUrl: 'https://api.molopay.test',
     origin: 'https://app.molopay.test',
     httpClient: MockClient((request) async {
+      onRequest?.call(request);
       if (offline) {
         throw http.ClientException('Offline');
       }
@@ -63,6 +67,9 @@ MoloPayApiClient _buildMockApi({
           headers: {'content-type': 'application/json'},
         );
       }
+      if (request.url.path == '/v1/auth/device-challenges') {
+        return deviceChallengeResponse();
+      }
       if (request.url.path == '/v1/auth/sessions') {
         if (loginUnavailable) {
           return http.Response(
@@ -78,12 +85,7 @@ MoloPayApiClient _buildMockApi({
           );
         }
         return http.Response(
-          jsonEncode({
-            'accountId': '22222222-2222-4222-8222-222222222222',
-            'displayName': 'Amina N.',
-            'locale': 'fr',
-            'expiresAt': '2026-11-20T12:00:00Z',
-          }),
+          sessionBody(),
           201,
           headers: {
             'content-type': 'application/json',
@@ -158,92 +160,131 @@ MoloPayApiClient _buildMockApi({
 }
 
 void main() {
-  testWidgets('F-CAT-001 — Catalogue charge les offres réelles et affiche le détail', (
-    tester,
-  ) async {
-    await tester.pumpWidget(MoloPayApp(apiClient: _buildMockApi()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'F-CAT-001 — Catalogue charge les offres réelles et affiche le détail',
+    (tester) async {
+      await tester.pumpWidget(MoloPayApp(apiClient: _buildMockApi()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('molopay'), findsOneWidget);
-    expect(find.text('MAQUETTE'), findsNothing);
+      expect(find.text('molopay'), findsOneWidget);
+      expect(find.text('MAQUETTE'), findsNothing);
 
-    await tester.tap(find.text('Explorer'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Explorer'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Réfrigérateur 220L'), findsOneWidget);
-    expect(find.textContaining('185'), findsWidgets);
+      expect(find.text('Réfrigérateur 220L'), findsOneWidget);
+      expect(find.textContaining('185'), findsWidgets);
 
-    await tester.tap(find.text('Réfrigérateur 220L'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Réfrigérateur 220L'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Électro Yaoundé'), findsWidgets);
-    expect(find.text('12 mois'), findsOneWidget);
-  });
+      expect(find.text('Électro Yaoundé'), findsWidgets);
+      expect(find.text('12 mois'), findsOneWidget);
+    },
+  );
 
-  testWidgets('SEC-AUTH-001 — Connexion affiche indisponible sur 503 sans simulation', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MoloPayApp(apiClient: _buildMockApi(loginUnavailable: true)),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'SEC-AUTH-001 — Connexion affiche indisponible sur 503 sans simulation',
+    (tester) async {
+      await tester.pumpWidget(
+        MoloPayApp(
+          apiClient: _buildMockApi(loginUnavailable: true),
+          deviceKeys: FakeDeviceKeyProvider(key: FakeDeviceKey()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Projets'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Projets'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Se connecter'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Se connecter'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const Key('login-phone-field')), '+237670000001');
-    await tester.enterText(find.byKey(const Key('login-pin-field')), '123456');
-    await tester.tap(find.byKey(const Key('login-submit-button')));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('login-pin-field')),
+        '123456',
+      );
+      await tester.tap(find.byKey(const Key('login-submit-button')));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('SERVICE_UNAVAILABLE'), findsOneWidget);
-  });
+      expect(find.textContaining('SERVICE_UNAVAILABLE'), findsOneWidget);
+    },
+  );
 
-  testWidgets('F-GOA-001 — Connexion puis liste des objectifs et versements confirmés', (
-    tester,
-  ) async {
-    await tester.pumpWidget(MoloPayApp(apiClient: _buildMockApi()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'D71 — Sans clé d’appareil enrôlée : connexion indisponible, rien n’est envoyé',
+    (tester) async {
+      var sessionCalls = 0;
+      final api = _buildMockApi(
+        onRequest: (request) {
+          if (request.url.path.startsWith('/v1/auth/')) sessionCalls += 1;
+        },
+      );
+      await tester.pumpWidget(MoloPayApp(apiClient: api));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Projets'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Se connecter'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('login-no-device-key')), findsOneWidget);
+      expect(find.byKey(const Key('login-pin-field')), findsNothing);
+      expect(sessionCalls, 0);
+    },
+  );
 
-    await tester.tap(find.text('Projets'));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'F-GOA-001 — Connexion puis liste des objectifs et versements confirmés',
+    (tester) async {
+      await tester.pumpWidget(
+        MoloPayApp(
+          apiClient: _buildMockApi(),
+          deviceKeys: FakeDeviceKeyProvider(key: FakeDeviceKey()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Se connecter'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Projets'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const Key('login-phone-field')), '+237670000001');
-    await tester.enterText(find.byKey(const Key('login-pin-field')), '123456');
-    await tester.tap(find.byKey(const Key('login-submit-button')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Se connecter'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Réfrigérateur 220L'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('login-pin-field')),
+        '123456',
+      );
+      await tester.tap(find.byKey(const Key('login-submit-button')));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Réfrigérateur 220L'));
-    await tester.pumpAndSettle();
+      expect(find.text('Réfrigérateur 220L'), findsOneWidget);
 
-    expect(find.text('RCP-2026-0001'), findsOneWidget);
-  });
+      await tester.tap(find.text('Réfrigérateur 220L'));
+      await tester.pumpAndSettle();
 
-  testWidgets('NF-OFFLINE / I18N — État hors connexion lisible et bascule FR/EN', (
-    tester,
-  ) async {
-    await tester.pumpWidget(MoloPayApp(apiClient: _buildMockApi(offline: true)));
-    await tester.pumpAndSettle();
+      expect(find.text('RCP-2026-0001'), findsOneWidget);
+    },
+  );
 
-    await tester.tap(find.text('Explorer'));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'NF-OFFLINE / I18N — État hors connexion lisible et bascule FR/EN',
+    (tester) async {
+      await tester.pumpWidget(
+        MoloPayApp(apiClient: _buildMockApi(offline: true)),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('NETWORK_UNAVAILABLE'), findsOneWidget);
+      await tester.tap(find.text('Explorer'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Profil'));
-    await tester.pumpAndSettle();
+      expect(find.textContaining('NETWORK_UNAVAILABLE'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('locale-toggle-en')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Profil'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Profile'), findsWidgets);
-  });
+      await tester.tap(find.byKey(const Key('locale-toggle-en')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profile'), findsWidgets);
+    },
+  );
 }

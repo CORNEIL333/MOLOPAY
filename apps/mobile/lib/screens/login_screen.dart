@@ -8,14 +8,11 @@ import '../l10n/strings.dart';
 import '../ui/design.dart';
 import 'signup_screen.dart';
 
-/// Écran de connexion client (`POST /v1/auth/sessions`).
-/// Zéro simulation : si la route est fermée (503/404), affiche le code RFC 9457 exact.
+/// Écran de connexion client (D71) : défi signé par la clé de l'appareil enrôlé, puis PIN.
+/// Zéro simulation : sans clé d'appareil, l'écran le dit et n'envoie rien ;
+/// un refus du serveur affiche le code RFC 9457 exact.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    required this.state,
-    this.onSuccess,
-  });
+  const LoginScreen({super.key, required this.state, this.onSuccess});
 
   final AppState state;
   final VoidCallback? onSuccess;
@@ -25,20 +22,36 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static final RegExp _phonePattern = RegExp(r'^\+[1-9][0-9]{7,14}$');
   static final RegExp _pinPattern = RegExp(r'^[0-9]{6}$');
 
-  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
 
-  String? _phoneError;
+  /// `null` tant que la présence d'une clé enrôlée n'est pas connue.
+  bool? _hasDeviceKey;
   String? _pinError;
   ApiProblem? _problem;
   bool _pending = false;
 
   @override
+  void initState() {
+    super.initState();
+    final provider = widget.state.deviceKeys;
+    if (provider == null) {
+      _hasDeviceKey = false;
+    } else {
+      provider.enrolled().then(
+        (key) {
+          if (mounted) setState(() => _hasDeviceKey = key != null);
+        },
+        onError: (Object _) {
+          if (mounted) setState(() => _hasDeviceKey = false);
+        },
+      );
+    }
+  }
+
+  @override
   void dispose() {
-    _phoneController.dispose();
     _pinController.clear();
     _pinController.dispose();
     super.dispose();
@@ -47,21 +60,19 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (_pending) return;
     final s = AppStrings.of(widget.state.locale);
-    final phone = _phoneController.text.trim();
+    if (_hasDeviceKey != true) return;
     final pin = _pinController.text;
 
-    final phoneOk = _phonePattern.hasMatch(phone);
     final pinOk = _pinPattern.hasMatch(pin);
     setState(() {
-      _phoneError = phoneOk ? null : s.invalidPhone;
       _pinError = pinOk ? null : s.invalidPin;
       _problem = null;
     });
-    if (!phoneOk || !pinOk) return;
+    if (!pinOk) return;
 
     setState(() => _pending = true);
     try {
-      await widget.state.signIn(phone: phone, pin: pin);
+      await widget.state.signInWithDevice(pin: pin);
       _pinController.clear();
       if (!mounted) return;
       if (widget.onSuccess != null) {
@@ -70,8 +81,13 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.of(context).pop(true);
       }
     } on ApiProblemException catch (error) {
+      _pinController.clear();
       if (!mounted) return;
       setState(() => _problem = error.problem);
+    } on StateError {
+      _pinController.clear();
+      if (!mounted) return;
+      setState(() => _hasDeviceKey = false);
     } finally {
       if (mounted) {
         setState(() => _pending = false);
@@ -107,63 +123,50 @@ class _LoginScreenState extends State<LoginScreen> {
                   ProblemBanner(problem: _problem!, strings: s),
                   const SizedBox(height: 18),
                 ],
-                Text(
-                  s.phoneLabel,
-                  style: type(13, color: muted, weight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  key: const Key('login-phone-field'),
-                  controller: _phoneController,
-                  enabled: !_pending,
-                  keyboardType: TextInputType.phone,
-                  autofillHints: const [AutofillHints.telephoneNumber],
-                  decoration: InputDecoration(
-                    hintText: s.phoneHint,
-                    errorText: _phoneError,
-                    prefixIcon: const Icon(CupertinoIcons.phone, color: muted),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+                if (_hasDeviceKey == false) ...[
+                  Text(
+                    s.noDeviceKey,
+                    key: const Key('login-no-device-key'),
+                    style: type(14, color: ink),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  s.pinLabel,
-                  style: type(13, color: muted, weight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  key: const Key('login-pin-field'),
-                  controller: _pinController,
-                  enabled: !_pending,
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    errorText: _pinError,
-                    counterText: '',
-                    prefixIcon: const Icon(CupertinoIcons.lock, color: muted),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+                  const SizedBox(height: 18),
+                ],
+                if (_hasDeviceKey == true) ...[
+                  Text(
+                    s.pinLabel,
+                    style: type(13, color: muted, weight: FontWeight.w600),
                   ),
-                  onSubmitted: (_) => _submit(),
-                ),
-                const SizedBox(height: 22),
-                Primary(
-                  s.signInButton,
-                  _submit,
-                  key: const Key('login-submit-button'),
-                  loading: _pending,
-                ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    key: const Key('login-pin-field'),
+                    controller: _pinController,
+                    enabled: !_pending,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      errorText: _pinError,
+                      counterText: '',
+                      prefixIcon: const Icon(CupertinoIcons.lock, color: muted),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    onSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 22),
+                  Primary(
+                    s.signInButton,
+                    _submit,
+                    key: const Key('login-submit-button'),
+                    loading: _pending,
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Center(
                   child: TextButton(
