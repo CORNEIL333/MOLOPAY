@@ -4,6 +4,12 @@ import { AppModule } from './app.module';
 import { createDatabase, databaseConfigFromEnv } from './http/database';
 import { allowedOriginsFromEnv } from './http/origin.guard';
 import { pinPepperFromEnv } from './modules/identity/pin.store';
+import { twilioConfigFromEnv, twilioSmsSender } from './modules/identity/twilio-sms';
+
+function smsSenderFromEnv(env: NodeJS.ProcessEnv): ReturnType<typeof twilioSmsSender> | null {
+  const config = twilioConfigFromEnv(env);
+  return config === null ? null : twilioSmsSender(config);
+}
 
 export async function bootstrap(): Promise<void> {
   const database = createDatabase(databaseConfigFromEnv(process.env));
@@ -13,9 +19,10 @@ export async function bootstrap(): Promise<void> {
       allowedOrigins: allowedOriginsFromEnv(process.env),
       // Fermé par défaut : sans PIN_PEPPER, aucune action sous PIN n'est possible.
       pinPepper: process.env['PIN_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env),
-      // C2 : poivre OTP ; aucun prestataire SMS n'est branché tant qu'il n'est pas choisi (D1) : envoi fermé (503).
+      // C2 : poivre OTP. SMS par Twilio (D1, 24 novembre) seulement si sa configuration est complète
+      // et valide ; sinon envoi fermé (503 SMS_UNCONFIGURED).
       otpPepper: process.env['OTP_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env, 'OTP_PEPPER'),
-      smsSender: null,
+      smsSender: smsSenderFromEnv(process.env),
     }),
   );
   app.enableShutdownHooks();
