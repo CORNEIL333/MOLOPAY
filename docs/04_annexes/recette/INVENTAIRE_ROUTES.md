@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **89 routes.**
+- **90 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -24,6 +24,7 @@
 | `POST` | `/v1/backoffice/admin/staff/{staffId}/disable` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Désactiver un agent (motif obligatoire) |
 | `POST` | `/v1/backoffice/admin/staff/{staffId}/enrollments` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Émettre un défi d’enrôlement et son jeton (rendu une seule fois) |
 | `POST` | `/v1/backoffice/admin/staff/{staffId}/roles` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Attribuer des rôles depuis une demande approuvée |
+| `POST` | `/v1/backoffice/agency-enrollments` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Émettre un code d'inscription en agence, après vérification en personne (C13, F-ACC-001) |
 | `POST` | `/v1/backoffice/beneficiary-payouts` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Préparer un virement au bénéficiaire C (D50) |
 | `POST` | `/v1/backoffice/beneficiary-payouts/{payoutId}/decision` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Décision sur un virement, par une autre personne (I-7) |
 | `POST` | `/v1/backoffice/beneficiary-payouts/{payoutId}/execution` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Exécution du virement rapportée par l’établissement |

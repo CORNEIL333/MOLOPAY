@@ -136,6 +136,8 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       // C7 / SEC-INC-003 : gel des flux sortants (demande, confirmation par une autre personne).
       OUTGOING_FREEZE_REQUESTED: ['request_id', 'freeze_action'],
       OUTGOING_FREEZE_CONFIRMED: ['request_id', 'freeze_action'],
+      // C13 : code d'inscription émis en agence (jamais le numéro ni la pièce).
+      AGENCY_ENROLLMENT_ISSUED: ['challenge_id', 'city_id', 'document_type'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

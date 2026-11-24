@@ -15,6 +15,7 @@ describe('C6 navigation du back-office', () => {
       ['Conformité', '/conformite'],
       ['Réclamations', '/reclamations'],
       ['Historique d’un objectif', '/objectifs'],
+      ['Inscription en agence', '/clients/inscription-agence'],
       ['Bloquer un compte client', '/clients/blocage'],
       ['Gel des flux sortants', '/incidents/gel'],
       ['Administration', '/administration'],

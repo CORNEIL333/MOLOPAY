@@ -51,6 +51,7 @@ export const ADMIN_ACTIONS = [
   'APPROVE_BREAK_GLASS',
   'BLOCK_CUSTOMER_ACCOUNT',
   'MANAGE_OUTGOING_FREEZE',
+  'ENROLL_CUSTOMER_AT_AGENCY',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -86,7 +87,8 @@ export type AuthorizationDecision =
 
 const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
   // C4 / F-ACC-006 : perte ou vol du téléphone ; bloquer ne fait que protéger (une personne, motif obligatoire).
-  SUPPORT_N1: new Set<AdminAction>(['BLOCK_CUSTOMER_ACCOUNT']),
+  // C13 : inscription en agence (pièce et téléphone vérifiés en personne), dans la ville de l'agent.
+  SUPPORT_N1: new Set<AdminAction>(['BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY']),
   SUPPORT_N2: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
@@ -94,6 +96,7 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'OPEN_DISPUTE',
     'CLOSE_COMPLAINT',
     'BLOCK_CUSTOMER_ACCOUNT',
+    'ENROLL_CUSTOMER_AT_AGENCY',
   ]),
   OPERATIONS: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -187,6 +190,7 @@ const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
 ]);
 
 const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
+  'ENROLL_CUSTOMER_AT_AGENCY',
   'PREPARE_SETTLEMENT',
   'APPROVE_SETTLEMENT',
   'PREPARE_LEDGER_REVERSAL',

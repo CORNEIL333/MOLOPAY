@@ -1,4 +1,5 @@
 import { createApiClient } from '@achat/contracts/client';
+import type { AgencyEnrollmentPorts } from '../components/agency-enrollment';
 import type { StaffLoginPorts } from '../components/staff-login';
 import type { AdminPort } from '../components/admin-panel';
 import type { FundsActionPort } from '../components/funds-action';
@@ -206,6 +207,18 @@ export const browserCustomerBlockPorts: CustomerBlockPorts = {
       cache: 'no-store',
     });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, blockedAt: result.data.blockedAt };
+  },
+};
+
+/** C13 : inscription en agence (route réelle ; le code n'est rendu qu'une fois). */
+export const browserAgencyEnrollmentPorts: AgencyEnrollmentPorts = {
+  async issue(input) {
+    const result = await api().POST('/v1/backoffice/agency-enrollments', {
+      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: input,
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, enrollment: result.data };
   },
 };
 

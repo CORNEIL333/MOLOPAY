@@ -68,6 +68,7 @@
 | D90 | Clé d'appareil mobile : **A** accepter aussi P-256 matériel (Secure Enclave / Keystore, recommandé) / **B** Ed25519 logiciel protégé par clé matérielle / **C** Android 13+ seulement | Mobile : ni inscription ni connexion (aucune clé de plateforme). |
 | D1 | Prestataire SMS : **Twilio** (tranché le 24 novembre) ; adaptateur livré, identifiants à fournir | — |
 | D92 | Versements au lancement : **aucun** (tranché le 24 novembre) | — |
+| D91 | Inscription en agence : un agent seul, 30 codes / 24 h (appliqué) — **Valider** / seconde personne / photo de la pièce | Appliqué. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

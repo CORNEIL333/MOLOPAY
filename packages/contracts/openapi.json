@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.41.0",
+    "version": "0.42.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
   },
   "servers": [
@@ -5672,6 +5672,77 @@
           }
         }
       }
+    },
+    "/v1/backoffice/agency-enrollments": {
+      "post": {
+        "operationId": "issueAgencyEnrollment",
+        "summary": "Émettre un code d'inscription en agence, après vérification en personne (C13, F-ACC-001)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "L'agent du support vérifie en personne la pièce d'identité et le téléphone du client, dans sa ville, puis remet le code au client, qui termine l'inscription sur son appareil (POST /v1/auth/signups). Le code n'est rendu qu'une fois ; un rejeu renvoie le même défi avec `code: null`. 30 codes par agent sur 24 heures.",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyEnrollmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Code émis (à remettre au client, valable 5 minutes)",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyEnrollment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9709,6 +9780,64 @@
             "type": "string",
             "format": "date-time",
             "description": "Horodatage posé par la base ; inchangé si la même version est acceptée de nouveau."
+          }
+        }
+      },
+      "AgencyEnrollmentRequest": {
+        "type": "object",
+        "required": [
+          "phone",
+          "documentType",
+          "cityId"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Numéro E.164 du client, vérifié en personne."
+          },
+          "documentType": {
+            "type": "string",
+            "enum": [
+              "CNI",
+              "PASSPORT",
+              "RESIDENCE_PERMIT"
+            ],
+            "description": "Type de pièce présentée ; son numéro n’est jamais transmis."
+          },
+          "cityId": {
+            "type": "string",
+            "enum": [
+              "yaounde",
+              "douala"
+            ]
+          }
+        }
+      },
+      "AgencyEnrollment": {
+        "type": "object",
+        "required": [
+          "challengeId",
+          "expiresAt",
+          "code"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{6}$",
+            "description": "Six chiffres, rendus une seule fois ; nul sur un rejeu."
           }
         }
       }

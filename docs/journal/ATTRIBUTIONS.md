@@ -30,6 +30,8 @@
 | C9 | Gel automatique des flux sortants sur divergence du vérificateur indépendant (INT-VER-002), outil `pnpm verify:nightly` | `sprint/integration-t01urw` | J5 | Livré (contrat 0.40.0, migration 0072) |
 | C10 | Administrateur technique limité à deux personnes (F-BO-001) | `sprint/integration-t01urw` | J5 | Livré (migration 0073) |
 | C11 | Conditions en vigueur acceptées avant tout nouvel engagement (F-ACC-004) | `sprint/integration-t01urw` | J5 | Livré (contrat 0.41.0, migration 0074) |
+| C12 | Adaptateur SMS Twilio, fermé sans configuration (D1) | `sprint/integration-t01urw` | J5 | Livré (identifiants à fournir) |
+| C13 | Inscription en agence sans SMS (F-ACC-001) : route, base, écran `/clients/inscription-agence` | `sprint/integration-t01urw` | J5 | Livré (contrat 0.42.0, migration 0075) |
 
 ## Qoder — plateforme serveur, CRM, erreurs, journaux, archivage
 

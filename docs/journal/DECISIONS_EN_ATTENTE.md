@@ -718,3 +718,9 @@
 - **À faire par le fondateur :** compte Twilio ; numéro expéditeur ou service de messagerie autorisé vers le Cameroun ; secrets dans la configuration du serveur (jamais dans le dépôt) ; autoriser l'hôte `api.twilio.com` sur le réseau de production.
 - **Versements (D92) :** aucun au lancement ; les objectifs peuvent être créés et activés, rien n'est encaissé.
 
+### C13 · Inscription en agence, sans SMS (F-ACC-001, 24 novembre)
+- **Demandé par le fondateur :** « ajoute aussi l'enregistrement en agence ».
+- **Appliqué (migration 0075, contrat 0.42.0) :** `POST /v1/backoffice/agency-enrollments` (`phone`, `documentType` CNI / passeport / carte de séjour, `cityId`) : l'agent du support (N1 ou N2), dans sa ville, vérifie en personne la pièce et le téléphone, puis émet un **code d'inscription ordinaire** (mêmes règles que par SMS : 5 minutes, 5 essais, 5 codes par numéro et par heure) qu'il remet au client ; le client termine sur son appareil par la route habituelle (code, PIN, clé d'appareil, conditions). Le code n'est rendu qu'une fois : jamais conservé en clair, `null` sur un rejeu. Numéro déjà inscrit signalé à l'agent (409). Rattachement en ajout seul (agent, ville, type de pièce, jamais le numéro de pièce) ; audit chaîné sans numéro ni code. Écran `/clients/inscription-agence` (case « vérifié en présence du client » obligatoire). Tests : 4 HTTP et base, 2 d'écran ; 11 mutants tués (1 équivalent supprimé du code).
+- **⚖ D91 :** une seule personne émet le code (appliqué, comme le blocage) avec **30 codes par agent sur 24 h** — valider ; faut-il une seconde personne, ou une photo de la pièce (prestataire KYC) ?
+- **Limite connue :** sans clé d'appareil de plateforme sur mobile (D90), le client termine aujourd'hui l'inscription sur le **client web** (clé du navigateur, D89).
+

@@ -1648,6 +1648,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/agency-enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Émettre un code d'inscription en agence, après vérification en personne (C13, F-ACC-001)
+         * @description L'agent du support vérifie en personne la pièce d'identité et le téléphone du client, dans sa ville, puis remet le code au client, qui termine l'inscription sur son appareil (POST /v1/auth/signups). Le code n'est rendu qu'une fois ; un rejeu renvoie le même défi avec `code: null`. 30 codes par agent sur 24 heures.
+         */
+        post: operations["issueAgencyEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2720,6 +2740,25 @@ export interface components {
              * @description Horodatage posé par la base ; inchangé si la même version est acceptée de nouveau.
              */
             acceptedAt: string;
+        };
+        AgencyEnrollmentRequest: {
+            /** @description Numéro E.164 du client, vérifié en personne. */
+            phone: string;
+            /**
+             * @description Type de pièce présentée ; son numéro n’est jamais transmis.
+             * @enum {string}
+             */
+            documentType: "CNI" | "PASSPORT" | "RESIDENCE_PERMIT";
+            /** @enum {string} */
+            cityId: "yaounde" | "douala";
+        };
+        AgencyEnrollment: {
+            /** Format: uuid */
+            challengeId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Six chiffres, rendus une seule fois ; nul sur un rejeu. */
+            code: string | null;
         };
     };
     responses: {
@@ -5785,6 +5824,40 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    issueAgencyEnrollment: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Code émis (à remettre au client, valable 5 minutes) */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyEnrollment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
         };
     };
 }
