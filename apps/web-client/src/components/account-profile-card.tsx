@@ -1,6 +1,7 @@
 import type { components } from '@achat/contracts/api';
 import type { ReactElement } from 'react';
 import type { Locale } from '../i18n';
+import { TermsAcceptance } from './terms-acceptance';
 
 type Account = components['schemas']['Account'];
 
@@ -41,7 +42,16 @@ export function AccountProfileCard({
             )}
           </dd>
         </div>
+        <div>
+          <dt>{isEn ? 'Terms' : 'Conditions'}</dt>
+          <dd>
+            {account.termsAccepted
+              ? (isEn ? `Accepted (version ${account.currentTermsVersion})` : `Acceptées (version ${account.currentTermsVersion})`)
+              : (isEn ? 'To accept' : 'À accepter')}
+          </dd>
+        </div>
       </dl>
+      {account.termsAccepted ? null : <TermsAcceptance locale={locale} version={account.currentTermsVersion} />}
       <p><a href="/compte/notifications">Notifications</a></p>
     </section>
   );

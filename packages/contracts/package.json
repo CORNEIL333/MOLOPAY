@@ -12,6 +12,10 @@
     "./api": {
       "types": "./src/api.d.ts"
     },
+    "./terms": {
+      "types": "./src/terms.ts",
+      "default": "./src/terms.ts"
+    },
     "./client": {
       "types": "./src/client.ts",
       "default": "./src/client.ts"

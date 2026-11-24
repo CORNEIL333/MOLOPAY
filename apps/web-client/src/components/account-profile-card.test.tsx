@@ -13,12 +13,16 @@ describe('C2 / D77 — AccountProfileCard (GET /v1/me minimal, sans niveau KYC)'
       phoneMasked: '+2376•••••••34',
       memberSince: '2026-10-26',
       legalNameDeclared: true,
+      currentTermsVersion: '2026-10-26-v1',
+      termsAccepted: true,
     };
     const { container } = render(<AccountProfileCard account={account} locale="fr" />);
 
     expect(screen.getByText('+2376•••••••34')).toBeInTheDocument();
     expect(screen.getByText(/Nom légal déclaré/i)).toBeInTheDocument();
     expect(screen.queryByText(/KYC|BASIC|VERIFIED|SANCTIONS/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Acceptées (version 2026-10-26-v1)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Accepter' })).not.toBeInTheDocument();
     expect((await axe.run(container)).violations).toHaveLength(0);
   });
 
@@ -28,6 +32,8 @@ describe('C2 / D77 — AccountProfileCard (GET /v1/me minimal, sans niveau KYC)'
       phoneMasked: '+2376•••••••34',
       memberSince: '2026-10-26',
       legalNameDeclared: false,
+      currentTermsVersion: '2026-10-26-v1',
+      termsAccepted: false,
     };
     const { container } = render(<AccountProfileCard account={account} locale="en" />);
 
@@ -35,6 +41,9 @@ describe('C2 / D77 — AccountProfileCard (GET /v1/me minimal, sans niveau KYC)'
       'href',
       '/compte/identite',
     );
+    // F-ACC-004 : conditions en vigueur non acceptées → invitation à les accepter.
+    expect(screen.getByRole('heading', { name: 'New terms to accept' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Accept' })).toBeDisabled();
     expect((await axe.run(container)).violations).toHaveLength(0);
   });
 });
