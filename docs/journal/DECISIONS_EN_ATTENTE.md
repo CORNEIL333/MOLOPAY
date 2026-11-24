@@ -724,3 +724,10 @@
 - **⚖ D91 :** une seule personne émet le code (appliqué, comme le blocage) avec **30 codes par agent sur 24 h** — valider ; faut-il une seconde personne, ou une photo de la pièce (prestataire KYC) ?
 - **Limite connue :** sans clé d'appareil de plateforme sur mobile (D90), le client termine aujourd'hui l'inscription sur le **client web** (clé du navigateur, D89).
 
+### Hébergement tranché par le fondateur (24 novembre) — ADR-0004, D5, D93
+- **Localisation :** base entière au Cameroun (comptes, KYC, objectifs, grand livre, audit, sauvegardes) ; à l'étranger seulement le non-personnel (signatures KMS/HSM, pages publiques). Pas d'autorisation de transfert nécessaire.
+- **Clés (D5) :** KMS/HSM managé, clés non exportables ; le message signé ne contiendra aucune donnée personnelle (à imposer dans l'adaptateur de signature).
+- **Sauvegardes (D93) :** un site + copie hors site au Cameroun, chiffrée, immuable 35 jours ; écart temporaire accepté à OPS-BAK-001 et NF-REL-002 (RPO non nul) jusqu'à l'ouverture des versements.
+- **Exploitation :** VM + conteneurs (lot Q4), PostgreSQL 16 exploité par l'équipe.
+- **Reste à choisir (humain) :** l'hébergeur camerounais et le fournisseur KMS/HSM ; comptes et accès. Côté code : adaptateur de signature KMS (port existant) dès que le fournisseur est connu.
+
