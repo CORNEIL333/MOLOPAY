@@ -72,6 +72,7 @@
 | ADR-0004 | Hébergement MVP : **Neon Francfort + serveurs AWS Francfort + AWS KMS**, chiffrement applicatif (C14), notre propre sauvegarde, transfert vers AWS répété (25 novembre) ; **autorisation de transfert (loi 2024/017) : à déposer ; collecte de données réelles avant l'accord : à décider** | Aucune donnée réelle tant que non décidé. |
 | D5 | Clés de signature : **AWS KMS** (Ed25519, non exportables) — tranché les 24 et 25 novembre | — |
 | D93 | Sauvegardes : **un site + copie hors site au Cameroun** (écart temporaire OPS-BAK-001 / NF-REL-002 jusqu'aux versements) ; exploitation **VM + conteneurs** — tranché le 24 novembre | — |
+| D113 | Numérotation des migrations : **plages réservées** (0001–0099 Claude, 0100+ Qoder), chacune continue, test adapté — **Valider** / renuméroter | Test de chaîne rouge dès l'intégration du CRM. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus
