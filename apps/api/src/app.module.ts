@@ -35,6 +35,7 @@ import { ClientAuthController } from './workflows/client-auth.controller';
 import { BackofficeCustomerController } from './workflows/backoffice-customer.controller';
 import { NotificationFeedController } from './workflows/notification-feed.controller';
 import { BackofficeAgencyController } from './workflows/backoffice-agency.controller';
+import { ClientVersionGuard } from './workflows/client-version.guard';
 import { BackofficeFreezeController } from './workflows/backoffice-freeze.controller';
 
 export type AppDependencies = {
@@ -83,6 +84,7 @@ export class AppModule {
         { provide: ALLOWED_ORIGINS, useValue: deps.allowedOrigins },
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },
+        { provide: APP_GUARD, useClass: ClientVersionGuard },
         CustomerSessionGuard,
         CustomerQuotaGuard,
         StaffSessionGuard,

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.42.0",
-    "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants."
+    "version": "0.43.0",
+    "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants.\n\n**Version minimale (SEC-MOB-005)** : toute route accepte l'en-tête facultatif `X-Client-Version` (voir `components.parameters.ClientVersion`) et peut répondre `426` (`components.responses.UpgradeRequired`, code `CLIENT_UPGRADE_REQUIRED`) quand l'application est en dessous du minimum publié."
   },
   "servers": [
     {
@@ -5870,6 +5870,16 @@
         "schema": {
           "$ref": "#/components/schemas/ApprovalStatus"
         }
+      },
+      "ClientVersion": {
+        "name": "X-Client-Version",
+        "in": "header",
+        "required": false,
+        "description": "SEC-MOB-005 : plateforme et version de l'application (`mobile/0.1.0`). Facultatif ; s'applique à toutes les routes. En dessous du minimum publié (paramètre `client_min_versions`), toute route répond 426 `CLIENT_UPGRADE_REQUIRED`.",
+        "schema": {
+          "type": "string",
+          "pattern": "^(mobile|desktop)/(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})\\.(0|[1-9][0-9]{0,3})$"
+        }
       }
     },
     "schemas": {
@@ -9925,6 +9935,16 @@
       },
       "Unavailable": {
         "description": "Prestataire indisponible",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "UpgradeRequired": {
+        "description": "Application trop ancienne : mise à jour exigée (SEC-MOB-005)",
         "content": {
           "application/problem+json": {
             "schema": {

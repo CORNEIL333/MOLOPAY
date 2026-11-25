@@ -754,3 +754,8 @@
 - **Limite :** la route `POST /v1/auth/otp-challenges` (envoi SMS) n'est pas exercée de bout en bout tant que Twilio n'est pas configuré (aucune simulation) ; sa logique de protection est commune avec l'inscription en agence, testée.
 - **Pour Qoder (PR #10, CRM) :** la fiche 360° doit lire `identity.account.phone_masked` ; `phone` n'est plus un numéro.
 
+
+### C16 · Version minimale de l'application imposée par le serveur (SEC-MOB-005, contrat 0.43.0)
+- **Fait :** en-tête `X-Client-Version: <plateforme>/<x.y.z>` (plateformes `mobile`, `desktop`) ; paramètre versionné `client_min_versions` publié avec préparateur ≠ approbateur ; sous le minimum de sa plateforme → **426 `CLIENT_UPGRADE_REQUIRED`** avant toute logique métier. Le mobile envoie l'en-tête sur chaque requête et reconnaît 426.
+- **Option prudente et réversible retenue :** en-tête absent → requête acceptée (navigateur, USSD, partenaires, anciennes versions du mobile qui ne l'envoyaient pas encore). En-tête présent mais mal formé → 400. Sans paramètre publié → aucune version refusée. Lecture du paramètre mise en cache 60 s.
+- **Question au fondateur (D114) :** une fois toutes les versions en circulation porteuses de l'en-tête, faut-il refuser aussi son **absence** sur les routes client mobiles ? Recommandation : oui, après la première publication en boutique.

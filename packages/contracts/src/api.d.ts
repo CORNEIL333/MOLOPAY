@@ -2836,6 +2836,15 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Application trop ancienne : mise à jour exigée (SEC-MOB-005) */
+        UpgradeRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         IdempotencyKey: string;
@@ -2849,6 +2858,8 @@ export interface components {
         MaxPriceFilter: components["schemas"]["Money"];
         PartnerFilter: string;
         ApprovalStatusFilter: components["schemas"]["ApprovalStatus"];
+        /** @description SEC-MOB-005 : plateforme et version de l'application (`mobile/0.1.0`). Facultatif ; s'applique à toutes les routes. En dessous du minimum publié (paramètre `client_min_versions`), toute route répond 426 `CLIENT_UPGRADE_REQUIRED`. */
+        ClientVersion: string;
     };
     requestBodies: never;
     headers: never;

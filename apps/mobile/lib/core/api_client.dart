@@ -22,6 +22,10 @@ class MoloPayApiClient {
            : baseUrl,
        _http = httpClient ?? http.Client();
 
+  /// SEC-MOB-005 : version déclarée au serveur (à garder égale à `version` de pubspec.yaml).
+  static const String appVersion = '0.1.0';
+  static const String clientVersionHeader = 'mobile/$appVersion';
+
   static const String defaultBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://127.0.0.1:3000',
@@ -437,6 +441,7 @@ class MoloPayApiClient {
     final uri = _buildUri('/v1/auth/session-refreshes', null);
     final headers = <String, String>{
       'accept': 'application/json',
+      'x-client-version': clientVersionHeader,
       'content-type': 'application/json',
       'cache-control': 'no-store',
       'origin': origin,
@@ -469,6 +474,7 @@ class MoloPayApiClient {
     final uri = _buildUri(path, queryParameters);
     final headers = <String, String>{
       'accept': 'application/json',
+      'x-client-version': clientVersionHeader,
       if (authenticated) 'cache-control': 'no-store',
       'cookie': ?_sessionCookie,
     };
@@ -492,6 +498,7 @@ class MoloPayApiClient {
     final uri = _buildUri(path, null);
     final headers = <String, String>{
       'accept': 'application/json',
+      'x-client-version': clientVersionHeader,
       'content-type': 'application/json',
       'cache-control': 'no-store',
       'origin': origin,

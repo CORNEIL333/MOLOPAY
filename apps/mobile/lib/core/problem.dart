@@ -85,6 +85,7 @@ final class ApiProblem {
       404 => 'NOT_FOUND',
       409 => 'CONFLICT',
       422 => 'UNPROCESSABLE_ENTITY',
+      426 => 'CLIENT_UPGRADE_REQUIRED',
       429 => 'RATE_LIMITED',
       501 => 'NOT_IMPLEMENTED',
       503 => 'SERVICE_UNAVAILABLE',
@@ -97,6 +98,7 @@ final class ApiProblem {
       401 => 'Authentification requise',
       403 => 'Accès refusé',
       404 => 'Ressource indisponible',
+      426 => 'Mise à jour requise',
       429 => 'Trop de tentatives',
       501 || 503 => 'Service indisponible',
       _ => 'Erreur serveur ($status)',
@@ -104,6 +106,10 @@ final class ApiProblem {
   }
 
   bool get isUnauthorized => status == 401 || code == 'UNAUTHORIZED';
+
+  /// SEC-MOB-005 : application trop ancienne, mise à jour exigée par le serveur.
+  bool get isUpgradeRequired =>
+      status == 426 || code == 'CLIENT_UPGRADE_REQUIRED';
 
   bool get isServiceUnavailable =>
       status == 503 || status == 501 || code == 'SERVICE_UNAVAILABLE';
