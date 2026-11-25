@@ -75,6 +75,18 @@ Prototype navigable de bout en bout, aligné sur la machine à états de `CDC_05
 | Retard (embranchement) | `IN_ARREARS` | Options concrètes, rappels limités, jamais de contact des proches ni de blocage du téléphone | F-FIN-005 |
 | Soldé | `REPAID → CLOSED` | Attestation, pas de célébration sur une dette, objectif d'épargne proposé | F-FIN-004 |
 
+## Marketplace, suite — `maquettes/marketplace-suite.html`
+
+| Écran | Contenu | Exigences | Interactif |
+|---|---|---|---|
+| Recherche | Champ avec micro, récentes, univers, recherches fréquentes ; tolérance aux fautes (« frijo ») ; tri par prix ; aucun résultat → « Demander ce produit » | F-CAT-004, NF-UX-001 | Oui |
+| Favoris | Prix du jour et écart depuis l'ajout, « figé seulement à la réservation », disponibilité indicative | F-CAT-003, F-PUB-009 | Oui |
+| Comparer | Deux favoris au même rythme : jours d'épargne, date d'obtention, frais | F-CAT-004 | Oui |
+| Réservation 1 | Variante et boutique de retrait | F-CAT-001, F-CAT-005 | Oui |
+| Réservation 2 | Rythme, nombre de versements, date estimée | F-SAV-001 | Oui |
+| Réservation 3 | Relecture de l'accord, conditions de sortie, signature par glisser | F-SAV-001, F-SAV-005, REG-CON-001 | Oui |
+| Réservation 4 | Stock réservé, premier versement par pastilles, anneau après confirmation | F-CAT-005, F-SAV-002 | Oui |
+
 ## Écrans complémentaires — `maquettes/ecrans-complementaires.html`
 
 | Application | Écran | Contenu | Exigences |

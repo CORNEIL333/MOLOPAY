@@ -54,6 +54,7 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 | `ecrans-web.html` | Portail partenaire, client web (PWA), back-office, CRM | `apps/web-client`, `apps/partner-portal`, `apps/back-office` |
 | `parcours-inclusifs.html` | Montants en 4 façons avec voix, simulateur USSD, inscription/KYC, diaspora, bailleurs, écoles | Mobile, PWA, USSD |
 | `parcours-credit.html` | Parcours complet du modèle B, de l'opt-in au dernier remboursement | Mobile, PWA |
+| `marketplace-suite.html` | Recherche, favoris, comparaison, réservation à prix figé | Mobile, PWA |
 | `ecrans-complementaires.html` | Proche qui accepte une contribution, validation partenaire, vérification bailleur, rapports, abonnements | Mobile, back-office, portail |
 | `site-public.html` | Site public marketplace (lot 26, ADR-0006) | `apps/site` (à créer) |
 | `animations.html` | Démo de chaque animation `M-xx`, avec le mode réduit | Toutes les apps |
