@@ -42,6 +42,7 @@ Rien n'ouvre tant que la **porte de lancement unique** n'est pas franchie (voir 
 | | `COLLABORATION_ET_GARDE_FOUS.md` | Rôles, portes d'approbation, interdits, escalade, sécurité des agents | Fondateur, agents |
 | | `PLAN_DE_LOTS.md` | Découpage du build en lots exécutables par agents, dépendances, définition de « terminé » | Fondateur, agents |
 | | `PROMPT_MAITRE_QODER.md` | Prompt de lancement du sprint MVP (jour 1) pour Qoder, et réglages préalables | Fondateur, Qoder |
+| | `PROMPT_GEMINI_DIRECTION_UX_UI.md` | Prompt de passation à Gemini de la direction UX et UI (identité, animations, maquettes, recherches) | Fondateur, Gemini |
 | `04_annexes/` | `adr/ADR-0001…0006` | Décisions d'architecture | Architecte, agents |
 | | `registre_des_risques.md` | Risques, cotation, parades, propriétaires | Fondateur |
 | | `matrice_de_tracabilite.md` | Exigence → norme → test → preuve | QA, auditeurs |
