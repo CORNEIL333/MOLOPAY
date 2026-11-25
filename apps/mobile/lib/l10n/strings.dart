@@ -214,14 +214,29 @@ final class AppStrings {
   String get beneficiarySectionTitle => isEn
       ? 'Beneficiary settlement (Model C)'
       : 'Règlement bénéficiaire (Modèle C)';
-  String get docShaLabel => isEn
-      ? 'Document SHA-256 hash (64 hex chars)'
-      : 'Empreinte SHA-256 de la pièce (64 hex)';
-  String get submitDocButton =>
-      isEn ? 'Submit document hash' : 'Déposer l’empreinte';
-  String get payBeneficiaryButton => isEn
-      ? 'Request beneficiary payout'
-      : 'Demander le règlement bénéficiaire';
+  String get beneficiaryPayPrepare =>
+      isEn ? 'Prepare the payout' : 'Préparer le règlement';
+  String get beneficiaryPayHelp => isEn
+      ? 'The goal amount is paid to the verified beneficiary. Confirm with your PIN.'
+      : 'Le montant de l’objectif est réglé au bénéficiaire vérifié. Confirmez avec votre PIN.';
+  String get beneficiaryPaySummaryTitle =>
+      isEn ? 'Payout summary' : 'Résumé du règlement';
+  String get beneficiaryPayAmount => isEn ? 'Amount paid' : 'Montant réglé';
+  String get beneficiaryLabel => isEn ? 'Beneficiary' : 'Bénéficiaire';
+  String get beneficiaryPayIrreversible => isEn
+      ? 'This payout is irreversible: once confirmed, it cannot be cancelled from the app.'
+      : 'Ce règlement est irréversible : une fois confirmé, il ne peut pas être annulé depuis l’application.';
+  String get beneficiaryPayConfirm =>
+      isEn ? 'Confirm the payout' : 'Confirmer le règlement';
+  String get beneficiaryPayCancel => isEn ? 'Cancel' : 'Annuler';
+  String get beneficiaryPaid => isEn
+      ? 'Payout confirmed. The institution is executing the transfer.'
+      : 'Règlement confirmé. L’établissement exécute le virement.';
+  String get pinInvalid =>
+      isEn ? 'The PIN has 6 digits.' : 'Le PIN comporte 6 chiffres.';
+  String get beneficiaryDocumentWebNotice => isEn
+      ? 'Supporting document: upload it from the web client (only its fingerprint is sent; the file never leaves your device). Compliance checks it before the payout.'
+      : 'Pièce justificative : déposez-la depuis le client web (seule son empreinte est envoyée, le fichier ne quitte pas votre appareil). La conformité la vérifie avant le règlement.';
   String get claimSectionTitle =>
       isEn ? 'Open a support claim' : 'Ouvrir une réclamation';
   String get claimDetailsLabel => isEn

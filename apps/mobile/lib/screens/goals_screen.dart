@@ -144,10 +144,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 strings: s,
                 onTap: () => Navigator.of(context).push(
                   CupertinoPageRoute<void>(
-                    builder: (_) => GoalDetailScreen(
-                      goal: goal,
-                      state: widget.state,
-                    ),
+                    builder: (_) =>
+                        GoalDetailScreen(goal: goal, state: widget.state),
                   ),
                 ),
               ),
@@ -192,7 +190,10 @@ class _GoalCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(title, style: type(17, weight: FontWeight.w700)),
+                    child: Text(
+                      title,
+                      style: type(17, weight: FontWeight.w700),
+                    ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -247,11 +248,7 @@ class _GoalCard extends StatelessWidget {
 }
 
 class GoalDetailScreen extends StatefulWidget {
-  const GoalDetailScreen({
-    super.key,
-    required this.goal,
-    required this.state,
-  });
+  const GoalDetailScreen({super.key, required this.goal, required this.state});
 
   final Goal goal;
   final AppState state;
@@ -274,6 +271,12 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
   ClaimReceipt? _claimReceipt;
   bool _claimPending = false;
 
+  final TextEditingController _payPinController = TextEditingController();
+  bool _payConfirming = false;
+  bool _payPending = false;
+  bool _paid = false;
+  String? _payPinError;
+
   @override
   void initState() {
     super.initState();
@@ -284,6 +287,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
   @override
   void dispose() {
     _claimDetailsController.dispose();
+    _payPinController.dispose();
     super.dispose();
   }
 
@@ -334,10 +338,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
           decoration: InputDecoration(labelText: s.pinLabel),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(s.back),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.back)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, pinController.text),
             child: Text(s.lockGoalButton),
@@ -364,6 +365,139 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       if (!mounted) return;
       setState(() => _actionProblem = error.problem);
     }
+  }
+
+  /// F-PLN-003 : règlement au bénéficiaire vérifié, sous PIN, après résumé.
+  Future<void> _payBeneficiary(AppStrings s) async {
+    final pin = _payPinController.text;
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(pin)) {
+      setState(() => _payPinError = s.pinInvalid);
+      return;
+    }
+    if (_payPending) return;
+    _payPinController.clear();
+    setState(() {
+      _payPinError = null;
+      _payPending = true;
+      _actionProblem = null;
+    });
+    try {
+      final updated = await widget.state.api.payBeneficiary(
+        _goal.goalId,
+        pin: pin,
+      );
+      if (!mounted) return;
+      setState(() {
+        _goal = updated;
+        _paid = true;
+        _payConfirming = false;
+      });
+    } on ApiProblemException catch (error) {
+      if (!mounted) return;
+      setState(() => _actionProblem = error.problem);
+    } finally {
+      if (mounted) setState(() => _payPending = false);
+    }
+  }
+
+  Widget _beneficiaryPayment(AppStrings s, Goal goal) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF3ECE5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.beneficiarySectionTitle,
+            style: type(15, weight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            s.beneficiaryDocumentWebNotice,
+            key: const Key('beneficiary-document-web-notice'),
+            style: type(12, color: muted),
+          ),
+          const SizedBox(height: 12),
+          if (!_payConfirming) ...[
+            Text(s.beneficiaryPayHelp, style: type(13, color: ink)),
+            const SizedBox(height: 10),
+            Primary(
+              s.beneficiaryPayPrepare,
+              () => setState(() {
+                _payConfirming = true;
+                _payPinError = null;
+              }),
+              key: const Key('beneficiary-pay-prepare'),
+              dark: true,
+            ),
+          ] else ...[
+            Text(
+              s.beneficiaryPaySummaryTitle,
+              style: type(14, weight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${s.beneficiaryPayAmount} : ${goal.savedXaf.format(locale: s.locale)}',
+              style: type(14, weight: FontWeight.w600),
+            ),
+            Text(
+              '${s.beneficiaryLabel} : ${goal.beneficiaryId ?? '—'}',
+              style: type(13, color: ink),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.beneficiaryPayIrreversible,
+              style: type(12, color: orange, weight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              key: const Key('beneficiary-pin-field'),
+              controller: _payPinController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              enabled: !_payPending,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: s.pinLabel,
+                error: _payPinError == null
+                    ? null
+                    : Text(
+                        _payPinError!,
+                        key: const Key('beneficiary-pin-error'),
+                        style: type(12, color: Colors.red.shade700),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Primary(
+              s.beneficiaryPayConfirm,
+              () => _payBeneficiary(s),
+              key: const Key('beneficiary-pay-confirm'),
+              loading: _payPending,
+            ),
+            TextButton(
+              key: const Key('beneficiary-pay-cancel'),
+              onPressed: _payPending
+                  ? null
+                  : () {
+                      _payPinController.clear();
+                      setState(() {
+                        _payConfirming = false;
+                        _payPinError = null;
+                      });
+                    },
+              child: Text(s.beneficiaryPayCancel),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Future<void> _submitClaim() async {
@@ -482,13 +616,29 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 ],
                 if (goal.status == GoalStatus.draft ||
                     (goal.status == GoalStatus.active && !goal.locked)) ...[
-                  Text(s.signedActionUnavailable, style: type(12, color: muted)),
+                  Text(
+                    s.signedActionUnavailable,
+                    style: type(12, color: muted),
+                  ),
                   const SizedBox(height: 12),
                 ],
                 if (goal.model == OfferModel.saveThenBuy &&
                     goal.status == GoalStatus.funded) ...[
                   Text(s.handoverPendingNotice, style: type(12, color: muted)),
                   const SizedBox(height: 12),
+                ],
+                if (_paid) ...[
+                  Text(
+                    s.beneficiaryPaid,
+                    key: const Key('beneficiary-paid-status'),
+                    style: type(14, color: orange, weight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (goal.model == OfferModel.plannedExpense &&
+                    goal.status == GoalStatus.funded) ...[
+                  _beneficiaryPayment(s, goal),
+                  const SizedBox(height: 16),
                 ],
                 if (_beneficiaryReceipt != null) ...[
                   Container(
