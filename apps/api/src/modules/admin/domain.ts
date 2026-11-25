@@ -52,6 +52,8 @@ export const ADMIN_ACTIONS = [
   'BLOCK_CUSTOMER_ACCOUNT',
   'MANAGE_OUTGOING_FREEZE',
   'ENROLL_CUSTOMER_AT_AGENCY',
+  'DECLARE_CUSTOMER_DEATH',
+  'DECIDE_CUSTOMER_DEATH',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -97,6 +99,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'CLOSE_COMPLAINT',
     'BLOCK_CUSTOMER_ACCOUNT',
     'ENROLL_CUSTOMER_AT_AGENCY',
+    // C19 / F-ACC-007 : le support de niveau 2 reçoit la famille et déclare le décès.
+    'DECLARE_CUSTOMER_DEATH',
   ]),
   OPERATIONS: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -148,6 +152,9 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'REVIEW_SANCTIONS_MATCH',
     // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
     'MANAGE_OUTGOING_FREEZE',
+    // C19 / F-ACC-007 : décès d'un client (déclaration ; décision par une autre personne que le déclarant).
+    'DECLARE_CUSTOMER_DEATH',
+    'DECIDE_CUSTOMER_DEATH',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -180,6 +187,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'APPROVE_BREAK_GLASS',
   'BLOCK_CUSTOMER_ACCOUNT',
   'MANAGE_OUTGOING_FREEZE',
+  'DECLARE_CUSTOMER_DEATH',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([

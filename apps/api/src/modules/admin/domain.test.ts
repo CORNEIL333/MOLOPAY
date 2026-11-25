@@ -31,7 +31,8 @@ const CONTEXT: AuthorizationContext = {
 const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = {
   // C4 / F-ACC-006 : blocage d'un compte client (perte ou vol du téléphone), motif obligatoire.
   SUPPORT_N1: ['BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY'],
-  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT', 'BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY'],
+  // C19 / F-ACC-007 : le support de niveau 2 reçoit la famille et déclare le décès (décision : conformité).
+  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT', 'BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY', 'DECLARE_CUSTOMER_DEATH'],
   OPERATIONS: [
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
@@ -82,6 +83,9 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'REVIEW_SANCTIONS_MATCH',
     // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
     'MANAGE_OUTGOING_FREEZE',
+    // C19 / F-ACC-007 : décès d'un client (déclaration, décision par une autre personne).
+    'DECLARE_CUSTOMER_DEATH',
+    'DECIDE_CUSTOMER_DEATH',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT', 'MANAGE_OUTGOING_FREEZE'],
@@ -174,6 +178,10 @@ describe('ABAC · périmètre, plafond et motif', () => {
   it('C4 / F-ACC-006 le blocage d’un compte client exige un motif (ADMIN_REASON_REQUIRED)', () => {
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', { reason: 'Téléphone volé' })).toMatchObject({ allowed: true });
+    // C19 / F-ACC-007 : la déclaration de décès est toujours motivée.
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', { reason: 'Acte présenté par la famille' })).toMatchObject({ allowed: true });
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECIDE_CUSTOMER_DEATH', { reason: 'x' })).toMatchObject({ allowed: false, code: 'ADMIN_FORBIDDEN' });
   });
 
   it('D31 exige un motif pour déclarer une défaillance marchand', () => {

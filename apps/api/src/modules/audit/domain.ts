@@ -138,6 +138,9 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       OUTGOING_FREEZE_CONFIRMED: ['request_id', 'freeze_action'],
       // C13 : code d'inscription émis en agence (jamais le numéro ni la pièce).
       AGENCY_ENROLLMENT_ISSUED: ['challenge_id', 'city_id', 'document_type'],
+      // C19 / F-ACC-007 : décès d'un client (jamais la pièce ni l'empreinte de l'acte).
+      DECEASE_DECLARED: ['case_id', 'account_id'],
+      DECEASE_DECIDED: ['case_id', 'account_id', 'decision', 'frozen_goals'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

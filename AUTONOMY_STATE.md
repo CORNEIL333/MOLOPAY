@@ -88,5 +88,6 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 ## Prochaine action concrète
 1. **PR #10 (CRM, Qoder)** : revue publiée le 25 nov. ; attendre ses correctifs (lire `phone_masked`, tests sur fixture protégée). À l'intégration, côté Claude : 4 routes CRM au contrat, action `MANAGE_CRM` + audit `CRM_*` (D109), `crm` dans les listes `SCHEMAS` des suites récentes, test `migrations-chain` adapté aux plages réservées (D113, à faire valider par le fondateur).
 2. Lots G repris de Gemini : mobile complet pour tout ce qui ne signe pas (SEC-MOB-005 C16, règlement C C17 faits le 25 nov.) ; écran « mise à jour requise » C18 fait ; restent le lien boutique à la publication, le dépôt de pièce sur mobile (D115), et tout ce qui signe (activation, annulation, renouvellement de session : D90) ; code de remise : D69.
-3. Décisions ouvertes : D85–D91, D113, D114, D115, autorisation de transfert (loi 2024/017), région AWS confirmée (Francfort retenue avec Neon).
+3. F-ACC-007 tranche 1 faite (C19, 0077) ; tranche 2 (restitution aux ayants droit) attend D116.
+4. Décisions ouvertes : D85–D91, D113, D114, D115, D116, autorisation de transfert (loi 2024/017), région AWS confirmée (Francfort retenue avec Neon).
 Flutter : `export PATH=<scratchpad>/flutter-sdk/flutter/bin:$PATH PUB_CACHE=<scratchpad>/pub-cache`.

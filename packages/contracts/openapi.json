@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.43.0",
+    "version": "0.44.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants.\n\n**Version minimale (SEC-MOB-005)** : toute route accepte l'en-tête facultatif `X-Client-Version` (voir `components.parameters.ClientVersion`) et peut répondre `426` (`components.responses.UpgradeRequired`, code `CLIENT_UPGRADE_REQUIRED`) quand l'application est en dessous du minimum publié."
   },
   "servers": [
@@ -112,14 +112,14 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           }
         },
         "description": "Fermé par défaut : 503 SMS_UNCONFIGURED tant qu'aucun prestataire SMS n'est branché (aucune simulation). 503 SMS_DELIVERY_FAILED si l'envoi échoue (aucun défi enregistré)."
@@ -249,14 +249,14 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           }
         },
         "description": "Refus uniforme 401 IDENTITY_SESSION_INVALID (défi, appareil, signature). PIN faux : 422 IDENTITY_PIN_INVALID, essai décompté ; 403 IDENTITY_PIN_LOCKED après 5 essais."
@@ -2014,6 +2014,16 @@
           }
         },
         "responses": {
+          "201": {
+            "description": "Pièce déposée, en attente d’examen par la conformité",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeneficiaryDocument"
+                }
+              }
+            }
+          },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
@@ -2028,16 +2038,6 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
-          },
-          "201": {
-            "description": "Pièce déposée, en attente d’examen par la conformité",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BeneficiaryDocument"
-                }
-              }
-            }
           }
         }
       }
@@ -4485,11 +4485,11 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -4558,11 +4558,11 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -4631,14 +4631,14 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -5737,6 +5737,166 @@
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/customers/{accountId}/decease-cases": {
+      "post": {
+        "operationId": "declareCustomerDecease",
+        "summary": "Déclarer le décès d’un client (F-ACC-007, tranche 1)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Support de niveau 2 ou conformité ; motif obligatoire. Enregistre la date du décès et l’empreinte SHA-256 de l’acte (la pièce reste hors base). Aucun effet sur le compte avant la décision d’une autre personne. Un seul dossier en attente ou approuvé par compte (409 IDENTITY_DECEASE_CASE_EXISTS). Audit chaîné sans l’empreinte.",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeceaseCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dossier de décès ouvert, en attente de décision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeceaseCase"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/decease-cases/{caseId}/decision": {
+      "post": {
+        "operationId": "decideCustomerDecease",
+        "summary": "Décider un dossier de décès (F-ACC-007, tranche 1)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Conformité, jamais le déclarant (403 MAKER_CANNOT_APPROVE, vérifié par la base) ; une seule décision (409 IDENTITY_DECEASE_ALREADY_DECIDED) ; rejet motivé. Approbation, dans la même transaction : compte bloqué définitivement (canal DECEASED, plus aucune récupération), appareils révoqués, sessions fermées, objectifs actifs gelés. Aucun mouvement de fonds : la restitution aux ayants droit est une tranche ultérieure.",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeceaseDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Décision enregistrée",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeceaseDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
           },
           "503": {
             "$ref": "#/components/responses/Unavailable"
@@ -9848,6 +10008,109 @@
             ],
             "pattern": "^[0-9]{6}$",
             "description": "Six chiffres, rendus une seule fois ; nul sur un rejeu."
+          }
+        }
+      },
+      "DeceaseCaseRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deathDate",
+          "certificateSha256",
+          "reason"
+        ],
+        "properties": {
+          "deathDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Date du décès (jamais future)"
+          },
+          "certificateSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Empreinte SHA-256 de l’acte de décès, en hexadécimal minuscule"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000
+          }
+        }
+      },
+      "DeceaseCase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "caseId",
+          "accountId",
+          "status",
+          "declaredAt"
+        ],
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "const": "PENDING"
+          },
+          "declaredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeceaseDecisionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000,
+            "description": "Obligatoire pour un rejet"
+          }
+        }
+      },
+      "DeceaseDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "caseId",
+          "decision",
+          "frozenGoals"
+        ],
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "frozenGoals": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Objectifs actifs gelés (0 en cas de rejet)"
           }
         }
       }

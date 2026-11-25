@@ -1668,6 +1668,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/customers/{accountId}/decease-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déclarer le décès d’un client (F-ACC-007, tranche 1)
+         * @description Support de niveau 2 ou conformité ; motif obligatoire. Enregistre la date du décès et l’empreinte SHA-256 de l’acte (la pièce reste hors base). Aucun effet sur le compte avant la décision d’une autre personne. Un seul dossier en attente ou approuvé par compte (409 IDENTITY_DECEASE_CASE_EXISTS). Audit chaîné sans l’empreinte.
+         */
+        post: operations["declareCustomerDecease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/decease-cases/{caseId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Décider un dossier de décès (F-ACC-007, tranche 1)
+         * @description Conformité, jamais le déclarant (403 MAKER_CANNOT_APPROVE, vérifié par la base) ; une seule décision (409 IDENTITY_DECEASE_ALREADY_DECIDED) ; rejet motivé. Approbation, dans la même transaction : compte bloqué définitivement (canal DECEASED, plus aucune récupération), appareils révoqués, sessions fermées, objectifs actifs gelés. Aucun mouvement de fonds : la restitution aux ayants droit est une tranche ultérieure.
+         */
+        post: operations["decideCustomerDecease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2759,6 +2799,40 @@ export interface components {
             expiresAt: string;
             /** @description Six chiffres, rendus une seule fois ; nul sur un rejeu. */
             code: string | null;
+        };
+        DeceaseCaseRequest: {
+            /**
+             * Format: date
+             * @description Date du décès (jamais future)
+             */
+            deathDate: string;
+            /** @description Empreinte SHA-256 de l’acte de décès, en hexadécimal minuscule */
+            certificateSha256: string;
+            reason: string;
+        };
+        DeceaseCase: {
+            /** Format: uuid */
+            caseId: string;
+            /** Format: uuid */
+            accountId: string;
+            /** @constant */
+            status: "PENDING";
+            /** Format: date-time */
+            declaredAt: string;
+        };
+        DeceaseDecisionRequest: {
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            /** @description Obligatoire pour un rejet */
+            reason?: string;
+        };
+        DeceaseDecision: {
+            /** Format: uuid */
+            caseId: string;
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            /** @description Objectifs actifs gelés (0 en cas de rejet) */
+            frozenGoals: number;
         };
     };
     responses: {
@@ -5868,6 +5942,78 @@ export interface operations {
             409: components["responses"]["Conflict"];
             422: components["responses"]["Unprocessable"];
             429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    declareCustomerDecease: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeceaseCaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Dossier de décès ouvert, en attente de décision */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeceaseCase"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    decideCustomerDecease: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeceaseDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Décision enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeceaseDecision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
             503: components["responses"]["Unavailable"];
         };
     };

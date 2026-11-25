@@ -33,6 +33,7 @@ import { PII_KEYS, type PiiKeys } from './modules/identity/phone-key';
 import { OTP_PEPPER, SMS_SENDER, type SmsSender } from './modules/identity/sms.port';
 import { ClientAuthController } from './workflows/client-auth.controller';
 import { BackofficeCustomerController } from './workflows/backoffice-customer.controller';
+import { BackofficeDeceaseController } from './workflows/backoffice-decease.controller';
 import { NotificationFeedController } from './workflows/notification-feed.controller';
 import { BackofficeAgencyController } from './workflows/backoffice-agency.controller';
 import { ClientVersionGuard } from './workflows/client-version.guard';
@@ -70,7 +71,7 @@ export class AppModule {
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, ClientAuthController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, BackofficeCustomerController, BackofficeFreezeController, BackofficeAgencyController, LegalNameController, GoalContributionsController, GoalClaimsController, NotificationFeedController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, ClientAuthController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, BackofficeCustomerController, BackofficeDeceaseController, BackofficeFreezeController, BackofficeAgencyController, LegalNameController, GoalContributionsController, GoalClaimsController, NotificationFeedController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
