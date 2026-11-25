@@ -731,3 +731,9 @@
 - **Exploitation :** VM + conteneurs (lot Q4), PostgreSQL 16 exploité par l'équipe.
 - **Reste à choisir (humain) :** l'hébergeur camerounais et le fournisseur KMS/HSM ; comptes et accès. Côté code : adaptateur de signature KMS (port existant) dès que le fournisseur est connu.
 
+### Hébergement révisé par le fondateur (25 novembre) — ADR-0004
+- **Décision :** les hébergeurs camerounais ne sont pas jugés sûrs ; **tout est hébergé à l'étranger chez AWS, fortement chiffré**, KYC compris, pour le moment. Clés : **AWS KMS** (Ed25519 vérifié dans la documentation officielle ; Azure exclu, faute d'Ed25519).
+- **Appliqué par défaut (réversible) :** région Paris (eu-west-3) ; copie des sauvegardes dans une seconde région AWS.
+- **Chiffrement exigé :** TLS 1.3 ; volumes et sauvegardes chiffrés par nos clés KMS ; **chiffrement applicatif par enveloppe** du numéro, du nom légal et des données KYC (lot C14 à réaliser) ; accès aux clés journalisés.
+- **Signalé, non tranché :** autorisation préalable de l'Autorité de protection des données (loi 2024/017, REG-DPD-004) ; le fondateur a refusé de répondre à la question à ce stade (« fais comme je t'ai dit »). Tant qu'il ne décide pas de collecter des données réelles avant l'accord, la règle de l'ADR-0004 s'applique : données synthétiques seulement.
+
