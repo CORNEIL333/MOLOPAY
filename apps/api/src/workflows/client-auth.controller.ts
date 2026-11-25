@@ -16,6 +16,7 @@ import {
 } from '../modules/identity/client-auth.store';
 import { issuedSessionCookies } from '../modules/identity/client-cookies';
 import { assertStrongPin, normalizePhone, type IssuedSession } from '../modules/identity/domain';
+import { PII_KEYS, protectPhone, type PiiKeys } from '../modules/identity/phone-key';
 import { OTP_PEPPER, otpSmsText, SMS_SENDER, type SmsSender } from '../modules/identity/sms.port';
 import { PIN_PEPPER } from './goal-signing.controller';
 
@@ -67,6 +68,7 @@ export class ClientAuthController {
     @Inject(SMS_SENDER) private readonly sms: SmsSender | null,
     @Inject(OTP_PEPPER) private readonly otpPepper: Uint8Array | null,
     @Inject(PIN_PEPPER) private readonly pinPepper: Uint8Array | null,
+    @Inject(PII_KEYS) private readonly piiKeys: PiiKeys | null,
   ) {}
 
   /** F-ACC-001 : code d'inscription envoyé par SMS ; réponse identique que le numéro soit inscrit ou non. */
@@ -80,12 +82,15 @@ export class ClientAuthController {
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
     const sms = this.sms;
     const pepper = this.otpPepper;
-    if (sms === null || pepper === null) {
+    const piiKeys = this.piiKeys;
+    if (sms === null || pepper === null || piiKeys === null) {
       throw new BusinessError('SMS_UNCONFIGURED', 'Envoi de SMS non configuré');
     }
+    // C14 : la portée et l'empreinte d'idempotence ne portent que l'empreinte à clé, jamais le numéro.
+    const protectedPhone = await protectPhone(phone, piiKeys);
     let code: string | null = null;
-    const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `otp-signup:${phone}`, key, request: { phone, purpose: 'SIGNUP' } }, async (client) => {
-      const issued = await issueSignupOtp(client, { phone, pepper });
+    const result = await runIdempotent({ ...this.database, role: 'app_rw' }, { scope: `otp-signup:${protectedPhone.key}`, key, request: { phone: protectedPhone.key, purpose: 'SIGNUP' } }, async (client) => {
+      const issued = await issueSignupOtp(client, { phone: protectedPhone, pepper });
       code = issued.code;
       return { status: 201, body: { challengeId: issued.challengeId, expiresAt: issued.expiresAt } };
     });

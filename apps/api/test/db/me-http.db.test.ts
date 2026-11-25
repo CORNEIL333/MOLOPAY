@@ -14,6 +14,8 @@ import { issueSessionTokens } from '../../src/modules/identity/domain';
 import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { seedCustomerAccount } from './agreement-fixture';
+import { revealPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone, TEST_PII_KEYS } from './pii-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /** C2 / contrat 1.0 : profil du client connecté (`GET /v1/me`) en HTTP réel, sans niveau KYC (D77) ni numéro en clair. */
@@ -90,12 +92,16 @@ beforeEach(async () => {
 
 describe('C2 profil du client connecté (GET /v1/me)', () => {
   it('profil minimal, privé : identifiant, numéro masqué, date d’inscription, nom déclaré ou non ; jamais le numéro en clair ni le niveau KYC', async () => {
-    const phone = (await admin.query<{ phone: string; created: string }>(`SELECT phone, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS created FROM identity.account WHERE id = $1`, [CUSTOMER])).rows[0];
+    const stored = (await admin.query<{ phone: string; phone_ciphertext: string; created: string }>(`SELECT phone, phone_ciphertext, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS created FROM identity.account WHERE id = $1`, [CUSTOMER])).rows[0];
     const response = await me(await session(CUSTOMER));
     expect(response.status, JSON.stringify(response.body)).toBe(200);
     expect(response.headers['cache-control']).toBe('private, no-store');
-    const digits = (phone?.phone ?? '').slice(1);
-    expect(phone?.phone).toMatch(/^\+2376[0-9]{8}$/);
+    // C14 : en base, seulement l'empreinte et le chiffré ; le numéro se retrouve en déchiffrant.
+    expect(stored?.phone).toMatch(/^[0-9a-f]{64}$/);
+    const clear = await revealPhone({ key: stored?.phone ?? '', ciphertext: stored?.phone_ciphertext ?? '' }, TEST_PII_KEYS);
+    expect(clear).toMatch(/^\+2376[0-9]{8}$/);
+    const digits = clear.slice(1);
+    const phone = { created: stored?.created };
     expect(response.body).toEqual({
       accountId: CUSTOMER,
       // Valeur littérale attendue (et non la formule du code) : indicatif 237, sept points, deux derniers chiffres.
@@ -124,7 +130,8 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
   });
 
   it('F-ACC-004 sans acceptation de la version en vigueur : termsAccepted faux, version courante indiquée ; vrai après acceptation par la route', async () => {
-    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level) VALUES ($1, '+237690000444', now(), 'NONE')`, [OTHER_CUSTOMER]);
+    const other = await protectedPhone('+237690000444');
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), 'NONE', $3, $4)`, [OTHER_CUSTOMER, other.key, other.ciphertext, other.masked]);
     const cookie = await session(OTHER_CUSTOMER);
     expect((await me(cookie)).body).toMatchObject({ currentTermsVersion: '2026-10-26-v1', termsAccepted: false });
     const accepted = await request(server()).post('/v1/me/terms-acceptances').set('Cookie', cookie).set('Origin', ORIGIN).set('Idempotency-Key', 'me-terms-accept-0001').send({ version: '2026-10-26-v1' });

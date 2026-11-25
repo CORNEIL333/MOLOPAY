@@ -7,7 +7,7 @@ import {
 } from 'node:crypto';
 import { challengeMessage, devicePublicKeyPem } from '../../apps/api/src/modules/identity/client-auth.store';
 import { CLEARED_SESSION_COOKIES, issuedSessionCookies, readRefreshCookie } from '../../apps/api/src/modules/identity/client-cookies';
-import { maskPhone } from '../../apps/api/src/modules/identity/profile.store';
+import { maskPhone } from '../../apps/api/src/modules/identity/phone-key';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { ErrorCode } from '../../packages/contracts/src/errors';
 import {
@@ -36,8 +36,9 @@ import {
   type TransactionRequest,
 } from '../../apps/api/src/modules/identity/domain';
 
-const PHONE = '+237612345678';
-const NEW_PHONE = '+237698765432';
+// C14 : le domaine ne reçoit que l'empreinte à clé du numéro (jamais le numéro en clair).
+const PHONE = 'a'.repeat(64);
+const NEW_PHONE = 'b'.repeat(64);
 const NOW = '2026-10-26T09:00:00.000Z';
 const LATER = '2026-10-26T09:01:00.000Z';
 

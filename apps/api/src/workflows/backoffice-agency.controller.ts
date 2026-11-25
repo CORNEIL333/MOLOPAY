@@ -8,6 +8,7 @@ import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
 import { appendAuditEvent } from '../modules/audit/audit.store';
 import { issueAgencySignupCode, type AgencyDocumentType } from '../modules/identity/agency-enrollment.store';
 import { normalizePhone } from '../modules/identity/domain';
+import { PII_KEYS, protectPhone, type PiiKeys } from '../modules/identity/phone-key';
 import { OTP_PEPPER } from '../modules/identity/sms.port';
 import { oneOf, whitelistedBody } from './backoffice-body';
 
@@ -28,6 +29,7 @@ export class BackofficeAgencyController {
   public constructor(
     @Inject(PG_POOL) private readonly database: Database,
     @Inject(OTP_PEPPER) private readonly otpPepper: Uint8Array | null,
+    @Inject(PII_KEYS) private readonly piiKeys: PiiKeys | null,
   ) {}
 
   @Post()
@@ -42,13 +44,15 @@ export class BackofficeAgencyController {
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
     assertAuthorized(staff, 'ENROLL_CUSTOMER_AT_AGENCY', { cityId });
     const pepper = this.otpPepper;
-    if (pepper === null) throw new BusinessError('SMS_UNCONFIGURED', 'Inscription non configurée');
+    const piiKeys = this.piiKeys;
+    if (pepper === null || piiKeys === null) throw new BusinessError('SMS_UNCONFIGURED', 'Inscription non configurée');
+    const protectedPhone = await protectPhone(phone, piiKeys);
     let code: string | null = null;
     const result = await runIdempotent(
       { ...this.database, role: 'app_rw' },
-      { scope: `bo-agency-enrollment:${staff.actorId}`, key, request: { phone, documentType, cityId } },
+      { scope: `bo-agency-enrollment:${staff.actorId}`, key, request: { phone: protectedPhone.key, documentType, cityId } },
       async (client) => {
-        const issued = await issueAgencySignupCode(client, { phone, pepper, staffId: staff.actorId, cityId, documentType });
+        const issued = await issueAgencySignupCode(client, { phone: protectedPhone, pepper, staffId: staff.actorId, cityId, documentType });
         code = issued.code;
         await appendAuditEvent(client, {
           eventType: 'BACKOFFICE_ACTION',

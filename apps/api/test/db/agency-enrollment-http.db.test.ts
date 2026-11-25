@@ -12,6 +12,8 @@ import { AppModule } from '../../src/app.module';
 import { createDatabase, type Database } from '../../src/http/database';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { seedCustomerAccount } from './agreement-fixture';
+import { revealPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone, TEST_PII_KEYS } from './pii-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
 
@@ -60,7 +62,7 @@ beforeAll(async () => {
   await admin.connect();
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, otpPepper: OTP_PEPPER, pinPepper: PIN_PEPPER, smsSender: null })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, otpPepper: OTP_PEPPER, pinPepper: PIN_PEPPER, smsSender: null, piiKeys: TEST_PII_KEYS })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();
@@ -97,7 +99,7 @@ describe('C13 / F-ACC-001 inscription en agence, sans SMS', () => {
     expect(body.code).toMatch(/^[0-9]{6}$/);
     const created = await signup(body.challengeId, body.code ?? '');
     expect(created.status, JSON.stringify(created.body)).toBe(201);
-    expect((await admin.query('SELECT phone FROM identity.account')).rows).toEqual([{ phone: PHONE }]);
+    expect((await admin.query('SELECT phone, phone_masked FROM identity.account')).rows).toEqual([{ phone: (await protectedPhone(PHONE)).key, phone_masked: '+237•••••••56' }]);
     expect((await admin.query('SELECT staff_id, city_id, document_type FROM identity.agency_enrollment')).rows).toEqual([{ staff_id: 'sup.dla', city_id: 'douala', document_type: 'CNI' }]);
     const audit = (await admin.query<{ action: string; actor_id: string; refs: string }>(
       `SELECT action, actor_id, refs::text AS refs FROM audit.event WHERE action = 'AGENCY_ENROLLMENT_ISSUED'`,
@@ -122,7 +124,8 @@ describe('C13 / F-ACC-001 inscription en agence, sans SMS', () => {
     expect(problem(await enroll(cookies.ops, { phone: PHONE, documentType: 'CNI', cityId: 'douala' }))).toEqual([403, 'ADMIN_FORBIDDEN']);
     expect(problem(await enroll(cookies.supportYaounde, { phone: PHONE, documentType: 'CNI', cityId: 'douala' }))).toEqual([403, 'ADMIN_SCOPE_DENIED']);
     await seedCustomerAccount(admin, '019ab900-0000-7000-8000-0000000000e1', 'NONE');
-    const existing = (await admin.query<{ phone: string }>('SELECT phone FROM identity.account')).rows[0]?.phone ?? '';
+    const row = (await admin.query<{ phone: string; phone_ciphertext: string }>('SELECT phone, phone_ciphertext FROM identity.account')).rows[0];
+    const existing = await revealPhone({ key: row?.phone ?? '', ciphertext: row?.phone_ciphertext ?? '' }, TEST_PII_KEYS);
     expect(problem(await enroll(cookies.support, { phone: existing, documentType: 'CNI', cityId: 'douala' }))).toEqual([409, 'IDENTITY_ACCOUNT_EXISTS']);
     expect(problem(await enroll(cookies.support, { phone: PHONE, documentType: 'PERMIS', cityId: 'douala' }))).toEqual([400, 'REQUEST_INVALID']);
     expect(problem(await enroll(cookies.support, { phone: PHONE, documentType: 'CNI', cityId: 'douala', documentNumber: '123' }))).toEqual([400, 'REQUEST_INVALID']);
@@ -140,12 +143,13 @@ describe('C13 / F-ACC-001 inscription en agence, sans SMS', () => {
     expect(await insert(issued.challengeId)).toMatch(/^IDENTITY_INVALID_REQUEST|duplicate key/);
     expect(await insert(uuidv7())).toMatch(/^IDENTITY_INVALID_REQUEST/);
     // Code d'un autre objet, ancien ou déjà utilisé : refusé (posé par le superutilisateur, test seulement).
+    const extra = await protectedPhone('+237690555555');
     const otp = async (purpose: string, age: string, consumed: boolean): Promise<string> => {
       const id = uuidv7();
       await admin.query(
-        `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, consumed_at, created_at)
-         VALUES ($1, '+237690555555', $2, 'x', $3, now() + interval '5 minutes', 5, CASE WHEN $4 THEN now() END, now() - $5::interval)`,
-        [id, purpose, randomBytes(32), consumed, age],
+        `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, consumed_at, created_at, phone_ciphertext, phone_masked)
+         VALUES ($1, $6, $2, 'x', $3, now() + interval '5 minutes', 5, CASE WHEN $4 THEN now() END, now() - $5::interval, $7, $8)`,
+        [id, purpose, randomBytes(32), consumed, age, extra.key, extra.ciphertext, extra.masked],
       );
       return id;
     };

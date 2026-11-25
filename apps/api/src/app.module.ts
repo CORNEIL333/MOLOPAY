@@ -29,6 +29,7 @@ import { AccountSecurityController } from './modules/identity/account-security.c
 import { DataRightsController } from './modules/identity/data-rights.controller';
 import { ProfileController } from './modules/identity/profile.controller';
 import { ClientSessionController } from './modules/identity/client-session.controller';
+import { PII_KEYS, type PiiKeys } from './modules/identity/phone-key';
 import { OTP_PEPPER, SMS_SENDER, type SmsSender } from './modules/identity/sms.port';
 import { ClientAuthController } from './workflows/client-auth.controller';
 import { BackofficeCustomerController } from './workflows/backoffice-customer.controller';
@@ -53,6 +54,8 @@ export type AppDependencies = {
   readonly otpPepper?: Uint8Array | null;
   /** Prestataire SMS (C2, D1) ; absent : envoi des codes fermé (503 SMS_UNCONFIGURED). Aucune simulation. */
   readonly smsSender?: SmsSender | null;
+  /** C14 : clés de protection du numéro ; absentes : inscription fermée (503). */
+  readonly piiKeys?: PiiKeys | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -72,6 +75,7 @@ export class AppModule {
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
         { provide: OTP_PEPPER, useValue: deps.otpPepper ?? null },
         { provide: SMS_SENDER, useValue: deps.smsSender ?? null },
+        { provide: PII_KEYS, useValue: deps.piiKeys ?? null },
         { provide: STAFF_RP, useValue: deps.staffRp ?? null },
         { provide: PARTNER_RP, useValue: deps.partnerRp ?? null },
         { provide: HANDOVER_PEPPER, useValue: deps.handoverPepper ?? null },

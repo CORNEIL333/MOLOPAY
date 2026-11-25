@@ -29,9 +29,17 @@ const IDENTITY_CLOCK_MIGRATION = resolve(
   process.cwd(),
   'db/migrations/0007_identity_clock.sql',
 );
+// C14 : numéros protégés (empreinte à clé, chiffré, masque) ; plus aucun numéro en clair.
+const PHONE_ENCRYPTED_MIGRATION = resolve(
+  process.cwd(),
+  'db/migrations/0076_identity_phone_encrypted.sql',
+);
 
-const PHONE = '+237612345678';
-const OTHER_PHONE = '+237698765432';
+// C14 : empreintes à clé (64 hexadécimaux) ; chiffré et masque au format attendu par la base.
+const PHONE = 'a'.repeat(64);
+const OTHER_PHONE = 'b'.repeat(64);
+const PHONE_CIPHERTEXT = `v1.${'A'.repeat(80)}.${'B'.repeat(16)}.${'C'.repeat(40)}`;
+const PHONE_MASKED = '+237•••••••78';
 // Horloge base capturée avant chaque test : les triggers comparent à now()
 // réel, un horodatage figé rendrait les tests dépendants de l'heure.
 let NOW = '';
@@ -44,6 +52,7 @@ let admin: Client;
 let auditSql: string;
 let auditMetadataSql: string;
 let identitySql: string;
+let phoneEncryptedSql: string;
 let identityClockSql: string;
 
 function uuid(seq: number, variant = '8'): string {
@@ -108,9 +117,9 @@ async function insertAccount(
 ): Promise<string> {
   const id = seq === 1 ? uuid(1) : uuid(seq);
   await client.query(
-    `INSERT INTO identity.account (id, phone, phone_verified_at)
-     VALUES ($1, $2, $3)`,
-    [id, options?.phone ?? PHONE, NOW],
+    `INSERT INTO identity.account (id, phone, phone_verified_at, phone_ciphertext, phone_masked)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, options?.phone ?? PHONE, NOW, PHONE_CIPHERTEXT, PHONE_MASKED],
   );
   return id;
 }
@@ -207,8 +216,8 @@ async function insertIssuedChallenge(
   const challenge = issued.challenge;
   await client.query(
     `INSERT INTO identity.otp_challenge
-       (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, phone_ciphertext, phone_masked)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       challenge.id,
       challenge.phone,
@@ -219,6 +228,8 @@ async function insertIssuedChallenge(
         ? new Date(Date.parse(NOW) - 60_000).toISOString()
         : challenge.expiresAt,
       options?.attempts ?? 5,
+      PHONE_CIPHERTEXT,
+      PHONE_MASKED,
     ],
   );
 }
@@ -297,11 +308,11 @@ async function insertConsumedRecoveryOtp(
   const id = uuid(seq);
   await client.query(
     `INSERT INTO identity.otp_challenge
-       (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining)
+       (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, phone_ciphertext, phone_masked)
      VALUES ($1, $2, $3, $4, $5,
              now() + CASE WHEN $6 THEN interval '-1 minute'
                           ELSE interval '10 minutes' END,
-             0)`,
+             0, $7, $8)`,
     [
       id,
       options?.phone ?? newPhone,
@@ -309,6 +320,8 @@ async function insertConsumedRecoveryOtp(
       options?.binding ?? accountId,
       bytes(32),
       options?.stale === true,
+      PHONE_CIPHERTEXT,
+      PHONE_MASKED,
     ],
   );
   if (options?.unconsumed !== true) {
@@ -381,6 +394,7 @@ beforeAll(async () => {
   auditMetadataSql = await readFile(AUDIT_METADATA_MIGRATION, 'utf8');
   identitySql = await readFile(IDENTITY_MIGRATION, 'utf8');
   identityClockSql = await readFile(IDENTITY_CLOCK_MIGRATION, 'utf8');
+  phoneEncryptedSql = await readFile(PHONE_ENCRYPTED_MIGRATION, 'utf8');
 }, 120_000);
 
 afterAll(async () => {
@@ -395,6 +409,7 @@ beforeEach(async () => {
   await admin.query(identitySql);
   await admin.query(auditMetadataSql);
   await admin.query(identityClockSql);
+  await admin.query(phoneEncryptedSql);
   const clock = await admin.query<{ now: Date }>('SELECT now() AS now');
   const current = clock.rows[0]?.now;
   if (!(current instanceof Date)) {
@@ -451,9 +466,9 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       transact('app_rw', async (client) => {
         await client.query(
           `INSERT INTO identity.account
-             (id, phone, phone_verified_at, kyc_level)
-           VALUES ($1, $2, $3, 'STRONG')`,
-          [uuid(1), PHONE, NOW],
+             (id, phone, phone_verified_at, kyc_level, phone_ciphertext, phone_masked)
+           VALUES ($1, $2, $3, 'STRONG', $4, $5)`,
+          [uuid(1), PHONE, NOW, PHONE_CIPHERTEXT, PHONE_MASKED],
         );
       }),
     );
@@ -480,8 +495,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         await client.query(
           `INSERT INTO identity.otp_challenge
              (id, phone, purpose, binding, code_hash, expires_at,
-              attempts_remaining)
-           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5)`,
+              attempts_remaining, phone_ciphertext, phone_masked)
+           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
           [uuid(1), PHONE, bytes(16), plus(5 * 60_000)],
         );
       }),
@@ -494,8 +509,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       await client.query(
         `INSERT INTO identity.otp_challenge
            (id, phone, purpose, binding, code_hash, expires_at,
-            attempts_remaining)
-         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5)`,
+            attempts_remaining, phone_ciphertext, phone_masked)
+         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
         [uuid(1), PHONE, bytes(32), plus(5 * 60_000)],
       );
       await client.query(
@@ -531,8 +546,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         await client.query(
           `INSERT INTO identity.otp_challenge
              (id, phone, purpose, binding, code_hash, expires_at,
-              attempts_remaining, consumed_at)
-           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, $4)`,
+              attempts_remaining, consumed_at, phone_ciphertext, phone_masked)
+           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, $4, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
           [uuid(1), PHONE, bytes(32), plus(5 * 60_000)],
         );
       }),
@@ -544,8 +559,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
         await client.query(
           `INSERT INTO identity.otp_challenge
              (id, phone, purpose, binding, code_hash, expires_at,
-              attempts_remaining)
-           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5)`,
+              attempts_remaining, phone_ciphertext, phone_masked)
+           VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
           [uuid(1), PHONE, bytes(32), plus(5 * 60_000)],
         );
         await client.query(
@@ -560,8 +575,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       await client.query(
         `INSERT INTO identity.otp_challenge
            (id, phone, purpose, binding, code_hash, expires_at,
-            attempts_remaining)
-         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5)`,
+            attempts_remaining, phone_ciphertext, phone_masked)
+         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
         [uuid(2), PHONE, bytes(32), plus(5 * 60_000)],
       );
     });
@@ -676,8 +691,8 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       await client.query(
         `INSERT INTO identity.otp_challenge
            (id, phone, purpose, binding, code_hash, expires_at,
-            attempts_remaining)
-         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5)`,
+            attempts_remaining, phone_ciphertext, phone_masked)
+         VALUES ($1, $2, 'SIGNUP', $2, $3, $4, 5, 'v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBB.CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', '+237•••••••78')`,
         [uuid(3), PHONE, bytes(32), plus(5 * 60_000)],
       );
     });
@@ -1073,7 +1088,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
               binding: proof === 'wrong-binding' ? uuid(900) : accountId,
               purpose: proof === 'wrong-purpose' ? 'SIGNUP' : 'RECOVERY',
               phone:
-                proof === 'wrong-phone' ? '+237699999999' : OTHER_PHONE,
+                proof === 'wrong-phone' ? 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' : OTHER_PHONE,
               stale: proof === 'stale',
             },
           );
@@ -1106,7 +1121,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     const noProof = await complete(
       await setup({
         seqBase: 10,
-        phone: '+237611111111',
+        phone: 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
         kyc: 'STRONG',
         proof: 'none',
       }),
@@ -1119,10 +1134,10 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
       readonly proof: Proof;
       readonly seqBase: number;
     }[] = [
-      { seqBase: 30, phone: '+237633333331', proof: 'wrong-binding' },
-      { seqBase: 40, phone: '+237633333332', proof: 'wrong-purpose' },
-      { seqBase: 50, phone: '+237633333333', proof: 'wrong-phone' },
-      { seqBase: 60, phone: '+237633333334', proof: 'stale' },
+      { seqBase: 30, phone: '1111111111111111111111111111111111111111111111111111111111111111', proof: 'wrong-binding' },
+      { seqBase: 40, phone: '2222222222222222222222222222222222222222222222222222222222222222', proof: 'wrong-purpose' },
+      { seqBase: 50, phone: '3333333333333333333333333333333333333333333333333333333333333333', proof: 'wrong-phone' },
+      { seqBase: 60, phone: '4444444444444444444444444444444444444444444444444444444444444444', proof: 'stale' },
     ];
     for (const testCase of cases) {
       const failure = await complete(
@@ -1135,7 +1150,7 @@ describe('identité · contraintes de base (PostgreSQL réel)', () => {
     const tooEarly = await complete(
       await setup({
         seqBase: 70,
-        phone: '+237622222222',
+        phone: '5555555555555555555555555555555555555555555555555555555555555555',
         kyc: 'STRONG',
         hadBalance: true,
       }),

@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { createDatabase, databaseConfigFromEnv } from './http/database';
 import { allowedOriginsFromEnv } from './http/origin.guard';
+import { piiKeysFromEnv } from './modules/identity/phone-key';
 import { pinPepperFromEnv } from './modules/identity/pin.store';
 import { twilioConfigFromEnv, twilioSmsSender } from './modules/identity/twilio-sms';
 
@@ -23,6 +24,8 @@ export async function bootstrap(): Promise<void> {
       // et valide ; sinon envoi fermé (503 SMS_UNCONFIGURED).
       otpPepper: process.env['OTP_PEPPER'] === undefined ? null : pinPepperFromEnv(process.env, 'OTP_PEPPER'),
       smsSender: smsSenderFromEnv(process.env),
+      // C14 : clés de protection du numéro (AWS KMS) ; absentes : inscription fermée.
+      piiKeys: await piiKeysFromEnv(process.env),
     }),
   );
   app.enableShutdownHooks();
