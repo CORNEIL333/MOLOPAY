@@ -67,6 +67,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | C4 blocage support (0068), C5 fil de notifications (0069), C6 écrans back-office manquants, C7 gel des flux sortants à deux personnes (0070, D84) | contrats 0.36.0 à 0.39.0 |
 | DONE | C8 REG-LBC-004 ; NF-SAFE-002 plafond d'objectifs actifs (0071, D86) ; C9 gel automatique sur divergence du vérificateur (0072, D87) ; C10 TECH_ADMIN ≤ 2 (0073) ; C11 conditions réacceptées (0074, D88) ; traçabilité NF-MNT-004, NF-COMP-002 et citations | contrats 0.40.0 et 0.41.0 |
 | DONE | Lots G2–G6 repris de Gemini (24 nov., instruction du fondateur) : client web, portail partenaire et mobile intégrés ; web : conditions, clé de navigateur (D89) ; mobile : connexion par défi, Flutter 3.47.9 épinglé (`scratchpad/flutter-sdk`), D90 | mobile : 39 tests ; web : 284 |
+| DONE | 24–25 nov. : C12 Twilio, C13 inscription en agence (0075), hébergement tranché (ADR-0004 : Neon + AWS Francfort, AWS KMS), C15 `pnpm db:transfer`, C14 tranche 1 (noyau de chiffrement + AWS KMS) | contrats 0.42.0 |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |
@@ -84,4 +85,11 @@ Voir `docs/journal/FICHE_DECISIONS_2026-11-17.md` (D63–D78, questions fermées
 - Chaque règle de base est prouvée par mutation (script `scratchpad/mut.py`).
 
 ## Prochaine action concrète
-24 novembre : lots G2–G6 repris et intégrés. Suite possible sans décision : écrans mobiles restants alignés sur le contrat (reçus, bénéficiaire C), renouvellement de session mobile par défi signé, accessibilité. Bloqués : D90 (clé matérielle mobile), D89 (à valider), D69 (code de remise), D64 (build Next.js, bout en bout web), agrégateur (versements). Flutter : `export PATH=<scratchpad>/flutter-sdk/flutter/bin:$PATH PUB_CACHE=<scratchpad>/pub-cache` (à retélécharger si le bloc-notes est vidé : 3.47.9, SHA-256 vérifié).
+**C14 tranche 2 — plus aucun numéro de téléphone en clair en base** (décision du fondateur du 25 novembre ; nom légal laissé lisible pour le filtrage en base).
+1. Dépendance applicative : `PII_KEY_WRAPPER` (KeyWrapper, `piiKeyWrapperFromEnv`) et `PHONE_INDEX_KEY` (32 octets, déballée au démarrage par le KeyWrapper depuis `PHONE_INDEX_KEY_WRAPPED`) dans `AppModule.register` ; fermé par défaut (inscription 503 sans clés).
+2. Migration 0076 : `identity.account` → `phone_index` (64 hex, unique), `phone_ciphertext` (format `v1.`), `phone_masked` (`+237•••••••34`) ; `identity.otp_challenge.phone` → empreinte ; réécrire les fonctions SQL de 0004/0007/0066 qui comparent ou limitent par numéro (même logique sur l'empreinte) ; supprimer la colonne en clair (données de synthèse seulement, aucune donnée réelle).
+3. Application : `normalizePhone` puis `blindIndex(phone, key, 'phone')` partout où le numéro sert de clé (OTP, inscription, agence, connexion historique) ; profil et CRM lisent `phone_masked` ; SMS reçoit le numéro de la requête en mémoire seulement.
+4. Tests : fixture `seedCustomerAccount` et ~10 suites qui insèrent un numéro ; test « aucun numéro en clair en base » sur toutes les colonnes texte ; mutations ; régression complète.
+5. Prévenir Qoder (PR #10 CRM lit `identity.account.phone` pour le masquer) : utiliser `phone_masked`.
+Ensuite : reprendre la revue de la PR #10 de Qoder (interrompue le 25 nov. à la demande du fondateur) ; écrans mobiles restants.
+Flutter : `export PATH=<scratchpad>/flutter-sdk/flutter/bin:$PATH PUB_CACHE=<scratchpad>/pub-cache`.
