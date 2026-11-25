@@ -765,3 +765,7 @@
 - **Dépôt de la pièce (F-PLN-002) :** non proposé sur mobile ; l'écran oriente vers le client web. Raison : calculer l'empreinte d'un fichier exige un sélecteur de fichiers et une implémentation SHA-256, donc deux nouvelles dépendances (`file_picker`, `crypto`) à revoir et épingler. Les anciens libellés de saisie manuelle d'empreinte (inutilisables par un client) sont supprimés.
 - **Question (D115) :** ajouter ces deux dépendances au mobile (revue de chaîne d'approvisionnement à faire), ou garder le dépôt sur le web ? Recommandation : les ajouter au moment de la première version publiée, après revue.
 - **Restent bloqués sur mobile :** activation et annulation signées, renouvellement de session (clé d'appareil, D90) ; code de remise (D69).
+
+### C18 · Mobile : écran « mise à jour requise » (SEC-MOB-005, suite de C16)
+- **Fait :** toute réponse 426 du serveur efface la session en mémoire et remplace l'application entière par un écran unique (titre, explication, version installée) ; aucune autre action n'est proposée. Une autre erreur (409, 503…) ne le déclenche pas. 3 tests, 6 mutants tués (dont un survivant initial — session non vérifiée — corrigé en renforçant le test).
+- **Option prudente :** pas de lien vers une boutique tant que l'application n'y est pas publiée (aucune adresse inventée) ; ouvrir un lien exigerait aussi une dépendance (`url_launcher`) à revoir. L'écran nomme Google Play et l'App Store. À compléter à la publication (avec D115).

@@ -214,6 +214,13 @@ final class AppStrings {
   String get beneficiarySectionTitle => isEn
       ? 'Beneficiary settlement (Model C)'
       : 'Règlement bénéficiaire (Modèle C)';
+  String get upgradeRequiredTitle =>
+      isEn ? 'Update required' : 'Mise à jour requise';
+  String get upgradeRequiredBody => isEn
+      ? 'This version of MoloPay is no longer accepted, to protect your account. Install the latest version from Google Play or the App Store, then reopen the app. Your goals and payments are unchanged.'
+      : 'Cette version de MoloPay n’est plus acceptée, pour protéger votre compte. Installez la dernière version depuis Google Play ou l’App Store, puis rouvrez l’application. Vos objectifs et vos versements ne sont pas modifiés.';
+  String installedVersion(String version) =>
+      isEn ? 'Installed version: $version' : 'Version installée : $version';
   String get beneficiaryPayPrepare =>
       isEn ? 'Prepare the payout' : 'Préparer le règlement';
   String get beneficiaryPayHelp => isEn

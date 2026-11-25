@@ -10,6 +10,7 @@ import 'screens/goals_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/upgrade_required_screen.dart';
 import 'ui/design.dart';
 
 class MoloPayApp extends StatefulWidget {
@@ -89,7 +90,9 @@ class _MoloPayAppState extends State<MoloPayApp> {
             ),
             child: child!,
           ),
-          home: _MainShell(state: _state),
+          home: _state.upgradeRequired
+              ? UpgradeRequiredScreen(strings: s)
+              : _MainShell(state: _state),
         );
       },
     );

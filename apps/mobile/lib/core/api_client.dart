@@ -42,6 +42,9 @@ class MoloPayApiClient {
   final Random _random = Random.secure();
 
   String? _sessionCookie;
+
+  /// SEC-MOB-005 : appelé à chaque réponse 426 (version sous le minimum publié).
+  void Function()? onUpgradeRequired;
   String? _refreshCookie;
 
   bool get hasSession => _sessionCookie != null;
@@ -536,6 +539,10 @@ class MoloPayApiClient {
     }
     if (response.statusCode == 401) {
       clearSession();
+    }
+    if (response.statusCode == 426) {
+      clearSession();
+      onUpgradeRequired?.call();
     }
     throw ApiProblemException(_parseProblem(response));
   }

@@ -7,7 +7,9 @@ import 'models.dart';
 /// État applicatif léger (session en mémoire, langue FR/EN, accessibilité, ville).
 class AppState extends ChangeNotifier {
   AppState({required this.api, this.deviceKeys, String initialLocale = 'fr'})
-    : _locale = initialLocale;
+    : _locale = initialLocale {
+    api.onUpgradeRequired = _markUpgradeRequired;
+  }
 
   final MoloPayApiClient api;
 
@@ -18,6 +20,17 @@ class AppState extends ChangeNotifier {
   bool _reduceMotion = false;
   City? _selectedCity;
   SessionSummary? _session;
+  bool _upgradeRequired = false;
+
+  /// SEC-MOB-005 : le serveur refuse cette version ; l'application n'offre plus que la mise à jour.
+  bool get upgradeRequired => _upgradeRequired;
+
+  void _markUpgradeRequired() {
+    _session = null;
+    if (_upgradeRequired) return;
+    _upgradeRequired = true;
+    notifyListeners();
+  }
 
   String get locale => _locale;
   bool get reduceMotion => _reduceMotion;
