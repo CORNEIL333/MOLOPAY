@@ -33,6 +33,9 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 
 | Ordre | Fichier | Ce que tu y trouves |
 |---|---|---|
+| 0 | [09_passage_maquettes_mvp_0.0.1.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/09_passage_maquettes_mvp_0.0.1.md) | **Commence ici** : périmètre du MVP 0.0.1, fondations, composants, correspondance écran → maquette → code → API, critères d'acceptation, ordre U0 à U5 |
+| — | [jetons/](https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/jetons) | Jetons prêts : `molopay.tokens.json` (source), `tokens.css`, `tokens.ts`, `molopay_tokens.dart` |
+| — | [textes/mvp_0.0.1_fr_en.json](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/textes/mvp_0.0.1_fr_en.json) | Textes clés FR/EN |
 | 1 | [README.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/README.md) | Index du dossier |
 | 2 | [02_identite_visuelle.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/02_identite_visuelle.md) | **Règles d'identité** : couleurs, typographie, formes, logo, ton, règles issues de la recherche, alerte sur le nom |
 | 3 | [06_animations.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/06_animations.md) | **Charte d'animation** : jetons de durées, courbes, ressorts (CSS et Dart prêts), catalogue `M-01…M-55`, réduction du mouvement, performance |
@@ -82,7 +85,7 @@ Ouvre-les localement, par exemple `../molopay-direction-ux/docs/05_direction_ux_
 
 ## 4. Ce que j'attends de toi
 
-1. **Lis** les fichiers 1 à 5 du tableau, puis `docs/03_agents_ia/AGENTS.md` sur ta propre branche : ses règles s'appliquent toujours.
+1. **Lis** d'abord `09_passage_maquettes_mvp_0.0.1.md` (ligne 0 du tableau) : il fixe le périmètre du MVP 0.0.1 et l'ordre de travail (U0 fondations → U1 composants → U2 client web → U3 mobile → U4 portail et back-office). Puis les fichiers 1 à 5, puis `docs/03_agents_ia/AGENTS.md` sur ta propre branche : ses règles s'appliquent toujours.
 2. **Rédige un plan** en PR brouillon, **avant tout code**, pour unifier l'identité dans le code :
    - jetons de couleur, typographie, rayons et mouvement dans `packages/ui` (clair et sombre), en partant des valeurs de `02_identite_visuelle.md` et du bloc CSS de `06_animations.md` § 3.4 ;
    - équivalent Flutter partagé (thème + `Motion`, `06_animations.md` § 3.4), qui remplace `design.dart` dans `apps/mobile` et `apps/mobile-showcase` ;
@@ -99,6 +102,8 @@ Ouvre-les localement, par exemple `../molopay-direction-ux/docs/05_direction_ux_
 - Tu ne fusionnes rien toi-même et tu ne publies rien.
 
 ## 6. Points encore ouverts (ne pas trancher seul)
+
+- **Versements (D92)** : aucun au MVP 0.0.1. L'écran « Verser » s'affiche dans son état « Versements bientôt disponibles » (texte `pay.comingSoon`), sans bouton de paiement.
 
 - **Nom commercial** : « MoloPay » est proche de « MoloMolo Pay », un concurrent ivoirien (OAPI). L'identité doit rester indépendante du mot à côté de l'anneau.
 - **Régime KYC** : le règlement CEMAC **02/24** abroge le 01/16 cité dans `CDC_06`. L'inscription 100 % à distance relève de la vigilance renforcée. La voie retenue (art. 55, 57(c) ou 58) attend l'avis du juriste.

@@ -20,6 +20,7 @@
 | 21 nov. 2026 | Parcours crédit | Prototype du modèle B : opt-in actif, contrôle de capacité, consentement séparé, décision du seul financeur, offre ferme avec échéancier et rétractation, recouvrement responsable, pas de célébration sur une dette |
 | 21 nov. 2026 | Écrans complémentaires | Acceptation par le proche, validation partenaire, vérification bailleur, rapports régulateur, abonnements : tous les parcours sont maquettés |
 | 25 nov. 2026 | Marketplace, suite | Recherche vocale et tolérante, favoris sans promesse de prix, réservation en 4 étapes remplaçant le panier (un projet par réservation) |
+| 25 nov. 2026 | Préparation MVP 0.0.1 | `09_passage_maquettes_mvp_0.0.1.md`, jetons générés et textes FR/EN ; périmètre proposé : modèles A et C sans encaissement (D92), inscription en agence (C13), restyle de tous les écrans existants |
 | 20 nov. 2026 | Corrections | Le frigo et l'électroménager relèvent de « Technologie et équipement », pas de « Logement » ; MoloMolo Pay est un concurrent **ivoirien** |
 
 ## Points ouverts

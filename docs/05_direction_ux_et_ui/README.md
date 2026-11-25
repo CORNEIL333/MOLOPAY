@@ -17,6 +17,9 @@
 | `08_ux_inclusive_et_publics_cibles.md` | **Recherche approfondie n° 2** : usagers peu lettrés et téléphones d'entrée de gamme, USSD, inscription/KYC/activation (règlement CEMAC 02/24), diaspora, bailleurs et écoles ; recommandations priorisées et questions ouvertes |
 | `recherche/notes_01_psychologie/` | Les six notes sourcées du rapport 07 |
 | `recherche/notes_02_ux_inclusive/` | Les cinq notes sourcées du rapport 08 |
+| `09_passage_maquettes_mvp_0.0.1.md` | **Passage au code** : périmètre du MVP 0.0.1, fondations, composants, correspondance écran → maquette → code → API, critères d'acceptation, ordre de travail |
+| `jetons/` | Jetons de design : source unique `molopay.tokens.json` et fichiers générés CSS, TypeScript et Dart (`generate.py`) |
+| `textes/mvp_0.0.1_fr_en.json` | 63 textes clés du MVP 0.0.1 en français et en anglais |
 | `maquettes/identite-app-mobile.html` | Identité + 10 écrans de l'app mobile (dont 5 de marketplace) |
 | `maquettes/ecrans-web.html` | Portail partenaire, client web (PWA), back-office, CRM (8 écrans) |
 | `maquettes/site-public.html` | Site public marketplace d'acquisition (lot 26, ADR-0006) |
