@@ -20,7 +20,20 @@ La loi n° 2024/017 (en vigueur depuis le 23 juin 2026) encadre strictement l'h�
 
 Conformité loi 2024/017 et exigences des partenaires ; disponibilité d'un HSM/KMS FIPS 140-3 ; réplication sur deux sites ; coûts ; réversibilité.
 
-## Décision révisée (25 novembre 2026) — en vigueur
+## Décision pour le MVP (25 novembre 2026, après-midi) — en vigueur
+
+Le fondateur retient, pour ce premier MVP de production, **Neon** (PostgreSQL géré) avec un chemin de montée en charge et de transfert vers AWS :
+
+1. **Base : Neon, région Francfort (`aws-eu-central-1`)** — Paris n'existe pas chez Neon ; la région est définitive à la création du projet. Offre payante, calcul toujours actif (pas de mise en veille), connexion directe (sans le regroupeur de connexions) au départ.
+2. **Serveurs : AWS Francfort (`eu-central-1`)**, machines virtuelles + conteneurs, dans la même région que la base. **Clés : AWS KMS Francfort.**
+3. **Chiffrement applicatif obligatoire (lot C14)** : Neon chiffre au repos avec ses propres clés (pas de clé fournie par le client) ; le téléphone, le nom légal et les données KYC sont donc chiffrés par l'application, par enveloppe, avec nos clés AWS KMS, avant d'entrer dans la base.
+4. **Sauvegardes** : restauration à un instant donné de Neon **et** notre propre copie quotidienne, chiffrée par nos clés, dans une seconde région AWS (elle est aussi la porte de sortie).
+5. **Transfert vers AWS (RDS/Aurora)** par une procédure écrite et répétée : schéma créé par nos migrations, protections suspendues le temps du chargement puis réactivées, vérification complète de la chaîne par le vérificateur indépendant avant bascule (`tools/transfer-database.ts`, `docs/03_agents_ia/PROCEDURE_TRANSFERT_BASE.md`).
+6. **Vérifié :** les 75 migrations s'appliquent sous un rôle sans superutilisateur (droits du propriétaire Neon : CREATEROLE, CREATEDB) ; Neon peut publier en réplication logique vers un PostgreSQL externe ; SOC 2, ISO 27001/27701 (via Databricks), AES-256 au repos (documentation de Neon, 25 novembre).
+7. **Restent à obtenir :** le contrat de sous-traitance (DPA) de Neon ; l'autorisation de transfert (loi 2024/017, juriste/DPO) — risque déjà signalé, non tranché.
+
+## Décision révisée (25 novembre 2026, matin — région AWS Paris remplacée par Francfort)
+
 
 Après vérification des hébergeurs camerounais, jugés pas assez sûrs, le fondateur décide : « la KYC et tout le reste devra être hébergé et ultra crypté à l'étranger, pour le moment ».
 

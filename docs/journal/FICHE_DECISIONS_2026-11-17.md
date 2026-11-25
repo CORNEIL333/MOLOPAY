@@ -69,7 +69,7 @@
 | D1 | Prestataire SMS : **Twilio** (tranché le 24 novembre) ; adaptateur livré, identifiants à fournir | — |
 | D92 | Versements au lancement : **aucun** (tranché le 24 novembre) | — |
 | D91 | Inscription en agence : un agent seul, 30 codes / 24 h (appliqué) — **Valider** / seconde personne / photo de la pièce | Appliqué. |
-| ADR-0004 | Hébergement : **tout à l'étranger chez AWS, chiffré** (révisé le 25 novembre ; l'option « base au Cameroun » du 24 est remplacée) ; région **Paris par défaut — à confirmer** ; **autorisation de transfert (loi 2024/017) : à déposer ; collecte de données réelles avant l'accord : à décider** | Aucune donnée réelle tant que non décidé. |
+| ADR-0004 | Hébergement MVP : **Neon Francfort + serveurs AWS Francfort + AWS KMS**, chiffrement applicatif (C14), notre propre sauvegarde, transfert vers AWS répété (25 novembre) ; **autorisation de transfert (loi 2024/017) : à déposer ; collecte de données réelles avant l'accord : à décider** | Aucune donnée réelle tant que non décidé. |
 | D5 | Clés de signature : **AWS KMS** (Ed25519, non exportables) — tranché les 24 et 25 novembre | — |
 | D93 | Sauvegardes : **un site + copie hors site au Cameroun** (écart temporaire OPS-BAK-001 / NF-REL-002 jusqu'aux versements) ; exploitation **VM + conteneurs** — tranché le 24 novembre | — |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |

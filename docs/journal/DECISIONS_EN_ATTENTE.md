@@ -737,3 +737,8 @@
 - **Chiffrement exigé :** TLS 1.3 ; volumes et sauvegardes chiffrés par nos clés KMS ; **chiffrement applicatif par enveloppe** du numéro, du nom légal et des données KYC (lot C14 à réaliser) ; accès aux clés journalisés.
 - **Signalé, non tranché :** autorisation préalable de l'Autorité de protection des données (loi 2024/017, REG-DPD-004) ; le fondateur a refusé de répondre à la question à ce stade (« fais comme je t'ai dit »). Tant qu'il ne décide pas de collecter des données réelles avant l'accord, la règle de l'ADR-0004 s'applique : données synthétiques seulement.
 
+### Hébergement MVP : Neon + AWS Francfort ; C15 transfert de base (25 novembre)
+- **Décidé par le fondateur (« ok go ») :** Neon Francfort pour la base, serveurs et AWS KMS à Francfort, chiffrement applicatif (C14), notre propre sauvegarde, transfert vers AWS répété (ADR-0004).
+- **Vérifié :** les 75 migrations s'appliquent sous un rôle sans superutilisateur (droits du propriétaire Neon).
+- **C15 livré :** `pnpm db:transfer` (`tools/transfer-database.ts`) et `docs/03_agents_ia/PROCEDURE_TRANSFERT_BASE.md` : copie complète cohérente, données chargées avant les déclencheurs, une seule transaction, droits conservés ; vérification du contenu de chaque table, des déclencheurs (dont ENABLE ALWAYS), des droits et du grand livre. Répétition réelle entre deux bases (grand livre des flux réels) : 3 tests ; 4 mutants tués, dont la restauration sans droits (`--no-privileges`), défaut repéré dans `infra/backup/restore.sh` de la PR #9 de Qoder (déjà signalé en revue).
+
