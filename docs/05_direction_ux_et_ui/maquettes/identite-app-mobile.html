@@ -319,6 +319,42 @@ p { margin: 0; }
 .note { font-size: 0.64rem; color: var(--muted); line-height: 1.4; }
 .s-cmp .pill { margin-top: auto; flex: none; }
 
+
+/* ===== Matières liquide et verre (02_identite_visuelle.md § Matières, jetons glass.* et gradient.*) ===== */
+.mp-scr { isolation: isolate; }
+.mp-liquid { position: absolute; inset: -20%; z-index: -1; overflow: hidden; pointer-events: none; }
+.mp-liquid i { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.92; animation: mp-flow 30s ease-in-out infinite alternate; }
+.mp-liquid i:nth-child(1) { width: 75%; height: 45%; left: -12%; top: -4%; }
+.mp-liquid i:nth-child(2) { width: 70%; height: 45%; right: -14%; top: 14%; animation-duration: 34s; animation-delay: -9s; }
+.mp-liquid i:nth-child(3) { width: 70%; height: 40%; left: 8%; bottom: -4%; animation-duration: 38s; animation-delay: -16s; }
+.mp-liquid i:nth-child(4) { width: 52%; height: 34%; right: 0; bottom: 14%; animation-duration: 27s; animation-delay: -4s; }
+.mp-liquid.mp-static i, .mp-liquid.mp-aurora i { animation: none; }
+.mp-liquid.mp-aurora i { opacity: 0.55; }
+.mp-grain { position: absolute; inset: 0; z-index: -1; opacity: 0.07; mix-blend-mode: multiply; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@keyframes mp-flow { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(16%, 9%) scale(1.14); } 100% { transform: translate(-9%, 14%) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .mp-liquid i { animation: none; } }
+html.mp-sober .mp-liquid i { animation: none; }
+html.mp-sober .mp-grain { display: none; }
+/* Verre : décor et navigation seulement */
+.s-home .ibtn:not(.go), .s-home .seg span:not(.on), .s-goal .ibtn, .s-code .ibtn, .s-cat .loc, .s-cat .ibtn:not(.dark), .s-cat .search .fld, .s-cat .uchip:not(.on), .s-prod .ibtn, .s-shop .ibtn { background: rgba(255,255,255,0.62) !important; -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.75), 0 8px 24px -16px rgba(15,16,18,0.35) !important; color: #0f1012; }
+.navpill, .s-pay .ibtn.dark, .s-pay .to, .s-pay .slider, .s-pay .chip:not(.on), .s-cat .ibtn.dark { background: rgba(15,16,18,0.72) !important; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10) !important; color: #fff; }
+html.mp-sober .s-home .ibtn:not(.go), html.mp-sober .s-home .seg span:not(.on), html.mp-sober .s-goal .ibtn, html.mp-sober .s-code .ibtn, html.mp-sober .s-cat .loc, html.mp-sober .s-cat .ibtn:not(.dark), html.mp-sober .s-cat .search .fld, html.mp-sober .s-cat .uchip:not(.on), html.mp-sober .s-prod .ibtn, html.mp-sober .s-shop .ibtn { background: rgba(255,255,255,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.mp-sober .navpill, html.mp-sober .s-pay .ibtn.dark, html.mp-sober .s-pay .to, html.mp-sober .s-pay .slider, html.mp-sober .s-pay .chip:not(.on), html.mp-sober .s-cat .ibtn.dark { background: rgba(15,16,18,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { .s-home .ibtn:not(.go), .s-home .seg span:not(.on), .s-goal .ibtn, .s-code .ibtn, .s-cat .loc, .s-cat .ibtn:not(.dark), .s-cat .search .fld, .s-cat .uchip:not(.on), .s-prod .ibtn, .s-shop .ibtn { background: rgba(255,255,255,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; } .navpill, .s-pay .ibtn.dark, .s-pay .to, .s-pay .slider, .s-pay .chip:not(.on), .s-cat .ibtn.dark { background: rgba(15,16,18,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+/* Interrupteur Liquide / Sobre */
+.mp-mode { position: fixed; z-index: 60; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(15,16,18,0.88); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 10px 30px -12px rgba(0,0,0,0.5); font-family: 'Inter', system-ui, sans-serif; }
+.mp-mode span { color: #9a9ca3; font-size: 12px; font-weight: 600; padding: 0 8px 0 10px; display: grid; place-items: center; }
+.mp-mode button { border: 0; height: 34px; padding: 0 14px; border-radius: 999px; background: transparent; color: #e9eaec; font: 600 12.5px 'Inter', system-ui, sans-serif; cursor: pointer; }
+.mp-mode button[aria-pressed="true"] { background: #fff; color: #0f1012; }
+.mp-mode button:focus-visible { outline: 3px solid #d9f26b; outline-offset: 2px; }
+
+.s-home, .s-cat, .s-code { background: #f4f4ef !important; }
+.s-prod { background: #7fd4ef !important; }
+.s-shop { background: #eef7fa !important; }
+.s-goal { background: #ffb3cc !important; }
+.s-pay { background: #0b0b0d !important; }
+.s-cat .ptile, .s-cat .promo, .s-shop .lrow, .s-shop .shopcard, .s-goal .sheet, .s-prod .psheet { position: relative; }
+
 </style>
 
 <header class="hero">
@@ -808,5 +844,23 @@ p { margin: 0; }
     document.getElementById('mode-a').hidden = b.dataset.m !== 'a';
     document.getElementById('mode-b').hidden = b.dataset.m !== 'b';
   });
+})();
+</script>
+
+<script>
+(function () {
+  var G = {"home": ["#e9f7a8", "#ffd0e0", "#cfeefa", "#dcd8ff"], "technology": ["#bdeefc", "#5cc6ea", "#e6f8ff", "#a5e3f7"], "housing": ["#e9e6ff", "#a99fff", "#d7d2ff", "#c3bdff"], "mobility": ["#ffd9e6", "#ff8db4", "#ffc4d8", "#ffb3cc"], "aurora": ["#3d4a12", "#1d4d5c", "#3a2c5c"]}, MAP = [{"sel": ".s-home", "light": "home"}, {"sel": ".s-cat", "light": "home"}, {"sel": ".s-code", "light": "home", "staticLight": true}, {"sel": ".s-goal", "light": "mobility"}, {"sel": ".s-prod", "light": "technology"}, {"sel": ".s-shop", "light": "technology", "staticLight": true}, {"sel": ".s-pay", "aurora": true}];
+  function layer(kind, cls) { var d = document.createElement('div'); d.className = 'mp-liquid ' + (cls || ''); d.setAttribute('aria-hidden', 'true'); (G[kind] || []).forEach(function (c) { var i = document.createElement('i'); i.style.background = c; d.appendChild(i); }); return d; }
+  MAP.forEach(function (m) {
+    document.querySelectorAll(m.sel).forEach(function (s) {
+      s.classList.add('mp-scr');
+      if (m.light) { var a = layer(m.light, (m.staticLight ? 'mp-static ' : '') + 'mp-light'); s.insertBefore(a, s.firstChild); var g = document.createElement('div'); g.className = 'mp-grain'; g.setAttribute('aria-hidden', 'true'); s.insertBefore(g, a.nextSibling); }
+      if (m.aurora) { s.insertBefore(layer('aurora', 'mp-aurora'), s.firstChild); }
+    });
+  });
+  var bar = document.createElement('div'); bar.className = 'mp-mode'; bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Matières');
+  bar.innerHTML = '<span>Matières</span><button type="button" data-m="liquide" aria-pressed="true">Liquide</button><button type="button" data-m="sobre" aria-pressed="false">Sobre</button>';
+  document.body.appendChild(bar);
+  bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; document.documentElement.classList.toggle('mp-sober', b.dataset.m === 'sobre'); bar.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); });
 })();
 </script>
