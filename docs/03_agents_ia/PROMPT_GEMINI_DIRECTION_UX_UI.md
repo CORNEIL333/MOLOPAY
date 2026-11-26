@@ -61,6 +61,7 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 | `ecrans-complementaires.html` | Proche qui accepte une contribution, validation partenaire, vérification bailleur, rapports, abonnements | Mobile, back-office, portail |
 | `site-public.html` | Site public marketplace (lot 26, ADR-0006) | `apps/site` (à créer) |
 | `animations.html` | Démo de chaque animation `M-xx`, avec le mode réduit | Toutes les apps |
+| `exploration-direction-liquide.html` | **Matières liquide et verre** : modes Liquide, Actuel (à plat) et Sobre ; règles et budget | App, PWA, site public |
 
 Ouvre-les localement, par exemple `../molopay-direction-ux/docs/05_direction_ux_et_ui/maquettes/ecrans-web.html` dans un navigateur. GitHub les affiche seulement comme du code.
 
@@ -78,6 +79,7 @@ Ouvre-les localement, par exemple `../molopay-direction-ux/docs/05_direction_ux_
 - **Une couleur par univers**, uniquement en **aplat sous du texte et des icônes noirs**, jamais comme couleur de texte ni comme seule information. Essentiels : citron `#d9f26b`. Technologie et équipement : ciel `#8fddf5`. Logement et immobilier : lilas `#c3bdff`. Mobilité et activité pro : hibiscus `#ffa8c5`. Pas de jaune ni d'orange de marque (MTN, Orange). Erreur `#c4262e`, jamais le rose.
 - **Typographie** : Outfit pour les montants et titres, Inter pour le texte ; chiffres tabulaires ; « 25 000 FCFA ».
 - **Formes** : rayons 20 à 44 px ; boutons d'icône ronds ; barre de navigation flottante noire.
+- **Matières (adoptées le 26 novembre)** : fonds **liquides** aux teintes de l'univers et **verre** flou sur la navigation et le décor, jamais sous un montant ou un statut ; au plus 2 surfaces en verre par écran ; repli **Sobre** automatique (téléphones modestes, moins de transparence ou de mouvement). Référence : `02_identite_visuelle.md` § Matières et `maquettes/exploration-direction-liquide.html`.
 - **Logo** : l'anneau de cotisation (8 traits qui se remplissent) et « molopay » en minuscules. Un trait ne se remplit que pour de l'argent **réellement versé et confirmé**.
 - **Mouvement** : « l'argent avance sûrement, il ne rebondit pas ». **Aucun montant, aucune jauge, aucune coche ne s'anime avant la confirmation du serveur.** Respect de `prefers-reduced-motion`, et en Flutter de `disableAnimations` **et** de `reduceMotion`.
 - **Inclusion** : dans les parcours d'argent, chaque montant s'affiche de 4 façons (chiffres, « 25 mille », billets, voix), avec un bouton « Écouter » et une relecture avant le PIN. Saisie par pastilles, sans champ libre. USSD et SMS : 160 caractères au plus, en alphabet GSM-7 (pas de ê, â, î, ô, û, ç).

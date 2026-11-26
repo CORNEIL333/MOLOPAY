@@ -1,6 +1,6 @@
 # Identité visuelle validée
 
-> Version 1.0 · 20 novembre 2026 · Identité validée par le fondateur le 20 novembre 2026. Référence visuelle pour les lots 19 (app mobile), 20 (portail partenaire), 21 (back-office), 26 (site public) et pour `packages/ui`.
+> Version 1.1 · 26 novembre 2026 · Identité validée par le fondateur le 20 novembre 2026 ; **matières liquide et verre adoptées le 26 novembre 2026** (§ Matières). Référence visuelle pour les lots 19 (app mobile), 20 (portail partenaire), 21 (back-office), 26 (site public) et pour `packages/ui`.
 
 Les maquettes du dossier `maquettes/` sont des **fichiers HTML autonomes** : ouvrez-les dans un navigateur. Les noms de clients, boutiques, prix, TEG et délais sont **fictifs** ; « MoloPay » est un nom commercial provisoire (voir § Nom ci-dessous).
 
@@ -29,6 +29,24 @@ Les maquettes du dossier `maquettes/` sont des **fichiers HTML autonomes** : ouv
 - Écrans sombres pour les moments d'argent (verser, confirmer), « glisser pour confirmer » avant le PIN.
 - Logo : l'anneau de cotisation (8 traits qui se remplissent) et le mot en minuscules.
 - Ton : vouvoiement, chiffres exacts, chaque erreur dit ce qui s'est passé et quoi faire.
+
+## Matières : liquide et verre (adoptées le 26 novembre 2026)
+
+Référence visuelle : `maquettes/exploration-direction-liquide.html` (modes Liquide, Actuel, Sobre). Jetons : `glass.*`, `gradient.*` et `motion.duration.liquid` dans `jetons/`.
+
+**Principe : le verre décore et sépare, il ne porte jamais l'argent.**
+
+| | Règle |
+|---|---|
+| **Fonds liquides** | Taches floues mélangeant les teintes de l'univers de l'écran (`gradient.<univers>`), ou des quatre univers sur l'accueil (`gradient.home`), avec un grain très léger (8 %). Mouvement très lent (26 à 38 s). En production : **pré-calculés** (image AVIF/WebP ou dégradés radiaux), animés en `transform` seulement, jamais de flou en direct. |
+| **Aurore** | Écrans sombres de l'argent (verser, succès) : `gradient.aurora`, **figée** pendant toute saisie (montant, PIN, signature). |
+| **Verre** | Réservé au décor et à la navigation : barre flottante, boutons d'icône, pastilles, en-têtes, variantes de produit, carte du total, jauge. **Au plus 2 surfaces en verre visibles** à la fois ; flou de 20 px au plus. |
+| **Lisibilité** | Verre clair ≥ 62 % de blanc et texte noir ; texte secondaire sur verre `#45484e` (le gris `#6a6d73` passe sous 4,5:1). Verre sombre ≥ 72 % d'encre et texte blanc. Tout texte sur une image ou un fond vivant reçoit un voile ou une surface de verre au contraste mesuré. |
+| **Surfaces opaques obligatoires** | Montants, reçus, statuts de paiement, coûts, conditions, formulaires : papier, encre ou couleur d'univers **pleine**. |
+| **Actions** | Sur un écran coloré ou liquide, l'action principale reste **noire** (blanche sur sombre), jamais de la couleur du fond. |
+| **Produit** | Sur la fiche produit, le fond prend l'univers du produit ; l'objet est détouré, avec une ombre portée douce ; la feuille d'achat est blanche et opaque. |
+| **Repli Sobre** | Automatique si l'utilisateur demande moins de transparence ou de mouvement (préférence système ou réglage de l'app « Effets visuels : sobres »), ou si l'app détecte plus de 5 % d'images au-delà de 16 ms : flou retiré, verre à 94 % d'opacité, fonds figés. L'allure reste la même. |
+| **Où il n'y a pas de verre** | Back-office, portail partenaire, USSD, SMS : outils denses ou texte seul, à plat. |
 
 ## Nom
 

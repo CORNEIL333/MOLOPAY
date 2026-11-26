@@ -166,6 +166,7 @@ Chaque animation porte un identifiant `M-xx` à citer dans le code et les PR. Co
 | M-52 | Simulateur : changement de produit → la couleur du halo change, l'illustration entre en fondu et en échelle, la date se met à jour | base à long · standard | Changement direct |
 | M-53 | Anneau géant qui tourne lentement (60 s) et se remplit selon le premier versement | Arrêt en mode réduit | Anneau fixe |
 | M-54 | Inclinaison du visuel héros sous le pointeur (≤ 18 px, ≤ 6°) | Ordinateur uniquement, jamais au toucher | Désactivée |
+| M-56 | **Fond liquide** : taches aux teintes de l'univers qui dérivent lentement (`motion.duration.liquid`, 26 à 38 s, aller-retour) | App (accueil, fiche produit, objectif), PWA, site public ; **figé** sur tout écran de saisie (paiement, PIN, signature, formulaire), arrêté hors écran | Fond figé (repli Sobre) |
 | M-55 | Apparition des sections au défilement : légère montée de 16 px, une seule fois | Le contenu reste **visible au repos** : jamais caché en attendant l'animation | Aucune |
 
 ## 5. Retours haptiques (mobile)
@@ -206,6 +207,15 @@ Ne jamais appliquer une règle globale du type « toutes les animations à 0 » 
 | Appareil de référence | Téléphone Android d'entrée de gamme, 2 Go de RAM, en 4G (NF-PERF-003, NF-PUB-001) | Idem, en mode *profile* |
 | Bibliothèques | CSS et Web Animations API ; pas de bibliothèque d'animation lourde sur le site public | [Décision] Animations natives (`AnimatedContainer`, `CustomPainter`) ; **pas de Lottie ni de Rive au lancement** (taille de l'APK ≤ 30 Mo, NF-PERF-003) ; à réévaluer pour la célébration |
 | Ambiance | Halos et défilé arrêtés hors écran (`IntersectionObserver`) et onglet masqué | — |
+
+### 7.1 Flou et verre (ajout du 26 novembre 2026)
+
+| Règle | Web | Flutter |
+|---|---|---|
+| Au plus 2 surfaces en verre visibles par écran, flou ≤ 20 px | `backdrop-filter: blur(var(--mp-glass-blur)) saturate(var(--mp-glass-saturate))` | Un `BackdropFilter` par zone, sous `ClipRRect`, dans un `RepaintBoundary` |
+| Fonds liquides sans flou en direct | Image pré-calculée ou dégradés radiaux, animés en `transform` | Image ou `CustomPainter` à dégradés radiaux ; pas d'`ImageFiltered` animé |
+| Repli Sobre | `prefers-reduced-transparency`, `prefers-reduced-motion`, classe `.mp-sober` | Réglage « Effets visuels : sobres », `disableAnimations`, `reduceMotion` ; bascule si > 5 % d'images au-delà de 16 ms |
+| Mesure | Chrome Performance sur l'appareil de référence | Flutter DevTools, mode profile, sur l'appareil de référence |
 
 ## 8. Vérification
 

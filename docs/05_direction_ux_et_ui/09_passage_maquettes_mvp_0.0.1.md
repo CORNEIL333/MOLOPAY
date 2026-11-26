@@ -41,9 +41,10 @@
 | F4 | **Icônes** au trait de 1,5 à 1,8 px, coins arrondis | Dessins SVG en ligne dans les maquettes | Jeu SVG unique dans `packages/ui/icons` ; équivalent Flutter. Pas de police d'icônes externe. |
 | F5 | **Mode réduit** du mouvement | `06_animations.md` § 3.4 et § 6 | Variables CSS réduites (déjà dans `tokens.css`) ; `MpMotion` + lecture de `disableAnimations` **et** `reduceMotion` |
 | F6 | **Format des montants** | `02_identite_visuelle.md` (règles issues de la recherche) | `packages/money` reste la seule source du calcul ; l'affichage « 25 000 FCFA » passe par un seul formateur par plateforme. Espace ordinaire dans les SMS. |
+| F8 | **Matières liquide et verre** (adoptées le 26 novembre) | `jetons/` (`glass.*`, `gradient.*`), `02_identite_visuelle.md` § Matières, `maquettes/exploration-direction-liquide.html` | Composants `GlassSurface` et `LiquidBackground` (web et Flutter) avec repli Sobre intégré ; réglage « Effets visuels : sobres » dans Profil |
 | F7 | **Textes FR et EN** | `textes/mvp_0.0.1_fr_en.json` | Fichiers i18n existants (`apps/*/src/i18n`, `apps/mobile/lib/l10n/strings.dart`) |
 
-**Ordre imposé :** F1 → F2 → F5 → F6 → F3 et F4 → F7. Aucun écran ne se restyle avant F1, F2 et F5.
+**Ordre imposé :** F1 → F2 → F5 → F8 → F6 → F3 et F4 → F7. Aucun écran ne se restyle avant F1, F2 et F5.
 
 ## 3. Composants à construire ou refaire
 
@@ -51,6 +52,8 @@ Neuf composants existent aujourd'hui dans `packages/ui` : Button, TextField, Tex
 
 | Composant | Web | Flutter | États obligatoires | Accessibilité | Mouvement | Statut |
 |---|---|---|---|---|---|---|
+| Fond liquide (`LiquidBackground`) | à créer | à créer | animé, figé, Sobre | décoratif (`aria-hidden`), jamais sous un montant | M-56 | Créer |
+| Surface de verre (`GlassSurface`) | à créer | à créer | clair, sombre, Sobre | contraste mesuré ; au plus 2 par écran | — | Créer |
 | Bouton pilule (principal, fantôme, danger) | `Button` à refaire | à créer | repos, pressé, désactivé, chargement | ≥ 48 px, libellé = action | M-01 | Refaire |
 | Bouton d'icône rond | à créer | à créer | repos, pressé, actif | `aria-label` obligatoire, 40–44 px | M-01 | Créer |
 | Pastille de choix (puce) | à créer | à créer | inactive, active, désactivée | `aria-pressed` | M-04 | Créer |
@@ -130,13 +133,14 @@ Statuts : **Restyler** = l'écran existe, on applique l'identité. **Compléter*
 Un écran est terminé quand **tous** ces points sont prouvés dans la PR :
 
 - [ ] Il n'utilise que les jetons (aucune couleur, taille, durée ni courbe en dur) ; l'ancienne palette n'apparaît plus (`0b6b53`, `e4a11b`, `F16B27` introuvables).
-- [ ] Captures jointes en **clair**, en **sombre** et en mode **« réduire les animations »**, à 360 px et, pour le web, à 1 280 px.
+- [ ] Captures jointes en **clair**, en **sombre**, en mode **« réduire les animations »** et en mode **Sobre** (verre et fonds liquides remplacés), à 360 px et, pour le web, à 1 280 px.
 - [ ] Contrastes WCAG 2.2 AA mesurés ; cibles ≥ 44 px ; parcours complet au clavier et au lecteur d'écran (TalkBack ou VoiceOver, NVDA ou VoiceOver sur le web).
 - [ ] Textes en **français et en anglais** complets, sans troncature à 200 % de taille de police.
 - [ ] Les animations citent leur `M-xx` ; **aucun montant, aucune jauge, aucun statut ne s'anime avant la réponse du serveur** (test qui le vérifie).
 - [ ] Chaque montant passe par le formateur unique ; chiffres tabulaires.
 - [ ] États vides, chargement (squelette après 300 ms), erreur (dit quoi faire), hors ligne.
 - [ ] Aucune des 15 pratiques interdites (`07_psychologie_de_marque_et_ux.md`) ; coût total visible avant tout engagement.
+- [ ] Verre : au plus 2 surfaces visibles, aucun montant ni statut sur du verre, aucun fond animé pendant une saisie.
 - [ ] Performance mesurée sur l'appareil de référence (Android d'entrée de gamme, 2 Go, 4G) : aucune image au-delà de 16 ms sur les animations M-13, M-21, M-23.
 
 ## 6. Ordre de travail proposé

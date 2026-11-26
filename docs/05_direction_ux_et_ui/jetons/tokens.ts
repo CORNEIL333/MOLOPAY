@@ -70,6 +70,7 @@ export const molopayTokens = {
   "motionDurationLong": "500ms",
   "motionDurationXlong": "800ms",
   "motionDurationCelebration": "1200ms",
+  "motionDurationLiquid": "32000ms",
   "motionEasingStandard": [
     0.2,
     0,
@@ -121,7 +122,48 @@ export const molopayTokens = {
   "motionSpringEffects": {
     "dampingRatio": 1,
     "stiffness": 1600
-  }
+  },
+  "glassLight": "rgba(255, 255, 255, 0.62)",
+  "glassLightLine": "rgba(255, 255, 255, 0.75)",
+  "glassLightTextSecondary": "#45484e",
+  "glassDark": "rgba(15, 16, 18, 0.72)",
+  "glassDarkLine": "rgba(255, 255, 255, 0.10)",
+  "glassSoberLight": "rgba(255, 255, 255, 0.94)",
+  "glassSoberDark": "rgba(15, 16, 18, 0.94)",
+  "glassBlur": "20px",
+  "glassSaturate": 1.5,
+  "gradientHome": [
+    "#e9f7a8",
+    "#ffd0e0",
+    "#cfeefa",
+    "#dcd8ff"
+  ],
+  "gradientEssentials": [
+    "#f3fbcf",
+    "#d9f26b",
+    "#eaf7a4"
+  ],
+  "gradientTechnology": [
+    "#bdeefc",
+    "#5cc6ea",
+    "#e6f8ff",
+    "#a5e3f7"
+  ],
+  "gradientHousing": [
+    "#e9e6ff",
+    "#a99fff",
+    "#d7d2ff"
+  ],
+  "gradientMobility": [
+    "#ffd9e6",
+    "#ff8db4",
+    "#ffc4d8"
+  ],
+  "gradientAurora": [
+    "#3d4a12",
+    "#1d4d5c",
+    "#3a2c5c"
+  ]
 } as const;
 
 export type MolopayTokens = typeof molopayTokens;

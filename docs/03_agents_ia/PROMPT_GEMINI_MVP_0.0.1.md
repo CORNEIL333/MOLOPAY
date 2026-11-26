@@ -54,6 +54,7 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 | 5 | [06_animations.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/06_animations.md) | Charte d'animation, identifiants `M-xx`, réduction du mouvement, performance |
 | 6 | [04_catalogue_des_ecrans.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/04_catalogue_des_ecrans.md) | Exigences du cahier des charges couvertes par chaque écran |
 | 7 | [07_psychologie_de_marque_et_ux.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/07_psychologie_de_marque_et_ux.md) | Section « Ce que MoloPay s'interdit » : les **15 interdits** |
+| 4 bis | `02_identite_visuelle.md` **§ Matières** | Liquide et verre adoptés le 26 novembre : où le verre est permis ou interdit, lisibilité, repli Sobre |
 | 8 | [08_ux_inclusive_et_publics_cibles.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/08_ux_inclusive_et_publics_cibles.md) | Règles d'inclusion (montants, voix, inscription assistée) |
 
 **Maquettes** : pages HTML à ouvrir dans un navigateur depuis `../molopay-direction-ux/docs/05_direction_ux_et_ui/maquettes/`. Elles servent de référence visuelle **et** de comportement : survole, clique, joue les parcours.
@@ -66,6 +67,7 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 | `ecrans-web.html` | PWA, portail partenaire (tableau de bord, comptoir), back-office (vue d'ensemble, file de travail), CRM |
 | `ecrans-complementaires.html` | Vérification d'un bailleur, validation d'un partenaire (via la file de travail) |
 | `animations.html` | Chaque animation `M-xx` et sa version réduite |
+| `exploration-direction-liquide.html` | **Référence des matières** : accueil, fiche produit, verser et objectif en modes Liquide et Sobre |
 
 ## 3. Le travail, étape par étape
 
@@ -76,8 +78,9 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 3. **Tests existants** : `packages/ui/src/tokens.test.ts` et les tests de contraste se **mettent à jour** avec les nouvelles valeurs. Ils ne s'affaiblissent jamais : garde toutes les assertions de contraste (`AGENTS.md` § 8).
 4. **Polices** : Outfit et Inter, **auto-hébergées**. Sur le web, `next/font/local` ; sur Flutter, des assets déclarés dans `pubspec.yaml`. Aucun chargement depuis Google Fonts à l'exécution. Joins la licence SIL OFL et note la provenance des fichiers (somme SHA-256) dans la PR.
 5. **Mode réduit** : variables réduites déjà présentes dans `tokens.css`. En Flutter, une fonction `reduced(context)` qui lit `MediaQuery.disableAnimationsOf` **et** `reduceMotion` (`06_animations.md` § 3.4).
-6. **Format des montants** : un seul formateur d'affichage par plateforme, alimenté par `packages/money`, qui produit « 25 000 FCFA » avec des chiffres tabulaires.
-7. **Grep de contrôle** : `0b6b53`, `e4a11b`, `f16b27` ne doivent plus apparaître hors des fichiers d'historique.
+6. **Matières (F8)** : composants `LiquidBackground` (fonds pré-calculés, animés en `transform`, M-56) et `GlassSurface` (verre clair et sombre), avec le **repli Sobre** intégré : préférence système, réglage « Effets visuels : sobres » dans Profil, et bascule automatique si plus de 5 % des images dépassent 16 ms. Au plus 2 surfaces en verre par écran, **jamais sous un montant ou un statut**, aucun fond animé pendant une saisie.
+7. **Format des montants** : un seul formateur d'affichage par plateforme, alimenté par `packages/money`, qui produit « 25 000 FCFA » avec des chiffres tabulaires.
+8. **Grep de contrôle** : `0b6b53`, `e4a11b`, `f16b27` ne doivent plus apparaître hors des fichiers d'historique.
 
 ### U1 · Composants (branche `…-u1-composants`)
 
@@ -117,7 +120,7 @@ Pour la fiche client 360°, attends l'intégration de la PR #10 (CRM) de Qoder e
 ## 4. Ce qui prouve qu'un écran est terminé
 
 Les critères complets sont dans `09_…` § 5. Chaque PR joint :
-- les captures en **clair, sombre et « réduire les animations »**, à 360 px et, pour le web, à 1 280 px ;
+- les captures en **clair, sombre, « réduire les animations » et Sobre**, à 360 px et, pour le web, à 1 280 px ;
 - les contrastes mesurés ;
 - un parcours au clavier et au lecteur d'écran ;
 - les textes FR et EN complets ;
@@ -128,6 +131,7 @@ Pas de nouvelle dépendance non épinglée. Une PR fait au plus 400 lignes, hors
 
 ## 5. Ce que tu ne fais jamais
 
+- Mettre du verre sous un montant, un reçu, un statut ou un coût ; dépasser 2 surfaces en verre par écran ; animer un fond pendant une saisie ; mettre du verre dans le portail partenaire ou le back-office.
 - Changer une couleur, une police, une durée, une courbe ou une règle de la direction. Si une règle te paraît fausse ou impossible, consigne-la et propose une alternative.
 - Inventer une valeur « [à fixer] » (plafonds, seuils, délais, prix, taux) ou une route d'API.
 - Afficher un faux succès, une fausse urgence (« Plus que 2 »), un prix barré fictif, un compte à rebours, un consentement précoché, ou toute autre pratique de la liste des 15 interdits.

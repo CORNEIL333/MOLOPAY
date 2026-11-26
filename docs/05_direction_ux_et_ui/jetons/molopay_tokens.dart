@@ -28,6 +28,27 @@ abstract final class MpColors {
   static const darkLine = Color(0xFF2A2C31);
 }
 
+abstract final class MpGlass {
+  static const light = Color.fromRGBO(255, 255, 255, 0.62);
+  static const lightLine = Color.fromRGBO(255, 255, 255, 0.75);
+  static const lightTextSecondary = Color(0xFF45484E);
+  static const dark = Color.fromRGBO(15, 16, 18, 0.72);
+  static const darkLine = Color.fromRGBO(255, 255, 255, 0.10);
+  static const soberLight = Color.fromRGBO(255, 255, 255, 0.94);
+  static const soberDark = Color.fromRGBO(15, 16, 18, 0.94);
+  static const blur = 20.0;
+  static const saturate = 1.5;
+}
+
+abstract final class MpGradients {
+  static const home = <Color>[Color(0xFFE9F7A8), Color(0xFFFFD0E0), Color(0xFFCFEEFA), Color(0xFFDCD8FF)];
+  static const essentials = <Color>[Color(0xFFF3FBCF), Color(0xFFD9F26B), Color(0xFFEAF7A4)];
+  static const technology = <Color>[Color(0xFFBDEEFC), Color(0xFF5CC6EA), Color(0xFFE6F8FF), Color(0xFFA5E3F7)];
+  static const housing = <Color>[Color(0xFFE9E6FF), Color(0xFFA99FFF), Color(0xFFD7D2FF)];
+  static const mobility = <Color>[Color(0xFFFFD9E6), Color(0xFFFF8DB4), Color(0xFFFFC4D8)];
+  static const aurora = <Color>[Color(0xFF3D4A12), Color(0xFF1D4D5C), Color(0xFF3A2C5C)];
+}
+
 abstract final class MpRadius {
   static const sm = 12.0;
   static const md = 20.0;
@@ -54,6 +75,7 @@ abstract final class MpMotion {
   static const long = Duration(milliseconds: 500);
   static const xlong = Duration(milliseconds: 800);
   static const celebration = Duration(milliseconds: 1200);
+  static const liquid = Duration(milliseconds: 32000);
   static const standardCurve = Cubic(0.2, 0.0, 0.0, 1.0);
   static const enterCurve = Cubic(0.05, 0.7, 0.1, 1.0);
   static const exitCurve = Cubic(0.3, 0.0, 0.8, 0.15);

@@ -19,6 +19,8 @@ def css_val(p, v):
         return ', '.join(f"'{x}'" if ' ' in x else x for x in v)
     if p[:2] == ('motion', 'easing'):
         return 'cubic-bezier(' + ', '.join(str(x) for x in v) + ')'
+    if p[0] == 'gradient':
+        return ', '.join(v)
     if isinstance(v, dict):
         return None
     return str(v)
@@ -30,7 +32,10 @@ for p, v in items:
     if cv is not None:
         css.append(f"  --mp-{'-'.join(p)}: {cv};")
 css.append('}')
-css.append('@media (prefers-reduced-motion: reduce) {\n  :root {\n    --mp-motion-duration-micro: 0ms; --mp-motion-duration-short: 0ms; --mp-motion-duration-base: 120ms;\n    --mp-motion-duration-medium: 120ms; --mp-motion-duration-long: 120ms; --mp-motion-duration-xlong: 0ms; --mp-motion-duration-celebration: 0ms;\n  }\n}')
+css.append('/* Repli Sobre : réduction de la transparence (prise en charge variable) ou réglage de l\'app (classe .mp-sober sur <html>) */')
+css.append('@media (prefers-reduced-transparency: reduce) {\n  :root { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; }\n}')
+css.append('.mp-sober { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; --mp-motion-duration-liquid: 0ms; }')
+css.append('@media (prefers-reduced-motion: reduce) {\n  :root {\n    --mp-motion-duration-micro: 0ms; --mp-motion-duration-short: 0ms; --mp-motion-duration-base: 120ms;\n    --mp-motion-duration-medium: 120ms; --mp-motion-duration-long: 120ms; --mp-motion-duration-xlong: 0ms; --mp-motion-duration-celebration: 0ms; --mp-motion-duration-liquid: 0ms;\n  }\n}')
 (here / 'tokens.css').write_text('\n'.join(css) + '\n', encoding='utf-8')
 
 def camel(parts):
@@ -41,11 +46,27 @@ ts = [head.replace('/*', '//').replace(' */', ''), 'export const molopayTokens =
 (here / 'tokens.ts').write_text('\n'.join(ts), encoding='utf-8')
 
 def dart_color(h):
+    if h.startswith('rgba'):
+        r, gg, b, a = [x.strip() for x in h[5:-1].split(',')]
+        return f"Color.fromRGBO({r}, {gg}, {b}, {a})"
     return f"Color(0xFF{h.lstrip('#').upper()})"
 d = ['// Généré par docs/05_direction_ux_et_ui/jetons/generate.py — ne pas modifier à la main.', "import 'package:flutter/animation.dart';", "import 'package:flutter/painting.dart';", '', 'abstract final class MpColors {']
 for p, v in items:
     if p[0] == 'color':
         d.append(f'  static const {camel(p[1:])} = {dart_color(v)};')
+d += ['}', '', 'abstract final class MpGlass {']
+for p, v in items:
+    if p[0] == 'glass':
+        if isinstance(v, str) and (v.startswith('#') or v.startswith('rgba')):
+            d.append(f'  static const {camel(p[1:])} = {dart_color(v)};')
+        elif p[1] == 'blur':
+            d.append(f"  static const blur = {float(v.rstrip('px'))};")
+        else:
+            d.append(f'  static const {camel(p[1:])} = {float(v)};')
+d += ['}', '', 'abstract final class MpGradients {']
+for p, v in items:
+    if p[0] == 'gradient':
+        d.append(f"  static const {camel(p[1:])} = <Color>[{', '.join(dart_color(x) for x in v)}];")
 d += ['}', '', 'abstract final class MpRadius {']
 for p, v in items:
     if p[0] == 'radius':

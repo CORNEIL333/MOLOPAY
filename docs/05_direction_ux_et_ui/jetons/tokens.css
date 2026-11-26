@@ -60,16 +60,37 @@
   --mp-motion-duration-long: 500ms;
   --mp-motion-duration-xlong: 800ms;
   --mp-motion-duration-celebration: 1200ms;
+  --mp-motion-duration-liquid: 32000ms;
   --mp-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --mp-motion-easing-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
   --mp-motion-easing-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
   --mp-motion-easing-utility-enter: cubic-bezier(0, 0, 0, 1);
   --mp-motion-easing-utility-exit: cubic-bezier(0.3, 0, 1, 1);
   --mp-motion-easing-linear: cubic-bezier(0, 0, 1, 1);
+  --mp-glass-light: rgba(255, 255, 255, 0.62);
+  --mp-glass-light-line: rgba(255, 255, 255, 0.75);
+  --mp-glass-light-text-secondary: #45484e;
+  --mp-glass-dark: rgba(15, 16, 18, 0.72);
+  --mp-glass-dark-line: rgba(255, 255, 255, 0.10);
+  --mp-glass-sober-light: rgba(255, 255, 255, 0.94);
+  --mp-glass-sober-dark: rgba(15, 16, 18, 0.94);
+  --mp-glass-blur: 20px;
+  --mp-glass-saturate: 1.5;
+  --mp-gradient-home: #e9f7a8, #ffd0e0, #cfeefa, #dcd8ff;
+  --mp-gradient-essentials: #f3fbcf, #d9f26b, #eaf7a4;
+  --mp-gradient-technology: #bdeefc, #5cc6ea, #e6f8ff, #a5e3f7;
+  --mp-gradient-housing: #e9e6ff, #a99fff, #d7d2ff;
+  --mp-gradient-mobility: #ffd9e6, #ff8db4, #ffc4d8;
+  --mp-gradient-aurora: #3d4a12, #1d4d5c, #3a2c5c;
 }
+/* Repli Sobre : réduction de la transparence (prise en charge variable) ou réglage de l'app (classe .mp-sober sur <html>) */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; }
+}
+.mp-sober { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; --mp-motion-duration-liquid: 0ms; }
 @media (prefers-reduced-motion: reduce) {
   :root {
     --mp-motion-duration-micro: 0ms; --mp-motion-duration-short: 0ms; --mp-motion-duration-base: 120ms;
-    --mp-motion-duration-medium: 120ms; --mp-motion-duration-long: 120ms; --mp-motion-duration-xlong: 0ms; --mp-motion-duration-celebration: 0ms;
+    --mp-motion-duration-medium: 120ms; --mp-motion-duration-long: 120ms; --mp-motion-duration-xlong: 0ms; --mp-motion-duration-celebration: 0ms; --mp-motion-duration-liquid: 0ms;
   }
 }
