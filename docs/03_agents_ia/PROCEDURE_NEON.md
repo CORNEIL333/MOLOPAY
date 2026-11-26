@@ -70,10 +70,26 @@ Codes de refus :
    - `DATABASE_ROLE=app_rw` : l'API prend ses rôles transaction par transaction ; sans ce réglage, le compte n'a aucun droit ;
    - `NODE_ENV=production`.
 
-## 5. Sauvegardes (N4, en cours)
+## 5. Sauvegardes (N4)
 
 - Restauration à un instant donné : celle de Neon (étape 1.4).
-- Notre propre copie quotidienne, chiffrée par nos clés (AWS KMS), dans une seconde région AWS : outil à venir (lot N4). C'est aussi la porte de sortie.
+- **Notre propre copie quotidienne**, chiffrée par nos clés, dans une seconde région AWS. C'est aussi la porte de sortie.
+  1. Créer une clé KMS **dédiée** aux copies, distincte de celle des données personnelles (`BACKUP_KEY_NOT_DISTINCT` sinon).
+  2. Chaque jour, depuis un serveur AWS Francfort :
+
+     ```
+     BACKUP_SOURCE_URL=<adresse verify-full> BACKUP_KMS_KEY_ARN=<arn> BACKUP_OUT_DIR=<répertoire> pnpm db:backup
+     ```
+
+     Le résultat est `molopay-<instant>.dump.enc` et son empreinte `.sha256`. La copie est chiffrée à la volée : aucun clair n'est écrit sur disque.
+  3. Déposer les deux fichiers dans le compartiment S3 de la seconde région, avec verrouillage des objets (rétention à fixer, D118). Le dépôt est fait par l'outil officiel `aws s3 cp` du serveur : aucune dépendance supplémentaire dans le dépôt.
+  4. **Chaque mois, répéter une restauration** dans une base vide :
+
+     ```
+     RESTORE_TARGET_URL=<base vide, verify-full> BACKUP_KMS_KEY_ARN=<arn> pnpm db:restore-backup <fichier>
+     ```
+
+     L'outil refuse une copie altérée, tronquée ou déchiffrée avec une autre clé (`BACKUP_INTEGRITY_FAILED`), ainsi qu'une cible non vide (`TARGET_NOT_EMPTY`). Il vérifie ensuite le grand livre restauré (équilibré, sans trou). Le clair temporaire de la restauration est supprimé dans tous les cas.
 
 ## 6. Contrôles réguliers
 

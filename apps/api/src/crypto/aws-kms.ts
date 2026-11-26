@@ -10,11 +10,15 @@ import type { KeyWrapper } from './envelope';
  */
 export type KmsSend = (command: EncryptCommand | DecryptCommand) => Promise<{ CiphertextBlob?: Uint8Array | undefined; Plaintext?: Uint8Array | undefined }>;
 
-const CONTEXT = { purpose: 'molopay-pii-dek-v1' } as const;
+/** Contexte de chiffrement KMS par usage : une clé de données n'est désemballée que pour l'usage qui l'a emballée. */
+export const KMS_PURPOSES = ['molopay-pii-dek-v1', 'molopay-backup-dek-v1'] as const;
+export type KmsPurpose = (typeof KMS_PURPOSES)[number];
 const KEY_ARN = /^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:(key\/[0-9a-f-]{36}|alias\/[A-Za-z0-9/_-]{1,250})$/;
 
-export function awsKmsKeyWrapper(keyArn: string, send?: KmsSend): KeyWrapper {
+export function awsKmsKeyWrapper(keyArn: string, send?: KmsSend, purpose: KmsPurpose = 'molopay-pii-dek-v1'): KeyWrapper {
   if (!KEY_ARN.test(keyArn)) throw new Error('PII_KMS_KEY_INVALID');
+  if (!(KMS_PURPOSES as readonly string[]).includes(purpose)) throw new Error('PII_KMS_PURPOSE_INVALID');
+  const CONTEXT = { purpose };
   const region = keyArn.split(':')[3] ?? '';
   const client = send === undefined ? new KMSClient({ region }) : null;
   const call: KmsSend = send ?? (async (command) => {
