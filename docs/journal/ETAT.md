@@ -1,3 +1,15 @@
+# État du sprint — 2026-11-26
+
+## En cours · MVP 0.0.1 — Étape U0 · Fondations (`agent/gemini/mvp001-u0-fondations`, L1)
+- **Références :** `09_passage_maquettes_mvp_0.0.1.md` (§ 1, § 2 F1–F8), `02_identite_visuelle.md` (v1.1, matières liquide et verre), `06_animations.md` (M-56, § 3.4, § 7.1), `jetons/*`, `textes/mvp_0.0.1_fr_en.json`, contrat OpenAPI `0.44.0` (`c30f9a3`).
+- **Ordre d'exécution imposé :**
+  1. **F1 · Jetons web et Flutter :** intégration des fichiers générés (`tokens.css`, `tokens.ts`, `molopay_tokens.dart`), alias temporaires `--achat-*` → `--mp-*` dans `packages/ui/src/styles.css` (supprimés en U4), remplacement de l'ancienne palette dans `packages/ui`, `apps/web-client/public`, `apps/mobile` et `apps/mobile-showcase`, maintien et extension des assertions WCAG 2.2 AA dans `tokens.test.ts`.
+  2. **F2 · Polices auto-hébergées :** Outfit et Inter embarquées localement (`next/font/local` sur les applications web, assets dans `pubspec.yaml` sur Flutter, licences SIL OFL 1.1 et sommes SHA-256 consignées, aucun appel réseau à l'exécution).
+  3. **F5 · Mode réduit :** variables CSS réduites et fonction Flutter `MpMotionConfig.reduced(context)` lisant `MediaQuery.disableAnimationsOf(context)`, `AccessibilityFeatures.reduceMotion` et le réglage de l'application.
+  4. **F8 · Matières liquide et verre :** composants `LiquidBackground` (dégradés radiaux pré-calculés animés en `transform` seul, `M-56`, figés pendant toute saisie) et `GlassSurface` (clair/sombre, plafond de 2 surfaces par écran, interdit sous un montant ou un statut), avec repli Sobre automatique (`prefers-reduced-transparency`, `prefers-reduced-motion`, classe `.mp-sober`, réglage « Effets visuels : sobres » dans Profil, et bascule Flutter au-delà de 5 % d'images > 16 ms).
+  5. **F6 · Format des montants :** formateur unique par plateforme alimenté par `packages/money` (`bigint` XAF exclusif, I-12), chiffres tabulaires, sortie « 25 000 FCFA » (et espace ASCII ordinaire pour SMS/USSD).
+  6. **Contrôle final U0 :** aucune occurrence résiduelle de `0b6b53`, `e4a11b` ou `f16b27` hors des journaux d'historique ; vérification complète lint, types, tests web/unitaires, scan de sécurité et `flutter analyze` / `flutter test`.
+
 # État du sprint — 2026-11-17
 
 ## Fait depuis le 11 novembre (D62–D68)
