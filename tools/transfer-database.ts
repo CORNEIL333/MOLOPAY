@@ -3,6 +3,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Client } from 'pg';
+import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 
 /**
  * C15 / ADR-0004 : transfert de la base (Neon → AWS RDS/Aurora, ou toute
@@ -20,7 +21,7 @@ import { Client } from 'pg';
  *    rôles applicatifs identiques ; grand livre équilibré et sans trou.
  * Toute différence : code 1, la bascule ne doit pas avoir lieu.
  */
-export const SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm'] as const;
+export const SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm', 'ops'] as const;
 
 export type TransferReport = {
   readonly status: 'VERIFIED' | 'MISMATCH';
@@ -157,6 +158,9 @@ export async function transferDatabase(input: { readonly sourceUrl: string; read
   const bin = (name: string): string => (input.pgBin === undefined ? name : join(input.pgBin, name));
   const env = { ...process.env };
   for (const key of Object.keys(env)) if (key.toUpperCase().startsWith('PG')) delete env[key];
+  // N2 : source (Neon) et cible (AWS) jointes en TLS vérifié uniquement.
+  assertSecureDatabaseUrl(input.sourceUrl, process.env);
+  assertSecureDatabaseUrl(input.targetUrl, process.env);
   const roles = applicationRoles();
   await assertEmptyTarget(input.targetUrl);
   await ensureRoles(input.targetUrl, roles);

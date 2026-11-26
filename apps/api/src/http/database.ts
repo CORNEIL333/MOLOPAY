@@ -11,6 +11,37 @@ export type DatabaseConfig = {
   readonly role: 'app_rw' | 'app_ro' | null;
 };
 
+const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
+/** Paramètres TLS qui modifieraient la vérification par défaut de node-postgres en verify-full. */
+const TLS_OVERRIDES = ['sslrootcert', 'sslcert', 'sslkey', 'sslaccept', 'uselibpqcompat', 'rejectunauthorized', 'ssl', 'sslnegotiation'];
+
+/**
+ * N2 (ADR-0004, SEC-CRY-001) : vers une base distante (Neon), et en
+ * production pour toute base, la connexion exige `sslmode=verify-full` :
+ * chiffrement et vérification du certificat, nom d'hôte compris, avec les
+ * autorités du système. Tout réglage TLS supplémentaire est refusé. Le
+ * message d'erreur ne recopie jamais l'adresse (elle peut contenir un mot de
+ * passe ou un nom d'hôte interne).
+ */
+export function assertSecureDatabaseUrl(raw: string, env: NodeJS.ProcessEnv): void {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('DATABASE_URL_INVALID: adresse de base illisible');
+  }
+  if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') {
+    throw new Error('DATABASE_URL_INVALID: protocole PostgreSQL attendu');
+  }
+  const local = LOCAL_HOSTS.has(url.hostname);
+  if (local && env['NODE_ENV'] !== 'production') return;
+  const modes = url.searchParams.getAll('sslmode');
+  const overrides = [...url.searchParams.keys()].filter((key) => TLS_OVERRIDES.includes(key.toLowerCase()));
+  if (modes.length !== 1 || modes[0] !== 'verify-full' || overrides.length > 0) {
+    throw new Error('DATABASE_TLS_REQUIRED: sslmode=verify-full exigé (base distante ou production), sans autre réglage TLS');
+  }
+}
+
 /**
  * Lit la configuration dans l'environnement. Aucune valeur par défaut : sans
  * DATABASE_URL, l'API refuse de démarrer. Aucun secret n'est journalisé.
@@ -20,6 +51,7 @@ export function databaseConfigFromEnv(env: NodeJS.ProcessEnv): DatabaseConfig {
   if (connectionString === '') {
     throw new Error('CONFIG_MISSING: DATABASE_URL');
   }
+  assertSecureDatabaseUrl(connectionString, env);
   const role = env['DATABASE_ROLE']?.trim() ?? '';
   if (role !== '' && !ALLOWED_ROLES.has(role)) {
     throw new Error('CONFIG_INVALID: DATABASE_ROLE doit valoir app_rw ou app_ro');
