@@ -1,8 +1,10 @@
-import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { Client } from 'pg';
 import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { padVersion as pad, readMigrations } from '../apps/api/src/http/migration-manifest';
+
+export { readMigrations };
+export type { MigrationFile } from '../apps/api/src/http/migration-manifest';
 
 /**
  * N1 (ADR-0004 : Neon pour le MVP, transfert vers AWS ensuite) : application
@@ -21,46 +23,11 @@ import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
  * - Base déjà peuplée sans historique : refus (aucune supposition sur son état).
  * Aucune donnée de ligne ni aucun secret n'est affiché.
  */
-export type MigrationFile = { readonly version: number; readonly name: string; readonly body: string; readonly sha256: string };
 export type MigrationReport = { readonly status: 'UP_TO_DATE' | 'APPLIED' | 'PENDING'; readonly applied: number[]; readonly pending: number[]; readonly current: number };
 
 const NAME = /^(\d{4})_[a-z0-9_]+\.sql$/;
 const LOCK_KEY = 'molopay.schema-migration';
 const DOMAIN_SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm'];
-
-const pad = (version: number): string => String(version).padStart(4, '0');
-
-/** Corps de la transaction unique du fichier (hors `BEGIN;` et `COMMIT;`), ou null si le format n'est pas respecté. */
-function transactionBody(sql: string): string | null {
-  const lines = sql.split('\n');
-  const code = (line: string): string => line.replace(/--.*$/, '').trim();
-  const begins = lines.flatMap((line, index) => (code(line) === 'BEGIN;' ? [index] : []));
-  const commits = lines.flatMap((line, index) => (code(line) === 'COMMIT;' ? [index] : []));
-  if (begins.length !== 1 || commits.length !== 1) return null;
-  const begin = begins[0] ?? -1;
-  const commit = commits[0] ?? -1;
-  if (commit <= begin) return null;
-  const outside = [...lines.slice(0, begin), ...lines.slice(commit + 1)].map(code).filter((line) => line !== '');
-  if (outside.length > 0) return null;
-  return lines.slice(begin + 1, commit).join('\n');
-}
-
-export function readMigrations(directory: string): MigrationFile[] {
-  const files: MigrationFile[] = [];
-  for (const name of readdirSync(directory).filter((entry) => entry.endsWith('.sql')).sort()) {
-    const match = NAME.exec(name);
-    if (match === null) throw new Error(`MIGRATION_FORMAT_INVALID: nom de fichier non conforme (${name.replace(/[^A-Za-z0-9_.-]/g, '?')})`);
-    const version = Number(match[1]);
-    const sql = readFileSync(join(directory, name), 'utf8');
-    const body = transactionBody(sql);
-    if (body === null) throw new Error(`MIGRATION_FORMAT_INVALID: ${pad(version)} doit contenir une seule transaction BEGIN; … COMMIT;`);
-    files.push({ version, name, body, sha256: createHash('sha256').update(sql, 'utf8').digest('hex') });
-  }
-  files.forEach((file, index) => {
-    if (file.version !== index + 1) throw new Error(`MIGRATION_SEQUENCE_GAP: ${pad(index + 1)} attendue, ${pad(file.version)} trouvée`);
-  });
-  return files;
-}
 
 const BOOTSTRAP = `
 CREATE SCHEMA IF NOT EXISTS ops;
@@ -143,6 +110,13 @@ export async function migrate(input: { readonly url: string; readonly directory:
       }
       applied.push(file.version);
     }
+    // N6 : lecture seule de l'historique par app_ro (contrôle de démarrage de l'API) ; rejouable, aucun autre droit.
+    await client.query(`DO $grant$ BEGIN
+      IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_ro') THEN
+        GRANT USAGE ON SCHEMA ops TO app_ro;
+        GRANT SELECT ON ops.schema_migration TO app_ro;
+      END IF;
+    END $grant$`);
     return { status: applied.length === 0 ? 'UP_TO_DATE' : 'APPLIED', applied, pending: [], current: recorded.length + applied.length };
   } finally {
     await client.query('SELECT pg_advisory_unlock_all()').catch(() => undefined);

@@ -93,6 +93,8 @@ Codes de refus :
 
 ## 6. Contrôles réguliers
 
+- Au démarrage, en production, l'API vérifie elle-même que l'historique des migrations de la base est exactement celui de son code, et refuse de démarrer sinon (`SCHEMA_VERSION_MISMATCH`). Ordre de déploiement : `pnpm db:migrate` **puis** démarrage de la nouvelle version ; l'image de l'API contient `db/migrations` (ou `MIGRATIONS_DIR` y pointe).
+
 - `pnpm db:roles check` après tout changement de comptes, et au moins chaque mois.
 - `pnpm db:migrate --dry-run` avant chaque déploiement.
 - Contrôle nocturne (`pnpm verify:nightly`) avec `molopay_nightly`.
