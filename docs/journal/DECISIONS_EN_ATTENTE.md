@@ -831,3 +831,9 @@
 - **Mutants :** 10 au total — 7 tués après renforcement (offre sur deux villes, moyenne sur plusieurs commandes, période vide), 1 équivalent (type seulement), 1 non couvert. Ce dernier, un règlement rejeté compté dans la marge, n'est pas testé : il faudrait construire un second achat complet. La base garantit déjà qu'un règlement rejeté n'a pas d'écriture ; test à ajouter avec un scénario de rejet.
 - **Définition ajustée :** aucun flux actuel ne contre-passe un versement confirmé ; la déduction sera écrite avec son test si un tel flux apparaît.
 - **Suite (tranche 3) :** route du back-office (lecture, rôle à définir — proposition : `FINANCE`, `COMPLIANCE`, `AUDIT`) et contrat ; ventilation par ville réelle après D119.
+
+### C24 · F-REP-002, tranche 3 : indicateurs au back-office (contrat 0.45.0)
+- **Fait :** `GET /v1/backoffice/reports/product-kpis?from=AAAA-MM-JJ&to=AAAA-MM-JJ&reason=…`. La période est exprimée en dates de Douala (UTC+1, sans heure d'été), début inclus, fin exclue, au plus 366 jours ; sinon 400 `REPORT_PERIOD_INVALID`, nouveau code, y compris pour une date de calendrier impossible. Le calcul tourne en lecture par `app_ro` ; la consultation est motivée et inscrite à l'audit chaîné (`PRODUCT_KPIS_READ`, avec la période seule) dans la même transaction.
+- **Option prudente (à confirmer, D120) :** nouvelle action `READ_PRODUCT_KPIS` donnée à **FINANCE, COMPLIANCE et AUDIT** seulement, motif obligatoire. Proposition : l'ouvrir aussi au fondateur ou à la direction quand ce rôle existera.
+- **Tests :** 4 tests HTTP sur PostgreSQL réel (flux réels), dont les refus : support 403 `ADMIN_FORBIDDEN`, sans session 401, sans motif 400, période inversée, vide, de 367 jours ou impossible 400 `REPORT_PERIOD_INVALID`, paramètre hors liste 400. 7 mutants tués.
+- **Pour Qoder (PR #8) :** message FR/EN de `REPORT_PERIOD_INVALID`.

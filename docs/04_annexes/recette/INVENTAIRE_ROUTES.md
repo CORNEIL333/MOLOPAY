@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **92 routes.**
+- **93 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -52,6 +52,7 @@
 | `POST` | `/v1/backoffice/refunds/{refundId}/decision` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Décision sur un remboursement préparé, par une autre personne (D49, I-7) |
 | `POST` | `/v1/backoffice/refunds/{refundId}/execution` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Exécution rapportée par l’établissement (autre personne que l’émetteur) |
 | `POST` | `/v1/backoffice/refunds/{refundId}/instruction` | personnel | private, no-store | oui | oui | — | clé de signature des instructions, partie de confiance du personnel | Instruction signée du remboursement |
+| `GET` | `/v1/backoffice/reports/product-kpis` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Indicateurs produits agrégés (F-REP-002) |
 | `POST` | `/v1/backoffice/risk/alerts/{alertId}/decision` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Décision tracée sur une alerte de fraude (D53) |
 | `GET` | `/v1/backoffice/screenings/{screeningId}` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Détail d'un filtrage pour l'examen (D74) |
 | `POST` | `/v1/backoffice/screenings/{screeningId}/review` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Examiner un rapprochement (Conformité, D66) |

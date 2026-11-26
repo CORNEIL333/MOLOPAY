@@ -64,6 +64,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'CLASSIFY_RECONCILIATION_GAP',
     // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
     'MANAGE_OUTGOING_FREEZE',
+    // C24 / F-REP-002 : indicateurs produits agrégés.
+    'READ_PRODUCT_KPIS',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',
@@ -86,11 +88,12 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     // C19 / F-ACC-007 : décès d'un client (déclaration, décision par une autre personne).
     'DECLARE_CUSTOMER_DEATH',
     'DECIDE_CUSTOMER_DEATH',
+    'READ_PRODUCT_KPIS',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
   RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT', 'MANAGE_OUTGOING_FREEZE'],
   PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER'],
-  AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
+  AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG', 'READ_PRODUCT_KPIS'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
 };
 
@@ -178,6 +181,9 @@ describe('ABAC · périmètre, plafond et motif', () => {
   it('C4 / F-ACC-006 le blocage d’un compte client exige un motif (ADMIN_REASON_REQUIRED)', () => {
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', { reason: 'Téléphone volé' })).toMatchObject({ allowed: true });
+    // C24 / F-REP-002 : la consultation des indicateurs est toujours motivée.
+    expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', { reason: 'Revue mensuelle' })).toMatchObject({ allowed: true });
     // C19 / F-ACC-007 : la déclaration de décès est toujours motivée.
     expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', { reason: 'Acte présenté par la famille' })).toMatchObject({ allowed: true });

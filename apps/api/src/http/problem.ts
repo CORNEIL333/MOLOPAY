@@ -50,6 +50,7 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_INVALID',
   'INVALID_AMOUNT',
+  'REPORT_PERIOD_INVALID',
 ]);
 
 const TITLES: Readonly<Record<number, string>> = {

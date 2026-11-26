@@ -141,6 +141,8 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       // C19 / F-ACC-007 : décès d'un client (jamais la pièce ni l'empreinte de l'acte).
       DECEASE_DECLARED: ['case_id', 'account_id'],
       DECEASE_DECIDED: ['case_id', 'account_id', 'decision', 'frozen_goals'],
+      // C24 / F-REP-002 : consultation des indicateurs produits (période seulement).
+      PRODUCT_KPIS_READ: ['from', 'to'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

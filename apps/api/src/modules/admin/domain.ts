@@ -54,6 +54,7 @@ export const ADMIN_ACTIONS = [
   'ENROLL_CUSTOMER_AT_AGENCY',
   'DECLARE_CUSTOMER_DEATH',
   'DECIDE_CUSTOMER_DEATH',
+  'READ_PRODUCT_KPIS',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -129,6 +130,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D50 : virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
     'APPROVE_BENEFICIARY_PAYOUT',
+    // C24 / F-REP-002 : indicateurs produits agrégés (consultation motivée, auditée).
+    'READ_PRODUCT_KPIS',
     // D54 / INT-REC-003 : classement des écarts (proposition puis validation par une autre personne).
     'CLASSIFY_RECONCILIATION_GAP',
     // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
@@ -155,6 +158,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // C19 / F-ACC-007 : décès d'un client (déclaration ; décision par une autre personne que le déclarant).
     'DECLARE_CUSTOMER_DEATH',
     'DECIDE_CUSTOMER_DEATH',
+    // C24 / F-REP-002 : indicateurs produits agrégés (consultation motivée, auditée).
+    'READ_PRODUCT_KPIS',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -170,7 +175,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
   PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER']),
-  AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG']),
+  // C24 / F-REP-002 : l'audit lit aussi les indicateurs produits agrégés.
+  AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG', 'READ_PRODUCT_KPIS']),
   TECH_ADMIN: new Set<AdminAction>([
     'MANAGE_USERS',
     'REQUEST_BREAK_GLASS',
@@ -188,6 +194,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'BLOCK_CUSTOMER_ACCOUNT',
   'MANAGE_OUTGOING_FREEZE',
   'DECLARE_CUSTOMER_DEATH',
+  'READ_PRODUCT_KPIS',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([

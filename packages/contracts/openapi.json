@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.44.0",
+    "version": "0.45.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants.\n\n**Version minimale (SEC-MOB-005)** : toute route accepte l'en-tête facultatif `X-Client-Version` (voir `components.parameters.ClientVersion`) et peut répondre `426` (`components.responses.UpgradeRequired`, code `CLIENT_UPGRADE_REQUIRED`) quand l'application est en dessous du minimum publié."
   },
   "servers": [
@@ -5903,6 +5903,85 @@
           }
         }
       }
+    },
+    "/v1/backoffice/reports/product-kpis": {
+      "get": {
+        "operationId": "readProductKpis",
+        "summary": "Indicateurs produits agrégés (F-REP-002)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Finance, conformité ou audit ; consultation motivée et inscrite à l’audit chaîné. Définitions : docs/04_annexes/DEFINITIONS_INDICATEURS.md. Période en dates de Douala, début inclus, fin exclue, au plus 366 jours (sinon 400 REPORT_PERIOD_INVALID). Agrégats seulement ; une case de moins de 5 objectifs est publiée « <5 ».",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Premier jour inclus (AAAA-MM-JJ, Douala)"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Premier jour exclu (AAAA-MM-JJ, Douala)"
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicateurs de la période",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductKpis"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10111,6 +10190,217 @@
             "type": "integer",
             "minimum": 0,
             "description": "Objectifs actifs gelés (0 en cas de rejet)"
+          }
+        }
+      },
+      "KpiCell": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "goals"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Univers (ESSENTIALS, TECHNOLOGY, HOUSING, MOBILITY, PLANNED_EXPENSE_HORS_UNIVERS) ou ville (douala, yaounde, NON_ATTRIBUEE)"
+          },
+          "goals": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 5
+              },
+              {
+                "type": "string",
+                "const": "<5"
+              }
+            ]
+          },
+          "amountXaf": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*|<5)$",
+            "description": "Entier XAF, ou « <5 » quand la case est masquée"
+          }
+        }
+      },
+      "ProductKpis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "period",
+          "volume",
+          "openGoals",
+          "completion",
+          "handoverDelay",
+          "defaultsB",
+          "commissionMargin"
+        ],
+        "properties": {
+          "period": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "volume": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "totalXaf",
+              "byUniverse",
+              "byCity"
+            ],
+            "properties": {
+              "totalXaf": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$",
+                "description": "Entier XAF"
+              },
+              "byUniverse": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KpiCell"
+                }
+              },
+              "byCity": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KpiCell"
+                }
+              }
+            }
+          },
+          "openGoals": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "total",
+              "byUniverse",
+              "byCity"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "byUniverse": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KpiCell"
+                }
+              },
+              "byCity": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KpiCell"
+                }
+              }
+            }
+          },
+          "completion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "activated",
+              "funded",
+              "ratePercent"
+            ],
+            "properties": {
+              "activated": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "funded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ratePercent": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]+\\.[0-9]$"
+              }
+            }
+          },
+          "handoverDelay": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "count",
+              "medianDays",
+              "p90Days"
+            ],
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "medianDays": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]+\\.[0-9]$"
+              },
+              "p90Days": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]+\\.[0-9]$"
+              }
+            }
+          },
+          "defaultsB": {
+            "type": "string",
+            "const": "NOT_APPLICABLE",
+            "description": "Modèle B non ouvert : sans objet, jamais 0"
+          },
+          "commissionMargin": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "count",
+              "totalXaf",
+              "averageXaf"
+            ],
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "totalXaf": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$",
+                "description": "Entier XAF"
+              },
+              "averageXaf": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]*)$",
+                    "description": "Entier XAF"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
           }
         }
       }
