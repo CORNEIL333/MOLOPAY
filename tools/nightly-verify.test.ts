@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseVerifierOutcome } from '../apps/api/src/modules/settlement/integrity-divergence.store';
-import { exitCodeFor, nightlyOptions, reportOutcome, runVerifierBinary } from './nightly-verify';
+import { exitCodeFor, nightlyOptions, reportOutcome, reporterDatabaseUrl, runVerifierBinary } from './nightly-verify';
 
 describe('INT-VER-002 contrôle nocturne : lecture du résultat du vérificateur', () => {
   it('0 vérifié ; 1 divergence avec le code du vérificateur ; autre code : non exécuté', () => {
@@ -34,5 +34,11 @@ describe('INT-VER-002 contrôle nocturne : lecture du résultat du vérificateur
       expect(() => nightlyOptions(args), JSON.stringify(args)).toThrow('NIGHTLY_ARGUMENTS_INVALID');
     }
     expect(runVerifierBinary('/nonexistent/verifier', 'e.json', 'k.txt')).toEqual({ kind: 'NOT_RUN' });
+  });
+
+  it('N2 : la base (Neon) n’est jointe qu’en TLS vérifié ; adresse absente refusée', () => {
+    expect(() => reporterDatabaseUrl({})).toThrow(/^NIGHTLY_DATABASE_MISSING/);
+    expect(() => reporterDatabaseUrl({ DATABASE_URL: 'postgresql://rapport@ep-x.eu-central-1.aws.neon.tech/molopay?sslmode=require' })).toThrow(/^DATABASE_TLS_REQUIRED/);
+    expect(reporterDatabaseUrl({ DATABASE_URL: 'postgresql://rapport@ep-x.eu-central-1.aws.neon.tech/molopay?sslmode=verify-full' })).toContain('verify-full');
   });
 });

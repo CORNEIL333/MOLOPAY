@@ -24,6 +24,7 @@
     "verify:ledger": "tsx tools/verify-ledger.ts",
     "verify:nightly": "tsx tools/nightly-verify.ts",
     "db:migrate": "tsx tools/migrate.ts",
+    "db:roles": "tsx tools/db-roles.ts",
     "db:transfer": "tsx tools/transfer-database.ts",
     "recette:generate": "tsx tools/generate-recette.ts",
     "routes:inventory": "tsx tools/route-inventory.ts",

@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import * as path from 'node:path';
 import { Client } from 'pg';
+import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 import { parseVerifierOutcome, recordIntegrityDivergence, type VerifierOutcome } from '../apps/api/src/modules/settlement/integrity-divergence.store';
 
 /**
@@ -38,9 +39,16 @@ export function exitCodeFor(report: NightlyReport): number {
   return report.status === 'VERIFIED' ? 0 : report.status === 'DIVERGENCE' ? 1 : 2;
 }
 
-async function recordWithReporterRole(code: string): Promise<string> {
-  const raw = process.env['DATABASE_URL'];
+/** Adresse de la base (rôle `integrity_reporter`) ; N2 : TLS vérifié exigé vers Neon. */
+export function reporterDatabaseUrl(env: NodeJS.ProcessEnv): string {
+  const raw = env['DATABASE_URL'];
   if (raw === undefined || raw === '') throw new Error('NIGHTLY_DATABASE_MISSING');
+  assertSecureDatabaseUrl(raw, env);
+  return raw;
+}
+
+async function recordWithReporterRole(code: string): Promise<string> {
+  const raw = reporterDatabaseUrl(process.env);
   // Rôle dédié : enregistrer une divergence, rien d'autre.
   const client = new Client({ connectionString: raw, options: '-c role=integrity_reporter', application_name: 'molopay-nightly-verify' });
   await client.connect();
