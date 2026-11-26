@@ -1,6 +1,6 @@
 # Passage des maquettes au MVP 0.0.1
 
-> Version 1.0 · 25 novembre 2026 · Prépare la mise en code de la direction UX et UI. Référence du code : branche `sprint/integration-t01urw` (commit `c58f6ea`, contrat OpenAPI **0.42.0**, 95 routes). Les éléments marqués **[Décision]** sont des propositions à valider par le fondateur.
+> Version 1.0 · 25 novembre 2026 · Prépare la mise en code de la direction UX et UI. Référence du code : branche `sprint/integration-t01urw` (commit `c58f6ea`, contrat OpenAPI **0.42.0**, 95 routes ; depuis, le commit `23186ed` en **0.44.0** ajoute la déclaration de décès au back-office, l'écran mobile « mise à jour requise » et le règlement au bénéficiaire C sous PIN sur mobile). Les éléments marqués **[Décision]** sont des propositions à valider par le fondateur.
 
 ## 1. Ce qu'est le MVP 0.0.1
 

@@ -1,6 +1,6 @@
 # Prompt — Gemini · Construction des interfaces du MVP 0.0.1
 
-> À coller tel quel dans Gemini (mode agent), dans le dossier du projet. Le texte entre les deux lignes `=====` est le prompt. Rédigé le 26 novembre 2026. Code de référence : `sprint/integration-t01urw` (commit `c58f6ea`, OpenAPI 0.42.0). Direction UX et UI : `claude/kind-gauss-3npnkd`.
+> À coller tel quel dans Gemini (mode agent), dans le dossier du projet. Le texte entre les deux lignes `=====` est le prompt. **Version 2 du 26 novembre 2026** : matières liquide et verre adoptées, maquettes du MVP repeintes, code de référence mis à jour. Code : `sprint/integration-t01urw` (commit `23186ed`, OpenAPI **0.44.0**, 97 routes). Direction UX et UI : `claude/kind-gauss-3npnkd` (commit `68ef049`).
 > Complète `PROMPT_GEMINI_DIRECTION_UX_UI.md` (passation) : celui-ci est le prompt de **réalisation**.
 
 =====
@@ -9,7 +9,7 @@ Tu es l'ingénieur des interfaces de MoloPay (nom commercial **provisoire**), la
 
 ## 1. Ta mission
 
-Construire les **interfaces du MVP 0.0.1** dans la nouvelle identité validée : le client web (PWA), l'app mobile Flutter, le portail partenaire et le back-office. Le MVP 0.0.1 est une version de **test fermé**, pas l'ouverture au public.
+Construire les **interfaces du MVP 0.0.1** dans la nouvelle identité validée : base noir et blanc, une couleur par univers, et **matières liquide et verre** (adoptées le 26 novembre) avec leur **repli Sobre**. Cela concerne le client web (PWA), l'app mobile Flutter, le portail partenaire et le back-office (ces deux derniers **à plat**, sans verre). Le MVP 0.0.1 est une version de **test fermé**, pas l'ouverture au public.
 
 Le périmètre, les écrans, les composants et les critères sont fixés dans **`09_passage_maquettes_mvp_0.0.1.md`**. Ce document fait foi. En résumé :
 - **Dans le MVP** : nouvelle identité sur **tous** les écrans existants ; modèles A et C **sans encaissement** ; recherche, favoris (stockés sur l'appareil), réservation en 4 étapes ; écran du code de remise ; inscription par code d'agence ; écran « Verser » dans l'état « Versements bientôt disponibles ».
@@ -22,9 +22,9 @@ Tu ne touches **ni à l'API, ni à la base, ni aux règles financières**. Si un
 ### 2.1 Le code : ta base de travail
 
 - Dépôt : https://github.com/corneil333/molopay
-- Branche de départ : **`sprint/integration-t01urw`**. Elle contient déjà tes reprises G2 à G6 et l'API 0.42.0.
+- Branche de départ : **`sprint/integration-t01urw`** (au moins le commit `23186ed`). Elle contient déjà tes reprises G2 à G6 et l'API 0.44.0. Fais `git pull` avant chaque étape : elle avance tous les jours.
 - Crée une branche par étape : `agent/gemini/mvp001-u0-fondations`, `agent/gemini/mvp001-u1-composants`, `agent/gemini/mvp001-u2-web`, `agent/gemini/mvp001-u3-mobile`, `agent/gemini/mvp001-u4-portail-bo`. Jamais `main`.
-- Contrat d'API : `packages/contracts/openapi.json` (0.42.0).
+- Contrat d'API : `packages/contracts/openapi.json` (0.44.0). Depuis la version 0.42.0 : déclaration de décès au back-office (`POST /v1/backoffice/customers/{accountId}/decease-cases`, `POST /v1/backoffice/decease-cases/{caseId}/decision`, F-ACC-007) et version minimale de l'app imposée par le serveur (réponse 426, SEC-MOB-005).
 - Décisions qui pèsent sur les écrans, dans `docs/journal/DECISIONS_EN_ATTENTE.md` de cette branche :
   - **D92** : aucun versement au lancement ;
   - **C13** : inscription en agence ;
@@ -32,7 +32,7 @@ Tu ne touches **ni à l'API, ni à la base, ni aux règles financières**. Si un
   - **D90** : clé matérielle sur mobile, non tranchée ;
   - **D69** : le code de remise n'a pas encore d'écran ;
   - **C11** : il faut accepter les conditions en vigueur ;
-  - **G4 et G2/G3/G6** : tes reprises.
+  - **G4 et G2/G3/G6** : tes reprises ; sur mobile, l'écran « mise à jour requise » (426) et le règlement au bénéficiaire C sous PIN (G3) existent déjà : à restyler, pas à refaire.
 
 ### 2.2 La direction UX et UI : ta référence, en lecture seule
 
@@ -47,27 +47,26 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 
 | Ordre | Ressource | Usage |
 |---|---|---|
-| 1 | [09_passage_maquettes_mvp_0.0.1.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/09_passage_maquettes_mvp_0.0.1.md) | **Le plan de la mission** : périmètre, fondations F1 à F7, 18 composants, correspondance écran → maquette → code → API, critères d'acceptation, ordre U0 à U5 |
-| 2 | [jetons/](https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/jetons) | `molopay.tokens.json` (source unique), `tokens.css`, `tokens.ts`, `molopay_tokens.dart` générés par `generate.py` |
+| 1 | [09_passage_maquettes_mvp_0.0.1.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/09_passage_maquettes_mvp_0.0.1.md) | **Le plan de la mission** : périmètre, fondations F1 à F8, 20 composants, correspondance écran → maquette → code → API, critères d'acceptation, ordre U0 à U5 |
+| 2 | [jetons/](https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/jetons) | 85 jetons : `molopay.tokens.json` (source unique) et `tokens.css`, `tokens.ts`, `molopay_tokens.dart` générés par `generate.py`, dont le **verre** (`glass.*`), les **fonds liquides** (`gradient.*`), `motion.duration.liquid` et le repli Sobre (classe `.mp-sober`, `MpGlass`, `MpGradients`) |
 | 3 | [textes/mvp_0.0.1_fr_en.json](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/textes/mvp_0.0.1_fr_en.json) | 63 textes clés en français et en anglais, dans le ton validé |
-| 4 | [02_identite_visuelle.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/02_identite_visuelle.md) | Règles d'identité, dont les règles issues de la recherche |
-| 5 | [06_animations.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/06_animations.md) | Charte d'animation, identifiants `M-xx`, réduction du mouvement, performance |
+| 4 | [02_identite_visuelle.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/02_identite_visuelle.md) | Règles d'identité, **§ Matières** (liquide et verre : où le verre est permis ou interdit, lisibilité, repli Sobre) et règles issues de la recherche |
+| 5 | [06_animations.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/06_animations.md) | Charte d'animation, identifiants `M-xx` dont **M-56 fond liquide**, réduction du mouvement, performance dont **§ 7.1 flou et verre** |
 | 6 | [04_catalogue_des_ecrans.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/04_catalogue_des_ecrans.md) | Exigences du cahier des charges couvertes par chaque écran |
 | 7 | [07_psychologie_de_marque_et_ux.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/07_psychologie_de_marque_et_ux.md) | Section « Ce que MoloPay s'interdit » : les **15 interdits** |
-| 4 bis | `02_identite_visuelle.md` **§ Matières** | Liquide et verre adoptés le 26 novembre : où le verre est permis ou interdit, lisibilité, repli Sobre |
 | 8 | [08_ux_inclusive_et_publics_cibles.md](https://github.com/corneil333/molopay/blob/claude/kind-gauss-3npnkd/docs/05_direction_ux_et_ui/08_ux_inclusive_et_publics_cibles.md) | Règles d'inclusion (montants, voix, inscription assistée) |
 
-**Maquettes** : pages HTML à ouvrir dans un navigateur depuis `../molopay-direction-ux/docs/05_direction_ux_et_ui/maquettes/`. Elles servent de référence visuelle **et** de comportement : survole, clique, joue les parcours.
+**Maquettes** : pages HTML à ouvrir dans un navigateur depuis `../molopay-direction-ux/docs/05_direction_ux_et_ui/maquettes/`. Elles servent de référence visuelle **et** de comportement : survole, clique, joue les parcours. Les maquettes marquées **Liquide** ont un interrupteur **Liquide / Sobre** en bas à droite : compare les deux modes, tu dois implémenter les deux. Les maquettes **à plat** ont été dessinées avant l'adoption des matières : applique-leur `02_identite_visuelle.md` § Matières (sauf portail et back-office, qui restent à plat).
 
-| Maquette | Écrans du MVP qu'elle montre |
-|---|---|
-| `identite-app-mobile.html` | Accueil, objectif, verser (référence de l'état futur), nouvel objectif, code de remise, catalogue, fiche produit, boutique |
-| `marketplace-suite.html` | Recherche, favoris, comparaison, réservation en 4 étapes |
-| `parcours-inclusifs.html` | Montant en 4 représentations, relecture avant PIN, inscription, conditions en couches, pièce d'identité, modèle C (bailleur, école) |
-| `ecrans-web.html` | PWA, portail partenaire (tableau de bord, comptoir), back-office (vue d'ensemble, file de travail), CRM |
-| `ecrans-complementaires.html` | Vérification d'un bailleur, validation d'un partenaire (via la file de travail) |
-| `animations.html` | Chaque animation `M-xx` et sa version réduite |
-| `exploration-direction-liquide.html` | **Référence des matières** : accueil, fiche produit, verser et objectif en modes Liquide et Sobre |
+| Maquette | Matières | Écrans du MVP qu'elle montre |
+|---|---|---|
+| `identite-app-mobile.html` | **Liquide** | Accueil, objectif, verser (référence de l'état futur), nouvel objectif, code de remise, catalogue, fiche produit, boutique |
+| `marketplace-suite.html` | **Liquide** | Recherche, favoris, comparaison, réservation en 4 étapes |
+| `parcours-inclusifs.html` | **Liquide** | Montant en 4 représentations, relecture avant PIN, inscription, conditions en couches, pièce d'identité, modèle C (bailleur, école) |
+| `ecrans-web.html` | À plat (PWA : appliquer les matières ; portail et back-office : à plat) | PWA, portail partenaire (tableau de bord, comptoir), back-office (vue d'ensemble, file de travail), CRM |
+| `ecrans-complementaires.html` | À plat (back-office) | Vérification d'un bailleur, validation d'un partenaire (via la file de travail) |
+| `animations.html` | — | Chaque animation `M-xx` et sa version réduite (M-56 : voir les maquettes Liquide) |
+| `exploration-direction-liquide.html` | **Référence** | Accueil, fiche produit, verser et objectif en modes Liquide, Actuel et Sobre ; règles et budget de performance |
 
 ## 3. Le travail, étape par étape
 
@@ -84,7 +83,7 @@ Dossier : https://github.com/corneil333/molopay/tree/claude/kind-gauss-3npnkd/do
 
 ### U1 · Composants (branche `…-u1-composants`)
 
-Construis les 18 composants de `09_…` § 3, d'abord sur le web (`packages/ui`), puis en Flutter. Chacun avec :
+Construis les 20 composants de `09_…` § 3 (dont `LiquidBackground` et `GlassSurface`, faits en U0), d'abord sur le web (`packages/ui`), puis en Flutter. Chacun avec :
 - tous ses états ;
 - un test d'accessibilité (`packages/ui/test/a11y.ts`) ;
 - un test du mode réduit ;
@@ -104,16 +103,18 @@ Suis le tableau 4.1 de `09_…`.
    - l'**inscription par code d'agence** ;
    - l'état **« Versements bientôt disponibles »** (texte `pay.comingSoon`, sans bouton de paiement).
 3. Conditions en couches : 5 points, lecture audio, consentements non précochés, sur `POST /v1/me/terms-acceptances`.
+4. **Matières** : fonds liquides sur l'accueil (`/objectifs`), le catalogue (`/`), la fiche produit (couleur de l'univers du produit) et le suivi d'objectif ; aurore **figée** sur les écrans d'argent ; verre sur la navigation et les pastilles seulement. Le web n'a pas de compteur d'images fiable : le repli Sobre y suit `prefers-reduced-transparency`, `prefers-reduced-motion` et le réglage de l'app (classe `.mp-sober`).
 
 ### U3 · App mobile `apps/mobile` (branche `…-u3-mobile`)
 
-Les mêmes écrans que U2, en Flutter. Tant que D90 n'est pas tranchée, l'inscription s'arrête avec le texte `signup.noDeviceKey`, sans contournement. Vérifie avec `flutter analyze` (aucune remarque) et `flutter test`.
+Les mêmes écrans que U2, en Flutter, avec les mêmes matières : `BackdropFilter` sous `ClipRRect` dans un `RepaintBoundary`, fonds liquides pré-calculés, repli Sobre automatique au-delà de 5 % d'images de plus de 16 ms. Restyle aussi les écrans déjà présents : « mise à jour requise » (426) et règlement au bénéficiaire C sous PIN. Tant que D90 n'est pas tranchée, l'inscription s'arrête avec le texte `signup.noDeviceKey`, sans contournement. Vérifie avec `flutter analyze` (aucune remarque) et `flutter test`.
 
 ### U4 · Portail partenaire et back-office (branche `…-u4-portail-bo`)
 
 Suis les tableaux 4.2 et 4.3 de `09_…`.
 - **Portail** : restyle des écrans ; création du tableau de bord du gérant ; comptoir complété (cases de contrôle et numéro de série).
-- **Back-office** : restyle de tous les écrans.
+- **Back-office** : restyle de tous les écrans, dont la **déclaration de décès** (déclaration puis décision par une autre personne, gel ; F-ACC-007), sur le modèle de la file de travail à double contrôle.
+- **Aucun verre ni fond liquide** dans le portail et le back-office : ce sont des outils denses, ils restent à plat.
 
 Pour la fiche client 360°, attends l'intégration de la PR #10 (CRM) de Qoder et ne modifie pas sa branche.
 
@@ -153,7 +154,7 @@ Points ouverts que tu ne tranches pas :
 - l'ADR-0006 (site public).
 
 **Pour commencer :**
-1. Lis les ressources 1 à 5 du tableau 2.2.
+1. Lis les ressources 1 à 5 du tableau 2.2, puis ouvre `exploration-direction-liquide.html` et passe-la en Liquide, Actuel et Sobre.
 2. Confirme-moi en 5 lignes le périmètre du MVP 0.0.1 tel que tu l'as compris.
 3. Ouvre la PR brouillon de U0 avec ton plan.
 4. Commence U0.
@@ -168,4 +169,5 @@ Points ouverts que tu ne tranches pas :
 - Points à valider avant ou pendant U2 :
   - le périmètre du MVP 0.0.1 (proposition dans `09_…` § 1) ;
   - les favoris stockés sur l'appareil ;
+  - les valeurs de verre et de flou, à confirmer par les mesures de Gemini sur l'Android de référence en U0 ;
   - le marquage « remplacés » des anciens prompts d'interface.
