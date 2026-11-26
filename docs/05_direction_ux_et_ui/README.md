@@ -27,6 +27,7 @@
 | `maquettes/parcours-credit.html` | Prototype navigable du parcours crédit (modèle B), du choix au dernier remboursement, avec refus et retard |
 | `maquettes/ecrans-complementaires.html` | Acceptation d'une contribution par le proche, validation partenaire, vérification bailleur, rapports régulateur, abonnements partenaires |
 | `maquettes/marketplace-suite.html` | Marketplace, suite : recherche (voix, fautes, demande de produit), favoris honnêtes, comparaison, réservation à prix figé en 4 étapes |
+| `maquettes/exploration-direction-liquide.html` | **Exploration non validée** : dégradés liquides et verre flou, comparés à l'identité actuelle et au repli sobre ; règles de lisibilité et budget de performance |
 | `maquettes/animations.html` | Démo rejouable de chaque animation `M-xx`, avec le mode « Réduire les animations » |
 
 Les maquettes sont des pages HTML autonomes : ouvrez-les dans un navigateur. Plusieurs sont interactives (versement, comptoir de remise, filtres, simulateur). Noms, prix, TEG, boutiques et délais y sont **fictifs**.
