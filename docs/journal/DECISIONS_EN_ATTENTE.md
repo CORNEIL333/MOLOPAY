@@ -816,3 +816,18 @@
 - **Fait :** `docs/04_annexes/DEFINITIONS_INDICATEURS.md`. Le document fixe, avant tout calcul, chaque indicateur (volume confirmé au grand livre, objectifs ouverts, taux d'objectifs à 100 % sur les activés de la période, délai de remise médian et 90ᵉ centile, marge brute de commission par commande), leur source, leur unité et leurs règles (totaux toujours publiés, cases de moins de 5 masquées, agrégats seulement). « Impayés B » est publié « sans objet » tant que B n'est pas ouvert, jamais 0.
 - **⚖ D119 — attribution des dimensions, à trancher :** (a) **ville** : aucun objectif n'en porte. Proposition : figer à la création la ville choisie par le client, ce qui demande une migration et une évolution du contrat ; en attendant, ville de l'offre si elle est unique, sinon case `NON_ATTRIBUÉE`. (b) **univers d'un objectif C** : proposition, déduire l'univers de la catégorie du bénéficiaire (logement pour bailleur, agence, matériaux, terrain ; école à décider) ; en attendant, case « hors univers ».
 - **Suite (tranche 2) :** fonctions SQL en lecture seule par `app_ro`, testées sur les flux réels, puis route du back-office.
+
+### C23 · F-REP-002, tranche 2 : calcul des indicateurs, testé
+- **Fait :** `apps/api/src/modules/reporting/kpi.store.ts` calcule, en lecture seule (`app_ro`), exactement les définitions de `DEFINITIONS_INDICATEURS.md` sur une période `[début, fin[` :
+  - volume des versements confirmés ;
+  - objectifs ouverts à date ;
+  - taux d'objectifs à 100 % (activés de la période qui ont atteint `FUNDED`) ;
+  - délai de remise (médiane et 90ᵉ centile) ;
+  - impayés B « sans objet » ;
+  - marge brute de commission des règlements exécutés.
+
+  Ventilation par univers et par ville sans supposition (D119) ; cases de moins de 5 objectifs masquées, totaux toujours publiés.
+- **Tests :** 6 sur PostgreSQL réel, avec le scénario des flux réels et des valeurs calculées à la main (volume 550 000, taux 66,7 %, commission 3 750, offre sur deux villes → `NON_ATTRIBUEE`) ; 4 unitaires (masquage à partir de 5, arrondi du taux demi vers le haut, moyenne entière).
+- **Mutants :** 10 au total — 7 tués après renforcement (offre sur deux villes, moyenne sur plusieurs commandes, période vide), 1 équivalent (type seulement), 1 non couvert. Ce dernier, un règlement rejeté compté dans la marge, n'est pas testé : il faudrait construire un second achat complet. La base garantit déjà qu'un règlement rejeté n'a pas d'écriture ; test à ajouter avec un scénario de rejet.
+- **Définition ajustée :** aucun flux actuel ne contre-passe un versement confirmé ; la déduction sera écrite avec son test si un tel flux apparaît.
+- **Suite (tranche 3) :** route du back-office (lecture, rôle à définir — proposition : `FINANCE`, `COMPLIANCE`, `AUDIT`) et contrat ; ventilation par ville réelle après D119.
