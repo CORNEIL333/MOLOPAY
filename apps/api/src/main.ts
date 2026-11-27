@@ -43,11 +43,26 @@ export async function bootstrap(): Promise<void> {
       piiKeys: await piiKeysFromEnv(process.env),
     }),
   );
-  app.enableShutdownHooks();
+  // Arrêt propre (SIGTERM du gestionnaire de conteneurs) : plus de nouvelles requêtes, fermeture de
+  // l'application puis du pool de connexions ; le processus sort ensuite de lui-même (code 0).
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => {
+      void app.close().then(() => database.pool.end()).catch(() => { process.exitCode = 1; });
+    });
+  }
   const port = Number(process.env['PORT'] ?? 3000);
   await app.listen(port);
 }
 
+/** Code d'erreur seul (jamais le message, qui peut contenir une adresse ou une valeur de configuration). */
+export function startupFailureCode(error: unknown): string {
+  const match = error instanceof Error ? /^([A-Z][A-Z0-9_]{2,})(?::|$)/.exec(error.message) : null;
+  return match?.[1] ?? 'STARTUP_FAILED';
+}
+
 if (require.main === module) {
-  void bootstrap();
+  bootstrap().catch((error: unknown) => {
+    process.stdout.write(`${JSON.stringify({ status: 'ERROR', code: startupFailureCode(error) })}\n`);
+    process.exit(1);
+  });
 }

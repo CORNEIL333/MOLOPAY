@@ -857,3 +857,12 @@
 - **Signature des instructions :** reste fermée en production, sans chargement depuis l'environnement. La clé doit vivre dans un HSM (D5), et il n'y a pas de versement au lancement (décision du fondateur). Un signataire AWS KMS (Ed25519) sera nécessaire quand les versements ouvriront.
 - **`pnpm config:check` :** affiche l'état de chaque capacité (configurée ou fermée), sans aucune valeur ; code 1 si une configuration présente est invalide. `.env.example` liste désormais toutes les variables lues par l'API, sans valeur.
 - **Tests :** 8 unitaires. 9 mutants, dont 7 tués et 2 équivalents : « localhost en http en production », impossible car le domaine localhost est refusé en production, et « chemin accepté », déjà refusé par la comparaison d'origine.
+
+### P2 · Production : artefact de l'API construit, lancé et vérifié
+- **Fait :** `pnpm build:api` (esbuild 0.28.2, déjà présent dans le fichier de verrouillage, désormais épinglé en dépendance de développement) produit `apps/api/dist/main.cjs`. `pnpm start:api` le lance.
+- **Démarrage et arrêt (`main.ts`) :**
+  - un échec de démarrage affiche **un seul code** d'erreur, jamais le message (qui pourrait contenir une adresse ou une valeur), et sort avec le code 1 ;
+  - sur SIGTERM ou SIGINT, l'API ferme l'application puis le pool de connexions et sort avec le code 0. Avant, le pool n'était jamais fermé.
+- **Test sur l'artefact réel :** 3 tests. Construction, lancement par Node, `/health` 200, arrêt en code 0 sur SIGTERM ; refus de démarrer en production sans TLS vérifié (ni l'adresse ni le mot de passe affichés) ; configuration absente (`CONFIG_MISSING`) ou invalide (`CONFIG_INVALID`). 4 mutants tués.
+- **Constat :** les dépendances publiées doivent être résolues depuis `apps/api/node_modules` (fonctionnement de pnpm). D'où l'emplacement de l'artefact et le paquet de déploiement par `pnpm deploy --filter @achat/api --prod` (procédure `PROCEDURE_DEPLOIEMENT_API.md`).
+- **Non fait (dit) :** pas de Dockerfile. Aucun moteur Docker n'est disponible ici pour le construire et le tester, et l'AGENTS.md interdit de déclarer « fonctionne » sans preuve. À écrire et tester sur la machine de construction.
