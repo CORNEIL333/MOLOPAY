@@ -837,3 +837,7 @@
 - **Option prudente (à confirmer, D120) :** nouvelle action `READ_PRODUCT_KPIS` donnée à **FINANCE, COMPLIANCE et AUDIT** seulement, motif obligatoire. Proposition : l'ouvrir aussi au fondateur ou à la direction quand ce rôle existera.
 - **Tests :** 4 tests HTTP sur PostgreSQL réel (flux réels), dont les refus : support 403 `ADMIN_FORBIDDEN`, sans session 401, sans motif 400, période inversée, vide, de 367 jours ou impossible 400 `REPORT_PERIOD_INVALID`, paramètre hors liste 400. 7 mutants tués.
 - **Pour Qoder (PR #8) :** message FR/EN de `REPORT_PERIOD_INVALID`.
+
+### C25 · F-REP-002, tranche 4 : écran « Indicateurs » du back-office
+- **Fait :** page `/indicateurs` (lien dans la navigation), branchée sur la route réelle `GET /v1/backoffice/reports/product-kpis`. Elle affiche les totaux, le taux d'objectifs à 100 % (virgule décimale), le délai de remise, la marge de commission et « Impayés B : sans objet », ainsi que quatre ventilations (volume et objectifs ouverts, par univers et par ville) avec libellés français. Une case de moins de 5 objectifs s'affiche « moins de 5 », sans montant. Refus avant tout appel : dates absentes ou hors format, période vide, inversée ou de plus de 366 jours, motif trop court. Un refus du serveur efface les chiffres précédents (aucun chiffre périmé à l'écran).
+- **Tests :** 5 tests de composant, dont l'accessibilité (axe) ; 7 mutants tués, dont un d'abord survivant (chiffres conservés après un refus), tué par un test de séquence.

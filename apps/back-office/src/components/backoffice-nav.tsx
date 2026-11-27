@@ -6,6 +6,7 @@ import { useState, type ReactElement } from 'react';
 const LINKS: readonly (readonly [string, string])[] = [
   ['/file', 'File de travail'],
   ['/tableau-de-bord', 'Tableau de bord'],
+  ['/indicateurs', 'Indicateurs'],
   ['/conformite', 'Conformité'],
   ['/reclamations', 'Réclamations'],
   ['/objectifs', 'Historique d’un objectif'],

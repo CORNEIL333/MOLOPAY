@@ -12,6 +12,7 @@ describe('C6 navigation du back-office', () => {
     expect(links).toEqual([
       ['File de travail', '/file'],
       ['Tableau de bord', '/tableau-de-bord'],
+      ['Indicateurs', '/indicateurs'],
       ['Conformité', '/conformite'],
       ['Réclamations', '/reclamations'],
       ['Historique d’un objectif', '/objectifs'],

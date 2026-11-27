@@ -9,6 +9,7 @@ import type { WorkQueuePorts } from '../components/work-queue';
 import type { ComplaintPorts as ComplaintPort } from '../components/complaint-detail';
 import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
+import type { ProductKpisPorts } from '../components/product-kpis-board';
 import type { CustomerBlockPorts } from '../components/customer-block';
 import type { GoalHistoryPorts } from '../components/goal-history';
 import type { OutgoingFreezePorts } from '../components/outgoing-freeze';
@@ -154,6 +155,14 @@ export const browserDashboardPorts: DashboardPort = {
   async load(reason) {
     const result = await api().GET('/v1/backoffice/dashboard', { params: { query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, board: result.data };
+  },
+};
+
+/** F-REP-002 : indicateurs produits par la route réelle (consultation motivée, auditée). */
+export const browserProductKpisPorts: ProductKpisPorts = {
+  async load({ from, to, reason }) {
+    const result = await api().GET('/v1/backoffice/reports/product-kpis', { params: { query: { from, to, reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, report: result.data };
   },
 };
 
