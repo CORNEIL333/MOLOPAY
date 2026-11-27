@@ -879,3 +879,11 @@
 - **Option prudente :** un bail repris par un autre travailleur est refusé (`NOTIFICATION_CLAIM_LOST`). Un bail expiré mais non repris est en revanche **accepté** : le message est parti, et le refuser provoquerait un second envoi.
 - **Tests :** 5 sur PostgreSQL réel, plus les 24 tests existants de distribution, toujours verts après le remplacement de la fonction de prise. 6 mutants, dont 5 tués (un d'abord survivant, « bail conservé », tué par l'assertion du bail libéré) et 1 équivalent (second contrôle du bail sous verrou).
 - **Reste, pour le travailleur :** D121 (push, plages, textes) avant tout envoi réel.
+
+### P5 · Contrôles de plateforme en liste blanche (NF-COMP-001, REG-DPD-003, NF-PORT-002)
+- **Fait :** `tools/client-platform.test.ts`, lancé par `pnpm test`.
+  - **NF-COMP-001** : Android `minSdk = 26` (8.0) désormais **fixé** ; avant, il suivait la valeur par défaut de Flutter, 24 (Android 7). iOS : cible 15.0 dans toutes les configurations.
+  - **REG-DPD-003** : seule permission Android `INTERNET`, dans tous les manifestes ; aucune demande d'accès dans `Info.plist` ; dépendances Flutter en liste blanche (`flutter`, `cupertino_icons`, `http`). La géolocalisation n'est lue que par le port du comptoir de remise du portail partenaire, une fois par remise (`getCurrentPosition`) ; jamais de suivi continu ; aucun accès aux contacts.
+  - **NF-PORT-002** : le SDK AWS n'est importé que par l'adaptateur KMS, Twilio n'est joint que par son adaptateur, et aucun nom d'hôte de fournisseur cloud ne figure dans le code métier ; un seul paquet de fournisseur dans les dépendances de l'API.
+- **Tests :** 8 ; 6 mutants tués, dont un d'abord survivant (importation nue `import '@aws-sdk/…'`) après élargissement du contrôle.
+- **Limite dite :** la construction Android n'a pas pu être lancée ici (pas de SDK Android). Le changement de `minSdk` est à vérifier par `flutter build apk` sur la machine de construction.
