@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertSecureDatabaseUrl, databaseConfigFromEnv } from './database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl, databaseConfigFromEnv } from './database';
 
 /**
  * N2 (ADR-0004, SEC-CRY-001) : vers Neon (ou toute base distante), la
@@ -55,3 +55,20 @@ describe('N2 — TLS vérifié obligatoire vers la base', () => {
     expect(databaseConfigFromEnv({ DATABASE_URL: `${NEON}?sslmode=verify-full`, NODE_ENV: 'production', DATABASE_ROLE: 'app_rw' })).toMatchObject({ role: 'app_rw' });
   });
 });
+
+describe('Neon — point d’accès direct et réglages du pool', () => {
+  it('point d’accès groupé (-pooler) refusé pour les outils à session (DATABASE_POOLER_FORBIDDEN), direct accepté', () => {
+    expect(() => assertDirectEndpoint('postgresql://u@ep-exemple-123456-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full')).toThrow(/^DATABASE_POOLER_FORBIDDEN/);
+    expect(() => assertDirectEndpoint('postgresql://u@ep-exemple-123456.eu-central-1.aws.neon.tech/db?sslmode=verify-full')).not.toThrow();
+    expect(() => assertDirectEndpoint('postgres://u@127.0.0.1:5432/db')).not.toThrow();
+  });
+
+  it('pool : 10 connexions et 15 s par requête par défaut ; bornes 1–50 et 1–120 s', () => {
+    expect(databaseConfigFromEnv({ DATABASE_URL: 'postgres://u@127.0.0.1/db' })).toMatchObject({ poolMax: 10, statementTimeoutMs: 15_000 });
+    expect(databaseConfigFromEnv({ DATABASE_URL: 'postgres://u@127.0.0.1/db', DATABASE_POOL_MAX: '25', DATABASE_STATEMENT_TIMEOUT_MS: '5000' })).toMatchObject({ poolMax: 25, statementTimeoutMs: 5000 });
+    for (const env of [{ DATABASE_POOL_MAX: '0' }, { DATABASE_POOL_MAX: '51' }, { DATABASE_POOL_MAX: '2.5' }, { DATABASE_STATEMENT_TIMEOUT_MS: '999' }, { DATABASE_STATEMENT_TIMEOUT_MS: '120001' }, { DATABASE_STATEMENT_TIMEOUT_MS: 'beaucoup' }]) {
+      expect(() => databaseConfigFromEnv({ DATABASE_URL: 'postgres://u@127.0.0.1/db', ...env }), JSON.stringify(env)).toThrow(/^CONFIG_INVALID: DATABASE_/);
+    }
+  });
+});
+

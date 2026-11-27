@@ -23,7 +23,13 @@ Toujours de la forme :
 postgresql://<rôle>@<point d'accès>.eu-central-1.aws.neon.tech/<base>?sslmode=verify-full
 ```
 
-(`&channel_binding=require` est accepté). L'API, `db:migrate`, `db:roles`, `db:transfer` et le contrôle nocturne **refusent** toute autre forme (`DATABASE_TLS_REQUIRED`) : chiffrement et certificat vérifiés, nom d'hôte compris. Ne jamais ajouter `sslrootcert`, `sslaccept` ni `uselibpqcompat`.
+(`&channel_binding=require` est accepté).
+
+**Point d'accès direct ou groupé.** Neon fournit deux adresses par branche : directe (`ep-…`) et groupée (`ep-…-pooler`, regroupeur de connexions). Les outils qui ont besoin d'une vraie session refusent l'adresse groupée (`DATABASE_POOLER_FORBIDDEN`) : `db:migrate` (verrou de session), `db:backup` et `db:transfer` (instantané de `pg_dump`), le contrôle nocturne et `ops:alerts` (rôle pris au démarrage de la connexion). L'API peut utiliser l'une ou l'autre, car elle ne pose que des réglages locaux à chaque transaction. Au lancement, l'adresse directe suffit (ADR-0004) ; l'adresse groupée servira si le nombre de connexions devient une limite.
+
+**Réglages du pool de l'API :** `DATABASE_POOL_MAX` (1 à 50, défaut 10), à garder sous la limite de connexions de la taille de calcul choisie **(à vérifier sur la console Neon)** ; `DATABASE_STATEMENT_TIMEOUT_MS` (1 000 à 120 000, défaut 15 000), durée maximale d'une requête posée dans chaque transaction. Une base injoignable fait échouer la connexion en 10 secondes.
+
+L'API, `db:migrate`, `db:roles`, `db:transfer` et le contrôle nocturne **refusent** toute autre forme (`DATABASE_TLS_REQUIRED`) : chiffrement et certificat vérifiés, nom d'hôte compris. Ne jamais ajouter `sslrootcert`, `sslaccept` ni `uselibpqcompat`.
 
 Le mot de passe n'est jamais écrit dans l'adresse d'un fichier versionné. Il est fourni par le gestionnaire de secrets de l'environnement d'exécution (`PGPASSWORD` ou adresse complète injectée).
 

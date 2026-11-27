@@ -903,3 +903,14 @@
 - **Hors base :** les erreurs 5xx > 1 % relèvent des métriques de l'hébergeur (non câblées).
 - **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
 - **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.
+
+### N7 · Neon : point d'accès direct pour les outils à session, pool et durée des requêtes bornés
+- **Demande du fondateur (27 nov.) :** « continue avec Neon ».
+- **Constat :** Neon fournit une adresse groupée (`-pooler`), sur laquelle les fonctions de session ne sont pas garanties. Or l'outil de migration prend un verrou de session, et le contrôle nocturne comme la supervision prennent leur rôle au démarrage de la connexion. Par ailleurs, l'API avait un pool fixe de 10 connexions, **sans durée maximale de requête ni délai de connexion** : une requête emballée ou une base injoignable bloquaient indéfiniment.
+- **Fait :**
+  - `assertDirectEndpoint` (`DATABASE_POOLER_FORBIDDEN`) est appliqué à `db:migrate`, `db:backup`, `db:transfer` (source et cible), au contrôle nocturne et à `ops:alerts` (nouvelle fonction `monitorDatabaseUrl`).
+  - Pool de l'API : `DATABASE_POOL_MAX` (1 à 50, défaut 10), délai de connexion de 10 s, connexions inactives rendues après 30 s.
+  - `DATABASE_STATEMENT_TIMEOUT_MS` (1 à 120 s, défaut 15 s), posé par `SET LOCAL` dans **chaque** transaction, donc valable aussi derrière le regroupeur. Vérifié sur PostgreSQL réel : une requête trop longue est interrompue (57014) et la limite ne fuit pas hors de la transaction.
+  - Procédure Neon et `.env.example` mis à jour.
+- **Tests :** 2 unitaires, 1 sur base réelle, plus un refus de l'adresse groupée dans les tests de chacun des cinq outils ; 5 mutants tués.
+- **À vérifier sur la console Neon :** la limite de connexions de la taille de calcul choisie, pour fixer `DATABASE_POOL_MAX` en dessous.

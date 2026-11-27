@@ -82,6 +82,7 @@ describe('C15 / ADR-0004 transfert de base vérifié (Neon → AWS)', () => {
     // N2 : vers Neon ou AWS, TLS vérifié exigé avant toute connexion.
     await expect(transferDatabase({ sourceUrl: 'postgresql://u@ep-x.eu-central-1.aws.neon.tech/db?sslmode=require', targetUrl, pgBin: PG_BIN })).rejects.toThrow(/^DATABASE_TLS_REQUIRED/);
     await expect(transferDatabase({ sourceUrl, targetUrl: 'postgresql://u@cible.eu-central-1.rds.amazonaws.com/db', pgBin: PG_BIN })).rejects.toThrow(/^DATABASE_TLS_REQUIRED/);
+    await expect(transferDatabase({ sourceUrl: 'postgresql://u@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full', targetUrl, pgBin: PG_BIN })).rejects.toThrow(/^DATABASE_POOLER_FORBIDDEN/);
     const roles = applicationRoles();
     await onTarget(async (client) => {
       await client.query('ALTER TABLE ledger.journal_entry DISABLE TRIGGER USER');
