@@ -24,6 +24,7 @@
 | 26 nov. 2026 | Exploration « liquide » | Dégradés liquides et verre flou proposés (`maquettes/exploration-direction-liquide.html`) |
 | 26 nov. 2026 | Matières adoptées | [Décision] « ok continue » du fondateur : mode Liquide adopté, Sobre en repli automatique. Jetons `glass.*`, `gradient.*`, M-56 ; `02` § Matières, `06` § 7.1, `09` F8 ; prompts Gemini à jour. Les maquettes antérieures restent à plat : on applique les matières selon `02` § Matières |
 | 26 nov. 2026 | Maquettes du MVP repeintes | `identite-app-mobile.html`, `marketplace-suite.html`, `parcours-inclusifs.html` passent aux matières liquide et verre, avec un interrupteur Liquide / Sobre ; les autres maquettes (web, crédit, compléments, site public) restent à plat |
+| 27 nov. 2026 | Recherche n° 3 | Rapport `10_marketplace_epargne_achat.md` : chaque couple ville × univers est un petit marché à remplir ; épargne cantonnée et remise en boutique contre la peur de l'avance perdue ; règles proposées pour la garantie de prix (durée maximale par catégorie, baisse répercutée, stock réservé à 80 %), avis vérifiés, classement publié, commission basse |
 | 20 nov. 2026 | Corrections | Le frigo et l'électroménager relèvent de « Technologie et équipement », pas de « Logement » ; MoloMolo Pay est un concurrent **ivoirien** |
 
 ## Points ouverts
@@ -32,5 +33,7 @@
 |---|---|---|
 | Disponibilité du nom « MoloPay » à l'OAPI (proche de « MoloMolo Pay ») ; sinon choisir un autre nom (pistes : Kotiz, Pas à Pas, Objekti, non vérifiées) | Fondateur + conseil en propriété industrielle (H8) | Avant le dessin final du logo |
 | Validation de l'ADR-0006 (site public) | Fondateur | Avant le lot 26 |
+| **TVA sur les acomptes** (loi de finances 2026) : s'applique-t-elle à l'épargne affectée à un achat ? | Fondateur + fiscaliste | **Bloquant avant tout versement réel** |
+| Règles de garantie de prix (durées par catégorie, réservation à 80 %, hausse à la charge du partenaire) et formulation « prix garanti jusqu'au [date] » au lieu de « prix figé » (loi 2011/012) | Fondateur + juriste + partenaires | Avant le test fermé |
 | Régime KYC applicable (règlement CEMAC 02/24, qui abroge le 01/16 cité dans `CDC_06`) : inscription à distance en vigilance renforcée (art. 22) vs premier versement immédiat ; options art. 55, 57(c), 58 | Fondateur + juriste CEMAC | Avant les lots 06 et 07 |
 | Tests des maquettes auprès de clients à Douala et Yaoundé | Fondateur (H5) | Avec la recherche primaire |

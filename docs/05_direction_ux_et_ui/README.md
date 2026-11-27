@@ -15,8 +15,10 @@
 | `06_animations.md` | **Charte d'animation** : principes, jetons de durées, courbes et ressorts, catalogue des animations `M-xx`, haptique, réduction du mouvement, performance, sources |
 | `07_psychologie_de_marque_et_ux.md` | **Recherche approfondie** : sciences comportementales de l'épargne, confiance au Cameroun, psychologie des couleurs et des formes, adoption par les partenaires, dark patterns et droit (loi 2011/012, CEMAC), fintechs de référence ; recommandations et liste de ce que MoloPay s'interdit |
 | `08_ux_inclusive_et_publics_cibles.md` | **Recherche approfondie n° 2** : usagers peu lettrés et téléphones d'entrée de gamme, USSD, inscription/KYC/activation (règlement CEMAC 02/24), diaspora, bailleurs et écoles ; recommandations priorisées et questions ouvertes |
+| `10_marketplace_epargne_achat.md` | **Recherche approfondie n° 3** : UX e-commerce mesurée, e-commerce au Cameroun, précédents d'épargne-achat, dynamique de marketplace, économie du prix figé ; règles métier proposées (durées de garantie, baisses répercutées, réservation du stock, classement, avis, commission) |
 | `recherche/notes_01_psychologie/` | Les six notes sourcées du rapport 07 |
 | `recherche/notes_02_ux_inclusive/` | Les cinq notes sourcées du rapport 08 |
+| `recherche/notes_03_marketplace/` | Les cinq notes sourcées du rapport 10 |
 | `09_passage_maquettes_mvp_0.0.1.md` | **Passage au code** : périmètre du MVP 0.0.1, fondations, composants, correspondance écran → maquette → code → API, critères d'acceptation, ordre de travail |
 | `jetons/` | Jetons de design : source unique `molopay.tokens.json` et fichiers générés CSS, TypeScript et Dart (`generate.py`) |
 | `textes/mvp_0.0.1_fr_en.json` | 63 textes clés du MVP 0.0.1 en français et en anglais |
