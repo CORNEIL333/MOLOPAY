@@ -23,6 +23,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "verify:ledger": "tsx tools/verify-ledger.ts",
     "verify:nightly": "tsx tools/nightly-verify.ts",
+    "config:check": "tsx tools/config-check.ts",
     "db:migrate": "tsx tools/migrate.ts",
     "db:backup": "tsx tools/backup.ts backup",
     "db:restore-backup": "tsx tools/backup.ts restore",

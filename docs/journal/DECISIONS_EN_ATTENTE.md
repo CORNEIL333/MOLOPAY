@@ -846,3 +846,14 @@
 - **Constat :** aucun processus de distribution n'existe. Côté base, il n'y a que `claimNotification` et `retryNotification` (rôle `notification_worker`), sans confirmation d'envoi.
 - **Ce qu'il faut :** un processus `pnpm notify:worker` connecté avec `molopay_notifier` (`options=-c role=notification_worker`, TLS vérifié), qui réclame une notification, révèle le numéro (KMS, C14), envoie par Twilio (adaptateur fermé sans configuration), puis confirme ou replanifie, de façon idempotente. Il faut aussi une fonction de confirmation d'envoi en base, qui manque aujourd'hui.
 - **⚖ D121 — à trancher avant de coder :** (a) **push** : prestataire (Firebase Cloud Messaging ou autre) ou SMS seulement au lancement ; (b) **plages d'envoi** (proposition : 8 h–20 h, heure de Douala) ; (c) **textes** des messages FR/EN, à valider par la conformité (NF-SAFE-003 : non culpabilisants).
+
+### P1 · Production : configuration complète, fermée par défaut, vérifiable (`pnpm config:check`)
+- **Demande du fondateur (27 nov.) :** avancer sur ce qui relève de la production sans décision de sa part.
+- **Défaut trouvé :** `main.ts` ne transmettait ni la partie de confiance WebAuthn du personnel, ni celle des partenaires, ni le poivre du code de remise. En production, la connexion au back-office, celle au portail partenaire et la remise en boutique auraient toutes répondu 503, quelle que soit la configuration.
+- **Fait :** `apps/api/src/config/production-config.ts`.
+  - `STAFF_RP_ID`/`STAFF_RP_ORIGINS` et `PARTNER_RP_ID`/`PARTNER_RP_ORIGINS` : domaine valide ; origines https seules, sans chemin, sur ce domaine ou un sous-domaine avec un vrai point (`evilmolopay.cm` refusé) ; localhost en http hors production seulement.
+  - `HANDOVER_PEPPER` : base64 de 32 à 64 octets. Les trois poivres (PIN, OTP, remise) doivent être différents.
+  - Absent : capacité fermée (503). Présent mais invalide : l'API ne démarre pas. Message toujours sans la valeur.
+- **Signature des instructions :** reste fermée en production, sans chargement depuis l'environnement. La clé doit vivre dans un HSM (D5), et il n'y a pas de versement au lancement (décision du fondateur). Un signataire AWS KMS (Ed25519) sera nécessaire quand les versements ouvriront.
+- **`pnpm config:check` :** affiche l'état de chaque capacité (configurée ou fermée), sans aucune valeur ; code 1 si une configuration présente est invalide. `.env.example` liste désormais toutes les variables lues par l'API, sans valeur.
+- **Tests :** 8 unitaires. 9 mutants, dont 7 tués et 2 équivalents : « localhost en http en production », impossible car le domaine localhost est refusé en production, et « chemin accepté », déjà refusé par la comparaison d'origine.
