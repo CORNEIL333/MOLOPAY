@@ -866,3 +866,9 @@
 - **Test sur l'artefact réel :** 3 tests. Construction, lancement par Node, `/health` 200, arrêt en code 0 sur SIGTERM ; refus de démarrer en production sans TLS vérifié (ni l'adresse ni le mot de passe affichés) ; configuration absente (`CONFIG_MISSING`) ou invalide (`CONFIG_INVALID`). 4 mutants tués.
 - **Constat :** les dépendances publiées doivent être résolues depuis `apps/api/node_modules` (fonctionnement de pnpm). D'où l'emplacement de l'artefact et le paquet de déploiement par `pnpm deploy --filter @achat/api --prod` (procédure `PROCEDURE_DEPLOIEMENT_API.md`).
 - **Non fait (dit) :** pas de Dockerfile. Aucun moteur Docker n'est disponible ici pour le construire et le tester, et l'AGENTS.md interdit de déclarer « fonctionne » sans preuve. À écrire et tester sur la machine de construction.
+
+### P3 · Production : en-têtes de sécurité sur toute réponse de l'API (SEC-CRY-001, SEC-API-005)
+- **Défaut trouvé :** l'API ne posait aucun en-tête de sécurité et annonçait son cadriciel (`X-Powered-By: Express`). Seuls le portail et le back-office avaient une politique de contenu.
+- **Fait :** intergiciel global (`apps/api/src/http/security-headers.ts`), appliqué avant tout traitement, donc aussi aux problèmes RFC 9457 et aux routes inconnues. En-têtes : HSTS de 2 ans avec sous-domaines, `nosniff`, CSP `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` (l'API ne sert que du JSON), `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, COOP et CORP `same-origin`, `Permissions-Policy` fermant caméra, micro, géolocalisation et paiement. `X-Powered-By` est retiré.
+- **Option prudente :** pas de `preload` HSTS, car l'inscription à la liste de préchargement des navigateurs est difficilement réversible ; à décider une fois le domaine définitif en service.
+- **Tests :** 1 test HTTP sur trois réponses (200, 404, 403) ; 3 mutants tués.

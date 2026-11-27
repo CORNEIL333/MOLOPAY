@@ -1,9 +1,10 @@
-import { type DynamicModule, Module, type Type } from '@nestjs/common';
+import { type DynamicModule, type MiddlewareConsumer, Module, type NestModule, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { CustomerQuotaGuard } from './http/customer-quota';
 import { PG_POOL, type Database } from './http/database';
 import { ALLOWED_ORIGINS, OriginGuard } from './http/origin.guard';
 import { ProblemFilter } from './http/problem.filter';
+import { securityHeaders } from './http/security-headers';
 import { CustomerSessionGuard } from './http/session.guard';
 import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
@@ -68,7 +69,12 @@ export type AppDependencies = {
  * l'environnement) : aucune configuration implicite ni valeur par défaut.
  */
 @Module({})
-export class AppModule {
+export class AppModule implements NestModule {
+  /** SEC-CRY-001 / SEC-API-005 : en-têtes de sécurité sur toutes les routes, y compris inconnues. */
+  public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(securityHeaders).forRoutes('*');
+  }
+
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
