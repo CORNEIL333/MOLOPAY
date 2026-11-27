@@ -872,3 +872,10 @@
 - **Fait :** intergiciel global (`apps/api/src/http/security-headers.ts`), appliqué avant tout traitement, donc aussi aux problèmes RFC 9457 et aux routes inconnues. En-têtes : HSTS de 2 ans avec sous-domaines, `nosniff`, CSP `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` (l'API ne sert que du JSON), `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, COOP et CORP `same-origin`, `Permissions-Policy` fermant caméra, micro, géolocalisation et paiement. `X-Powered-By` est retiré.
 - **Option prudente :** pas de `preload` HSTS, car l'inscription à la liste de préchargement des navigateurs est difficilement réversible ; à décider une fois le domaine définitif en service.
 - **Tests :** 1 test HTTP sur trois réponses (200, 404, 403) ; 3 mutants tués.
+
+### P4 · Confirmation d'envoi des notifications en base (migration 0078, aucun envoi)
+- **Fait :** `notifications.complete_notification(bail, référence)`, accordée au seul `notification_worker`, et `completeNotification` dans le store. La confirmation est enregistrée en ajout seul (`notifications.delivery`) avec la référence opaque du prestataire, jamais le texte ni le numéro.
+- **Effets :** une notification confirmée n'est plus jamais reprise, ce qui évite un double SMS ; elle sort des compteurs de la file ; le bail est libéré. Une confirmation rejouée avec la même référence est sans effet ; avec une autre, elle est refusée (`NOTIFICATION_ALREADY_DELIVERED`).
+- **Option prudente :** un bail repris par un autre travailleur est refusé (`NOTIFICATION_CLAIM_LOST`). Un bail expiré mais non repris est en revanche **accepté** : le message est parti, et le refuser provoquerait un second envoi.
+- **Tests :** 5 sur PostgreSQL réel, plus les 24 tests existants de distribution, toujours verts après le remplacement de la fonction de prise. 6 mutants, dont 5 tués (un d'abord survivant, « bail conservé », tué par l'assertion du bail libéré) et 1 équivalent (second contrôle du bail sous verrou).
+- **Reste, pour le travailleur :** D121 (push, plages, textes) avant tout envoi réel.
