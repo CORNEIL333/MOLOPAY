@@ -21,7 +21,7 @@ import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
  *    rôles applicatifs identiques ; grand livre équilibré et sans trou.
  * Toute différence : code 1, la bascule ne doit pas avoir lieu.
  */
-export const SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm', 'ops'] as const;
+export const SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm', 'ops', 'monitoring'] as const;
 
 export type TransferReport = {
   readonly status: 'VERIFIED' | 'MISMATCH';

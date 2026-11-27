@@ -26,6 +26,7 @@
     "build:api": "tsx tools/build-api.ts",
     "start:api": "node apps/api/dist/main.cjs",
     "config:check": "tsx tools/config-check.ts",
+    "ops:alerts": "tsx tools/ops-alerts.ts",
     "db:migrate": "tsx tools/migrate.ts",
     "db:backup": "tsx tools/backup.ts backup",
     "db:restore-backup": "tsx tools/backup.ts restore",

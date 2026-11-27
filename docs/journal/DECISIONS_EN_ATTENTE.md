@@ -887,3 +887,19 @@
   - **NF-PORT-002** : le SDK AWS n'est importé que par l'adaptateur KMS, Twilio n'est joint que par son adaptateur, et aucun nom d'hôte de fournisseur cloud ne figure dans le code métier ; un seul paquet de fournisseur dans les dépendances de l'API.
 - **Tests :** 8 ; 6 mutants tués, dont un d'abord survivant (importation nue `import '@aws-sdk/…'`) après élargissement du contrôle.
 - **Limite dite :** la construction Android n'a pas pu être lancée ici (pas de SDK Android). Le changement de `minSdk` est à vérifier par `flutter build apk` sur la machine de construction.
+
+### P6 · Chaque route protégée par la session de son espace (liste blanche des routes publiques)
+- **Constat :** les clés d'idempotence étaient déjà exigées sur toutes les routes d'écriture (test du lot 24), mais aucun test ne garantissait qu'une **nouvelle** route du back-office, du portail partenaire ou du client serait protégée.
+- **Fait :** `apps/api/src/route-auth.test.ts` lit les métadonnées de **toutes** les routes. Chacune doit porter la garde de session de son espace, déduite du chemin : back-office et personnel → personnel ; `/v1/partner/` → partenaire ; `/v1/me`, `/v1/goals`, devis, `/v1/auth/` hors connexion → client.
+  - Seules 17 routes publiques sont permises, chacune avec sa raison : santé, catalogue, inscription et connexions, enrôlements par jeton à usage unique, déconnexions.
+  - Un chemin d'espace inconnu fait échouer le test.
+- **Tests :** 3 ; 2 mutants tués (garde retirée d'une route du back-office, garde client posée sur une route du back-office). Aucun défaut trouvé dans le code actuel.
+
+### P7 · Alertes de supervision calculées en base (NF-OBS-003, migration 0079)
+- **Fait :** `monitoring.alert_counts()` (compteurs seulement) et `MONITOR_DATABASE_URL=… pnpm ops:alerts`, lancé avec le compte `molopay_monitor`, rôle `notification_observer`, TLS vérifié. Alertes :
+  - critiques : paiement en attente depuis plus de 15 minutes, écart de rapprochement non classé, divergence d'intégrité, flux sortants gelés ;
+  - avertissement : notifications ayant épuisé leurs tentatives (file en échec).
+- **Codes de sortie :** 0 sans alerte, 1 avec alerte, 2 si la supervision n'a pas pu s'exécuter (à traiter comme une alerte).
+- **Hors base :** les erreurs 5xx > 1 % relèvent des métriques de l'hébergeur (non câblées).
+- **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
+- **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.

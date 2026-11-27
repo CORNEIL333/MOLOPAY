@@ -27,7 +27,7 @@ export type MigrationReport = { readonly status: 'UP_TO_DATE' | 'APPLIED' | 'PEN
 
 const NAME = /^(\d{4})_[a-z0-9_]+\.sql$/;
 const LOCK_KEY = 'molopay.schema-migration';
-const DOMAIN_SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm'];
+const DOMAIN_SCHEMAS = ['ledger', 'audit', 'admin', 'identity', 'catalog', 'agreements', 'payments', 'notifications', 'api', 'settlement', 'reconciliation', 'disputes', 'risk', 'kyc', 'crm', 'monitoring'];
 
 const BOOTSTRAP = `
 CREATE SCHEMA IF NOT EXISTS ops;
