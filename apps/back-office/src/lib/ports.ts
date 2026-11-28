@@ -1,4 +1,5 @@
 import { createApiClient } from '@achat/contracts/client';
+import type { AgencyEnrollmentPorts } from '../components/agency-enrollment';
 import type { StaffLoginPorts } from '../components/staff-login';
 import type { AdminPort } from '../components/admin-panel';
 import type { FundsActionPort } from '../components/funds-action';
@@ -8,6 +9,10 @@ import type { WorkQueuePorts } from '../components/work-queue';
 import type { ComplaintPorts as ComplaintPort } from '../components/complaint-detail';
 import type { SanctionsPorts as SanctionsPort } from '../components/sanctions-panel';
 import type { DashboardPorts as DashboardPort } from '../components/dashboard-board';
+import type { ProductKpisPorts } from '../components/product-kpis-board';
+import type { CustomerBlockPorts } from '../components/customer-block';
+import type { GoalHistoryPorts } from '../components/goal-history';
+import type { OutgoingFreezePorts } from '../components/outgoing-freeze';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -153,6 +158,14 @@ export const browserDashboardPorts: DashboardPort = {
   },
 };
 
+/** F-REP-002 : indicateurs produits par la route réelle (consultation motivée, auditée). */
+export const browserProductKpisPorts: ProductKpisPorts = {
+  async load({ from, to, reason }) {
+    const result = await api().GET('/v1/backoffice/reports/product-kpis', { params: { query: { from, to, reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, report: result.data };
+  },
+};
+
 /** REG-LBC-002 / D66 : filtrage et examen par les routes réelles du back-office. */
 export const browserSanctionsPorts: SanctionsPort = {
   async screen(partnerId) {
@@ -183,4 +196,75 @@ export const browserComplaintPorts: ComplaintPort = {
     const result = await api().GET('/v1/backoffice/complaints/{complaintId}', { params: { path: { complaintId }, query: { reason } }, cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, complaint: result.data };
   },
+  async openDispute(complaintId) {
+    const result = await api().POST('/v1/backoffice/complaints/{complaintId}/disputes', {
+      params: { path: { complaintId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: {},
+      cache: 'no-store',
+    });
+    const disputeId = (result.data as { disputeId?: unknown } | undefined)?.disputeId;
+    return typeof disputeId === 'string' ? { ok: true, disputeId } : { ok: false, problem: problemOf(result.error, result.response.status) };
+  },
 };
+
+/** C4 / F-ACC-006 : blocage d'un compte client par la route réelle ; une clé d'idempotence par confirmation. */
+export const browserCustomerBlockPorts: CustomerBlockPorts = {
+  async block(accountId, reason) {
+    const result = await api().POST('/v1/backoffice/customers/{accountId}/block', {
+      params: { path: { accountId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { reason },
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, blockedAt: result.data.blockedAt };
+  },
+};
+
+/** C13 : inscription en agence (route réelle ; le code n'est rendu qu'une fois). */
+export const browserAgencyEnrollmentPorts: AgencyEnrollmentPorts = {
+  async issue(input) {
+    const result = await api().POST('/v1/backoffice/agency-enrollments', {
+      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: input,
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, enrollment: result.data };
+  },
+};
+
+/** C6 / F-SUP-003 : historique d'un objectif (route réelle ; le motif est inscrit à l'audit). */
+export const browserGoalHistoryPorts: GoalHistoryPorts = {
+  async load(goalId, reason) {
+    const result = await api().GET('/v1/backoffice/goals/{goalId}/history', { params: { path: { goalId }, query: { reason } }, cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, history: result.data };
+  },
+};
+
+/** C6 : déconnexion du personnel (révocation immédiate côté serveur). */
+export async function browserStaffSignOut(): Promise<void> {
+  await api().DELETE('/v1/staff/sessions/current', { params: { header: { 'Idempotency-Key': crypto.randomUUID() } }, cache: 'no-store' });
+}
+
+/** C7 / SEC-INC-003 : gel des flux sortants par les routes réelles. */
+export const browserOutgoingFreezePorts: OutgoingFreezePorts = {
+  async load() {
+    const result = await api().GET('/v1/backoffice/outgoing-freeze', { cache: 'no-store' });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, state: result.data };
+  },
+  async request(action, reason) {
+    const result = await api().POST('/v1/backoffice/outgoing-freeze/requests', {
+      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { action, reason },
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+  async confirm(requestId) {
+    const result = await api().POST('/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation', {
+      params: { path: { requestId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: {},
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+};
+

@@ -13,6 +13,7 @@ import { CustomerQuotaGuard } from './http/customer-quota';
 import { PG_POOL, type Database } from './http/database';
 import { ALLOWED_ORIGINS, OriginGuard } from './http/origin.guard';
 import { ProblemFilter } from './http/problem.filter';
+import { securityHeaders } from './http/security-headers';
 import { CustomerSessionGuard } from './http/session.guard';
 import { HealthController } from './health.controller';
 import { GoalsController } from './modules/agreements/goals.controller';
@@ -38,8 +39,17 @@ import { AccountSecurityController } from './modules/identity/account-security.c
 import { DataRightsController } from './modules/identity/data-rights.controller';
 import { ProfileController } from './modules/identity/profile.controller';
 import { ClientSessionController } from './modules/identity/client-session.controller';
+import { PII_KEYS, type PiiKeys } from './modules/identity/phone-key';
 import { OTP_PEPPER, SMS_SENDER, type SmsSender } from './modules/identity/sms.port';
 import { ClientAuthController } from './workflows/client-auth.controller';
+import { BackofficeCustomerController } from './workflows/backoffice-customer.controller';
+import { BackofficeDeceaseController } from './workflows/backoffice-decease.controller';
+import { BackofficeReportsController } from './workflows/backoffice-reports.controller';
+import { BackofficeNotificationsController } from './workflows/backoffice-notifications.controller';
+import { NotificationFeedController } from './workflows/notification-feed.controller';
+import { BackofficeAgencyController } from './workflows/backoffice-agency.controller';
+import { ClientVersionGuard } from './workflows/client-version.guard';
+import { BackofficeFreezeController } from './workflows/backoffice-freeze.controller';
 
 export type AppDependencies = {
   readonly database: Database;
@@ -58,8 +68,10 @@ export type AppDependencies = {
   readonly otpPepper?: Uint8Array | null;
   /** Prestataire SMS (C2, D1) ; absent : envoi des codes fermé (503 SMS_UNCONFIGURED). Aucune simulation. */
   readonly smsSender?: SmsSender | null;
-  /** Puits de journal (NF-OBS-001) ; absent : aucune ligne n'est écrite. */
+/** Puits de journal (NF-OBS-001) ; absent : aucune ligne n'est écrite. */
   readonly logSink?: LogSink | null;
+  /** C14 : clés de protection du numéro ; absentes : inscription fermée (503). */
+  readonly piiKeys?: PiiKeys | null;
   /** Contrôleurs supplémentaires (sondes de test uniquement). */
   readonly extraControllers?: readonly Type[];
 };
@@ -70,20 +82,23 @@ export type AppDependencies = {
  */
 @Module({})
 export class AppModule implements NestModule {
-  /** Corrélation sur toutes les routes, y compris 404 et erreurs. */
+/** SEC-CRY-001 / SEC-API-005 : en-têtes de sécurité sur toutes les routes, y compris inconnues. */
   public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(securityHeaders).forRoutes('*');
+    // Corrélation sur toutes les routes, y compris 404 et erreurs.
     consumer.apply(CorrelationMiddleware).forRoutes({ path: '{*path}', method: RequestMethod.ALL });
   }
 
   public static register(deps: AppDependencies): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, ClientAuthController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, LegalNameController, GoalContributionsController, GoalClaimsController, ...(deps.extraControllers ?? [])],
+      controllers: [HealthController, PublicOfferController, QuoteController, AccountSecurityController, DataRightsController, ProfileController, ClientSessionController, ClientAuthController, GoalsController, GoalSigningController, BeneficiaryController, StaffAuthController, BackofficeRefundController, BackofficeOversightController, BackofficeSettlementController, AdminController, PartnerAuthController, PartnerHandoverController, PartnerStaffController, BackofficeKycController, BackofficeCustomerController, BackofficeDeceaseController, BackofficeReportsController, BackofficeNotificationsController, BackofficeFreezeController, BackofficeAgencyController, LegalNameController, GoalContributionsController, GoalClaimsController, NotificationFeedController, ...(deps.extraControllers ?? [])],
       providers: [
         { provide: PG_POOL, useValue: deps.database },
         { provide: PIN_PEPPER, useValue: deps.pinPepper ?? null },
         { provide: OTP_PEPPER, useValue: deps.otpPepper ?? null },
         { provide: SMS_SENDER, useValue: deps.smsSender ?? null },
+        { provide: PII_KEYS, useValue: deps.piiKeys ?? null },
         { provide: STAFF_RP, useValue: deps.staffRp ?? null },
         { provide: PARTNER_RP, useValue: deps.partnerRp ?? null },
         { provide: HANDOVER_PEPPER, useValue: deps.handoverPepper ?? null },
@@ -93,6 +108,7 @@ export class AppModule implements NestModule {
         CorrelationMiddleware,
         { provide: APP_FILTER, useClass: ProblemFilter },
         { provide: APP_GUARD, useClass: OriginGuard },
+        { provide: APP_GUARD, useClass: ClientVersionGuard },
         CustomerSessionGuard,
         CustomerQuotaGuard,
         StaffSessionGuard,

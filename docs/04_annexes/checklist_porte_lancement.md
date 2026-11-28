@@ -31,7 +31,7 @@
 
 ## 4. Produit et sécurité
 
-- [ ] Tous les lots 00 à 25 fusionnés ; matrice de traçabilité : toutes les exigences au statut V
+- [ ] Tous les lots 00 à 26 fusionnés ; matrice de traçabilité : toutes les exigences au statut V
 - [ ] Vérificateur indépendant sans divergence sur 7 jours (INT-VER-002)
 - [ ] Liste ASVS 5.0 (L3/L2) et MASVS-L2+R renseignée avec preuves
 - [ ] Test d'intrusion indépendant : 0 faille critique ou haute ouverte (SEC-SDLC-006)
@@ -41,6 +41,9 @@
 - [ ] Interrupteur d'arrêt des flux sortants testé (SEC-INC-003)
 
 ## 5. Opérations
+
+- [ ] Site public en ligne : catalogue réel des deux villes, simulateur identique à l'application, pages légales publiées, Core Web Vitals dans les cibles (F-PUB-*, NF-PUB-*)
+- [ ] Nom commercial et marque déposés ; nom de domaine actif (H8)
 
 - [ ] Support dimensionné et formé ; procédure de réclamation publiée
 - [ ] Astreinte 24/7 en place sur les alertes critiques

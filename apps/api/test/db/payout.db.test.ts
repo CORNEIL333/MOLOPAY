@@ -39,6 +39,7 @@ import {
   validateMerchant,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -369,7 +370,7 @@ describe('F-SET-003 décision maker-checker', () => {
     expect(result.message).toMatch(/^SETTLEMENT_INCOMPLETE/);
   });
 
-  it('I-8 la base refuse une commission versée ailleurs qu’en produits 7100 (SETTLEMENT_INCOMPLETE)', async () => {
+  it('I-8 / REG-FIS-002 la base refuse une commission versée ailleurs qu’en produits 7100 (SETTLEMENT_INCOMPLETE)', async () => {
     await settings(250);
     const prepared = await prepare();
     const result = await failure(() =>
@@ -429,7 +430,7 @@ describe('F-SET-004 instruction signée et exécution', () => {
     principal: AdminPrincipal = FIN,
   ): Promise<{ readonly document: PayoutInstructionDocument; readonly signature: Buffer }> {
     return transact('app_rw', (client) =>
-      instructPayout(client, { payoutId, principal, cityId: 'douala', signingKey: keys.privateKey, keyId: 'plateforme-test-1' }),
+      instructPayout(client, { payoutId, principal, cityId: 'douala', signer: localInstructionSigner(keys.privateKey, 'plateforme-test-1') }),
     );
   }
 

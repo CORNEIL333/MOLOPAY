@@ -133,6 +133,18 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       PLAN_ACTIVATED: ['plan_id', 'offer_id', 'model'],
       PLAN_ACTIVATION_DENIED: ['plan_id', 'offer_id', 'model', 'error_code'],
       MERCHANT_DEFAULT_DECLARED: ['incident_id', 'frozen_agreements'],
+      // C7 / SEC-INC-003 : gel des flux sortants (demande, confirmation par une autre personne).
+      OUTGOING_FREEZE_REQUESTED: ['request_id', 'freeze_action'],
+      OUTGOING_FREEZE_CONFIRMED: ['request_id', 'freeze_action'],
+      // C13 : code d'inscription émis en agence (jamais le numéro ni la pièce).
+      AGENCY_ENROLLMENT_ISSUED: ['challenge_id', 'city_id', 'document_type'],
+      // C19 / F-ACC-007 : décès d'un client (jamais la pièce ni l'empreinte de l'acte).
+      DECEASE_DECLARED: ['case_id', 'account_id'],
+      DECEASE_DECIDED: ['case_id', 'account_id', 'decision', 'frozen_goals'],
+      // C24 / F-REP-002 : consultation des indicateurs produits (période seulement).
+      PRODUCT_KPIS_READ: ['from', 'to'],
+      // D121 : bascule SMS d'un type de notification (canal et nouvel état seulement).
+      SMS_CHANNEL_SET: ['channel', 'enabled'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,

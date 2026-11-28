@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactElement, ReactNode } from 'react';
 import '@achat/ui/styles.css';
+import { SessionNav } from './session-nav';
 
 /**
  * SEC-API-005 / IMP-3 : rendu à chaque requête. La CSP à nonce (middleware)
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
   return (
     <html lang="fr">
       <body>
+        <SessionNav />
         <main>{children}</main>
       </body>
     </html>

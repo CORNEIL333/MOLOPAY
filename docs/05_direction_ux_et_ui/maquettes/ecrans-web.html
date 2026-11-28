@@ -1,0 +1,746 @@
+<title>Écrans web MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : une section par application ; chaque écran est une maquette 1200 px mise à l'échelle de la colonne. */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e7e8e3; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --u-ess: #d9f26b; --u-tech: #8fddf5; --u-log: #c3bdff; --u-mob: #ffa8c5;
+  --ok: #1f7a4a; --ok-bg: #e2f2e8; --warn: #8a5300; --warn-bg: #fbedd0; --bad: #b4232b; --bad-bg: #fbe4e5; --info-bg: #eceefa;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3, h4 { font-family: var(--display); margin: 0; font-weight: 500; text-wrap: balance; }
+p { margin: 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pg-muted); font-weight: 600; }
+.hero { padding-block: 48px 24px; display: grid; gap: 16px; }
+.hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.8rem); line-height: 1; letter-spacing: -0.035em; font-weight: 400; }
+.hero p { max-width: 66ch; color: var(--pg-muted); font-size: 1.05rem; }
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--pg-bg); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--pg-bg); }
+.jump nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.jump a { flex: none; text-decoration: none; color: var(--pg-ink); font-size: 0.88rem; font-weight: 500; padding: 8px 16px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); display: inline-flex; align-items: center; gap: 8px; }
+.jump a i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.jump a:focus-visible { outline: 3px solid var(--u-ess); outline-offset: 2px; }
+.app-sec { padding-block: 40px; border-top: 1px solid var(--pg-line); display: grid; gap: 24px; scroll-margin-top: 64px; }
+.app-sec > header { display: grid; gap: 8px; max-width: 70ch; }
+.app-sec h2 { font-size: clamp(1.7rem, 3.5vw, 2.5rem); letter-spacing: -0.03em; line-height: 1.05; }
+.app-sec > header p { color: var(--pg-muted); }
+.who { display: flex; flex-wrap: wrap; gap: 6px; }
+.who span { font-size: 0.8rem; padding: 4px 12px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); color: var(--pg-muted); }
+.shot { display: grid; gap: 10px; margin: 0; }
+.shot figcaption { font-size: 0.88rem; color: var(--pg-muted); max-width: 80ch; }
+.shot figcaption b { color: var(--pg-ink); font-weight: 600; }
+
+/* Mise à l'échelle des maquettes */
+.fit { position: relative; width: 100%; overflow: hidden; }
+.scaler { width: 1200px; transform-origin: top left; position: absolute; top: 0; left: 0; }
+
+/* Navigateur */
+.browser { border-radius: 18px; overflow: hidden; background: var(--paper); box-shadow: 0 24px 60px -30px rgba(0,0,0,0.4), 0 0 0 1px rgba(15,16,18,0.08); color: var(--ink); font-family: var(--text); font-size: 14px; line-height: 1.45; }
+.bbar { height: 42px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: #f6f6f3; border-bottom: 1px solid var(--mist-2); }
+.bbar .dots { display: flex; gap: 6px; }
+.bbar .dots i { width: 11px; height: 11px; border-radius: 50%; background: #d8d9d4; display: block; }
+.bbar .url { flex: 1; max-width: 460px; margin: 0 auto; height: 26px; border-radius: 999px; background: var(--paper); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.bbar .url svg { width: 11px; height: 11px; }
+
+/* Coque d'application */
+.app { display: grid; grid-template-columns: 228px minmax(0, 1fr); height: 740px; background: var(--mist); }
+.side { padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--paper); border-right: 1px solid var(--mist-2); }
+.side.dark { background: var(--ink); color: #e9eaec; border-right: 0; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.04em; padding: 2px 8px 16px; }
+.brand small { font-family: var(--text); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--mist); color: var(--ink); margin-left: auto; }
+.side.dark .brand small { background: var(--ink-3); color: #e9eaec; }
+.navi { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: inherit; }
+.navi svg { width: 16px; height: 16px; flex: none; }
+.navi .n { margin-left: auto; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--mist); color: var(--ink); }
+.navi.on { background: var(--ink); color: #fff; }
+.navi.on .n { background: var(--u-ess); }
+.side.dark .navi { color: #b9bbc1; }
+.side.dark .navi.on { background: #fff; color: var(--ink); }
+.side.dark .navi .n { background: var(--ink-3); color: #e9eaec; }
+.side.dark .navi.on .n { background: var(--u-ess); color: var(--ink); }
+.sgroup { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); padding: 14px 12px 4px; }
+.side.dark .sgroup { color: #75777e; }
+.side .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 18px; background: var(--mist); font-size: 12.5px; }
+.side.dark .me { background: var(--ink-2); }
+.me b { display: block; font-weight: 600; }
+.me span { color: var(--muted); font-size: 11.5px; }
+.side.dark .me span { color: var(--muted-dark); }
+.av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex: none; color: var(--ink); }
+.main { padding: 22px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0; overflow: hidden; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top h3 { font-size: 28px; letter-spacing: -0.03em; font-weight: 400; }
+.top .sub { font-size: 13px; color: var(--muted); }
+.top .sp { flex: 1; }
+.search { height: 38px; width: 260px; border-radius: 999px; background: var(--paper); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--muted); font-size: 13px; }
+.search svg { width: 14px; height: 14px; }
+.ib { width: 38px; height: 38px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; flex: none; border: 0; color: var(--ink); }
+.ib svg { width: 16px; height: 16px; }
+.btn { height: 38px; border-radius: 999px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; font-family: var(--text); font-weight: 600; font-size: 13px; border: 0; background: var(--ink); color: #fff; white-space: nowrap; cursor: pointer; }
+.btn.ghost { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn.soft { background: var(--paper); color: var(--ink); }
+.btn.danger { background: var(--paper); color: var(--bad); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.btn.lg { height: 48px; font-size: 14.5px; padding: 0 24px; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn svg { width: 14px; height: 14px; }
+.btn:focus-visible, .codein:focus-visible, .chk input:focus-visible + span { outline: 3px solid var(--u-ess); outline-offset: 2px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { background: var(--paper); border-radius: 22px; padding: 16px 18px; display: grid; gap: 4px; }
+.kpi .l { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
+.kpi .v { font-family: var(--display); font-size: 28px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.15; white-space: nowrap; }
+.kpi .v small { font-size: 13px; color: var(--muted); letter-spacing: 0; }
+.kpi .d { font-size: 12px; color: var(--muted); }
+.kpi.hl { background: var(--ink); color: #fff; }
+.kpi.hl .l, .kpi.hl .d, .kpi.hl .v small { color: var(--muted-dark); }
+.cols { display: grid; gap: 12px; min-height: 0; flex: 1; }
+.panel { background: var(--paper); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; overflow: hidden; }
+.ph { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ph h4 { font-size: 17px; letter-spacing: -0.01em; }
+.ph .sub { font-size: 12px; color: var(--muted); }
+.st { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.st.ok { background: var(--ok-bg); color: var(--ok); }
+.st.warn { background: var(--warn-bg); color: var(--warn); }
+.st.bad { background: var(--bad-bg); color: var(--bad); }
+.st.info { background: var(--info-bg); color: var(--ink); }
+.st.plain { background: var(--mist); color: var(--ink); }
+.st.plain::before { display: none; }
+.udot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.t th { text-align: left; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 10px 8px; }
+table.t td { padding: 10px; border-top: 1px solid var(--mist-2); vertical-align: middle; white-space: nowrap; }
+table.t td.r, table.t th.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.t tr.sel td { background: var(--mist); }
+table.t tr.sel td:first-child { border-radius: 14px 0 0 14px; }
+table.t tr.sel td:last-child { border-radius: 0 14px 14px 0; }
+.nm { display: flex; align-items: center; gap: 10px; }
+.nm b { font-weight: 600; display: block; }
+.nm span { font-size: 12px; color: var(--muted); }
+.thumb { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+.thumb svg { width: 24px; height: 24px; }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--mist-2); }
+.kv:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.bars svg { width: 100%; height: auto; display: block; }
+.hbar { display: grid; grid-template-columns: 110px 1fr 54px; gap: 10px; align-items: center; font-size: 12.5px; }
+.hbar .tr { height: 10px; border-radius: 999px; background: var(--mist); overflow: hidden; }
+.hbar .tr i { display: block; height: 100%; border-radius: inherit; }
+.hbar b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; font-size: 12.5px; }
+.banner svg { width: 16px; height: 16px; flex: none; }
+.chip { font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 999px; background: var(--paper); white-space: nowrap; }
+.chip.on { background: var(--ink); color: #fff; }
+.tabs { display: flex; gap: 6px; }
+
+/* Comptoir */
+.codein { width: 100%; height: 86px; border: 0; border-radius: 22px; background: var(--mist); font-family: var(--display); font-size: 48px; letter-spacing: 0.5em; text-align: center; padding-left: 0.5em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.codein::placeholder { color: #c5c6c1; }
+.res { border-radius: 24px; padding: 18px; display: grid; gap: 12px; }
+.res.valid { background: var(--ink); color: #fff; }
+.res.valid .kv { border-color: var(--ink-3); }
+.res.valid .kv span:first-child { color: var(--muted-dark); }
+.res.invalid { background: var(--bad-bg); color: var(--bad); }
+.res[hidden] { display: none; }
+.chk { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
+.chk input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chk span.box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #55575d; display: grid; place-items: center; flex: none; }
+.chk input:checked + span.box { background: var(--u-ess); border-color: var(--u-ess); }
+.chk input:checked + span.box::after { content: ""; width: 9px; height: 5px; border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(-45deg) translate(1px, -1px); }
+.serial { height: 40px; border-radius: 14px; border: 0; background: var(--ink-2); color: #fff; padding: 0 12px; font-family: var(--text); font-size: 13px; width: 100%; }
+
+/* Client web (PWA) */
+.wtop { display: flex; align-items: center; gap: 14px; padding: 16px 28px; background: var(--paper); border-bottom: 1px solid var(--mist-2); }
+.wtop .brand { padding: 0; }
+.pillnav { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--mist); margin: 0 auto; }
+.pillnav span { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.pillnav span.on { background: var(--ink); color: #fff; }
+.wbody { background: linear-gradient(180deg, #f7f7f2, #eef0e6); height: 698px; padding: 26px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; }
+.gcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gc { border-radius: 26px; padding: 18px; display: grid; gap: 8px; position: relative; min-height: 190px; align-content: start; }
+.gc .tag { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
+.gc .it { font-family: var(--display); font-size: 19px; letter-spacing: -0.02em; }
+.gc .am { font-family: var(--display); font-size: 26px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-top: auto; }
+.gc .am small { font-size: 12px; opacity: 0.7; letter-spacing: 0; }
+.thin { height: 6px; border-radius: 999px; background: rgba(15,16,18,0.14); overflow: hidden; }
+.thin i { display: block; height: 100%; background: var(--ink); border-radius: inherit; }
+.gc .go { position: absolute; right: 14px; top: 14px; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.7); display: grid; place-items: center; }
+.gc .go svg { width: 14px; height: 14px; }
+.install { background: var(--ink); color: #fff; border-radius: 26px; padding: 20px; display: grid; gap: 10px; }
+.install p { color: var(--muted-dark); font-size: 13px; }
+.install .btn { background: var(--u-ess); color: var(--ink); justify-self: start; }
+
+/* Téléphones (PWA mobile) */
+.phones { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+.phone { width: 260px; max-width: 100%; aspect-ratio: 260 / 540; border-radius: 42px; padding: 8px; background: #0a0a0b; box-shadow: 0 24px 50px -28px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; }
+.screen { position: relative; height: 100%; border-radius: 35px; overflow: hidden; font-family: var(--text); color: var(--ink); display: flex; flex-direction: column; font-size: 13px; line-height: 1.4; }
+.island { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 20px; background: #000; z-index: 3; }
+.sbar { display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 11px; font-weight: 600; height: 32px; flex: none; }
+.murl { margin: 4px 12px 0; height: 30px; border-radius: 999px; background: var(--mist); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--muted); flex: none; }
+.murl svg { width: 10px; height: 10px; }
+.mbody { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.mgc { border-radius: 22px; padding: 14px; display: grid; gap: 6px; }
+.mgc .it { font-family: var(--display); font-size: 15px; }
+.mgc .am { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.msheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 28px 28px 35px 35px; padding: 10px 16px 18px; display: grid; gap: 10px; box-shadow: 0 -20px 40px -10px rgba(0,0,0,0.35); z-index: 2; }
+.grab { width: 36px; height: 4px; border-radius: 4px; background: var(--mist-2); justify-self: center; }
+.appicon { width: 52px; height: 52px; border-radius: 15px; background: var(--ink); display: grid; place-items: center; flex: none; }
+.offline { background: var(--ink); color: #fff; border-radius: 16px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; }
+.offline svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.offline span { color: var(--muted-dark); }
+.mbtn { height: 44px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-family: var(--text); font-weight: 600; font-size: 13px; width: 100%; }
+.mbtn.dis { background: var(--mist-2); color: var(--muted); }
+
+/* Kanban */
+.kan { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+.kcol { background: var(--mist-2); border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.kcol > header { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 2px; font-weight: 600; font-size: 13px; }
+.kcol > header span { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--paper); }
+.kc { background: var(--paper); border-radius: 16px; padding: 12px; display: grid; gap: 7px; font-size: 12.5px; }
+.kc .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: space-between; align-items: center; }
+.kc b { font-weight: 600; line-height: 1.35; white-space: normal; }
+.kc .meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.kc .av { width: 24px; height: 24px; font-size: 10px; }
+
+/* Chronologie */
+.tl { display: grid; gap: 0; }
+.ev { display: grid; grid-template-columns: 74px 22px minmax(0, 1fr); gap: 10px; font-size: 13px; }
+.ev time { font-size: 11.5px; color: var(--muted); text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.ev .rail { display: flex; flex-direction: column; align-items: center; }
+.ev .rail i { width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--paper); flex: none; margin-top: 3px; }
+.ev .rail::after { content: ""; width: 2px; flex: 1; background: var(--mist-2); margin: 3px 0; }
+.ev:last-child .rail::after { display: none; }
+.ev .c { padding-bottom: 14px; display: grid; gap: 3px; }
+.ev .c b { font-weight: 600; }
+.ev .c span { color: var(--muted); font-size: 12.5px; }
+.ev.alert .rail i { border-color: var(--bad); background: var(--bad); }
+.ev.good .rail i { border-color: var(--ok); background: var(--ok); }
+
+.next { padding-block: 40px 64px; border-top: 1px solid var(--pg-line); display: grid; gap: 10px; }
+.next p { color: var(--pg-muted); max-width: 70ch; }
+</style>
+
+<header class="wrap hero">
+  <span class="eyebrow">Identité UI/UX · écrans web</span>
+  <h1>Partenaires, clients web, équipe interne</h1>
+  <p>La même identité que l'app mobile : noir pour les actions, couleurs des univers pour les projets, coins arrondis. Sur ordinateur, elle se densifie : tableaux, chiffres alignés, statuts colorés pour ce qui demande une action. Le back-office et le CRM ont une barre latérale noire pour qu'on sache toujours qu'on est dans un outil interne.</p>
+</header>
+<div class="jump"><nav class="wrap" aria-label="Aller à">
+  <a href="#partenaire"><i style="background:var(--u-log)"></i>Portail partenaire</a>
+  <a href="#pwa"><i style="background:var(--u-tech)"></i>Client web (PWA)</a>
+  <a href="#back-office"><i style="background:var(--ink);box-shadow:0 0 0 1px var(--pg-line)"></i>Back-office</a>
+  <a href="#crm"><i style="background:var(--u-mob)"></i>CRM et support</a>
+</nav></div>
+
+<main>
+<!-- ================= PARTENAIRE ================= -->
+<section class="wrap app-sec" id="partenaire" aria-labelledby="h-part">
+  <header><span class="eyebrow">Portail partenaire</span><h2 id="h-part">Pour les boutiques, bailleurs et écoles</h2>
+    <p>Le gérant suit ses objectifs clients et ses règlements ; le vendeur au comptoir ne voit que la remise. Les clients restent anonymes tant que leur objectif n'est pas à 100 %.</p>
+    <div class="who"><span>Gérant</span><span>Vendeur</span><span>Ordinateur et tablette</span></div></header>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>partenaires · Tableau de bord</div></div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><svg class="ring" data-fg="#0f1012" data-off="#d6d7d2" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay<small>Pro</small></div>
+          <span class="navi on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/></svg>Tableau de bord</span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="2"/><path d="M5 4V2.5h6V4"/></svg>Comptoir<span class="n">9</span></span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Commandes</span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 6 8 2.5 13.5 6v7.5h-11Z"/></svg>Offres et stock<span class="n">3</span></span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="8" rx="2"/><circle cx="8" cy="8" r="1.8"/></svg>Règlements</span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="2.5"/><path d="M1.5 13c.6-2.4 2.3-3.5 4.5-3.5s3.9 1.1 4.5 3.5M11 4.5a2 2 0 0 1 0 4M12.5 13c-.2-1.3-.7-2.2-1.5-2.8"/></svg>Vendeurs</span>
+          <span class="sgroup">Boutique</span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s5-4.3 5-8a5 5 0 0 0-10 0c0 3.7 5 8 5 8Z"/><circle cx="8" cy="6" r="1.8"/></svg>Points de remise</span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>Abonnement</span>
+          <div class="me"><div class="av" style="background:var(--u-log)">ÉB</div><div><b>Électro Bonapriso</b><span>Joël T. · gérant</span></div></div>
+        </aside>
+        <div class="main">
+          <div class="top"><div><h3>Bonjour, Joël</h3><div class="sub">Vendredi 20 novembre · Point de remise Bonapriso</div></div><span class="sp"></span><div class="search"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4.3"/><path d="m9.3 9.3 3 3"/></svg>Code, commande, offre…</div><button class="btn" type="button"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 2.5v9M2.5 7h9"/></svg>Nouvelle offre</button></div>
+          <div class="kpis">
+            <div class="kpi hl"><span class="l">À remettre cette semaine</span><span class="v">9</span><span class="d">Clients à 100 %, code émis</span></div>
+            <div class="kpi"><span class="l">Objectifs clients en cours</span><span class="v">214</span><span class="d">+18 cette semaine</span></div>
+            <div class="kpi"><span class="l">Prochain règlement <span class="st warn">En approbation</span></span><span class="v">1 245 000 <small>FCFA</small></span><span class="d">9 remises, du 9 au 15 nov.</span></div>
+            <div class="kpi"><span class="l">Stock bas <span class="st bad">À réapprovisionner</span></span><span class="v">3 <small>offres</small></span><span class="d">Réservations au-delà du stock</span></div>
+          </div>
+          <div class="cols" style="grid-template-columns: 380px minmax(0,1fr)">
+            <div class="panel">
+              <div class="ph"><h4>Où en sont vos clients</h4><span class="sub">214 objectifs</span></div>
+              <div class="hbar"><span>0 à 25 %</span><div class="tr"><i style="width:68%;background:var(--mist-2)"></i></div><b>61</b></div>
+              <div class="hbar"><span>25 à 50 %</span><div class="tr"><i style="width:64%;background:#c9cbc4"></i></div><b>58</b></div>
+              <div class="hbar"><span>50 à 75 %</span><div class="tr"><i style="width:52%;background:#8e9189"></i></div><b>47</b></div>
+              <div class="hbar"><span>75 à 99 %</span><div class="tr"><i style="width:43%;background:#45474c"></i></div><b>39</b></div>
+              <div class="hbar"><span>100 %, à remettre</span><div class="tr"><i style="width:10%;background:var(--u-ess)"></i></div><b>9</b></div>
+              <div class="banner" style="background:var(--mist);margin-top:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg><span>Les clients sont anonymes jusqu'à 100 %. Leur nom apparaît avec le code de remise.</span></div>
+              <div class="ph"><h4>Par façon de payer</h4></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--u-tech)"></span> Épargne</span><div class="tr"><i style="width:78%;background:var(--u-tech)"></i></div><b>168</b></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--ink)"></span> Financement</span><div class="tr"><i style="width:22%;background:var(--ink)"></i></div><b>46</b></div>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Remises à venir</h4><div class="tabs"><span class="chip on">Prêtes (9)</span><span class="chip" style="background:var(--mist)">Remises (27)</span><button class="btn soft" type="button" style="background:var(--mist)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 2v7M4 6l3 3 3-3M2.5 11.5h9"/></svg>Exporter CSV</button></div></div>
+              <table class="t">
+                <thead><tr><th>Article</th><th>Client</th><th>Code émis</th><th class="r">Montant</th><th>Statut</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="nm"><div class="thumb" style="background:var(--u-tech)"><svg data-ill="fridge" viewBox="0 0 100 100"></svg></div><div><b>Réfrigérateur 150 L</b><span>Réf. HS-150</span></div></div></td><td>Jean-Paul T.</td><td>19 nov.</td><td class="r">185 000</td><td><span class="st ok">Prêt à remettre</span></td></tr>
+                  <tr><td><div class="nm"><div class="thumb" style="background:var(--u-tech)"><svg data-ill="tv" viewBox="0 0 100 100"></svg></div><div><b>Téléviseur 43" Smart</b><span>Réf. TV-43S</span></div></div></td><td>Mireille A.</td><td>18 nov.</td><td class="r">210 000</td><td><span class="st ok">Prêt à remettre</span></td></tr>
+                  <tr><td><div class="nm"><div class="thumb" style="background:var(--u-tech)"><svg data-ill="gas" viewBox="0 0 100 100"></svg></div><div><b>Cuisinière 4 feux</b><span>Réf. CU-4F</span></div></div></td><td>Samuel K.</td><td>17 nov.</td><td class="r">98 000</td><td><span class="st warn">Expire dans 2 j</span></td></tr>
+                  <tr><td><div class="nm"><div class="thumb" style="background:var(--u-tech)"><svg data-ill="laptop" viewBox="0 0 100 100"></svg></div><div><b>Ordinateur portable 15"</b><span>Réf. PC-15</span></div></div></td><td>Brice N.</td><td>16 nov.</td><td class="r">285 000</td><td><span class="st bad">Rupture : proposer équivalent</span></td></tr>
+                  <tr><td><div class="nm"><div class="thumb" style="background:var(--u-tech)"><svg data-ill="fridge" viewBox="0 0 100 100"></svg></div><div><b>Congélateur 200 L</b><span>Réf. CG-200</span></div></div></td><td>Estelle M.</td><td>15 nov.</td><td class="r">215 000</td><td><span class="st ok">Prêt à remettre</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Tableau de bord du gérant.</b> En tête : ce qui demande une action (remises, règlement, stock). Les ruptures déclenchent la proposition d'un article équivalent ou le remboursement intégral.</figcaption>
+  </figure>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>partenaires · Comptoir</div></div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><svg class="ring" data-fg="#0f1012" data-off="#d6d7d2" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay<small>Pro</small></div>
+          <span class="navi on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="12" height="9" rx="2"/><path d="M5 4V2.5h6V4"/></svg>Comptoir<span class="n">9</span></span>
+          <span class="navi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Mes remises du jour</span>
+          <div class="banner" style="background:var(--mist);margin-top:12px;font-size:11.5px"><span>Compte vendeur : les règlements et les chiffres de la boutique ne sont pas visibles.</span></div>
+          <div class="me"><div class="av" style="background:var(--u-ess)">RF</div><div><b>Rosine F.</b><span>Vendeuse · Bonapriso</span></div></div>
+        </aside>
+        <div class="main">
+          <div class="top"><div><h3>Remise au client</h3><div class="sub">Saisissez le code à 6 chiffres que le client vous montre</div></div><span class="sp"></span><span class="st ok">Point de remise vérifié · Bonapriso</span></div>
+          <div class="cols" style="grid-template-columns: minmax(0,1fr) 440px">
+            <div class="panel" style="gap:16px">
+              <label for="code" class="ph"><h4>Code de remise</h4><span class="sub">Essayez 482716, ou un autre code</span></label>
+              <input id="code" class="codein" inputmode="numeric" maxlength="6" value="482716" placeholder="••••••" autocomplete="off">
+              <div style="display:flex;gap:10px"><button class="btn lg" id="verify" type="button">Vérifier le code</button><button class="btn lg ghost" type="button"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5V2.5h2.5M9.5 2.5H12V5M12 9v2.5H9.5M4.5 11.5H2V9M4 7h6"/></svg>Scanner le QR</button></div>
+              <div class="ph" style="margin-top:8px"><h4>Remises du jour</h4><span class="sub">3 confirmées</span></div>
+              <table class="t">
+                <tbody>
+                  <tr><td>09:42</td><td><b>Cuisinière 4 feux</b></td><td>Samuel K.</td><td class="r"><span class="st ok">Remis</span></td></tr>
+                  <tr><td>10:05</td><td><b>Téléviseur 43" Smart</b></td><td>Mireille A.</td><td class="r"><span class="st ok">Remis</span></td></tr>
+                  <tr><td>10:11</td><td><b>Code 51•••9</b></td><td>—</td><td class="r"><span class="st bad">Refusé : déjà utilisé</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel" style="background:transparent;padding:0">
+              <div class="res valid" id="res-ok">
+                <div class="ph"><span class="st" style="background:var(--u-ess);color:var(--ink)">Code valide · usage unique</span><span style="font-size:12px;color:var(--muted-dark)">expire le 4 déc.</span></div>
+                <div class="nm"><div class="thumb" style="background:var(--u-tech);width:56px;height:56px;border-radius:16px"><svg data-ill="fridge" viewBox="0 0 100 100" style="width:36px;height:36px"></svg></div><div><b style="font-family:var(--display);font-weight:500;font-size:20px">Réfrigérateur 150 L</b><span style="color:var(--muted-dark)">Réf. HS-150 · payé à 100 %</span></div></div>
+                <div><div class="kv"><span>Client</span><span>Jean-Paul T.</span></div><div class="kv"><span>Pièce à vérifier</span><span>CNI n° •••• 4471</span></div><div class="kv"><span>Montant réglé</span><span>185 000 FCFA</span></div></div>
+                <label class="chk"><input type="checkbox" class="rc"><span class="box"></span>J'ai vérifié la pièce d'identité du client</label>
+                <label class="chk"><input type="checkbox" class="rc"><span class="box"></span>L'article remis est conforme à l'offre</label>
+                <input class="serial" id="serial" placeholder="Numéro de série (obligatoire)" aria-label="Numéro de série">
+                <button class="btn lg" id="handover" type="button" style="background:var(--u-ess);color:var(--ink)" disabled>Confirmer la remise</button>
+                <p style="font-size:11.5px;color:var(--muted-dark)">La confirmation est horodatée et géolocalisée. Le règlement de la boutique part après le délai de contestation.</p>
+              </div>
+              <div class="res invalid" id="res-bad" hidden>
+                <h4 style="font-size:18px">Code inconnu ou expiré</h4>
+                <p style="font-size:13px">Ne remettez pas l'article. Demandez au client d'ouvrir son code dans l'application, ou appelez le support partenaire.</p>
+              </div>
+              <div class="res" id="res-done" hidden style="background:var(--ok-bg);color:var(--ok)">
+                <h4 style="font-size:18px">Remise confirmée à <span id="done-time">10:14</span></h4>
+                <p style="font-size:13px;color:var(--ink)">Le client reçoit son reçu par SMS. Le code n'est plus utilisable.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Comptoir du vendeur.</b> Interactif : vérifiez le code, cochez les deux contrôles et saisissez un numéro de série pour activer la confirmation.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= PWA ================= -->
+<section class="wrap app-sec" id="pwa" aria-labelledby="h-pwa">
+  <header><span class="eyebrow">Client web (PWA)</span><h2 id="h-pwa">L'app, sans rien télécharger du store</h2>
+    <p>Pour la diaspora sur ordinateur et pour les téléphones avec peu de mémoire. Elle s'installe depuis le navigateur et affiche les objectifs hors ligne, avec la date de dernière mise à jour.</p>
+    <div class="who"><span>Clients</span><span>Diaspora</span><span>Ordinateur et téléphone</span></div></header>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>molopay · Mes objectifs</div></div>
+      <div class="wtop">
+        <div class="brand"><svg class="ring" data-fg="#0f1012" data-off="#d6d7d2" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay</div>
+        <div class="pillnav"><span>Accueil</span><span>Catalogue</span><span class="on">Mes objectifs</span><span>Activité</span><span>Compte</span></div>
+        <button class="ib" type="button" aria-label="Notifications" style="background:var(--mist)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7a4 4 0 0 1 8 0v3l1.2 2H2.8L4 10V7Z"/><path d="M6.5 13.5a1.6 1.6 0 0 0 3 0"/></svg></button>
+        <div class="av" style="background:var(--u-log)">AN</div>
+      </div>
+      <div class="wbody">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+            <div><div style="font-size:13px;color:var(--muted)">Épargné sur vos 3 projets</div><div style="font-family:var(--display);font-size:52px;letter-spacing:-0.04em;font-weight:300;line-height:1;font-variant-numeric:tabular-nums">618 000 <span style="font-size:18px;color:var(--muted);letter-spacing:0">FCFA</span></div></div>
+            <div style="display:flex;gap:8px"><button class="btn ghost" type="button">Nouvel objectif</button><button class="btn" type="button">Verser</button></div>
+          </div>
+          <div class="gcards">
+            <div class="gc" style="background:var(--u-mob)"><span class="tag">Mobilité</span><span class="it">Moto Bajaj Boxer 150</span><span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span><span class="am">412 500 <small>sur 650 000</small></span><div class="thin"><i style="width:63%"></i></div><span style="font-size:12px">Remise estimée le 14 mars</span></div>
+            <div class="gc" style="background:var(--u-log)"><span class="tag">Logement</span><span class="it">Caution, Bonamoussadi</span><span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span><span class="am">120 000 <small>sur 300 000</small></span><div class="thin"><i style="width:40%"></i></div><span style="font-size:12px">Bailleur vérifié · bail au dossier</span></div>
+            <div class="gc" style="background:var(--u-tech)"><span class="tag">Technologie</span><span class="it">Tecno Camon 30</span><span class="go"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11 11 5M6 5h5v5"/></svg></span><span class="am">85 500 <small>sur 165 000</small></span><div class="thin"><i style="width:52%"></i></div><span style="font-size:12px">Contribution de Paul N. (France) acceptée</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h4>Derniers versements</h4><span class="sub">Chaque reçu est numéroté et vérifiable</span></div>
+            <table class="t">
+              <thead><tr><th>Date</th><th>Projet</th><th>Moyen</th><th>Reçu</th><th class="r">Montant</th><th>Statut</th></tr></thead>
+              <tbody>
+                <tr><td>20 nov., 09:12</td><td><span class="udot" style="background:var(--u-mob)"></span> Moto Bajaj Boxer 150</td><td>MTN MoMo</td><td>MP-2026-004817</td><td class="r">5 000 FCFA</td><td><span class="st ok">Confirmé</span></td></tr>
+                <tr><td>19 nov., 21:40</td><td><span class="udot" style="background:var(--u-tech)"></span> Tecno Camon 30</td><td>Virement agréé · Paul N.</td><td>MP-2026-004790</td><td class="r">25 000 FCFA</td><td><span class="st ok">Confirmé</span></td></tr>
+                <tr><td>18 nov., 19:40</td><td><span class="udot" style="background:var(--u-mob)"></span> Moto Bajaj Boxer 150</td><td>Orange Money</td><td>—</td><td class="r">5 000 FCFA</td><td><span class="st warn">Réclamation en cours</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div class="panel">
+            <div class="ph"><h4>À venir</h4></div>
+            <div><div class="kv"><span><span class="udot" style="background:var(--u-mob)"></span> Lun. 23 nov.</span><span>5 000 FCFA</span></div><div class="kv"><span><span class="udot" style="background:var(--u-log)"></span> Mar. 1er déc.</span><span>30 000 FCFA</span></div><div class="kv"><span><span class="udot" style="background:var(--u-tech)"></span> Libre</span><span>min. 1 000 FCFA</span></div></div>
+          </div>
+          <div class="install">
+            <h4 style="font-size:20px;letter-spacing:-0.02em">Installez MoloPay sur cet ordinateur</h4>
+            <p>Ouverture en un clic, notifications de versement, et vos objectifs consultables même sans connexion.</p>
+            <button class="btn" type="button">Installer l'application</button>
+          </div>
+          <div class="panel" style="gap:8px">
+            <div class="ph"><h4>Vos fonds</h4></div>
+            <p style="font-size:13px;color:var(--muted)">Conservés par [banque partenaire] jusqu'à la remise ou au règlement. Vous pouvez annuler un objectif non verrouillé sans frais.</p>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Client web sur ordinateur.</b> Les mêmes cartes de projet que sur mobile, élargies. On y voit une contribution de la diaspora et une réclamation en cours.</figcaption>
+  </figure>
+
+  <figure class="shot">
+    <div class="phones">
+      <div class="phone"><div class="screen" style="background:linear-gradient(180deg,#f7f7f2,#eeefe9)">
+        <div class="island"></div><div class="sbar"><span>9:41</span><span>4G</span></div>
+        <div class="murl"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>molopay</div>
+        <div class="mbody" style="opacity:0.5" aria-hidden="true">
+          <div style="font-family:var(--display);font-size:26px;font-weight:300;letter-spacing:-0.03em">618 000 FCFA</div>
+          <div class="mgc" style="background:var(--u-mob)"><span class="it">Moto Bajaj Boxer 150</span><span class="am">412 500</span></div>
+          <div class="mgc" style="background:var(--u-log)"><span class="it">Caution, Bonamoussadi</span></div>
+        </div>
+        <div class="msheet">
+          <div class="grab"></div>
+          <div style="display:flex;gap:12px;align-items:center"><div class="appicon"><svg class="ring" data-fg="#ffffff" data-off="#3a3c41" width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"></svg></div><div><b style="font-family:var(--display);font-weight:500;font-size:17px">MoloPay</b><div style="font-size:11.5px;color:var(--muted)">Moins de 2 Mo · pas besoin du store</div></div></div>
+          <p style="font-size:12px;color:var(--muted)">Ajoutez MoloPay à votre écran d'accueil pour l'ouvrir comme une application.</p>
+          <button class="mbtn" type="button">Ajouter à l'écran d'accueil</button>
+          <button class="mbtn" type="button" style="background:transparent;color:var(--ink);height:32px">Plus tard</button>
+        </div>
+      </div></div>
+      <div class="phone"><div class="screen" style="background:linear-gradient(180deg,#f7f7f2,#eeefe9)">
+        <div class="island"></div><div class="sbar"><span>9:41</span><span>Hors ligne</span></div>
+        <div class="mbody">
+          <div class="offline"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 5a8 8 0 0 1 11 0M3.5 7.3a5 5 0 0 1 7 0M5.6 9.5a2 2 0 0 1 2.8 0M2 2l10 10"/></svg><div>Pas de connexion<br><span>Données du 20 nov. à 9 h 12. Les versements reprendront au retour du réseau.</span></div></div>
+          <div style="font-size:12px;color:var(--muted)">Épargné sur vos 3 projets</div>
+          <div style="font-family:var(--display);font-size:30px;font-weight:300;letter-spacing:-0.03em;line-height:1">618 000 <span style="font-size:13px;color:var(--muted)">FCFA</span></div>
+          <div class="mgc" style="background:var(--u-mob)"><span style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7">Mobilité</span><span class="it">Moto Bajaj Boxer 150</span><span class="am">412 500 <small style="font-size:11px;opacity:0.7">sur 650 000</small></span><div class="thin"><i style="width:63%"></i></div></div>
+          <div class="mgc" style="background:var(--u-log)"><span class="it">Caution, Bonamoussadi</span><span class="am">120 000</span></div>
+          <button class="mbtn dis" type="button" disabled style="margin-top:auto">Verser (connexion requise)</button>
+        </div>
+      </div></div>
+    </div>
+    <figcaption><b>PWA sur téléphone.</b> À gauche, l'invitation à installer. À droite, le mode hors ligne : on consulte, mais aucun paiement ne part sans réseau.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= BACK-OFFICE ================= -->
+<section class="wrap app-sec" id="back-office" aria-labelledby="h-bo">
+  <header><span class="eyebrow">Back-office</span><h2 id="h-bo">Pour les opérations, la finance et la conformité</h2>
+    <p>Barre latérale noire : on sait qu'on est dans l'outil interne. Chaque rôle voit ses files ; tout mouvement d'argent passe par deux personnes distinctes, et personne ne peut modifier le grand livre.</p>
+    <div class="who"><span>Opérations</span><span>Finance</span><span>Conformité</span><span>Risque</span><span>Audit (lecture seule)</span></div></header>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · réseau d'administration</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="dash"></aside>
+        <div class="main">
+          <div class="top"><div><h3>Vue d'ensemble</h3><div class="sub">Vendredi 20 novembre, 10:20 · chiffres issus du grand livre</div></div><span class="sp"></span><div class="tabs"><span class="chip on">Aujourd'hui</span><span class="chip">7 jours</span><span class="chip">30 jours</span></div></div>
+          <div class="kpis">
+            <div class="kpi hl"><span class="l">Fonds cantonnés <span class="st" style="background:var(--u-ess);color:var(--ink)">Rapproché à 06:00</span></span><span class="v">248 612 500 <small>FCFA</small></span><span class="d">Banque = grand livre, écart 0 FCFA</span></div>
+            <div class="kpi"><span class="l">Versements du jour</span><span class="v">41 870 000 <small>FCFA</small></span><span class="d">3 412 versements · +9 % vs vendredi dernier</span></div>
+            <div class="kpi"><span class="l">Règlements à approuver <span class="st warn">12</span></span><span class="v">18 450 000 <small>FCFA</small></span><span class="d">Le plus ancien : il y a 19 h</span></div>
+            <div class="kpi"><span class="l">Litiges et alertes <span class="st bad">4 hors délai</span></span><span class="v">23 <small>litiges</small> · 7 <small>alertes</small></span><span class="d">Délai de réponse publié : 72 h</span></div>
+          </div>
+          <div class="cols" style="grid-template-columns: minmax(0,1fr) 340px">
+            <div class="panel">
+              <div class="ph"><h4>Versements confirmés, 14 derniers jours</h4><span class="sub">en millions de FCFA</span></div>
+              <div class="bars" id="bo-chart"></div>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+                <div class="kpi" style="background:var(--mist);padding:12px"><span class="l">Remises cette semaine</span><span class="v" style="font-size:22px">186</span></div>
+                <div class="kpi" style="background:var(--mist);padding:12px"><span class="l">Objectifs ouverts</span><span class="v" style="font-size:22px">18 942</span></div>
+                <div class="kpi" style="background:var(--mist);padding:12px"><span class="l">Taux à 100 %</span><span class="v" style="font-size:22px">71 %</span></div>
+                <div class="kpi" style="background:var(--mist);padding:12px"><span class="l">Délai de remise</span><span class="v" style="font-size:22px">2,4 j</span></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Par univers</h4><span class="sub">encours</span></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--u-tech)"></span> Technologie</span><div class="tr"><i style="width:34%;background:var(--u-tech)"></i></div><b>34 %</b></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--u-mob)"></span> Mobilité</span><div class="tr"><i style="width:27%;background:var(--u-mob)"></i></div><b>27 %</b></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--u-log)"></span> Logement</span><div class="tr"><i style="width:21%;background:var(--u-log)"></i></div><b>21 %</b></div>
+              <div class="hbar"><span><span class="udot" style="background:var(--u-ess)"></span> Essentiels</span><div class="tr"><i style="width:18%;background:var(--u-ess)"></i></div><b>18 %</b></div>
+              <div class="ph" style="margin-top:6px"><h4>Par ville</h4></div>
+              <div class="hbar"><span>Douala</span><div class="tr"><i style="width:58%;background:var(--ink)"></i></div><b>58 %</b></div>
+              <div class="hbar"><span>Yaoundé</span><div class="tr"><i style="width:33%;background:var(--ink)"></i></div><b>33 %</b></div>
+              <div class="hbar"><span>Autres</span><div class="tr"><i style="width:9%;background:var(--ink)"></i></div><b>9 %</b></div>
+              <div class="banner" style="background:var(--mist);margin-top:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/></svg><span>Chaîne d'intégrité vérifiée cette nuit · lot n° 3 184</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Vue d'ensemble.</b> Le premier chiffre est celui qui compte le plus : l'argent des clients chez la banque correspond-il exactement au grand livre ?</figcaption>
+  </figure>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · File de travail</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="queue"></aside>
+        <div class="main">
+          <div class="top"><div><h3>File de travail</h3><div class="sub">Opérations qui attendent une deuxième personne</div></div><span class="sp"></span><div class="tabs"><span class="chip on">Pour moi (12)</span><span class="chip">Préparées par moi (3)</span><span class="chip">Toutes</span></div></div>
+          <div class="cols" style="grid-template-columns: minmax(0,1fr) 430px">
+            <div class="panel">
+              <table class="t">
+                <thead><tr><th>Type</th><th>Objet</th><th>Attente</th><th class="r">Montant</th></tr></thead>
+                <tbody>
+                  <tr class="sel"><td><span class="st info">Règlement partenaire</span></td><td><b>Électro Bonapriso</b></td><td>19 h</td><td class="r">1 245 000</td></tr>
+                  <tr><td><span class="st info">Remboursement</span></td><td>Objectif annulé · Caution Logpom</td><td>6 h</td><td class="r">87 500</td></tr>
+                  <tr><td><span class="st plain">Vérification</span></td><td>Bail · bailleur Mme Essomba</td><td>4 h</td><td class="r">—</td></tr>
+                  <tr><td><span class="st bad">Alerte fraude</span></td><td>5 comptes, même appareil</td><td>2 h</td><td class="r">—</td></tr>
+                  <tr><td><span class="st warn">Rapprochement</span></td><td>Écart Orange Money du 18 nov.</td><td>1 h</td><td class="r">15 000</td></tr>
+                  <tr><td><span class="st info">Règlement partenaire</span></td><td><b>Moto Center Akwa</b></td><td>45 min</td><td class="r">3 900 000</td></tr>
+                  <tr><td><span class="st plain">Décès client</span></td><td>Restitution aux ayants droit</td><td>3 j</td><td class="r">212 000</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel" style="gap:10px">
+              <div class="ph"><span class="st info">Règlement partenaire</span><span class="sub">RG-2026-00731</span></div>
+              <h4 style="font-size:22px;letter-spacing:-0.02em">Électro Bonapriso</h4>
+              <div style="font-family:var(--display);font-size:34px;font-weight:300;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">1 245 000 <span style="font-size:14px;color:var(--muted)">FCFA</span></div>
+              <div>
+                <div class="kv"><span>9 remises du 9 au 15 nov.</span><span>1 310 526 FCFA</span></div>
+                <div class="kv"><span>Commission 5 %</span><span>− 65 526 FCFA</span></div>
+                <div class="kv"><span>Délai de contestation</span><span style="color:var(--ok)">Écoulé ✓</span></div>
+                <div class="kv"><span>Litiges ouverts</span><span style="color:var(--ok)">Aucun ✓</span></div>
+                <div class="kv"><span>Compte de règlement</span><span>Vérifié le 2 sept.</span></div>
+                <div class="kv"><span>Préparé par</span><span>Paul Etoundi, 19 nov. 16:42</span></div>
+              </div>
+              <label for="motif" style="font-size:12px;font-weight:600">Motif (obligatoire)</label>
+              <div id="motif" style="height:40px;border-radius:14px;background:var(--mist);padding:10px 12px;font-size:13px;color:var(--muted)">Pièces contrôlées, montants conformes aux remises.</div>
+              <div style="display:flex;gap:8px"><button class="btn lg" type="button" style="flex:1">Approuver et signer</button><button class="btn lg danger" type="button">Rejeter</button></div>
+              <div class="banner" style="background:var(--mist)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 11h.01"/></svg><span>Vous ne pouvez pas approuver une opération que vous avez préparée. L'instruction part ensuite vers [banque partenaire].</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>File de travail à double contrôle.</b> Règlements, remboursements, vérifications de baux, alertes de fraude, écarts de rapprochement et dossiers de décès arrivent au même endroit, chacun avec son statut coloré.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= CRM ================= -->
+<section class="wrap app-sec" id="crm" aria-labelledby="h-crm">
+  <header><span class="eyebrow">CRM et support</span><h2 id="h-crm">Connaître le client, résoudre vite</h2>
+    <p>Un module du back-office pour le support et le réseau. La fiche client réunit tout l'historique en une chronologie ; chaque consultation est journalisée avec un motif. Les campagnes de rappel respectent la charte : horaires et fréquence limités.</p>
+    <div class="who"><span>Support N1 et N2</span><span>Réseau partenaires</span><span>Marketing</span></div></header>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · Clients</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="client"></aside>
+        <div class="main">
+          <div class="banner" style="background:var(--warn-bg);color:var(--warn)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg><span><b>Consultation journalisée.</b> Motif : réclamation R-2026-1182. Visible par l'audit.</span></div>
+          <div class="top">
+            <div class="av" style="background:var(--u-log);width:56px;height:56px;font-size:18px">AN</div>
+            <div><h3>Aïcha N•••</h3><div class="sub">+237 6•• •• •• 42 · Douala · cliente depuis le 3 août 2026</div></div>
+            <span class="sp"></span>
+            <span class="st ok">KYC niveau 2</span><span class="st plain">1 appareil de confiance</span>
+            <button class="btn ghost" type="button">Rappeler</button><button class="btn danger" type="button">Bloquer le compte</button>
+          </div>
+          <div class="tabs"><span class="chip on">Vue d'ensemble</span><span class="chip">Objectifs (3)</span><span class="chip">Paiements (48)</span><span class="chip">Appareils</span><span class="chip">Réclamations (1)</span><span class="chip">Consentements</span></div>
+          <div class="cols" style="grid-template-columns: 250px minmax(0,1fr) 270px">
+            <div class="panel">
+              <div class="ph"><h4>Objectifs</h4><span class="sub">618 000 FCFA épargnés</span></div>
+              <div class="gc" style="background:var(--u-mob);min-height:0;padding:14px"><span class="tag">Mobilité · A</span><span class="it" style="font-size:16px">Moto Bajaj Boxer 150</span><span class="am" style="font-size:20px">412 500 <small>/ 650 000</small></span><div class="thin"><i style="width:63%"></i></div></div>
+              <div class="gc" style="background:var(--u-log);min-height:0;padding:14px"><span class="tag">Logement · C</span><span class="it" style="font-size:16px">Caution, Bonamoussadi</span><span class="am" style="font-size:20px">120 000 <small>/ 300 000</small></span><div class="thin"><i style="width:40%"></i></div></div>
+              <div class="gc" style="background:var(--u-tech);min-height:0;padding:14px"><span class="tag">Technologie · A</span><span class="it" style="font-size:16px">Tecno Camon 30</span><span class="am" style="font-size:20px">85 500 <small>/ 165 000</small></span><div class="thin"><i style="width:52%"></i></div></div>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Chronologie</h4><div class="tabs"><span class="chip on" style="font-size:11px">Tout</span><span class="chip" style="background:var(--mist);font-size:11px">Argent</span><span class="chip" style="background:var(--mist);font-size:11px">Échanges</span></div></div>
+              <div class="tl">
+                <div class="ev good"><time>20 nov.<br>09:12</time><div class="rail"><i></i></div><div class="c"><b>Versement confirmé · 5 000 FCFA</b><span>MTN MoMo · Moto Bajaj · reçu MP-2026-004817</span></div></div>
+                <div class="ev"><time>19 nov.<br>18:05</time><div class="rail"><i></i></div><div class="c"><b>SMS d'accusé de réception envoyé</b><span>« Votre réclamation R-2026-1182 est enregistrée. Réponse sous 72 h. »</span></div></div>
+                <div class="ev alert"><time>19 nov.<br>18:03</time><div class="rail"><i></i></div><div class="c"><b>Réclamation ouverte depuis l'app</b><span>« J'ai été débitée de 5 000 FCFA le 18 au soir mais rien sur mon objectif. »</span></div></div>
+                <div class="ev"><time>18 nov.<br>19:40</time><div class="rail"><i></i></div><div class="c"><b>Tentative de paiement expirée</b><span>Orange Money · aucune confirmation du prestataire en 15 min</span></div></div>
+                <div class="ev"><time>12 nov.<br>08:31</time><div class="rail"><i></i></div><div class="c"><b>Nouvel appareil validé par OTP</b><span>Tecno Spark 10 · l'ancien appareil a été retiré</span></div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Réclamation en cours</h4></div>
+              <div class="kc" style="background:var(--mist)"><div class="id"><span>R-2026-1182</span><span class="st warn">Réponse dans 46 h</span></div><b>Débitée mais non créditée, 18 nov.</b><div class="meta"><span class="st plain">App</span><span class="st plain">Paiements</span></div></div>
+              <div class="kv"><span>Écart de rapprochement</span><span>Trouvé · 15 000 FCFA</span></div>
+              <div class="kv"><span>Prestataire</span><span>Orange Money</span></div>
+              <button class="btn" type="button" style="justify-content:center">Ouvrir la réclamation</button>
+              <div class="ph" style="margin-top:6px"><h4>Note interne</h4></div>
+              <p style="font-size:12.5px;color:var(--muted);background:var(--mist);padding:10px 12px;border-radius:14px">Cliente très régulière. Préfère être rappelée après 17 h. — Inès K.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Fiche client 360°.</b> Données masquées par défaut, consultation motivée, toute l'histoire du client sur une ligne de temps : argent, appareils et échanges.</figcaption>
+  </figure>
+
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · Réclamations</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="claims"></aside>
+        <div class="main">
+          <div class="top"><div><h3>Réclamations</h3><div class="sub">Accusé de réception sous 24 h · réponse sous 72 h (délais publiés)</div></div><span class="sp"></span><div class="tabs"><span class="chip on">Toutes</span><span class="chip">Paiements</span><span class="chip">Remises</span><span class="chip">Partenaires</span></div><button class="btn" type="button"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 2.5v9M2.5 7h9"/></svg>Nouvelle</button></div>
+          <div class="kan">
+            <div class="kcol"><header>Nouvelles <span>6</span></header>
+              <div class="kc"><div class="id"><span>R-2026-1191</span><span class="st bad">Accusé dans 2 h</span></div><b>Code de remise refusé en boutique</b><div class="meta"><div class="av" style="background:var(--u-tech)">BN</div><span class="st plain">Téléphone</span><span class="udot" style="background:var(--u-tech)"></span></div></div>
+              <div class="kc"><div class="id"><span>R-2026-1190</span><span class="st ok">Accusé dans 20 h</span></div><b>Demande de rappel par USSD</b><div class="meta"><div class="av" style="background:var(--u-ess)">MO</div><span class="st plain">USSD</span></div></div>
+            </div>
+            <div class="kcol"><header>En cours <span>11</span></header>
+              <div class="kc"><div class="id"><span>R-2026-1182</span><span class="st warn">Réponse dans 46 h</span></div><b>Débitée mais non créditée, 18 nov.</b><div class="meta"><div class="av" style="background:var(--u-log)">AN</div><span class="st plain">App</span><span class="udot" style="background:var(--u-mob)"></span></div></div>
+              <div class="kc"><div class="id"><span>R-2026-1176</span><span class="st bad">Hors délai de 5 h</span></div><b>Bailleur injoignable avant règlement</b><div class="meta"><div class="av" style="background:var(--u-mob)">EK</div><span class="st plain">App</span><span class="udot" style="background:var(--u-log)"></span></div></div>
+            </div>
+            <div class="kcol"><header>En attente client <span>4</span></header>
+              <div class="kc"><div class="id"><span>R-2026-1158</span><span class="st plain">Relance le 22 nov.</span></div><b>Pièce d'identité illisible pour le niveau KYC 3</b><div class="meta"><div class="av" style="background:var(--u-ess)">FD</div><span class="st plain">App</span></div></div>
+            </div>
+            <div class="kcol"><header>Résolues cette semaine <span>38</span></header>
+              <div class="kc" style="opacity:0.75"><div class="id"><span>R-2026-1149</span><span class="st ok">Résolue en 31 h</span></div><b>Remboursement après annulation</b><div class="meta"><div class="av" style="background:var(--u-log)">CT</div><span class="st plain">App</span></div></div>
+              <div class="kc" style="opacity:0.75"><div class="id"><span>R-2026-1144</span><span class="st ok">Résolue en 9 h</span></div><b>Contribution diaspora non visible</b><div class="meta"><div class="av" style="background:var(--u-tech)">PN</div><span class="st plain">Web</span></div></div>
+            </div>
+          </div>
+          <div class="panel" style="flex:none">
+            <div class="ph"><h4>Campagnes de rappel</h4><span class="st ok">Charte respectée : 8 h–20 h, 2 messages par semaine au plus</span></div>
+            <table class="t">
+              <thead><tr><th>Campagne</th><th>Segment</th><th>Canal</th><th class="r">Clients</th><th>Prochain envoi</th><th>Statut</th></tr></thead>
+              <tbody>
+                <tr><td><b>Rappel d'échéance hebdomadaire</b></td><td>Rythme hebdo, versement dû demain</td><td>SMS + push</td><td class="r">12 480</td><td>Sam. 21 nov., 9:00</td><td><span class="st ok">Active</span></td></tr>
+                <tr><td><b>Plus que 10 %</b></td><td>Objectifs entre 90 et 99 %</td><td>Push</td><td class="r">1 210</td><td>Dim. 22 nov., 17:00</td><td><span class="st ok">Active</span></td></tr>
+                <tr><td><b>Rentrée de janvier</b></td><td>Parents, univers Essentiels</td><td>SMS</td><td class="r">4 320</td><td>—</td><td><span class="st warn">À valider</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Réclamations et campagnes.</b> Chaque carte montre son délai restant ; un litige suspend automatiquement le règlement du partenaire. Les campagnes affichent la règle de la charte qu'elles respectent.</figcaption>
+  </figure>
+</section>
+
+<section class="wrap next" aria-labelledby="h-next">
+  <span class="eyebrow">Et ensuite</span>
+  <h2 id="h-next" style="font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-0.03em">Vos retours, puis le design system</h2>
+  <p>Ces écrans couvrent les quatre interfaces avec une seule identité. Dites-moi ce qu'il faut changer, puis je passe au design system complet (jetons, composants, règles) et à son intégration dans <code>packages/ui</code> et dans le thème Flutter. Noms, montants et partenaires sont des exemples.</p>
+</section>
+</main>
+
+<script>
+(function () {
+  // Barre latérale back-office (partagée)
+  var I = function (d) { return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">' + d + '</svg>'; };
+  var items = {
+    dash: ['Vue d\'ensemble', I('<rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>')],
+    queue: ['File de travail', I('<path d="M3 4h10M3 8h10M3 12h6"/>'), '12'],
+    client: ['Clients', I('<circle cx="8" cy="5.5" r="2.5"/><path d="M3 14c.7-3 2.6-4.2 5-4.2s4.3 1.2 5 4.2"/>')],
+    claims: ['Réclamations', I('<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2Z"/>'), '23'],
+    partners: ['Partenaires', I('<path d="M2.5 6 8 2.5 13.5 6v7.5h-11Z"/>')],
+    ledger: ['Grand livre', I('<path d="M3 2.5h8l2 2v9H3Z"/><path d="M5.5 7h5M5.5 10h5"/>')],
+    recon: ['Rapprochement', I('<path d="M3 6h9l-2-2M13 10H4l2 2"/>')],
+    risk: ['Fraude et risque', I('<path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/>'), '7'],
+    campaigns: ['Campagnes', I('<path d="M2.5 6.5v3h2l5 3v-9l-5 3Z"/><path d="M12 6a3 3 0 0 1 0 4"/>')],
+    reports: ['Rapports', I('<path d="M3 13V8M8 13V3M13 13v-5"/>')],
+    audit: ['Journal d\'audit', I('<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/>')]
+  };
+  var groups = [['', ['dash', 'queue']], ['Clients et support', ['client', 'claims', 'campaigns']], ['Argent', ['ledger', 'recon', 'partners']], ['Contrôle', ['risk', 'reports', 'audit']]];
+  var me = { dash: ['CM', 'Clarisse M.', 'Finance'], queue: ['CM', 'Clarisse M.', 'Finance'], client: ['IK', 'Inès K.', 'Support N2'], claims: ['IK', 'Inès K.', 'Support N2'] };
+  document.querySelectorAll('[data-bo-side]').forEach(function (side) {
+    var cur = side.dataset.boSide, html = '<div class="brand"><svg class="ring" data-fg="#ffffff" data-off="#3a3c41" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay<small>Interne</small></div>';
+    groups.forEach(function (g) {
+      if (g[0]) html += '<span class="sgroup">' + g[0] + '</span>';
+      g[1].forEach(function (k) { var it = items[k]; html += '<span class="navi' + (k === cur ? ' on' : '') + '">' + it[1] + it[0] + (it[2] ? '<span class="n">' + it[2] + '</span>' : '') + '</span>'; });
+    });
+    var m = me[cur];
+    html += '<div class="me"><div class="av" style="background:var(--u-ess)">' + m[0] + '</div><div><b>' + m[1] + '</b><span>' + m[2] + ' · production</span></div></div>';
+    side.innerHTML = html;
+  });
+
+  // Anneau
+  function arc(cx, cy, r, a0, a1) { return 'M' + (cx + r * Math.cos(a0)).toFixed(2) + ' ' + (cy + r * Math.sin(a0)).toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(a1)).toFixed(2) + ' ' + (cy + r * Math.sin(a1)).toFixed(2); }
+  document.querySelectorAll('.ring').forEach(function (svg) {
+    var out = '';
+    for (var i = 0; i < 8; i++) { var a0 = -Math.PI / 2 + i * Math.PI / 4 + 0.2, a1 = a0 + Math.PI / 4 - 0.4; out += '<path d="' + arc(20, 20, 15, a0, a1) + '" fill="none" stroke="' + (i < 6 ? svg.dataset.fg : svg.dataset.off) + '" stroke-width="5.5" stroke-linecap="round"/>'; }
+    svg.innerHTML = out;
+  });
+
+  // Illustrations produits
+  var P = {
+    fridge: '<rect x="30" y="10" width="40" height="80" rx="7" fill="#fff" stroke="#0f1012" stroke-width="5"/><path d="M30 38h40" stroke="#0f1012" stroke-width="5"/><path d="M38 20v10M38 46v16" stroke="#0f1012" stroke-width="6" stroke-linecap="round"/>',
+    tv: '<rect x="12" y="20" width="76" height="48" rx="6" fill="#0f1012"/><rect x="18" y="26" width="64" height="36" rx="2" fill="#fff"/><path d="M36 82h28M50 68v14" stroke="#0f1012" stroke-width="6" stroke-linecap="round"/>',
+    gas: '<rect x="18" y="30" width="64" height="56" rx="8" fill="#fff" stroke="#0f1012" stroke-width="5"/><circle cx="38" cy="22" r="7" fill="#0f1012"/><circle cx="62" cy="22" r="7" fill="#0f1012"/><path d="M18 46h64" stroke="#0f1012" stroke-width="5"/>',
+    laptop: '<rect x="20" y="20" width="60" height="42" rx="5" fill="#0f1012"/><rect x="26" y="26" width="48" height="30" rx="2" fill="#fff"/><path d="M10 66h80l-6 12H16Z" fill="#fff" stroke="#0f1012" stroke-width="5" stroke-linejoin="round"/>'
+  };
+  document.querySelectorAll('svg[data-ill]').forEach(function (s) { s.innerHTML = P[s.dataset.ill] || ''; s.setAttribute('aria-hidden', 'true'); });
+
+  // Graphique back-office
+  var data = [32.1, 35.4, 31.2, 38.0, 40.3, 29.5, 24.8, 36.2, 39.1, 42.4, 37.6, 44.0, 46.2, 41.9];
+  var days = ['7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
+  var W = 760, H = 250, pl = 34, pb = 26, pt = 14, max = 50, bw = (W - pl) / data.length;
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Versements confirmés par jour, du 7 au 20 novembre, entre 24,8 et 46,2 millions de FCFA">';
+  [0, 10, 20, 30, 40, 50].forEach(function (v) { var y = H - pb - (v / max) * (H - pb - pt); svg += '<line x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#e7e8e3"/><text x="' + (pl - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#6a6d73" font-family="Inter">' + v + '</text>'; });
+  data.forEach(function (v, i) {
+    var h = (v / max) * (H - pb - pt), x = pl + i * bw + bw * 0.18, last = i === data.length - 1;
+    svg += '<rect x="' + x + '" y="' + (H - pb - h) + '" width="' + (bw * 0.64) + '" height="' + h + '" rx="8" fill="' + (last ? '#d9f26b' : (i % 7 === 5 || i % 7 === 6 ? '#c9cbc4' : '#0f1012')) + '"/>';
+    svg += '<text x="' + (x + bw * 0.32) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#6a6d73" font-family="Inter">' + days[i] + '</text>';
+    if (last) svg += '<text x="' + (x + bw * 0.32) + '" y="' + (H - pb - h - 8) + '" text-anchor="middle" font-size="12" font-weight="600" fill="#0f1012" font-family="Inter">41,9</text>';
+  });
+  document.getElementById('bo-chart').innerHTML = svg + '</svg>';
+
+  // Comptoir
+  var code = document.getElementById('code'), ok = document.getElementById('res-ok'), bad = document.getElementById('res-bad'), done = document.getElementById('res-done');
+  var hand = document.getElementById('handover'), serial = document.getElementById('serial');
+  function check() { var all = Array.prototype.every.call(document.querySelectorAll('.rc'), function (c) { return c.checked; }); hand.disabled = !(all && serial.value.trim().length >= 4); }
+  document.getElementById('verify').addEventListener('click', function () {
+    var v = code.value.replace(/\D/g, '');
+    done.hidden = true; ok.hidden = v !== '482716'; bad.hidden = v === '482716';
+  });
+  code.addEventListener('input', function () { code.value = code.value.replace(/\D/g, '').slice(0, 6); });
+  document.querySelectorAll('.rc').forEach(function (c) { c.addEventListener('change', check); });
+  serial.addEventListener('input', check);
+  hand.addEventListener('click', function () {
+    var d = new Date(); document.getElementById('done-time').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    ok.hidden = true; done.hidden = false;
+  });
+
+  // Mise à l'échelle
+  function fit() {
+    document.querySelectorAll('.fit').forEach(function (f) {
+      var s = f.firstElementChild, k = Math.min(1, f.clientWidth / 1200);
+      s.style.transform = 'scale(' + k + ')';
+      f.style.height = Math.ceil(s.offsetHeight * k) + 'px';
+    });
+  }
+  fit();
+  try { new ResizeObserver(fit).observe(document.body); } catch (e) { window.addEventListener('resize', fit); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+</script>

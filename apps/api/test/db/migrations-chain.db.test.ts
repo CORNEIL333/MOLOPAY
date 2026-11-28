@@ -92,4 +92,69 @@ describe('Migrations : chaîne complète et ordonnée', () => {
     );
     expect(unguarded.rows).toEqual([]);
   });
+
+  it('F-BO-002 aucun rôle interne ne modifie ni ne supprime une écriture du grand livre (droits et tentative réelle, propriétaire compris)', async () => {
+    // Tous les rôles non superutilisateurs de la base, y compris ceux ajoutés plus tard (liste dynamique).
+    const roles = (await admin.query<{ rolname: string }>(
+      `SELECT rolname FROM pg_roles WHERE rolname !~ '^pg_' AND NOT rolsuper ORDER BY 1`,
+    )).rows.map((row) => row.rolname);
+    expect(roles).toEqual(expect.arrayContaining(['app_ro', 'app_rw']));
+    const tables = (await admin.query<{ relname: string }>(
+      `SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'ledger' AND c.relkind = 'r' ORDER BY 1`,
+    )).rows.map((row) => row.relname);
+    expect(tables).toEqual(expect.arrayContaining(['journal_entry', 'posting']));
+    const granted = await admin.query<{ role: string; relation: string; privilege: string }>(
+      `SELECT r.role, t.relation, p.privilege
+         FROM unnest($1::text[]) AS r(role), unnest($2::text[]) AS t(relation), unnest(ARRAY['UPDATE', 'DELETE', 'TRUNCATE']) AS p(privilege)
+        WHERE has_table_privilege(r.role, 'ledger.' || quote_ident(t.relation), p.privilege)`,
+      [roles, tables],
+    );
+    expect(granted.rows).toEqual([]);
+    const attempt = async (role: string | null, sql: string): Promise<string> => {
+      await admin.query('BEGIN');
+      try {
+        if (role !== null) await admin.query(`SET LOCAL ROLE ${role}`);
+        await admin.query(sql);
+        return 'accepted';
+      } catch (error) {
+        return `${(error as { code?: string }).code ?? ''} ${(error as Error).message}`;
+      } finally {
+        await admin.query('ROLLBACK');
+      }
+    };
+    for (const role of roles) {
+      for (const table of tables) {
+        for (const sql of [`UPDATE ledger.${table} SET id = id`, `DELETE FROM ledger.${table}`, `TRUNCATE ledger.${table}`]) {
+          expect(await attempt(role, sql), `${role} · ${sql}`).toMatch(/^42501 permission denied/);
+        }
+      }
+    }
+    // Même le propriétaire du schéma (migrations) est arrêté par les déclencheurs : seule la contre-passation corrige.
+    // Ici le grand livre est vide (TRUNCATE : déclencheur d'instruction ; `journal_entry`, référencée par
+    // d'autres schémas, est en outre protégée par ses clés étrangères) ; UPDATE et DELETE d'une écriture
+    // existante par le propriétaire sont prouvés par les tests INT-LED-003 de `ledger.db.test.ts`.
+    expect(await attempt(null, 'TRUNCATE ledger.posting'), 'propriétaire · TRUNCATE posting').toMatch(/^P0001 LEDGER_APPEND_ONLY/);
+  });
+
+  it('REG-LBC-004 la boîte d’envoi vers le client n’accepte que des types d’événements métier ; aucun ne relève d’un filtrage ou d’un soupçon', async () => {
+    const checks = (await admin.query<{ definition: string }>(
+      `SELECT pg_get_constraintdef(c.oid) AS definition FROM pg_constraint c
+        WHERE c.conrelid = 'notifications.outbox'::regclass AND c.contype = 'c' AND pg_get_constraintdef(c.oid) LIKE '%event_type%'`,
+    )).rows.map((row) => row.definition);
+    expect(checks).toHaveLength(1);
+    const types = [...(checks[0] ?? '').matchAll(/'([A-Z_]+)'/g)].map((match) => match[1]).sort();
+    expect(types).toEqual(['DISPUTE_UPDATED', 'GOAL_FUNDED', 'HANDOVER_READY', 'PAYMENT_CONFIRMED', 'PAYMENT_REMINDER', 'SETTLEMENT_CONFIRMED']);
+    await admin.query('BEGIN');
+    try {
+      const refused = await admin.query(
+        `INSERT INTO notifications.outbox (recipient_id, event_key, channel, event_type, locale, created_at)
+         VALUES ('0192f6a0-0000-7000-8000-000000000001', '0192f6a0-0000-7000-8000-000000000002', 'SMS', 'SCREENING_MATCH', 'fr', now())`,
+      ).then(() => 'accepted', (error: { code?: string }) => error.code ?? '');
+      expect(refused).toBe('23514');
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+  });
 });
+

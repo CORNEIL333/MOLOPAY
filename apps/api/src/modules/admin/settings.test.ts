@@ -66,7 +66,7 @@ function expectInvalid(action: () => unknown): void {
   throw new Error('Aucune erreur levée, attendu ADMIN_INVALID_REQUEST');
 }
 
-describe('paramètres versionnés', () => {
+describe('NF-PORT-003 paramètres versionnés', () => {
   it('publie la version 1 d’un paramètre approuvé', () => {
     const version = createSettingVersion(
       {

@@ -1,3 +1,5 @@
+import { CURRENT_TERMS_VERSION } from '@achat/contracts';
+import { protectedPhone } from './pii-fixture';
 import { createHash } from 'node:crypto';
 import { canonicalize, computeEntryHash, genesisPrevHash, type EntryContent, type JsonValue } from '@achat/chain';
 import type { Client } from 'pg';
@@ -47,6 +49,8 @@ export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0036_payments_kyc_limits.sql',
   'db/migrations/0018_notification_reminder_reservation.sql',
   'db/migrations/0019_notification_outbox.sql',
+  // D121 : langue déclarée et bascule SMS par type, lues à la mise en file.
+  'db/migrations/0080_notification_preferences.sql',
 ];
 
 export const AGREEMENT_STACK_SCHEMAS = ['notifications', 'payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
@@ -223,11 +227,30 @@ export async function seedCustomerAccount(
   kycLevel: 'NONE' | 'BASIC' | 'STRONG',
 ): Promise<void> {
   const suffix = customerId.replace(/-/g, '').slice(-8).replace(/[a-f]/g, '1');
-  await admin.query(
-    `INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level)
-     VALUES ($1, $2, now(), $3)`,
-    [customerId, `+2376${suffix}`, kycLevel],
-  );
+  // C14 : jamais de numéro en clair en base ; colonnes protégées seulement si la pile les connaît (0076).
+  const encrypted = (await admin.query<{ present: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'identity' AND table_name = 'account' AND column_name = 'phone_ciphertext') AS present`,
+  )).rows[0]?.present === true;
+  if (encrypted) {
+    const phone = await protectedPhone(`+2376${suffix}`);
+    await admin.query(
+      `INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level, phone_ciphertext, phone_masked)
+       VALUES ($1, $2, now(), $3, $4, $5)`,
+      [customerId, phone.key, kycLevel, phone.ciphertext, phone.masked],
+    );
+  } else {
+    await admin.query(
+      `INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level)
+       VALUES ($1, $2, now(), $3)`,
+      [customerId, `+2376${suffix}`, kycLevel],
+    );
+  }
+  // F-ACC-004 : un client inscrit a accepté les conditions en vigueur (comme à l'inscription réelle),
+  // lorsque la pile de migrations du test les connaît.
+  const known = await admin.query<{ present: boolean }>(`SELECT to_regclass('identity.terms_acceptance') IS NOT NULL AS present`);
+  if (known.rows[0]?.present === true) {
+    await admin.query('INSERT INTO identity.terms_acceptance (account_id, version, accepted_at) VALUES ($1, $2, now())', [customerId, CURRENT_TERMS_VERSION]);
+  }
 }
 
 /**
@@ -320,4 +343,9 @@ export async function publishSetting(admin: Client, key: string, value: JsonValu
        FROM admin.setting_version WHERE key = $1`,
     [key, JSON.stringify(value), requestId],
   );
+}
+
+/** NF-SAFE-002 : plafond d'objectifs actifs par client (paramètre versionné, deux personnes ; valeur de test). */
+export async function publishCommitmentLimits(admin: Client, maxActiveGoals = 5): Promise<void> {
+  await publishSetting(admin, 'customer_commitment_limits', { max_active_goals: maxActiveGoals });
 }

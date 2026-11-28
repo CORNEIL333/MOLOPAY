@@ -12,6 +12,8 @@ import { AppModule } from '../../src/app.module';
 import { createDatabase, withTransaction, type Database } from '../../src/http/database';
 import { challengeMessage, issueSignupOtp } from '../../src/modules/identity/client-auth.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
+import { revealPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone, TEST_PII_KEYS } from './pii-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /**
@@ -55,7 +57,8 @@ function cookiesOf(response: request.Response): Record<string, string> {
 }
 
 async function otp(phone = PHONE): Promise<{ challengeId: string; code: string }> {
-  return withTransaction({ ...database, role: 'app_rw' }, (client) => issueSignupOtp(client, { phone, pepper: OTP_PEPPER }));
+  const protectedNumber = await protectedPhone(phone);
+  return withTransaction({ ...database, role: 'app_rw' }, (client) => issueSignupOtp(client, { phone: protectedNumber, pepper: OTP_PEPPER }));
 }
 
 function deviceKey(): { privateKey: KeyObject; spki: string } {
@@ -93,7 +96,7 @@ function me(cookie: string): request.Test {
 }
 
 async function start(deps: { otpPepper: Uint8Array | null; pinPepper: Uint8Array | null }): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN]), ...deps })] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN]), piiKeys: TEST_PII_KEYS, ...deps })] }).compile();
   const started = moduleRef.createNestApplication({ logger: false });
   await started.init();
   return started;
@@ -143,7 +146,23 @@ describe('F-ACC-001/002/004 inscription (POST /v1/auth/signups)', () => {
          JOIN identity.terms_acceptance t ON t.account_id = a.id WHERE a.id = $1`, [created.accountId],
     )).rows;
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ phone: PHONE, terms: TERMS, device: 'Tecno Spark' });
+    expect(rows[0]).toMatchObject({ phone: (await protectedPhone(PHONE)).key, terms: TERMS, device: 'Tecno Spark' });
+    // C14 : aucun numéro en clair ; le chiffré se déchiffre en le numéro, lié à son empreinte ; masque affichable.
+    const stored = (await admin.query<{ phone: string; phone_ciphertext: string; phone_masked: string }>('SELECT phone, phone_ciphertext, phone_masked FROM identity.account')).rows[0];
+    expect(JSON.stringify(stored)).not.toContain('690000123');
+    expect(stored?.phone_masked).toBe('+237•••••••23');
+    expect(await revealPhone({ key: stored?.phone ?? '', ciphertext: stored?.phone_ciphertext ?? '' }, TEST_PII_KEYS)).toBe(PHONE);
+    // Aucune table d'aucun schéma ne contient le numéro en clair (ni dans l'idempotence, ni dans l'audit).
+    const tables = (await admin.query<{ name: string }>(
+      `SELECT quote_ident(n.nspname) || '.' || quote_ident(c.relname) AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r' AND n.nspname = ANY($1::text[])`,
+      [SCHEMAS],
+    )).rows.map((row) => row.name);
+    expect(tables.length).toBeGreaterThan(40);
+    for (const table of tables) {
+      const found = await admin.query<{ n: number }>(`SELECT count(*)::int AS n FROM ${table} t WHERE t::text LIKE '%690000123%'`);
+      expect(found.rows[0]?.n, table).toBe(0);
+    }
     expect(rows[0]?.pin).toMatch(/^\$argon2id\$/);
     expect(rows[0]?.pin).not.toContain(PIN);
   });

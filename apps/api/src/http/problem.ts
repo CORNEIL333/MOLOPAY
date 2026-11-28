@@ -40,6 +40,8 @@ const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 
 const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_CONFLICT',
+  // D121 : bascule SMS déjà dans l'état demandé.
+  'NOTIFICATION_CHANNEL_UNCHANGED',
   'IDEMPOTENCY_KEY_REUSED',
   'PAYMENT_ALREADY_CONFIRMED',
   'UNAUTHORIZED_TRANSITION',
@@ -47,11 +49,19 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'IDENTITY_NONCE_REUSED',
   'IDENTITY_OTP_REPLAYED',
   'IDENTITY_ACCOUNT_EXISTS',
+  'IDENTITY_DECEASE_CASE_EXISTS',
+  'IDENTITY_DECEASE_ALREADY_DECIDED',
+  'IDENTITY_ACCOUNT_DECEASED',
+  'SETTLEMENT_OUTGOING_FROZEN',
+  'SETTLEMENT_FREEZE_STATE',
 ]);
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_INVALID',
+  // D121 : langue de l'application hors de fr / en.
+  'IDENTITY_LANGUAGE_INVALID',
   'INVALID_AMOUNT',
+  'REPORT_PERIOD_INVALID',
 ]);
 
 /** Statuts qui ne se déduisent pas du suffixe du code. */
@@ -61,15 +71,31 @@ const STATUS_OVERRIDES: Readonly<Partial<Record<ErrorCode, number>>> = {
   REQUEST_TOO_LARGE: 413,
   REQUEST_UNSUPPORTED_MEDIA_TYPE: 415,
   INTERNAL_ERROR: 500,
+  // SEC-MOB-005 : application trop ancienne (mise à jour exigée).
+  CLIENT_UPGRADE_REQUIRED: 426,
   RATE_LIMIT_UNCONFIGURED: 503,
   PIN_UNCONFIGURED: 503,
   STAFF_AUTH_UNCONFIGURED: 503,
   PARTNER_AUTH_UNCONFIGURED: 503,
   HANDOVER_UNCONFIGURED: 503,
   SIGNING_UNCONFIGURED: 503,
+  SIGNING_UNAVAILABLE: 503,
   SMS_UNCONFIGURED: 503,
   SMS_DELIVERY_FAILED: 503,
   SERVICE_UNAVAILABLE: 503,
+};
+
+const TITLES: Readonly<Record<number, string>> = {
+  400: 'Requête invalide',
+  401: 'Authentification requise',
+  403: 'Action interdite',
+  404: 'Ressource introuvable',
+  409: 'Conflit',
+  422: 'Règle métier non respectée',
+  426: 'Mise à jour de l’application requise',
+  429: 'Trop de requêtes',
+  500: 'Erreur interne',
+  503: 'Service indisponible',
 };
 
 // Le type d'un refus de débit reste générique : il ne décrit pas le mécanisme.
@@ -81,6 +107,7 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   PARTNER_AUTH_UNCONFIGURED: 'service-unavailable',
   HANDOVER_UNCONFIGURED: 'service-unavailable',
   SIGNING_UNCONFIGURED: 'service-unavailable',
+  SIGNING_UNAVAILABLE: 'service-unavailable',
   SMS_UNCONFIGURED: 'service-unavailable',
   SMS_DELIVERY_FAILED: 'service-unavailable',
 };
@@ -94,7 +121,7 @@ export function statusForCode(code: ErrorCode): number {
   if (BAD_REQUEST.has(code) || code.endsWith('_INVALID_REQUEST') || code.endsWith('_FIELD_FORBIDDEN')) {
     return 400;
   }
-  const override = STATUS_OVERRIDES[code];
+const override = STATUS_OVERRIDES[code];
   if (override !== undefined) return override;
   return 422;
 }

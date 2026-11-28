@@ -22,6 +22,7 @@ import { prepareRefund } from '../src/workflows/refund';
 import {
   createAgreementC,
   PLAN_C,
+  publishCommitmentLimits,
   publishKycLimits,
   seedCustomerAccount,
   seedLedgerGenesis,
@@ -29,6 +30,7 @@ import {
   validateLandlord,
 } from './db/agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './db/harness';
+import { localInstructionSigner } from '../src/crypto/instruction-signer';
 
 /**
  * D62 / SEC-AUTH-004 : back-office de bout en bout — API réelle et base
@@ -99,6 +101,7 @@ beforeAll(async () => {
   for (const name of readdirSync(DIRECTORY).filter((file) => file.endsWith('.sql')).sort()) {
     await admin.query(readFileSync(resolve(DIRECTORY, name), 'utf8'));
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);
@@ -118,7 +121,7 @@ beforeAll(async () => {
         database,
         allowedOrigins: new Set([origin]),
         staffRp: { rpId: 'localhost', origins: new Set([origin]) },
-        platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'e2e' },
+        platformSigningKey: localInstructionSigner(generateKeyPairSync('ed25519').privateKey, 'e2e'),
       }),
     ],
   }).compile();

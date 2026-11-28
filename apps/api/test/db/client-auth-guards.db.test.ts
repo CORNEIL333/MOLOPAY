@@ -5,6 +5,8 @@ import { BusinessError } from '@achat/contracts';
 import { Client } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '../../src/modules/ledger/domain';
+import type { ProtectedPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone } from './pii-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /**
@@ -60,14 +62,29 @@ async function failure(action: () => Promise<unknown>): Promise<{ code: string |
   throw new Error('Échec attendu, aucune erreur levée');
 }
 
+/**
+ * C14 : la base ne reçoit jamais le numéro ; les tests écrivent ce que l'application écrit
+ * (empreinte, chiffré, masque). Mémoïsé par numéro : le compte recopie le chiffré du défi.
+ */
+const protectedNumbers = new Map<string, ProtectedPhone>();
+async function protect(phone: string): Promise<ProtectedPhone> {
+  const known = protectedNumbers.get(phone);
+  if (known !== undefined) return known;
+  const value = await protectedPhone(phone);
+  protectedNumbers.set(phone, value);
+  return value;
+}
+
 /** Défi OTP inséré par l'application ; `consumed` simule la vérification réussie (colonne autorisée à app_rw). */
 async function otp(phone: string, purpose: 'SIGNUP' | 'NEW_DEVICE', binding: string, consumed: boolean): Promise<string> {
   const id = uuidv7();
+  const number = await protect(phone);
+  const boundTo = binding === phone ? number.key : binding;
   await asApp(async (client) => {
     await client.query(
-      `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining)
-       VALUES ($1, $2, $3, $4, $5, now() + interval '5 minutes', 5)`,
-      [id, phone, purpose, binding, randomBytes(32)],
+      `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, phone_ciphertext, phone_masked)
+       VALUES ($1, $2, $3, $4, $5, now() + interval '5 minutes', 5, $6, $7)`,
+      [id, number.key, purpose, boundTo, randomBytes(32), purpose === 'SIGNUP' ? number.ciphertext : null, purpose === 'SIGNUP' ? number.masked : null],
     );
     if (consumed) {
       await client.query('UPDATE identity.otp_challenge SET consumed_at = clock_timestamp(), attempts_remaining = 4 WHERE id = $1', [id]);
@@ -76,8 +93,9 @@ async function otp(phone: string, purpose: 'SIGNUP' | 'NEW_DEVICE', binding: str
   return id;
 }
 
-function insertAccount(client: Client, id: string, phone: string): Promise<unknown> {
-  return client.query('INSERT INTO identity.account (id, phone, phone_verified_at) VALUES ($1, $2, now())', [id, phone]);
+async function insertAccount(client: Client, id: string, phone: string): Promise<unknown> {
+  const number = await protect(phone);
+  return client.query('INSERT INTO identity.account (id, phone, phone_verified_at, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), $3, $4)', [id, number.key, number.ciphertext, number.masked]);
 }
 
 function insertDevice(client: Client, id: string, accountId: string): Promise<unknown> {
@@ -118,6 +136,34 @@ beforeEach(async () => {
 });
 
 describe('C2 / SEC-AUTH-001 compte, appareil et session garantis par la base', () => {
+  it('C14 aucun numéro en clair accepté ; code d’inscription sans chiffré refusé ; compte au chiffré différent du code vérifié refusé', async () => {
+    const clear = await failure(() => asApp((client) => client.query(
+      `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining) VALUES ($1, '+237690000777', 'NEW_DEVICE', 'x', $2, now() + interval '5 minutes', 5)`,
+      [uuidv7(), randomBytes(32)],
+    )));
+    expect(clear.code).toBe('23514');
+    const bare = await failure(() => asApp((client) => client.query(
+      `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining) VALUES ($1, $2, 'SIGNUP', $2, $3, now() + interval '5 minutes', 5)`,
+      [uuidv7(), 'd'.repeat(64), randomBytes(32)],
+    )));
+    expect(bare.code).toBe('23514');
+    await otp('+237690000778', 'SIGNUP', '+237690000778', true);
+    const number = await protect('+237690000778');
+    const foreign = await protectedPhone('+237690000778');
+    const swapped = await failure(() => asApp((client) => client.query(
+      'INSERT INTO identity.account (id, phone, phone_verified_at, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), $3, $4)',
+      [uuidv7(), number.key, foreign.ciphertext, number.masked],
+    )));
+    expect(swapped.message).toMatch(/^IDENTITY_INVALID_REQUEST/);
+    // Le garde d'inscription passe avant le format ; le superutilisateur (sans garde) bute sur le format.
+    const plain = await failure(() => admin.query(
+      'INSERT INTO identity.account (id, phone, phone_verified_at, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), $3, $4)',
+      [uuidv7(), '+237690000778', number.ciphertext, number.masked],
+    ));
+    expect(plain.code).toBe('23514');
+    await asApp((client) => insertAccount(client, uuidv7(), '+237690000778'));
+  });
+
   it('compte : refusé sans OTP d’inscription consommé pour ce numéro (IDENTITY_OTP_INVALID) ; accepté avec, date de vérification prise de l’OTP', async () => {
     expect((await failure(() => asApp((client) => insertAccount(client, uuidv7(), PHONE)))).message).toMatch(/^IDENTITY_OTP_INVALID: aucun OTP d'inscription vérifié/);
     await otp(PHONE, 'SIGNUP', PHONE, false);

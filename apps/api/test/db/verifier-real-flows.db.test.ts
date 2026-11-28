@@ -7,6 +7,8 @@ import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { exportLedgerEntries, type ExportedEntry } from '../../src/modules/ledger/export.store';
+import { recordIntegrityDivergence } from '../../src/modules/settlement/integrity-divergence.store';
+import { reportOutcome, runVerifierBinary } from '../../../../tools/nightly-verify';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { exportDocument, runRealFlowsScenario } from './real-flows-scenario';
 
@@ -81,7 +83,7 @@ describe('INT-VER-001/003 vérificateur indépendant sur un grand livre produit 
     ]);
   });
 
-  it('le binaire Rust vérifie équilibre, chaîne, Merkle, signature et témoin', () => {
+  it('INT-HASH-004 le binaire Rust (autre langage) recalcule à l’identique les empreintes produites par la base ; il vérifie équilibre, chaîne, Merkle, signature et témoin', () => {
     const result = runVerifier(exportDocument(entries, LOG_KEY.privateKey, LOG_ID));
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
@@ -100,4 +102,54 @@ describe('INT-VER-001/003 vérificateur indépendant sur un grand livre produit 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/ENTRY_UNBALANCED|HASH/);
   });
+
+  it('INT-HASH-004 une altération qui garde l’écriture équilibrée (auteur, ou tous les montants à la fois) est détectée par le seul recalcul de l’empreinte (ENTRY_HASH_MISMATCH)', () => {
+    const index = entries.findIndex((entry) => entry.type === 'REFUND_SENT');
+    expect(index).toBeGreaterThan(0);
+    const alterations: ReadonlyArray<(entry: ExportedEntry) => ExportedEntry> = [
+      (entry) => ({ ...entry, actor: `${entry.actor}-x` }),
+      (entry) => ({ ...entry, postings: entry.postings.map((posting) => ({ ...posting, amount_xaf: (BigInt(posting.amount_xaf) * 2n).toString() })) }),
+    ];
+    for (const alter of alterations) {
+      const tampered = entries.map((entry, position) => (position === index ? alter(entry) : entry));
+      const result = runVerifier(exportDocument(tampered, LOG_KEY.privateKey, LOG_ID));
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/ENTRY_HASH_MISMATCH/);
+      expect(result.stderr).not.toMatch(/ENTRY_UNBALANCED/);
+    }
+  });
+
+  it('INT-VER-002 contrôle nocturne sur le binaire réel : export intact → rien n’est écrit ; export altéré → divergence enregistrée par le rôle dédié et flux sortants gelés', async () => {
+    const files = (document: object): { exportPath: string; keyPath: string } => {
+      const exportPath = join(workdir, `nightly-${uuidv7()}.json`);
+      writeFileSync(exportPath, JSON.stringify(document));
+      const raw = LOG_KEY.publicKey.export({ type: 'spki', format: 'der' });
+      const keyPath = join(workdir, 'nightly-key.txt');
+      writeFileSync(keyPath, raw.subarray(raw.length - 32).toString('hex'));
+      return { exportPath, keyPath };
+    };
+    const record = async (code: string): Promise<string> => {
+      await admin.query('BEGIN');
+      try {
+        await admin.query('SET LOCAL ROLE integrity_reporter');
+        const id = await recordIntegrityDivergence(admin, code);
+        await admin.query('COMMIT');
+        return id;
+      } catch (error) {
+        await admin.query('ROLLBACK');
+        throw error;
+      }
+    };
+    const intact = files(exportDocument(entries, LOG_KEY.privateKey, LOG_ID));
+    expect(await reportOutcome(runVerifierBinary(BINARY, intact.exportPath, intact.keyPath), record)).toEqual({ status: 'VERIFIED' });
+    expect((await admin.query<{ frozen: boolean }>('SELECT settlement.outgoing_frozen() AS frozen')).rows[0]).toEqual({ frozen: false });
+    const index = entries.findIndex((entry) => entry.type === 'REFUND_SENT');
+    const tampered = entries.map((entry, position) => (position === index ? { ...entry, actor: `${entry.actor}-x` } : entry));
+    const altered = files(exportDocument(tampered, LOG_KEY.privateKey, LOG_ID));
+    const report = await reportOutcome(runVerifierBinary(BINARY, altered.exportPath, altered.keyPath), record);
+    expect(report).toMatchObject({ status: 'DIVERGENCE', code: 'ENTRY_HASH_MISMATCH' });
+    expect((await admin.query('SELECT code, reported_by FROM settlement.integrity_divergence')).rows).toEqual([{ code: 'ENTRY_HASH_MISMATCH', reported_by: 'integrity_reporter' }]);
+    expect((await admin.query<{ frozen: boolean }>('SELECT settlement.outgoing_frozen() AS frozen')).rows[0]).toEqual({ frozen: true });
+  });
 });
+

@@ -161,7 +161,7 @@ describe('INT-REC-002 / I-9 contrôle de cantonnement dérivé du grand livre', 
     expect(incidents.rows).toEqual([{ gap: '1', classification: null }]);
   });
 
-  it('I-8 des fonds clients basculés en produit font apparaître un écart', async () => {
+  it('I-8 / REG-FIS-002 des fonds clients basculés en produit font apparaître un écart', async () => {
     const account = await clientAccount();
     await post(ACCOUNT_AGGREGATOR, account, 5_000n);
     await post(account, ACCOUNT_MERCHANT_FEES, 1_000n, 'TEST_MISPOSTING');

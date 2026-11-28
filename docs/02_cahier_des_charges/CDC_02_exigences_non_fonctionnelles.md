@@ -35,6 +35,8 @@
 | NF-UX-002 | Français et anglais au lancement ; textes externalisés ; montants affichés « 25 000 FCFA ». |
 | NF-UX-003 | Une information clé (solde de l'objectif, prochain versement) DOIT être lisible en moins de 2 secondes sur l'écran d'accueil. |
 | NF-UX-004 | Mode hors ligne en lecture (dernier état connu affiché avec sa date) ; aucune opération financière hors ligne. |
+| NF-UX-006 | Les animations DOIVENT suivre la charte `05_direction_ux_et_ui/06_animations.md` (jetons, identifiants `M-xx`) ; toute animation déclenchée par une interaction DOIT pouvoir être réduite ou désactivée (préférence système et réglage de l'app), sauf si elle est essentielle (WCAG 2.3.3). |
+| NF-UX-007 | Aucun mouvement ni mise à jour automatique de plus de 5 s affiché à côté d'autre contenu sans moyen de le mettre en pause (WCAG 2.2.2) ; rien ne clignote plus de 3 fois par seconde (WCAG 2.3.1) ; aucun montant ni statut ne s'anime avant la confirmation du serveur. |
 | NF-UX-005 | Toute action irréversible (annulation, règlement C) DOIT demander une confirmation explicite avec résumé des conséquences. |
 
 ## 5. Fiabilité (NF-REL)
@@ -84,3 +86,16 @@ Voir `CDC_03_securite.md` et `CDC_04_integrite_transactionnelle.md`.
 | NF-OBS-001 | Journaux structurés (JSON) avec identifiant de corrélation de bout en bout ; aucune donnée sensible en clair (PIN, OTP, pièce d'identité, numéro complet masqué sauf 4 derniers chiffres). |
 | NF-OBS-002 | Métriques et traces (OpenTelemetry) ; tableaux de bord des SLO (voir `CDC_08`). |
 | NF-OBS-003 | Alertes : paiement en attente > 15 min, écart de rapprochement, rupture de chaîne de hachage, erreur 5xx > 1 %, file en échec non vide. |
+
+## 11. Site public (NF-PUB)
+
+> Ajout du 20 novembre 2026, voir `CDC_01` § 15 et ADR-0008.
+
+| ID | Exigence | Cible |
+|---|---|---|
+| NF-PUB-001 | Performance mobile mesurée au 75e centile (Core Web Vitals) sur téléphone d'entrée de gamme en 4G | LCP ≤ 2,5 s ; INP ≤ 200 ms ; CLS ≤ 0,1 ; page d'accueil ≤ 500 Ko transférés au premier affichage **[Hypothèse]** |
+| NF-PUB-002 | Rendu statique ou incrémental (SSG/ISR) servi par CDN ; le site reste consultable si l'API cœur est indisponible (dernier catalogue publié, daté). | Disponibilité ≥ 99,9 % indépendante de l'API cœur |
+| NF-PUB-003 | Accessibilité WCAG 2.2 AA (NF-UX-001), y compris le simulateur, la fiche produit et les animations (respect de `prefers-reduced-motion`). | Audit automatique sans erreur + revue manuelle au lecteur d'écran |
+| NF-PUB-004 | Sécurité : aucune donnée personnelle servie ; API publique **en lecture seule** sur le seul modèle de lecture « catalogue publié » ; limitation de débit ; CSP stricte sans script tiers non nécessaire ; en-têtes de sécurité (HSTS, `frame-ancestors`, `Referrer-Policy`). | Revue ASVS niveau 2 sur le périmètre du site |
+| NF-PUB-005 | Mesure d'audience respectueuse : sans cookie publicitaire ni identifiant tiers, données agrégées, conforme à la loi 2024/017 (traitement T-16). | Aucun cookie déposé sans nécessité ; bannière de consentement uniquement si un traceur non essentiel est ajouté |
+| NF-PUB-006 | Indicateurs de conversion suivis : visite → simulation → clic « Réserver » → inscription OTP réussie → premier versement. | Tableau de bord dans le back-office (F-REP-002) |

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluateImport } from './boundaries';
 import { findSecrets } from './scan-secrets';
 
-describe('check-boundaries', () => {
+describe('NF-MNT-001 check-boundaries (frontières de modules vérifiées par pnpm lint)', () => {
   it('laisse passer un import de bibliothèque externe', () => {
     expect(
       evaluateImport({

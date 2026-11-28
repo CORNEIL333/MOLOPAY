@@ -18,6 +18,7 @@ import { seedCustomerAccount, validateMerchant } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerLoginBody } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from './staff-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /**
  * Lot 24 / INT-IDEM-001 : chaque route d'écriture déclarée exige l'en-tête
@@ -52,6 +53,7 @@ const CASES: Readonly<Record<string, object | undefined>> = {
   '/v1/me/security/revoke-other-sessions': undefined,
   '/v1/me/data-rights': { kind: 'ACCESS' },
   '/v1/me/legal-name': { legalName: 'Aïcha Ngono Mballa' },
+  '/v1/me/terms-acceptances': { version: '2026-10-26-v1' },
   [`/v1/goals/${GOAL}/claims`]: { reason: 'OTHER', details: 'Je ne reçois rien depuis une semaine.' },
   [`/v1/goals/${GOAL}/activation`]: { pin: PIN, signature: SIGNATURE },
   [`/v1/goals/${GOAL}/cancellation`]: { pin: PIN, signature: SIGNATURE },
@@ -91,6 +93,12 @@ const STAFF_CASES: Readonly<Record<string, object>> = {
   '/v1/backoffice/admin/settings': { key: 'merchant_commission_bps', value: 250, approvalRequestId: GOAL },
   [`/v1/backoffice/partners/${GOAL}/screenings`]: {},
   [`/v1/backoffice/screenings/${GOAL}/review`]: { decision: 'FALSE_POSITIVE', reason: 'homonyme vérifié' },
+  [`/v1/backoffice/customers/${GOAL}/block`]: { reason: 'Téléphone volé' },
+  [`/v1/backoffice/customers/${GOAL}/decease-cases`]: { deathDate: '2026-11-20', certificateSha256: 'a'.repeat(64), reason: 'Acte présenté par la famille' },
+  [`/v1/backoffice/decease-cases/${GOAL}/decision`]: { decision: 'APPROVED' },
+  '/v1/backoffice/outgoing-freeze/requests': { action: 'FREEZE', reason: 'Incident de test' },
+  '/v1/backoffice/agency-enrollments': { phone: '+237690000777', documentType: 'CNI', cityId: 'douala' },
+  [`/v1/backoffice/outgoing-freeze/requests/${GOAL}/confirmation`]: {},
 };
 
 /** Routes de connexion du personnel : sans session, corps valide (D62). */
@@ -194,7 +202,7 @@ beforeAll(async () => {
   await seedCustomerAccount(admin, ACCOUNT, 'STRONG');
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins, PARTNER_ORIGIN]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, partnerRp: PARTNER_RP_TEST, handoverPepper: PEPPER, platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'k1' } })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins, PARTNER_ORIGIN]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, partnerRp: PARTNER_RP_TEST, handoverPepper: PEPPER, platformSigningKey: localInstructionSigner(generateKeyPairSync('ed25519').privateKey, 'k1') })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();

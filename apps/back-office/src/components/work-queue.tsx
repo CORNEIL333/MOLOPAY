@@ -23,6 +23,9 @@ const OVERSIGHT: Readonly<Partial<Record<keyof Omit<Queue, 'asOf'>, { readonly k
   gapsToEscalate: { kind: 'gap', idKey: 'incidentId' },
   unjustifiedSuspense: { kind: 'suspense', idKey: 'entryId' },
   overdueComplaints: { kind: 'complaint', idKey: 'complaintId' },
+  // C6 : décisions réservées à une seconde personne (le serveur refuse l'auteur, I-7).
+  pendingGapClassifications: { kind: 'gapDecision', idKey: 'proposalId' },
+  openDisputes: { kind: 'dispute', idKey: 'disputeId' },
 };
 
 /** Sections dont les éléments portent une action, et leur identifiant. */
@@ -49,6 +52,8 @@ const SECTIONS: readonly { readonly key: keyof Omit<Queue, 'asOf'>; readonly tit
   { key: 'overdueComplaints', title: 'Réclamations en retard' },
   // D75 : à examiner depuis la page Conformité (détail sur motif, D74).
   { key: 'pendingSanctionsReviews', title: 'Rapprochements sanctions à examiner' },
+  { key: 'pendingGapClassifications', title: 'Classes d’écarts à valider' },
+  { key: 'openDisputes', title: 'Litiges ouverts à lever' },
 ];
 
 /** Résumé lisible d'un élément : identifiants internes, montants, étape ; aucune donnée personnelle. */
@@ -62,6 +67,7 @@ function describe(item: Item): string {
 /** F-BO-003 / F-BO-004 : file de travail, consultation motivée (le motif est inscrit à l'audit). */
 export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactElement {
   const reasonId = useId();
+  const sectionId = useId();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
@@ -116,8 +122,8 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
         : SECTIONS.map(({ key, title }) => {
             const items = queue[key] as readonly Item[];
             return (
-              <section key={key}>
-                <h2>{`${title} (${items.length.toString()})`}</h2>
+              <section key={key} aria-labelledby={`${sectionId}-${key}`}>
+                <h2 id={`${sectionId}-${key}`}>{`${title} (${items.length.toString()})`}</h2>
                 <ul>
                   {items.map((item, index) => {
                     const actionable = ACTIONABLE[key];
@@ -132,6 +138,9 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
                         ) : null}
                         {key === 'pendingSanctionsReviews' && typeof item['screeningId'] === 'string' ? (
                           <> <a href={`/conformite?filtrage=${encodeURIComponent(item['screeningId'])}`} aria-label={`Examiner le rapprochement ${item['screeningId']}`}>Examiner</a></>
+                        ) : null}
+                        {key === 'openDisputes' && typeof item['agreementId'] === 'string' ? (
+                          <> <a href={`/objectifs?objectif=${encodeURIComponent(item['agreementId'])}`} aria-label={`Historique de l’objectif ${item['agreementId']}`}>Historique</a></>
                         ) : null}
                         {key === 'overdueComplaints' && typeof item['complaintId'] === 'string' ? (
                           <> <a href={`/reclamations?reclamation=${encodeURIComponent(item['complaintId'])}`} aria-label={`Consulter la réclamation ${String(item['reference'])}`}>Consulter</a></>

@@ -61,6 +61,19 @@ function clientData(type: string, challenge: Buffer): Buffer {
   return Buffer.from(JSON.stringify({ type, challenge: challenge.toString('base64url'), origin: STAFF_ORIGIN, crossOrigin: false }));
 }
 
+/** Compte du personnel sans rôle ni clé (création approuvée par un second administrateur). */
+export async function createStaffAccount(uri: string, login: string): Promise<string> {
+  const staffId = uuidv7();
+  const created = await approved(uri, createStaffPayload(staffId, login));
+  await transact(uri, (client) => insertStaffAccount(client, { id: staffId, login, approvalRequestId: created }));
+  return staffId;
+}
+
+/** Demande d'attribution de rôles approuvée par un second administrateur (non encore publiée). */
+export function approvedRoleGrant(uri: string, grant: { readonly staffId: string; readonly roles: readonly InternalRole[]; readonly cityIds: readonly string[]; readonly maxAmountXaf: bigint | null }): Promise<string> {
+  return approved(uri, grantRolesPayload(grant));
+}
+
 /** Compte, rôles et clé enrôlée, par le circuit réel. */
 export async function createStaffWithKey(
   uri: string,

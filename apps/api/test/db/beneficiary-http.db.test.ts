@@ -36,6 +36,7 @@ import {
   validateLandlord,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -331,7 +332,7 @@ describe('F-PLN-003 / D58 reçu de règlement consultable par le client', () => 
     expect((await payment({ pin: PIN }, 'benef-pay-receipt')).status).toBe(200);
     const payout = await withTransaction(database, (client) => prepareBeneficiaryPayout(client, { id: uuidv7(), agreementId: RENT, principal: FIN1 }));
     await withTransaction(database, (client) => decideBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN2, decision: 'APPROVED' }));
-    await withTransaction(database, (client) => instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN2, signingKey: PLATFORM_KEY, keyId: 'k1' }));
+    await withTransaction(database, (client) => instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN2, signer: localInstructionSigner(PLATFORM_KEY, 'k1') }));
     await withTransaction(database, (client) =>
       recordBeneficiaryPayoutExecution(client, { payoutId: payout.payoutId, principal: FIN1, outcome, bankReference: 'ETAB-VIR-77' }),
     );

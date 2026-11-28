@@ -29,8 +29,10 @@ const CONTEXT: AuthorizationContext = {
 };
 
 const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = {
-  SUPPORT_N1: [],
-  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT'],
+  // C4 / F-ACC-006 : blocage d'un compte client (perte ou vol du téléphone), motif obligatoire.
+  SUPPORT_N1: ['BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY'],
+  // C19 / F-ACC-007 : le support de niveau 2 reçoit la famille et déclare le décès (décision : conformité).
+  SUPPORT_N2: ['READ_IDENTITY_DOCUMENT', 'READ_FINANCIAL_HISTORY', 'OPEN_DISPUTE', 'CLOSE_COMPLAINT', 'BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY', 'DECLARE_CUSTOMER_DEATH'],
   OPERATIONS: [
     'READ_FINANCIAL_HISTORY',
     'PREPARE_SETTLEMENT',
@@ -42,6 +44,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'PREPARE_BENEFICIARY_PAYOUT',
     // D56 : levée des litiges.
     'RESOLVE_DISPUTE',
+    // D121 : bascule SMS par type de notification.
+    'MANAGE_NOTIFICATION_CHANNELS',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -60,6 +64,10 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'APPROVE_BENEFICIARY_PAYOUT',
     // D54 : classement des écarts de rapprochement.
     'CLASSIFY_RECONCILIATION_GAP',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
+    // C24 / F-REP-002 : indicateurs produits agrégés.
+    'READ_PRODUCT_KPIS',
   ],
   COMPLIANCE: [
     'READ_IDENTITY_DOCUMENT',
@@ -77,11 +85,17 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
     'SCREEN_PARTNER',
     'REVIEW_SANCTIONS_MATCH',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
+    // C19 / F-ACC-007 : décès d'un client (déclaration, décision par une autre personne).
+    'DECLARE_CUSTOMER_DEATH',
+    'DECIDE_CUSTOMER_DEATH',
+    'READ_PRODUCT_KPIS',
   ],
   // D31 (fondateur, 2026-10-31) : déclaration de défaillance par une seule personne.
-  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT'],
+  RISK: ['READ_FINANCIAL_HISTORY', 'MANAGE_RISK_ALERT', 'DECLARE_MERCHANT_DEFAULT', 'DECIDE_RISK_ALERT', 'BLOCK_CUSTOMER_ACCOUNT', 'MANAGE_OUTGOING_FREEZE'],
   PARTNER_NETWORK: ['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER'],
-  AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG'],
+  AUDIT: ['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG', 'READ_PRODUCT_KPIS'],
   TECH_ADMIN: ['MANAGE_USERS', 'REQUEST_BREAK_GLASS', 'APPROVE_BREAK_GLASS'],
 };
 
@@ -136,14 +150,14 @@ function settlementRequest(
   );
 }
 
-describe('RBAC · matrice rôle × action exhaustive', () => {
+describe('F-BO-001 / SEC-AUTHZ-004 RBAC · matrice rôle × action exhaustive (autorisé, ou refusé avec ADMIN_FORBIDDEN)', () => {
   for (const role of INTERNAL_ROLES) {
     for (const action of ADMIN_ACTIONS) {
-      it(`${role} × ${action}`, () => {
+      const expected = EXPECTED_GRANTS[role].includes(action);
+      it(`${role} × ${action} : ${expected ? 'autorisé' : 'refusé'}`, () => {
         const decision = authorize(principal('actor-1', [role]), action, CONTEXT);
-        const expected = EXPECTED_GRANTS[role].includes(action);
-        expect(decision.allowed, decision.allowed ? '' : decision.code).toBe(
-          expected,
+        expect(decision.allowed ? 'ALLOWED' : decision.code).toBe(
+          expected ? 'ALLOWED' : 'ADMIN_FORBIDDEN',
         );
       });
     }
@@ -160,6 +174,27 @@ describe('RBAC · matrice rôle × action exhaustive', () => {
 });
 
 describe('ABAC · périmètre, plafond et motif', () => {
+  it('C7 / SEC-INC-003 le gel des flux sortants exige un motif (ADMIN_REASON_REQUIRED)', () => {
+    expect(authorize(principal('fin-1', ['FINANCE']), 'MANAGE_OUTGOING_FREEZE', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('fin-1', ['FINANCE']), 'MANAGE_OUTGOING_FREEZE', { reason: 'Incident' })).toMatchObject({ allowed: true });
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_OUTGOING_FREEZE', { reason: 'Incident' })).toMatchObject({ allowed: false, code: 'ADMIN_FORBIDDEN' });
+  });
+
+  it('C4 / F-ACC-006 le blocage d’un compte client exige un motif (ADMIN_REASON_REQUIRED)', () => {
+    expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('sup-1', ['SUPPORT_N1']), 'BLOCK_CUSTOMER_ACCOUNT', { reason: 'Téléphone volé' })).toMatchObject({ allowed: true });
+    // C24 / F-REP-002 : la consultation des indicateurs est toujours motivée.
+    expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', { reason: 'Revue mensuelle' })).toMatchObject({ allowed: true });
+    // D121 : la bascule SMS exige un motif.
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_NOTIFICATION_CHANNELS', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_NOTIFICATION_CHANNELS', { reason: 'Ouverture du SMS' })).toMatchObject({ allowed: true });
+    // C19 / F-ACC-007 : la déclaration de décès est toujours motivée.
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', { reason: 'Acte présenté par la famille' })).toMatchObject({ allowed: true });
+    expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECIDE_CUSTOMER_DEATH', { reason: 'x' })).toMatchObject({ allowed: false, code: 'ADMIN_FORBIDDEN' });
+  });
+
   it('D31 exige un motif pour déclarer une défaillance marchand', () => {
     const decision = authorize(principal('network-1', ['PARTNER_NETWORK']), 'DECLARE_MERCHANT_DEFAULT', {
       partnerId: 'partner-1',

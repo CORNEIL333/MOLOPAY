@@ -1531,6 +1531,263 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backoffice/customers/{accountId}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bloquer un compte client : perte ou vol du téléphone, fraude présumée (F-ACC-006)
+         * @description Support (niveaux 1 et 2) ou risque ; une seule personne, motif obligatoire. Compte bloqué (canal SUPPORT), appareils révoqués, sessions fermées dans la même transaction ; audit chaîné. Déblocage : récupération avec KYC renforcé (SEC-AUTH-007).
+         */
+        post: operations["blockCustomerAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fil des notifications du client dans l'application (F-NOT-001)
+         * @description Une entrée par événement (SMS et push regroupés), du plus récent au plus ancien, 50 par page ; textes génériques dans la langue de la notification. Indépendant de tout prestataire d'envoi.
+         */
+        get: operations["listCustomerNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/outgoing-freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du gel des flux sortants et demandes en attente (SEC-INC-003)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        get: operations["getOutgoingFreeze"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/outgoing-freeze/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demander le gel ou la levée du gel des flux sortants (SEC-INC-003)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        post: operations["requestOutgoingFreeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmer une demande de gel ou de levée, par une autre personne (I-7)
+         * @description C7 / SEC-INC-003 : gel des flux sortants. Demande motivée (Finance, Conformité, Risque), confirmée par une AUTRE personne dans l'heure ; pendant le gel, toute nouvelle instruction signée (règlement, remboursement, virement C) est refusée par la base (409 SETTLEMENT_OUTGOING_FROZEN).
+         */
+        post: operations["confirmOutgoingFreeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/terms-acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepter les conditions en vigueur (F-ACC-004) */
+        post: operations["acceptCurrentTerms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/agency-enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Émettre un code d'inscription en agence, après vérification en personne (C13, F-ACC-001)
+         * @description L'agent du support vérifie en personne la pièce d'identité et le téléphone du client, dans sa ville, puis remet le code au client, qui termine l'inscription sur son appareil (POST /v1/auth/signups). Le code n'est rendu qu'une fois ; un rejeu renvoie le même défi avec `code: null`. 30 codes par agent sur 24 heures.
+         */
+        post: operations["issueAgencyEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/customers/{accountId}/decease-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déclarer le décès d’un client (F-ACC-007, tranche 1)
+         * @description Support de niveau 2 ou conformité ; motif obligatoire. Enregistre la date du décès et l’empreinte SHA-256 de l’acte (la pièce reste hors base). Aucun effet sur le compte avant la décision d’une autre personne. Un seul dossier en attente ou approuvé par compte (409 IDENTITY_DECEASE_CASE_EXISTS). Audit chaîné sans l’empreinte.
+         */
+        post: operations["declareCustomerDecease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/decease-cases/{caseId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Décider un dossier de décès (F-ACC-007, tranche 1)
+         * @description Conformité, jamais le déclarant (403 MAKER_CANNOT_APPROVE, vérifié par la base) ; une seule décision (409 IDENTITY_DECEASE_ALREADY_DECIDED) ; rejet motivé. Approbation, dans la même transaction : compte bloqué définitivement (canal DECEASED, plus aucune récupération), appareils révoqués, sessions fermées, objectifs actifs gelés. Aucun mouvement de fonds : la restitution aux ayants droit est une tranche ultérieure.
+         */
+        post: operations["decideCustomerDecease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/reports/product-kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicateurs produits agrégés (F-REP-002)
+         * @description Finance, conformité ou audit ; consultation motivée et inscrite à l’audit chaîné. Définitions : docs/04_annexes/DEFINITIONS_INDICATEURS.md. Période en dates de Douala, début inclus, fin exclue, au plus 366 jours (sinon 400 REPORT_PERIOD_INVALID). Agrégats seulement ; une case de moins de 5 objectifs est publiée « <5 ».
+         */
+        get: operations["readProductKpis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Déclarer la langue choisie dans l'application (D121)
+         * @description Les notifications suivantes partent dans cette langue (fr ou en). Sans déclaration, le français. Une déclaration identique n'écrit rien.
+         */
+        put: operations["declareLanguage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/notifications/sms-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du canal SMS par type de notification (D121)
+         * @description Le push est le canal de lancement ; le SMS est fermé tant que l'équipe ne l'ouvre pas pour un type. Rôle OPERATIONS.
+         */
+        get: operations["listSmsChannels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/notifications/sms-channels/{eventType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Ouvrir ou fermer le SMS pour un type de notification (D121)
+         * @description Geste simple, motivé, inscrit à l'audit chaîné (SMS_CHANNEL_SET) dans la même transaction. Vaut pour les notifications suivantes, jamais pour celles déjà en file. État inchangé : 409 NOTIFICATION_CHANNEL_UNCHANGED. Rôle OPERATIONS.
+         */
+        put: operations["setSmsChannel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1688,6 +1945,15 @@ export interface components {
             memberSince: string;
             /** @description Un nom légal a été déclaré (le résultat du filtrage n'est jamais exposé). */
             legalNameDeclared: boolean;
+            /** @description F-ACC-004 : version en vigueur des conditions générales et de la politique de confidentialité. */
+            currentTermsVersion: string;
+            /** @description F-ACC-004 : faux tant que la version en vigueur n’est pas acceptée ; aucun nouvel objectif ni activation n’est alors possible (IDENTITY_TERMS_NOT_ACCEPTED). */
+            termsAccepted: boolean;
+            /**
+             * @description D121 : langue déclarée par l'application (PUT /v1/me/language), français par défaut ; langue des notifications.
+             * @enum {string}
+             */
+            language: "fr" | "en";
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2201,6 +2467,28 @@ export interface components {
                 /** Format: date-time */
                 screenedAt: string;
             }[];
+            /** @description C6 / D54 : propositions de classement d'un écart en attente de la décision d'une autre personne (l'explication n'est pas reprise). */
+            pendingGapClassifications: {
+                /** Format: uuid */
+                proposalId: string;
+                /** Format: uuid */
+                incidentId: string;
+                /** @enum {string} */
+                classification: "IN_TRANSIT" | "FEES" | "DUPLICATE" | "UNKNOWN";
+                proposedBy: string;
+                /** Format: date-time */
+                proposedAt: string;
+            }[];
+            /** @description C6 / D56 : litiges ouverts, à lever par une autre personne que celle qui les a ouverts. */
+            openDisputes: {
+                /** Format: uuid */
+                disputeId: string;
+                /** Format: uuid */
+                agreementId: string;
+                openedBy: string;
+                /** Format: date-time */
+                openedAt: string;
+            }[];
         };
         ApprovalPrepareRequest: {
             /** Format: uuid */
@@ -2506,6 +2794,207 @@ export interface components {
             /** @description Signature Ed25519 (64 octets) en base64. */
             signature: string;
         };
+        CustomerBlockRequest: {
+            /** @description Motif saisi (inscrit à l'audit chaîné). */
+            reason: string;
+        };
+        CustomerBlock: {
+            /** Format: uuid */
+            accountId: string;
+            /** @constant */
+            status: "BLOCKED";
+            /** Format: date-time */
+            blockedAt: string;
+        };
+        CustomerNotification: {
+            /** Format: uuid */
+            notificationId: string;
+            /** @enum {string} */
+            eventType: "PAYMENT_CONFIRMED" | "PAYMENT_REMINDER" | "GOAL_FUNDED" | "HANDOVER_READY" | "SETTLEMENT_CONFIRMED" | "DISPUTE_UPDATED";
+            /** Format: date-time */
+            createdAt: string;
+            title: string;
+            /** @description Texte générique validé, sans donnée personnelle (F-NOT-002). */
+            body: string;
+        };
+        CustomerNotificationFeed: {
+            items: components["schemas"]["CustomerNotification"][];
+            /**
+             * Format: uuid
+             * @description Curseur de la page suivante (plus ancienne) ; null à la fin.
+             */
+            nextBefore: string | null;
+            /** Format: date-time */
+            asOf: string;
+        };
+        OutgoingFreezeState: {
+            frozen: boolean;
+            /** Format: date-time */
+            since: string | null;
+            reason: string | null;
+            /** @description INT-VER-002 : dernière divergence du vérificateur indépendant non suivie d'une levée confirmée ; tant qu'elle existe, les flux sortants sont gelés. */
+            divergence: null | {
+                code: string;
+                /** Format: date-time */
+                detectedAt: string;
+            };
+            pending: {
+                /** Format: uuid */
+                requestId: string;
+                /** @enum {string} */
+                action: "FREEZE" | "UNFREEZE";
+                reason: string;
+                requestedBy: string;
+                /** Format: date-time */
+                requestedAt: string;
+            }[];
+        };
+        OutgoingFreezeRequest: {
+            /** @enum {string} */
+            action: "FREEZE" | "UNFREEZE";
+            reason: string;
+        };
+        TermsAcceptanceRequest: {
+            /** @description Doit être la version en vigueur (currentTermsVersion). */
+            version: string;
+        };
+        TermsAcceptance: {
+            version: string;
+            /**
+             * Format: date-time
+             * @description Horodatage posé par la base ; inchangé si la même version est acceptée de nouveau.
+             */
+            acceptedAt: string;
+        };
+        AgencyEnrollmentRequest: {
+            /** @description Numéro E.164 du client, vérifié en personne. */
+            phone: string;
+            /**
+             * @description Type de pièce présentée ; son numéro n’est jamais transmis.
+             * @enum {string}
+             */
+            documentType: "CNI" | "PASSPORT" | "RESIDENCE_PERMIT";
+            /** @enum {string} */
+            cityId: "yaounde" | "douala";
+        };
+        AgencyEnrollment: {
+            /** Format: uuid */
+            challengeId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Six chiffres, rendus une seule fois ; nul sur un rejeu. */
+            code: string | null;
+        };
+        DeceaseCaseRequest: {
+            /**
+             * Format: date
+             * @description Date du décès (jamais future)
+             */
+            deathDate: string;
+            /** @description Empreinte SHA-256 de l’acte de décès, en hexadécimal minuscule */
+            certificateSha256: string;
+            reason: string;
+        };
+        DeceaseCase: {
+            /** Format: uuid */
+            caseId: string;
+            /** Format: uuid */
+            accountId: string;
+            /** @constant */
+            status: "PENDING";
+            /** Format: date-time */
+            declaredAt: string;
+        };
+        DeceaseDecisionRequest: {
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            /** @description Obligatoire pour un rejet */
+            reason?: string;
+        };
+        DeceaseDecision: {
+            /** Format: uuid */
+            caseId: string;
+            /** @enum {string} */
+            decision: "APPROVED" | "REJECTED";
+            /** @description Objectifs actifs gelés (0 en cas de rejet) */
+            frozenGoals: number;
+        };
+        KpiCell: {
+            /** @description Univers (ESSENTIALS, TECHNOLOGY, HOUSING, MOBILITY, PLANNED_EXPENSE_HORS_UNIVERS) ou ville (douala, yaounde, NON_ATTRIBUEE) */
+            key: string;
+            goals: number | "<5";
+            /** @description Entier XAF, ou « <5 » quand la case est masquée */
+            amountXaf?: string;
+        };
+        ProductKpis: {
+            period: {
+                /** Format: date-time */
+                from: string;
+                /** Format: date-time */
+                to: string;
+            };
+            volume: {
+                /** @description Entier XAF */
+                totalXaf: string;
+                byUniverse: components["schemas"]["KpiCell"][];
+                byCity: components["schemas"]["KpiCell"][];
+            };
+            openGoals: {
+                total: number;
+                byUniverse: components["schemas"]["KpiCell"][];
+                byCity: components["schemas"]["KpiCell"][];
+            };
+            completion: {
+                activated: number;
+                funded: number;
+                ratePercent: string | null;
+            };
+            handoverDelay: {
+                count: number;
+                medianDays: string | null;
+                p90Days: string | null;
+            };
+            /**
+             * @description Modèle B non ouvert : sans objet, jamais 0
+             * @constant
+             */
+            defaultsB: "NOT_APPLICABLE";
+            commissionMargin: {
+                count: number;
+                /** @description Entier XAF */
+                totalXaf: string;
+                averageXaf: string | null;
+            };
+        };
+        /** @description D121 : langue choisie dans l'application. */
+        LanguageDeclaration: {
+            /** @enum {string} */
+            language: "fr" | "en";
+        };
+        /**
+         * @description Type de notification (F-NOT-001).
+         * @enum {string}
+         */
+        NotificationEventType: "PAYMENT_CONFIRMED" | "PAYMENT_REMINDER" | "GOAL_FUNDED" | "HANDOVER_READY" | "SETTLEMENT_CONFIRMED" | "DISPUTE_UPDATED";
+        SmsChannelState: {
+            eventType: components["schemas"]["NotificationEventType"];
+            smsEnabled: boolean;
+            /** @description Agent auteur de la dernière bascule (null : jamais basculé). */
+            setBy: string | null;
+            /** Format: date-time */
+            setAt: string | null;
+        };
+        SmsChannelList: {
+            items: components["schemas"]["SmsChannelState"][];
+        };
+        SmsChannelToggle: {
+            enabled: boolean;
+            reason: string;
+        };
+        SmsChannelToggleResult: {
+            eventType: components["schemas"]["NotificationEventType"];
+            smsEnabled: boolean;
+        };
     };
     responses: {
         /** @description Requête invalide */
@@ -2582,6 +3071,15 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Application trop ancienne : mise à jour exigée (SEC-MOB-005) */
+        UpgradeRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         IdempotencyKey: string;
@@ -2595,6 +3093,8 @@ export interface components {
         MaxPriceFilter: components["schemas"]["Money"];
         PartnerFilter: string;
         ApprovalStatusFilter: components["schemas"]["ApprovalStatus"];
+        /** @description SEC-MOB-005 : plateforme et version de l'application (`mobile/0.1.0`). Facultatif ; s'applique à toutes les routes. En dessous du minimum publié (paramètre `client_min_versions`), toute route répond 426 `CLIENT_UPGRADE_REQUIRED`. */
+        ClientVersion: string;
     };
     requestBodies: never;
     headers: never;
@@ -5381,6 +5881,421 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    blockCustomerAccount: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerBlockRequest"];
+            };
+        };
+        responses: {
+            /** @description Compte bloqué */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerBlock"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    listCustomerNotifications: {
+        parameters: {
+            query?: {
+                /** @description Identifiant de la dernière notification de la page précédente. */
+                before?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fil */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerNotificationFeed"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description État */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingFreezeState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    requestOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutgoingFreezeRequest"];
+            };
+        };
+        responses: {
+            /** @description Demande enregistrée, à confirmer par une autre personne */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        requestId: string;
+                        /** @enum {string} */
+                        action: "FREEZE" | "UNFREEZE";
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    confirmOutgoingFreeze: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description État résultant */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        requestId: string;
+                        frozen: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    acceptCurrentTerms: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermsAcceptanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Acceptation enregistrée (ou déjà enregistrée : horodatage d’origine) */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermsAcceptance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    issueAgencyEnrollment: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgencyEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Code émis (à remettre au client, valable 5 minutes) */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgencyEnrollment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    declareCustomerDecease: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeceaseCaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Dossier de décès ouvert, en attente de décision */
+            201: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeceaseCase"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    decideCustomerDecease: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                caseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeceaseDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Décision enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeceaseDecision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    readProductKpis: {
+        parameters: {
+            query: {
+                /** @description Premier jour inclus (AAAA-MM-JJ, Douala) */
+                from: string;
+                /** @description Premier jour exclu (AAAA-MM-JJ, Douala) */
+                to: string;
+                reason: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Indicateurs de la période */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductKpis"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    declareLanguage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageDeclaration"];
+            };
+        };
+        responses: {
+            /** @description Langue enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageDeclaration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    listSmsChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Six types, dans l'ordre du catalogue */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsChannelList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    setSmsChannel: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                eventType: components["schemas"]["NotificationEventType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsChannelToggle"];
+            };
+        };
+        responses: {
+            /** @description Bascule enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsChannelToggleResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["Unavailable"];
         };
     };
 }

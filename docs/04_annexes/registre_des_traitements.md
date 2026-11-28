@@ -1,6 +1,6 @@
 # Registre des traitements de données personnelles
 
-> Version 1.1 · 19 novembre 2026 (T-11 à T-15 ajoutés d'après le code) · Cadre : loi n° 2024/017 du 23 décembre 2024 (en vigueur depuis le 23 juin 2026). **Projet à valider par le DPO et le juriste** (bases légales, durées, formalités préalables).
+> Version 1.2 · 28 novembre 2026 (T-16 et T-17 du site public, ADR-0008, repris de la branche de direction UX ; T-11 à T-15 ajoutés d'après le code le 19 novembre) · Cadre : loi n° 2024/017 du 23 décembre 2024 (en vigueur depuis le 23 juin 2026). **Projet à valider par le DPO et le juriste** (bases légales, durées, formalités préalables).
 
 | # | Traitement | Finalité | Personnes | Données | Base légale (à confirmer) | Destinataires | Durée de conservation (à confirmer) | Localisation |
 |---|---|---|---|---|---|---|---|---|
@@ -19,6 +19,8 @@
 | T-13 | Comptes du personnel et des partenaires | Authentifier et tracer les actions (SEC-AUTH-004/006, D62, D63) | Personnel interne, gérants et vendeurs des partenaires | Identifiant de connexion, rôles, clés publiques WebAuthn, sessions (empreintes), défis | Intérêt légitime / obligation légale (traçabilité) | Équipe interne habilitée | Durée de la fonction + délai d'audit (à confirmer) ; tables en ajout seul | ADR-0004 |
 | T-14 | Géolocalisation de la remise au comptoir | Preuve de remise de l'article au client (D45) | Vendeurs des partenaires | Latitude, longitude, vendeur, horodatage de la remise | Exécution du contrat / intérêt légitime (preuve) | Opérations, Litiges | Délai de prescription des litiges (à confirmer) | ADR-0004 |
 | T-15 | Consultations de données sensibles par le personnel | Prouver et contrôler l'accès (F-BO-001/002, D74) | Clients, partenaires (données consultées) ; personnel (auteur) | Auteur, action, motif saisi, cible, horodatage (journal d'audit chaîné) | Obligation légale / intérêt légitime | Audit, régulateurs sur demande | ≥ 10 ans (à confirmer), comme T-09 | ADR-0004 |
+| T-16 | Mesure d'audience du site public | Améliorer le site et mesurer la conversion | Visiteurs | Pages vues, événements de parcours, agrégés, sans identifiant publicitaire ni cookie tiers | Intérêt légitime (à confirmer) | Équipe produit | 13 mois (à confirmer) | ADR-0004 / ADR-0008 |
+| T-17 | Candidatures partenaires du site public | Qualifier les futurs partenaires | Représentants de commerces, bailleurs, écoles | Nom, téléphone, activité, ville | Mesures précontractuelles | Réseau partenaires | 12 mois sans suite (à confirmer) | ADR-0004 |
 
 ## Mesures transverses
 

@@ -11,7 +11,11 @@ const DETAIL = {
 };
 
 function ports(overrides: Partial<ComplaintPorts> = {}): ComplaintPorts {
-  return { load: vi.fn<ComplaintPorts['load']>(() => Promise.resolve({ ok: true, complaint: DETAIL })), ...overrides };
+  return {
+    load: vi.fn<ComplaintPorts['load']>(() => Promise.resolve({ ok: true, complaint: DETAIL })),
+    openDispute: vi.fn<ComplaintPorts['openDispute']>(() => Promise.resolve({ ok: true, disputeId: '019ab800-0000-7000-8000-0000000000d1' })),
+    ...overrides,
+  };
 }
 
 async function open(injected: ComplaintPorts, id = ID, reason = 'appel du client'): Promise<void> {
@@ -69,4 +73,22 @@ describe('F-SUP-001 / D73 détail d’une réclamation au back-office', () => {
     render(<ComplaintDetail ports={ports()} initialComplaintId="019aa800-0000-7000-8000-0000000000e1" />);
     expect(screen.getByLabelText('Identifiant de la réclamation')).toHaveValue('019aa800-0000-7000-8000-0000000000e1');
   });
+
+  it('C6 / D56 litige : proposé seulement si la réclamation n’est ni close ni déjà en litige ; ouvert puis affiché', async () => {
+    const injected = ports({ load: vi.fn<ComplaintPorts['load']>(() => Promise.resolve({ ok: true, complaint: { ...DETAIL, openDispute: false } })) });
+    await open(injected);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Ouvrir un litige' }));
+    await waitFor(() => { expect(injected.openDispute).toHaveBeenCalledWith(ID); });
+    expect(await screen.findByText(/Litige ouvert : oui/)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Ouvrir un litige' })).toBeNull();
+    expect(screen.getByRole('link', { name: /Historique de l’objectif/ })).toHaveAttribute('href', `/objectifs?objectif=${DETAIL.agreementId}`);
+  });
+
+  it('C6 litige déjà ouvert ou réclamation close : aucune ouverture proposée', async () => {
+    await open(ports());
+    await screen.findByText(/Litige ouvert : oui/);
+    expect(screen.queryByRole('button', { name: 'Ouvrir un litige' })).toBeNull();
+  });
 });
+

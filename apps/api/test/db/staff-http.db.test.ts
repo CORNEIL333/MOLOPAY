@@ -17,9 +17,10 @@ import { issueEnrollment } from '../../src/modules/admin/staff.store';
 import { verifyRefundInstruction, type RefundInstructionDocument } from '../../src/modules/settlement/refund.store';
 import { payBeneficiaryForCustomer } from '../../src/workflows/beneficiary-payment';
 import { prepareRefund } from '../../src/workflows/refund';
-import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateBeneficiary, validateLandlord } from './agreement-fixture';
+import { createAgreementC, PLAN_C, publishKycLimits, seedCustomerAccount, seedLedgerGenesis, seedPaymentPlan, validateBeneficiary, validateLandlord, publishCommitmentLimits } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createStaffWithKey, loginBody, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie, type StaffKey } from './staff-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /** D62 / SEC-AUTH-004/005 : connexion WebAuthn du personnel et première route du back-office, en HTTP réel. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
@@ -85,7 +86,7 @@ beforeAll(async () => {
   await admin.connect();
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const open = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, platformSigningKey: { key: PLATFORM.privateKey, keyId: 'plateforme-test-1' } })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, platformSigningKey: localInstructionSigner(PLATFORM.privateKey, 'plateforme-test-1') })],
   }).compile();
   app = open.createNestApplication({ logger: false });
   await app.init();
@@ -113,6 +114,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateLandlord(admin, uuidv7());
   await seedPaymentPlan(admin, PLAN_C);

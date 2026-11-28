@@ -57,6 +57,22 @@
 | D80 | Liste ONU : qui détient le rôle d'**import** (`kyc_list_importer`) ; import confirmé par une seconde personne ? Noms arabes **vocalisés** acceptés ? | Rôle sans titulaire ; noms vocalisés refusés. |
 | D81 | Envoi des codes SMS : **5 par numéro et par heure**, code valable 5 min, 5 essais : **Valider / Modifier** ; limite par IP ? | Appliqué. |
 | D71 | (Appliqué le 20 novembre conformément à SEC-AUTH-001 : appareil + PIN.) Confirmer ? | — |
+| D82 | **Nouveau téléphone** sur le même numéro : **A** approbation par l'ancien téléphone + OTP / **B** OTP + délai 24 h / **C** agence ou support avec contrôle d'identité (recommandé : A + C) | Aucun ajout d'appareil possible. |
+| D83 | **Blocage d'un compte client** par : support N1/N2 et risque (appliqué) — **Valider / Modifier** ; SMS au client lors du blocage ? procédure de déblocage ? | Appliqué ; aucun déblocage possible. |
+| D84 | **Gel des flux sortants** (SEC-INC-003) demandé et confirmé par deux personnes parmi finance, conformité, risque ; confirmation dans l'heure — **Valider / Modifier** ; alerte au fondateur lors d'un gel ? | Appliqué ; aucune alerte. |
+| D85 | Client en cours d'examen de sanctions : refus de versement par **message neutre « vérification en cours »** identique pour tous (recommandé) / plafond minimal pendant l'examen | Aucun versement possible (agrégateur non branché). |
+| D86 | **Nombre maximal d'objectifs actifs** par client (NF-SAFE-002) : **3** (recommandé) / autre ; compter aussi les objectifs financés non remis ? | Aucune activation tant que le paramètre n'est pas publié. |
+| D87 | Contrôle nocturne du grand livre **impossible** (export absent, outil en panne) : **alerte seule** (appliqué) / gel aussi | Alerte seule. |
+| D88 | Conditions non réacceptées : refuser aussi les **versements** et le **règlement au bénéficiaire C** ? (appliqué : création et activation seulement) | Création et activation refusées. |
+| D89 | Client web : le **navigateur** est un appareil (clé Ed25519 non exportable + PIN) — **Valider** / réserver l'inscription au mobile | Appliqué. |
+| D90 | Clé d'appareil mobile : **A** accepter aussi P-256 matériel (Secure Enclave / Keystore, recommandé) / **B** Ed25519 logiciel protégé par clé matérielle / **C** Android 13+ seulement | Mobile : ni inscription ni connexion (aucune clé de plateforme). |
+| D1 | Prestataire SMS : **Twilio** (tranché le 24 novembre) ; adaptateur livré, identifiants à fournir | — |
+| D92 | Versements au lancement : **aucun** (tranché le 24 novembre) | — |
+| D91 | Inscription en agence : un agent seul, 30 codes / 24 h (appliqué) — **Valider** / seconde personne / photo de la pièce | Appliqué. |
+| ADR-0004 | Hébergement MVP : **Neon Francfort + serveurs AWS Francfort + AWS KMS**, chiffrement applicatif (C14), notre propre sauvegarde, transfert vers AWS répété (25 novembre) ; **autorisation de transfert (loi 2024/017) : à déposer ; collecte de données réelles avant l'accord : à décider** | Aucune donnée réelle tant que non décidé. |
+| D5 | Clés de signature : **AWS KMS** (Ed25519, non exportables) — tranché les 24 et 25 novembre | — |
+| D93 | Sauvegardes : **un site + copie hors site au Cameroun** (écart temporaire OPS-BAK-001 / NF-REL-002 jusqu'aux versements) ; exploitation **VM + conteneurs** — tranché le 24 novembre | — |
+| D113 | Numérotation des migrations : **plages réservées** (0001–0099 Claude, 0100+ Qoder), chacune continue, test adapté — **Valider** / renuméroter | Test de chaîne rouge dès l'intégration du CRM. |
 | D76 | Ajouter `@vitest/coverage-v8` (épinglé) et Stryker pour mesurer NF-MNT-002 ? **Oui / Non** | Aucune mesure de couverture. |
 
 ## G. Accès externes toujours attendus

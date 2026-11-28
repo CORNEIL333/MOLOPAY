@@ -50,6 +50,21 @@ export async function retryNotification(pool: Pick<Pool, 'connect'>, claimId: st
   });
 }
 
+const PROVIDER_REF = /^[A-Za-z0-9._:-]{1,200}$/;
+
+/**
+ * Confirmation d'envoi (migration 0078) : à appeler APRÈS l'acceptation du
+ * message par le prestataire, avec sa référence opaque (jamais le texte ni le
+ * numéro). Rejouable ; une notification confirmée n'est plus reprise.
+ */
+export async function completeNotification(pool: Pick<Pool, 'connect'>, claimId: string, providerRef: string): Promise<void> {
+  if (typeof claimId !== 'string' || !UUID.test(claimId)) throw new BusinessError('NOTIFICATION_INVALID_REQUEST');
+  if (typeof providerRef !== 'string' || !PROVIDER_REF.test(providerRef)) throw new BusinessError('NOTIFICATION_INVALID_REQUEST', 'NOTIFICATION_INVALID_REQUEST: référence du prestataire invalide');
+  await committed(pool, async (client) => {
+    await client.query('SELECT notifications.complete_notification($1, $2)', [claimId, providerRef]);
+  });
+}
+
 /** Compteurs sans identifiant client ; la supervision active reste à câbler. */
 export async function notificationDispatchCounts(pool: Pick<Pool, 'connect'>): Promise<DispatchCounts> {
   return committed(pool, async (client) => {

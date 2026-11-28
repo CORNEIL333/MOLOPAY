@@ -30,10 +30,12 @@ import {
   seedLedgerGenesis,
   seedPaymentPlan,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerCredentialBody, partnerKey, partnerLoginBody, type PartnerKey, type Transact } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /**
  * D63 (lot 20) : connexion des partenaires par WebAuthn et remise au
@@ -149,6 +151,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7(), 'merchant-1');
   await validateMerchant(admin, uuidv7(), 'merchant-2');
@@ -519,7 +522,7 @@ describe('F-PRT-003/004 règlements du partenaire, gérant uniquement (D63)', ()
     ]);
     await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'APPROVED', cityId: 'douala' }));
     expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'APPROVED' });
-    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
     expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'INSTRUCTED' });
     await withTransaction(database, (client) => recordPayoutExecution(client, { payoutId, principal: FIN2, cityId: 'douala', outcome: 'EXECUTED', bankReference: 'ETAB-REG-1' }));
     const executed = payload(await payouts(cookie)).payouts?.[0] ?? {};
@@ -538,7 +541,7 @@ describe('F-PRT-003/004 règlements du partenaire, gérant uniquement (D63)', ()
   it('exécution refusée par l’établissement : état EXECUTION_REJECTED, ni date ni référence', async () => {
     const payoutId = await handedOverAndPrepared();
     await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'APPROVED', cityId: 'douala' }));
-    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+    await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
     await withTransaction(database, (client) => recordPayoutExecution(client, { payoutId, principal: FIN2, cityId: 'douala', outcome: 'REJECTED', bankReference: 'ETAB-REJ-1' }));
     const cookie = partnerCookie(await login('awa.gerant', staff.managerKey, 1));
     expect(payload(await payouts(cookie)).payouts?.[0]).toMatchObject({ status: 'EXECUTION_REJECTED', executedAt: null, bankReference: null });

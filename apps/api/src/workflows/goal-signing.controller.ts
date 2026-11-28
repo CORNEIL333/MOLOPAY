@@ -14,7 +14,7 @@ import {
   lockStoredAgreement,
   type StoredAgreement,
 } from '../modules/agreements/agreement.store';
-import { goalFromStored } from '../modules/agreements/goal.api';
+import { assertCurrentTermsAccepted, goalFromStored } from '../modules/agreements/goal.api';
 import { getSigningDevice } from '../modules/identity/device.store';
 import { verifyPinFromStore } from '../modules/identity/pin.store';
 import type { AuthenticatedCustomer } from '../modules/identity/session.store';
@@ -129,6 +129,11 @@ export class GoalSigningController {
     }
     const parsed = parseBody(action, body);
     const key = assertIdempotencyKey(request.headers['idempotency-key']);
+    // F-ACC-004 : activer = s'engager ; conditions en vigueur acceptées d'abord (avant tout essai de PIN).
+    // Annuler et verrouiller protègent le client : toujours possibles.
+    if (action === 'ACTIVATE') {
+      await withTransaction({ ...this.database, role: 'app_ro' }, (client) => assertCurrentTermsAccepted(client, actor.accountId));
+    }
     const pinCheck = await withTransaction({ ...this.database, role: 'app_rw' }, (client) =>
       verifyPinFromStore(client, { accountId: actor.accountId, deviceId: actor.deviceId, pin: parsed.pin, pepper }),
     );

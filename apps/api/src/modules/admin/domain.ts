@@ -49,6 +49,13 @@ export const ADMIN_ACTIONS = [
   'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
+  'BLOCK_CUSTOMER_ACCOUNT',
+  'MANAGE_OUTGOING_FREEZE',
+  'ENROLL_CUSTOMER_AT_AGENCY',
+  'DECLARE_CUSTOMER_DEATH',
+  'DECIDE_CUSTOMER_DEATH',
+  'READ_PRODUCT_KPIS',
+  'MANAGE_NOTIFICATION_CHANNELS',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -83,13 +90,19 @@ export type AuthorizationDecision =
     };
 
 const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
-  SUPPORT_N1: new Set(),
+  // C4 / F-ACC-006 : perte ou vol du téléphone ; bloquer ne fait que protéger (une personne, motif obligatoire).
+  // C13 : inscription en agence (pièce et téléphone vérifiés en personne), dans la ville de l'agent.
+  SUPPORT_N1: new Set<AdminAction>(['BLOCK_CUSTOMER_ACCOUNT', 'ENROLL_CUSTOMER_AT_AGENCY']),
   SUPPORT_N2: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
     'READ_FINANCIAL_HISTORY',
     // D41 / D56 : le support de niveau 2 ouvre les litiges et clôt les réclamations.
     'OPEN_DISPUTE',
     'CLOSE_COMPLAINT',
+    'BLOCK_CUSTOMER_ACCOUNT',
+    'ENROLL_CUSTOMER_AT_AGENCY',
+    // C19 / F-ACC-007 : le support de niveau 2 reçoit la famille et déclare le décès.
+    'DECLARE_CUSTOMER_DEATH',
   ]),
   OPERATIONS: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -102,6 +115,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'PREPARE_BENEFICIARY_PAYOUT',
     // D41 / D56 : levée des litiges (autre personne que l'ouverture, I-7).
     'RESOLVE_DISPUTE',
+    // D121 : bascule SMS par type de notification (geste simple, motivé, audité).
+    'MANAGE_NOTIFICATION_CHANNELS',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -118,8 +133,12 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D50 : virements aux bénéficiaires C.
     'PREPARE_BENEFICIARY_PAYOUT',
     'APPROVE_BENEFICIARY_PAYOUT',
+    // C24 / F-REP-002 : indicateurs produits agrégés (consultation motivée, auditée).
+    'READ_PRODUCT_KPIS',
     // D54 / INT-REC-003 : classement des écarts (proposition puis validation par une autre personne).
     'CLASSIFY_RECONCILIATION_GAP',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
   ]),
   COMPLIANCE: new Set<AdminAction>([
     'READ_IDENTITY_DOCUMENT',
@@ -137,6 +156,13 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     // D66 / REG-LBC-002 : filtrage sanctions et examen des rapprochements.
     'SCREEN_PARTNER',
     'REVIEW_SANCTIONS_MATCH',
+    // C7 / SEC-INC-003 : gel des flux sortants (demande puis confirmation par une autre personne).
+    'MANAGE_OUTGOING_FREEZE',
+    // C19 / F-ACC-007 : décès d'un client (déclaration ; décision par une autre personne que le déclarant).
+    'DECLARE_CUSTOMER_DEATH',
+    'DECIDE_CUSTOMER_DEATH',
+    // C24 / F-REP-002 : indicateurs produits agrégés (consultation motivée, auditée).
+    'READ_PRODUCT_KPIS',
   ]),
   RISK: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -144,11 +170,16 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'DECLARE_MERCHANT_DEFAULT',
     // D53 / SEC-FRD-002 : décision tracée sur une alerte de fraude.
     'DECIDE_RISK_ALERT',
+    // C4 / F-ACC-006 : blocage d'un compte client sur fraude présumée.
+    'BLOCK_CUSTOMER_ACCOUNT',
+    // C7 / SEC-INC-003 : gel des flux sortants (deux personnes).
+    'MANAGE_OUTGOING_FREEZE',
   ]),
   // D31 : déclarer une défaillance ne fait que bloquer ; une seule personne
   // suffit, motif obligatoire. La levée passe par la revalidation maker-checker.
   PARTNER_NETWORK: new Set<AdminAction>(['PREPARE_PARTNER', 'DECLARE_MERCHANT_DEFAULT', 'SCREEN_PARTNER']),
-  AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG']),
+  // C24 / F-REP-002 : l'audit lit aussi les indicateurs produits agrégés.
+  AUDIT: new Set<AdminAction>(['VIEW_AUDIT_LOG', 'EXPORT_AUDIT_LOG', 'READ_PRODUCT_KPIS']),
   TECH_ADMIN: new Set<AdminAction>([
     'MANAGE_USERS',
     'REQUEST_BREAK_GLASS',
@@ -163,6 +194,11 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'DECLARE_MERCHANT_DEFAULT',
   'REQUEST_BREAK_GLASS',
   'APPROVE_BREAK_GLASS',
+  'BLOCK_CUSTOMER_ACCOUNT',
+  'MANAGE_OUTGOING_FREEZE',
+  'DECLARE_CUSTOMER_DEATH',
+  'READ_PRODUCT_KPIS',
+  'MANAGE_NOTIFICATION_CHANNELS',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
@@ -173,6 +209,7 @@ const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
 ]);
 
 const CITY_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
+  'ENROLL_CUSTOMER_AT_AGENCY',
   'PREPARE_SETTLEMENT',
   'APPROVE_SETTLEMENT',
   'PREPARE_LEDGER_REVERSAL',

@@ -14,6 +14,8 @@ import { issueSessionTokens } from '../../src/modules/identity/domain';
 import { sessionCookieValue } from '../../src/modules/identity/session.store';
 import { uuidv7 } from '../../src/modules/ledger/domain';
 import { seedCustomerAccount } from './agreement-fixture';
+import { revealPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone, TEST_PII_KEYS } from './pii-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 
 /** C2 / contrat 1.0 : profil du client connecté (`GET /v1/me`) en HTTP réel, sans niveau KYC (D77) ni numéro en clair. */
@@ -90,18 +92,26 @@ beforeEach(async () => {
 
 describe('C2 profil du client connecté (GET /v1/me)', () => {
   it('profil minimal, privé : identifiant, numéro masqué, date d’inscription, nom déclaré ou non ; jamais le numéro en clair ni le niveau KYC', async () => {
-    const phone = (await admin.query<{ phone: string; created: string }>(`SELECT phone, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS created FROM identity.account WHERE id = $1`, [CUSTOMER])).rows[0];
+    const stored = (await admin.query<{ phone: string; phone_ciphertext: string; created: string }>(`SELECT phone, phone_ciphertext, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS created FROM identity.account WHERE id = $1`, [CUSTOMER])).rows[0];
     const response = await me(await session(CUSTOMER));
     expect(response.status, JSON.stringify(response.body)).toBe(200);
     expect(response.headers['cache-control']).toBe('private, no-store');
-    const digits = (phone?.phone ?? '').slice(1);
-    expect(phone?.phone).toMatch(/^\+2376[0-9]{8}$/);
+    // C14 : en base, seulement l'empreinte et le chiffré ; le numéro se retrouve en déchiffrant.
+    expect(stored?.phone).toMatch(/^[0-9a-f]{64}$/);
+    const clear = await revealPhone({ key: stored?.phone ?? '', ciphertext: stored?.phone_ciphertext ?? '' }, TEST_PII_KEYS);
+    expect(clear).toMatch(/^\+2376[0-9]{8}$/);
+    const digits = clear.slice(1);
+    const phone = { created: stored?.created };
     expect(response.body).toEqual({
       accountId: CUSTOMER,
       // Valeur littérale attendue (et non la formule du code) : indicatif 237, sept points, deux derniers chiffres.
       phoneMasked: `+237•••••••${digits.slice(-2)}`,
       memberSince: phone?.created,
       legalNameDeclared: false,
+      currentTermsVersion: '2026-10-26-v1',
+      termsAccepted: true,
+      // D121 : sans déclaration de l'application, le français (langue de référence).
+      language: 'fr',
     });
     expect(JSON.stringify(response.body)).not.toContain(digits.slice(3, -2));
     expect(JSON.stringify(response.body)).not.toMatch(/kyc|level|BASIC|NONE/i);
@@ -119,5 +129,52 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
     await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
     expect(((await me(await session(OTHER_CUSTOMER))).body as { accountId?: string }).accountId).toBe(OTHER_CUSTOMER);
     expect(problem(await me(null))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+  });
+
+  it('F-ACC-004 sans acceptation de la version en vigueur : termsAccepted faux, version courante indiquée ; vrai après acceptation par la route', async () => {
+    const other = await protectedPhone('+237690000444');
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), 'NONE', $3, $4)`, [OTHER_CUSTOMER, other.key, other.ciphertext, other.masked]);
+    const cookie = await session(OTHER_CUSTOMER);
+    expect((await me(cookie)).body).toMatchObject({ currentTermsVersion: '2026-10-26-v1', termsAccepted: false });
+    const accepted = await request(server()).post('/v1/me/terms-acceptances').set('Cookie', cookie).set('Origin', ORIGIN).set('Idempotency-Key', 'me-terms-accept-0001').send({ version: '2026-10-26-v1' });
+    expect(accepted.status).toBe(201);
+    expect((await me(cookie)).body).toMatchObject({ termsAccepted: true });
+  });
+});
+
+describe('D121 langue choisie dans l’application (PUT /v1/me/language)', () => {
+  function declare(cookie: string, body: unknown, key = `lang-${uuidv7()}`): request.Test {
+    return request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', key).send(body as object);
+  }
+
+  it('déclare l’anglais : profil et notifications suivantes en anglais ; rejouable ; l’autre client n’est pas touché', async () => {
+    const cookie = await session(CUSTOMER);
+    const key = `lang-${uuidv7()}`;
+    const first = await declare(cookie, { language: 'en' }, key);
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    expect(first.body).toEqual({ language: 'en' });
+    expect(first.headers['cache-control']).toBe('private, no-store');
+    expect((await declare(cookie, { language: 'en' }, key)).body).toEqual({ language: 'en' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'en' });
+    await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
+    expect((await me(await session(OTHER_CUSTOMER))).body).toMatchObject({ language: 'fr' });
+    expect((await declare(cookie, { language: 'fr' })).body).toEqual({ language: 'fr' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'fr' });
+    const rows = await admin.query<{ language: string }>('SELECT language FROM identity.language_preference WHERE account_id = $1 ORDER BY seq', [CUSTOMER]);
+    expect(rows.rows.map((row) => row.language)).toEqual(['en', 'fr']);
+  });
+
+  it('refuse : langue hors liste (400 IDENTITY_LANGUAGE_INVALID), champ en trop ou absent (400 REQUEST_INVALID), sans clé d’idempotence, sans session (401)', async () => {
+    const cookie = await session(CUSTOMER);
+    for (const language of ['de', 'EN', '', null, 1]) {
+      expect(problem(await declare(cookie, { language }))).toEqual([400, 'IDENTITY_LANGUAGE_INVALID']);
+    }
+    expect(problem(await declare(cookie, { language: 'en', accountId: OTHER_CUSTOMER }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await declare(cookie, {}))).toEqual([400, 'REQUEST_INVALID']);
+    const noKey = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).send({ language: 'en' });
+    expect(problem(noKey)).toEqual([400, 'REQUEST_INVALID']);
+    const anonymous = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Idempotency-Key', `lang-${uuidv7()}`).send({ language: 'en' });
+    expect(problem(anonymous)).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+    expect((await admin.query('SELECT 1 FROM identity.language_preference')).rowCount).toBe(0);
   });
 });

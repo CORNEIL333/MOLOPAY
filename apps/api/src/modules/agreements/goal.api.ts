@@ -1,5 +1,5 @@
 import type { components } from '@achat/contracts/api';
-import { BusinessError } from '@achat/contracts';
+import { BusinessError, CURRENT_TERMS_VERSION } from '@achat/contracts';
 import { parseXaf } from '@achat/money';
 import type { PoolClient } from 'pg';
 import { getPublicOffer } from '../catalog/public-offer.store';
@@ -16,7 +16,8 @@ export type Goal = components['schemas']['Goal'];
 export type GoalRequest = components['schemas']['GoalRequest'];
 
 // D23 : identifiant technique provisoire, en attendant le texte juridique approuvé.
-export const CURRENT_TERMS_VERSION = '2026-10-26-v1';
+/** Réexportée pour les appelants existants ; source unique : `@achat/contracts` (F-ACC-004). */
+export { CURRENT_TERMS_VERSION };
 
 const REQUEST_KEYS = new Set(['model', 'offerId', 'beneficiaryId', 'targetXaf', 'planId', 'durationMonths', 'acceptTermsVersion']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -130,6 +131,18 @@ export async function listGoalsForCustomer(client: SqlClient, customerId: string
 }
 
 /**
+ * F-ACC-004 : aucun nouvel engagement sans acceptation, par le compte, de la
+ * version courante des conditions (fonction de la base `identity`, sans import
+ * du module identité).
+ */
+export async function assertCurrentTermsAccepted(client: SqlClient, customerId: string): Promise<void> {
+  const row = (await client.query<{ accepted: boolean }>('SELECT identity.has_accepted_terms($1, $2) AS accepted', [customerId, CURRENT_TERMS_VERSION])).rows[0];
+  if (row?.accepted !== true) {
+    throw new BusinessError('IDENTITY_TERMS_NOT_ACCEPTED', 'Les conditions en vigueur doivent être acceptées');
+  }
+}
+
+/**
  * D32 : crée un objectif en BROUILLON. L'activation (signature d'appareil +
  * PIN, INT-NR-001) est une route distincte. Plan, prix et bénéficiaire sont
  * lus en base ; la base revérifie tout.
@@ -138,6 +151,7 @@ export async function createGoalDraft(client: SqlClient, customerId: string, req
   if (request.acceptTermsVersion !== CURRENT_TERMS_VERSION) {
     throw new BusinessError('AGREEMENT_INVALID_REQUEST', 'version des conditions non courante');
   }
+  await assertCurrentTermsAccepted(client, customerId);
   const id = uuidv7();
   const createdAt = new Date().toISOString();
   const stored =

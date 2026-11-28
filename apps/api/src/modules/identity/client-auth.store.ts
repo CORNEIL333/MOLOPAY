@@ -1,3 +1,4 @@
+import type { ProtectedPhone } from './phone-key';
 import { createPublicKey, randomBytes, verify as verifySignature } from 'node:crypto';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
@@ -8,7 +9,6 @@ import {
   createPinState,
   createSession,
   issueOtp,
-  normalizePhone,
   registerSignupDevice,
   type Account,
   type Device,
@@ -61,17 +61,18 @@ export function devicePublicKeyPem(spkiBase64: string): string {
  */
 export async function issueSignupOtp(
   client: SqlClient,
-  input: { readonly phone: string; readonly pepper: Uint8Array },
-): Promise<{ readonly challengeId: string; readonly phone: string; readonly code: string; readonly expiresAt: string }> {
-  const phone = normalizePhone(input.phone);
-  const issued = issueOtp({ id: uuidv7(), phone, purpose: 'SIGNUP', binding: phone, now: await databaseNow(client), pepper: input.pepper });
+  input: { readonly phone: ProtectedPhone; readonly pepper: Uint8Array },
+): Promise<{ readonly challengeId: string; readonly code: string; readonly expiresAt: string }> {
+  // C14 : seule l'empreinte lie le défi au numéro ; le numéro n'entre que chiffré et masqué.
+  const key = input.phone.key;
+  const issued = issueOtp({ id: uuidv7(), phone: key, purpose: 'SIGNUP', binding: key, now: await databaseNow(client), pepper: input.pepper });
   const { challenge } = issued;
   await client.query(
-    `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [challenge.id, challenge.phone, challenge.purpose, challenge.binding, challenge.codeHash, challenge.expiresAt, challenge.attemptsRemaining],
+    `INSERT INTO identity.otp_challenge (id, phone, purpose, binding, code_hash, expires_at, attempts_remaining, phone_ciphertext, phone_masked)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [challenge.id, challenge.phone, challenge.purpose, challenge.binding, challenge.codeHash, challenge.expiresAt, challenge.attemptsRemaining, input.phone.ciphertext, input.phone.masked],
   );
-  return Object.freeze({ challengeId: challenge.id, phone, code: issued.code, expiresAt: challenge.expiresAt });
+  return Object.freeze({ challengeId: challenge.id, code: issued.code, expiresAt: challenge.expiresAt });
 }
 
 /**
@@ -130,7 +131,12 @@ export async function completeSignup(
     id: uuidv7(), account, publicKeyPem: input.devicePublicKeyPem, name: input.deviceName, now, otpProof: input.proof, pepper: input.otpPepper,
   });
   const pin = await createPinState({ account, device, pin: input.pin, pepper: input.pinPepper, now });
-  await client.query('INSERT INTO identity.account (id, phone, phone_verified_at) VALUES ($1, $2, $3)', [account.id, account.phone, account.phoneVerifiedAt]);
+  // Chiffré et masque recopiés du défi consommé (la base vérifie la recopie, 0076).
+  await client.query(
+    `INSERT INTO identity.account (id, phone, phone_verified_at, phone_ciphertext, phone_masked)
+     SELECT $1, $2, $3, c.phone_ciphertext, c.phone_masked FROM identity.otp_challenge c WHERE c.id = $4`,
+    [account.id, account.phone, account.phoneVerifiedAt, input.proof.challengeId],
+  );
   await client.query(
     `INSERT INTO identity.device (id, account_id, public_key_pem, fingerprint, name, status, registered_at) VALUES ($1, $2, $3, $4, $5, 'ACTIVE', $6)`,
     [device.id, device.accountId, device.publicKeyPem, device.fingerprint, device.name, device.registeredAt],

@@ -61,6 +61,7 @@ const MIGRATIONS = [
   'db/migrations/0036_payments_kyc_limits.sql',
   'db/migrations/0018_notification_reminder_reservation.sql',
   'db/migrations/0019_notification_outbox.sql',
+  'db/migrations/0080_notification_preferences.sql',
   'db/migrations/0037_payments_receipts.sql',
   'db/migrations/0030_reconciliation_segregation.sql',
   'db/migrations/0031_reconciliation_ledger_links.sql',
@@ -1100,6 +1101,8 @@ describe('F-NOT-001 / INT-IDEM-004 notifications écrites dans la transaction m�
   }
 
   it('versement confirmé : PAYMENT_CONFIRMED en SMS et push, en français', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('PAYMENT_CONFIRMED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     await confirmAndFund(await pendingAttempt({ amountXaf: 10_000n }));
     expect(await outbox()).toEqual([
       { event_type: 'PAYMENT_CONFIRMED', channel: 'PUSH', locale: 'fr' },
@@ -1108,6 +1111,9 @@ describe('F-NOT-001 / INT-IDEM-004 notifications écrites dans la transaction m�
   });
 
   it('objectif atteint : GOAL_FUNDED en plus du versement', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('GOAL_FUNDED', true, 'ops.test', 'SMS ouvert pour ce test')`);
+    await admin.query(`SELECT notifications.set_sms_channel('PAYMENT_CONFIRMED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     await confirmAndFund(await pendingAttempt({ amountXaf: 300_000n }));
     expect((await outbox()).map((row) => `${row.event_type}/${row.channel}`)).toEqual([
       'GOAL_FUNDED/PUSH',
@@ -1118,6 +1124,8 @@ describe('F-NOT-001 / INT-IDEM-004 notifications écrites dans la transaction m�
   });
 
   it('I-5 une confirmation rejouée ne duplique aucune notification', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('PAYMENT_CONFIRMED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     const attempt = await pendingAttempt({ amountXaf: 10_000n });
     await confirmAndFund(attempt);
     await confirmAndFund(attempt);

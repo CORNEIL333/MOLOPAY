@@ -141,6 +141,20 @@ export function normalizePhone(raw: string): string {
   return candidate;
 }
 
+const PHONE_KEY_PATTERN = /^[0-9a-f]{64}$/;
+
+/**
+ * C14 : le domaine ne manipule plus le numéro en clair mais son EMPREINTE À
+ * CLÉ (HMAC-SHA-256, calculée à l'entrée par `phone-key.ts`) : comparaisons,
+ * liaison des défis et unicité restent exactes, sans numéro en base.
+ */
+export function assertPhoneKey(value: string): string {
+  if (typeof value !== 'string' || !PHONE_KEY_PATTERN.test(value)) {
+    fail('IDENTITY_INVALID_PHONE', 'Empreinte de numéro invalide');
+  }
+  return value;
+}
+
 export const OTP_PURPOSES = ['SIGNUP', 'NEW_DEVICE', 'RECOVERY'] as const;
 
 export type OtpPurpose = (typeof OTP_PURPOSES)[number];
@@ -226,7 +240,7 @@ export function issueOtp(input: {
   if (!(OTP_PURPOSES as readonly string[]).includes(input.purpose)) {
     fail('IDENTITY_INVALID_REQUEST', `Objet OTP inconnu: ${input.purpose}`);
   }
-  const phone = normalizePhone(input.phone);
+  const phone = assertPhoneKey(input.phone);
   const binding = assertLabel(input.binding, 'binding', 200);
   const ttl = input.ttlMs ?? OTP_DEFAULT_TTL_MS;
   if (!Number.isSafeInteger(ttl) || ttl <= 0 || ttl > OTP_MAX_TTL_MS) {
@@ -432,7 +446,7 @@ export function createAccount(input: {
 }): Account {
   assertUuidV7(input.id, 'id');
   assertIsoUtcMs(input.now, 'now');
-  const phone = normalizePhone(input.phone);
+  const phone = assertPhoneKey(input.phone);
   assertOtpProof(
     input.otpProof,
     { purpose: 'SIGNUP', binding: phone, phone },
@@ -1328,7 +1342,7 @@ export function requestRecovery(input: {
       'Une vérification KYC renforcée est exigée',
     );
   }
-  const newPhone = normalizePhone(input.newPhone);
+  const newPhone = assertPhoneKey(input.newPhone);
   if (newPhone === input.account.phone) {
     fail(
       'IDENTITY_RECOVERY_FORBIDDEN',

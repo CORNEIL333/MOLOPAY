@@ -24,6 +24,7 @@ import {
   identityAuditEvent,
   issueOtp,
   normalizePhone,
+  assertPhoneKey,
   refreshSession,
   registerDevice,
   registerSignupDevice,
@@ -40,7 +41,11 @@ import {
   type TransactionRequest,
 } from './domain';
 
-const PHONE = '+237612345678';
+// C14 : le domaine reçoit l'empreinte à clé du numéro (64 hexadécimaux), jamais le numéro.
+const E164 = '+237612345678';
+const PHONE = 'a'.repeat(64);
+const OTHER_PHONE = 'b'.repeat(64);
+const THIRD_PHONE = 'c'.repeat(64);
 const NOW = '2026-10-26T09:00:00.000Z';
 const LATER = '2026-10-26T09:01:00.000Z';
 
@@ -183,15 +188,23 @@ async function expectAsyncCode(
 
 describe('F-ACC-001 · inscription et OTP', () => {
   it('normalise les formats E.164 usuels et refuse le reste', () => {
-    expect(normalizePhone('+237 612 34 56 78')).toBe(PHONE);
-    expect(normalizePhone('00237 612-34-56-78')).toBe(PHONE);
-    expect(normalizePhone('237612345678')).toBe(PHONE);
+    expect(normalizePhone('+237 612 34 56 78')).toBe(E164);
+    expect(normalizePhone('00237 612-34-56-78')).toBe(E164);
+    expect(normalizePhone('237612345678')).toBe(E164);
     expect(() => normalizePhone('612345678')).toThrow(
       expect.objectContaining({ code: 'IDENTITY_INVALID_PHONE' }),
     );
     expect(() => normalizePhone('+237ABC45678')).toThrow(
       expect.objectContaining({ code: 'IDENTITY_INVALID_PHONE' }),
     );
+  });
+
+  it('C14 le domaine n’accepte que l’empreinte à clé du numéro, jamais le numéro en clair', () => {
+    expect(assertPhoneKey(PHONE)).toBe(PHONE);
+    for (const value of [E164, 'A'.repeat(64), 'a'.repeat(63)]) {
+      expect(() => assertPhoneKey(value)).toThrow(expect.objectContaining({ code: 'IDENTITY_INVALID_PHONE' }));
+    }
+    expect(() => issueOtp({ id: CHALLENGE_ID, phone: E164, purpose: 'SIGNUP', binding: E164, now: NOW, pepper })).toThrow(expect.objectContaining({ code: 'IDENTITY_INVALID_PHONE' }));
   });
 
   it('émet un code à usage unique et vérifie sa preuve', () => {
@@ -441,7 +454,7 @@ describe('F-ACC-006 · blocage et appareils', () => {
       'IDENTITY_OTP_INVALID',
     );
     expectCode(
-      () => registerSignupDevice({ id: DEVICE_ID, account: { ...account, phone: '+237690000099' }, publicKeyPem, name: 'Téléphone', now: NOW, otpProof: proof, pepper }),
+      () => registerSignupDevice({ id: DEVICE_ID, account: { ...account, phone: THIRD_PHONE }, publicKeyPem, name: 'Téléphone', now: NOW, otpProof: proof, pepper }),
       'IDENTITY_OTP_INVALID',
     );
   });
@@ -1111,7 +1124,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
   function recoveryProof(now = NOW): OtpProof {
     const issued = issueOtp({
       id: RECOVERY_CHALLENGE_ID,
-      phone: '+237698765432',
+      phone: OTHER_PHONE,
       purpose: 'RECOVERY',
       binding: ACCOUNT_ID,
       now,
@@ -1126,7 +1139,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
         requestRecovery({
           id: RECOVERY_ID,
           account: strongAccount(),
-          newPhone: '+237698765432',
+          newPhone: OTHER_PHONE,
           method: 'OTP_ONLY' as never,
           balance: noBalance(),
           now: NOW,
@@ -1138,7 +1151,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
         requestRecovery({
           id: RECOVERY_ID,
           account: strongAccount(),
-          newPhone: '+237698765432',
+          newPhone: OTHER_PHONE,
           method: 'TRUSTED_DEVICE' as never,
           balance: noBalance(),
           now: NOW,
@@ -1150,7 +1163,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
         requestRecovery({
           id: RECOVERY_ID,
           account: signup(),
-          newPhone: '+237698765432',
+          newPhone: OTHER_PHONE,
           method: 'KYC_STRONG',
           balance: noBalance(),
           now: NOW,
@@ -1177,7 +1190,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
         requestRecovery({
           id: RECOVERY_ID,
           account: strongAccount(),
-          newPhone: '+237698765432',
+          newPhone: OTHER_PHONE,
           method: 'KYC_STRONG',
           balance: { xaf: 0n } as never,
           now: NOW,
@@ -1191,7 +1204,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
     const recovery = requestRecovery({
       id: RECOVERY_ID,
       account,
-      newPhone: '+237698765432',
+      newPhone: OTHER_PHONE,
       method: 'KYC_STRONG',
       balance: ClientBalance.fromLedgerTotals({
         debitTotalXaf: 0n,
@@ -1222,7 +1235,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
     const recovery = requestRecovery({
       id: RECOVERY_ID,
       account,
-      newPhone: '+237698765432',
+      newPhone: OTHER_PHONE,
       method: 'KYC_STRONG',
       balance: noBalance(),
       now: NOW,
@@ -1244,7 +1257,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
     const replay = { ...completed, status: 'PENDING' as const, completedAt: null };
     const deviceIssued = issueOtp({
       id: DEVICE_CHALLENGE_ID,
-      phone: '+237698765432',
+      phone: OTHER_PHONE,
       purpose: 'NEW_DEVICE',
       binding: ACCOUNT_ID,
       now: NOW,
@@ -1268,7 +1281,7 @@ describe('SEC-AUTH-007 · récupération de compte', () => {
     const recovery = requestRecovery({
       id: RECOVERY_ID,
       account,
-      newPhone: '+237698765432',
+      newPhone: OTHER_PHONE,
       method: 'KYC_STRONG',
       balance: noBalance(),
       now: NOW,

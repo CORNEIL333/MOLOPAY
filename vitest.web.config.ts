@@ -12,6 +12,7 @@ export default defineConfig({
       '@achat/ui': fromRoot('./packages/ui/src/index.ts'),
       '@achat/contracts/api': fromRoot('./packages/contracts/src/api.d.ts'),
       '@achat/contracts/client': fromRoot('./packages/contracts/src/client.ts'),
+      '@achat/contracts/terms': fromRoot('./packages/contracts/src/terms.ts'),
       '@achat/contracts': fromRoot('./packages/contracts/src/index.ts'),
     },
   },

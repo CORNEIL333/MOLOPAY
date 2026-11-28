@@ -17,6 +17,8 @@ const QUEUE: Queue = {
   openRiskAlerts: [{ alertId: '019aa800-0000-7000-8000-0000000000a1', rule: 'PAYMENT_VELOCITY', subjectType: 'CUSTOMER', detectedAt: '2026-11-12T09:00:00.000Z' }],
   overdueComplaints: [{ complaintId: '019aa800-0000-7000-8000-0000000000c9', reference: 'R-0123456789', beyondMaximum: false }],
   pendingSanctionsReviews: [{ screeningId: '019aa800-0000-7000-8000-0000000000s1', subjectType: 'CUSTOMER', screenedAt: '2026-11-12T08:00:00.000Z' }],
+  pendingGapClassifications: [{ proposalId: '019aa800-0000-7000-8000-0000000000p1', incidentId: '019aa800-0000-7000-8000-0000000000i1', classification: 'FEES', proposedBy: 'fin.un', proposedAt: '2026-11-12T08:30:00.000Z' }],
+  openDisputes: [{ disputeId: '019aa800-0000-7000-8000-0000000000d1', agreementId: '019aa800-0000-7000-8000-0000000000g1', openedBy: 'sup.deux', openedAt: '2026-11-12T08:45:00.000Z' }],
 };
 
 describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
@@ -76,4 +78,21 @@ describe('F-BO-003 / F-BO-004 file de travail du back-office', () => {
     await user.click(screen.getByRole('button', { name: 'Afficher la file' }));
     await waitFor(() => { expect(screen.getByRole('alert')).toHaveTextContent('Action interdite'); });
   });
+
+  it('C6 décisions d’une seconde personne : classe à valider et litige à lever, avec lien vers l’historique de l’objectif', async () => {
+    const user = userEvent.setup();
+    const loadQueue = vi.fn<WorkQueuePorts['loadQueue']>(() => Promise.resolve({ ok: true, queue: QUEUE }));
+    const oversee = vi.fn<NonNullable<WorkQueuePorts['oversee']>>(() => Promise.resolve({ ok: true }));
+    render(<WorkQueue ports={{ loadQueue, oversee }} />);
+    await user.type(screen.getByLabelText('Motif de consultation'), 'revue quotidienne');
+    await user.click(screen.getByRole('button', { name: 'Afficher la file' }));
+    const gaps = await screen.findByRole('region', { name: /^Classes d’écarts à valider/ });
+    expect(gaps).toHaveTextContent('fin.un');
+    const disputes = screen.getByRole('region', { name: /^Litiges ouverts à lever/ });
+    expect(disputes).toHaveTextContent('sup.deux');
+    expect(screen.getByRole('link', { name: 'Historique de l’objectif 019aa800-0000-7000-8000-0000000000g1' })).toHaveAttribute('href', '/objectifs?objectif=019aa800-0000-7000-8000-0000000000g1');
+    await user.click(screen.getByRole('button', { name: 'Lever le litige' }));
+    await waitFor(() => { expect(oversee).toHaveBeenCalledWith({ path: '/v1/backoffice/disputes/019aa800-0000-7000-8000-0000000000d1/resolution', body: {} }); });
+  });
 });
+

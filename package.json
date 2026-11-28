@@ -18,8 +18,20 @@
     "notifications:check": "tsx tools/check-notification-queue.ts",
     "test:attack": "vitest run --config vitest.attack.config.ts",
     "test:tsa": "vitest run --config vitest.tsa.config.ts",
+    "test:sms": "vitest run --config vitest.sms.config.ts twilio",
+    "test:kms": "vitest run --config vitest.sms.config.ts aws-kms",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "verify:ledger": "tsx tools/verify-ledger.ts",
+    "verify:nightly": "tsx tools/nightly-verify.ts",
+    "build:api": "tsx tools/build-api.ts",
+    "start:api": "node apps/api/dist/main.cjs",
+    "config:check": "tsx tools/config-check.ts",
+    "ops:alerts": "tsx tools/ops-alerts.ts",
+    "db:migrate": "tsx tools/migrate.ts",
+    "db:backup": "tsx tools/backup.ts backup",
+    "db:restore-backup": "tsx tools/backup.ts restore",
+    "db:roles": "tsx tools/db-roles.ts",
+    "db:transfer": "tsx tools/transfer-database.ts",
     "recette:generate": "tsx tools/generate-recette.ts",
     "routes:inventory": "tsx tools/route-inventory.ts",
     "openapi:check": "tsx tools/check-openapi.ts",
@@ -41,6 +53,7 @@
     "@types/supertest": "7.2.1",
     "@vitejs/plugin-react": "6.1.2",
     "axe-core": "4.14.0",
+    "esbuild": "0.28.2",
     "eslint": "10.13.0",
     "fast-check": "4.10.2",
     "globals": "17.13.0",
@@ -60,6 +73,6 @@
     "vitest": "5.0.5"
   },
   "dependencies": {
-    "next": "16.4.3"
+    "next": "16.4.5"
   }
 }

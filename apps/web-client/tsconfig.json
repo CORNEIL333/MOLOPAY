@@ -18,6 +18,7 @@
       "@achat/contracts/client": [
         "../../packages/contracts/src/client.ts"
       ],
+      "@achat/contracts/terms": ["../../packages/contracts/src/terms.ts"],
       "@achat/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },

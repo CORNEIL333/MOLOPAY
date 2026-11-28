@@ -1,0 +1,461 @@
+<title>Marketplace MoloPay suite</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : trois sections (recherche, favoris, réservation), chacune une rangée de téléphones interactifs + règles. */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e4e5df; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --ess: #d9f26b; --tech: #8fddf5; --log: #c3bdff; --mob: #ffa8c5; --ok: #1f7a4a; --ok-bg: #e2f2e8; --warn: #8a5300; --warn-bg: #fbedd0; --bad: #c4262e;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif; --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2 { font-family: var(--display); margin: 0; font-weight: 400; letter-spacing: -0.03em; text-wrap: balance; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ess); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.eyebrow { font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--pg-muted); }
+header.hero { padding-block: 48px 20px; display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(2.3rem, 5.5vw, 4rem); line-height: 1; font-weight: 300; letter-spacing: -0.05em; }
+.hero h1 b { font-weight: 600; }
+.hero p { color: var(--pg-muted); max-width: 68ch; font-size: 1.05rem; }
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--pg-bg); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--pg-bg); }
+.jump nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.jump a { flex: none; text-decoration: none; color: var(--pg-ink); font-size: 0.86rem; font-weight: 500; padding: 8px 14px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); }
+section.sec { padding-block: 40px; border-top: 1px solid var(--pg-line); display: grid; gap: 22px; scroll-margin-top: 64px; }
+.sec > header { display: grid; gap: 8px; max-width: 70ch; }
+.sec h2 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.02; }
+.sec > header p { color: var(--pg-muted); }
+.row { overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: thin; }
+.row > .in { display: flex; gap: 22px; width: max-content; padding-block: 6px 12px; align-items: flex-start; }
+figure.shot { margin: 0; width: 272px; display: grid; gap: 10px; }
+figcaption { font-size: 0.86rem; color: var(--pg-muted); }
+figcaption b { color: var(--pg-ink); }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.rule { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 20px; padding: 14px 16px; display: grid; gap: 4px; font-size: 0.9rem; align-content: start; }
+.rule b { font-family: var(--display); font-weight: 500; font-size: 1.02rem; }
+.rule span { color: var(--pg-muted); }
+.rule.no { border-color: var(--bad); }
+.rule.no b { color: var(--bad); }
+.src { font-size: 0.74rem; color: var(--pg-muted); font-weight: 600; }
+
+/* Téléphone */
+.phone { width: 272px; aspect-ratio: 272 / 570; border-radius: 42px; padding: 8px; background: #0a0a0b; box-shadow: 0 24px 50px -28px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; }
+.scr { position: relative; height: 100%; border-radius: 35px; overflow: hidden; background: linear-gradient(180deg, #f7f7f2, #eeefe9); color: var(--ink); display: flex; flex-direction: column; font-size: 13px; line-height: 1.4; }
+.scr.white { background: var(--paper); }
+.scr.dark { background: radial-gradient(120% 60% at 50% 0%, #1e2024, #0b0b0d 60%); color: #fff; }
+.isl { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 20px; background: #000; z-index: 3; }
+.sb { display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 11px; font-weight: 600; height: 32px; flex: none; }
+.bd { flex: 1; padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.bd::-webkit-scrollbar { display: none; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+.ib { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 0; flex: none; color: var(--ink); cursor: pointer; }
+.white .ib { background: var(--mist); }
+.ib.dk { background: var(--ink); color: #fff; }
+.ib svg { width: 16px; height: 16px; }
+.h { font-family: var(--display); font-size: 21px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; }
+.mut { color: var(--muted); font-size: 12px; }
+.dark .mut { color: var(--muted-dark); }
+.search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 14px; background: #fff; border-radius: 999px; flex: none; }
+.search svg { width: 15px; height: 15px; flex: none; color: var(--muted); }
+.search input { border: 0; background: transparent; flex: 1; min-width: 0; font-size: 13px; }
+.search input:focus { outline: none; }
+.search:focus-within { box-shadow: 0 0 0 2px var(--ink); }
+.mic { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--ess); display: grid; place-items: center; cursor: pointer; flex: none; }
+.mic svg { width: 15px; height: 15px; color: var(--ink); }
+.lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: #fff; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.chip.on { background: var(--ink); color: #fff; }
+.chip .x { font-size: 13px; opacity: 0.7; }
+.recent { display: grid; gap: 2px; }
+.recent button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 8px 4px; font-size: 13px; text-align: left; cursor: pointer; border-radius: 10px; }
+.recent button:hover { background: rgba(255,255,255,0.6); }
+.recent svg { width: 14px; height: 14px; color: var(--muted); }
+.res { display: grid; gap: 8px; }
+.item { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 20px; padding: 6px 8px 6px 6px; border: 0; text-align: left; cursor: pointer; width: 100%; }
+.item .pic { width: 58px; height: 58px; border-radius: 15px; display: grid; place-items: center; flex: none; }
+.item .pic svg { width: 40px; height: 40px; }
+.item .tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.item .tx b { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .tx span { font-family: var(--display); font-size: 15px; font-variant-numeric: tabular-nums; }
+.item .tx em { font-style: normal; font-size: 11px; color: var(--muted); line-height: 1.3; }
+.heart { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--mist); display: grid; place-items: center; cursor: pointer; flex: none; }
+.heart svg { width: 16px; height: 16px; }
+.heart[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.heart[aria-pressed="true"] svg path { fill: currentColor; }
+.empty { background: #fff; border-radius: 22px; padding: 16px; display: grid; gap: 8px; text-align: center; justify-items: center; }
+.empty svg { width: 54px; height: 54px; }
+.pill { height: 46px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px; width: 100%; cursor: pointer; flex: none; }
+.pill.light { background: #fff; color: var(--ink); }
+.pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pill.lime { background: var(--ess); color: var(--ink); }
+.pill:disabled { opacity: 0.35; cursor: not-allowed; }
+.stack { display: grid; gap: 8px; margin-top: auto; flex: none; }
+.note { border-radius: 14px; padding: 9px 11px; font-size: 11.5px; }
+.note.info { background: #fff; }
+.note.warn { background: var(--warn-bg); color: var(--warn); }
+.note.ok { background: var(--ok-bg); color: var(--ok); }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--mist-2); }
+.kv:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.dark .kv { border-color: var(--ink-3); }
+.dark .kv span:first-child { color: var(--muted-dark); }
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cmp > div { background: #fff; border-radius: 18px; padding: 8px; display: grid; gap: 4px; font-size: 11.5px; }
+.cmp .pic { height: 54px; border-radius: 12px; display: grid; place-items: center; }
+.cmp .pic svg { width: 36px; height: 36px; }
+.cmp b { font-size: 12px; }
+.cmp .r { display: flex; justify-content: space-between; border-top: 1px solid var(--mist-2); padding-top: 4px; }
+.cmp .r span:first-child { color: var(--muted); }
+.steps { display: flex; gap: 4px; }
+.steps i { flex: 1; height: 5px; border-radius: 3px; background: var(--mist-2); }
+.steps i.on { background: var(--ink); }
+.opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: #fff; border: 2px solid transparent; cursor: pointer; font-size: 12.5px; text-align: left; width: 100%; }
+.opt.on { border-color: var(--ink); }
+.opt .sw { width: 22px; height: 22px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); }
+.opt .t { display: grid; flex: 1; }
+.opt .t span { color: var(--muted); font-size: 11px; }
+.rhythm { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rhythm button { padding: 9px 10px; border-radius: 16px; background: #fff; font-size: 11.5px; display: grid; gap: 2px; border: 2px solid transparent; cursor: pointer; text-align: left; }
+.rhythm button b { font-family: var(--display); font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; }
+.rhythm button.on { background: var(--ess); border-color: var(--ink); }
+.accord { background: #fff; border-radius: 20px; padding: 12px; display: grid; gap: 2px; }
+.check { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--ess); color: var(--ink); justify-self: center; flex: none; }
+.check svg { width: 30px; height: 30px; }
+.slide { position: relative; height: 52px; border-radius: 999px; background: var(--ink); display: grid; place-items: center; font-size: 12px; color: var(--muted-dark); flex: none; }
+.slide button { position: absolute; left: 4px; top: 4px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--ess); display: grid; place-items: center; cursor: pointer; }
+.slide button svg { width: 18px; height: 18px; }
+.ring svg { width: 84px; height: 84px; }
+footer { padding-block: 32px 56px; border-top: 1px solid var(--pg-line); color: var(--pg-muted); font-size: 0.86rem; }
+
+/* ===== Matières liquide et verre (02_identite_visuelle.md § Matières, jetons glass.* et gradient.*) ===== */
+.mp-scr { isolation: isolate; }
+.mp-liquid { position: absolute; inset: -20%; z-index: -1; overflow: hidden; pointer-events: none; }
+.mp-liquid i { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.92; animation: mp-flow 30s ease-in-out infinite alternate; }
+.mp-liquid i:nth-child(1) { width: 75%; height: 45%; left: -12%; top: -4%; }
+.mp-liquid i:nth-child(2) { width: 70%; height: 45%; right: -14%; top: 14%; animation-duration: 34s; animation-delay: -9s; }
+.mp-liquid i:nth-child(3) { width: 70%; height: 40%; left: 8%; bottom: -4%; animation-duration: 38s; animation-delay: -16s; }
+.mp-liquid i:nth-child(4) { width: 52%; height: 34%; right: 0; bottom: 14%; animation-duration: 27s; animation-delay: -4s; }
+.mp-liquid.mp-static i, .mp-liquid.mp-aurora i { animation: none; }
+.mp-liquid.mp-aurora i { opacity: 0.55; }
+.mp-grain { position: absolute; inset: 0; z-index: -1; opacity: 0.07; mix-blend-mode: multiply; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@keyframes mp-flow { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(16%, 9%) scale(1.14); } 100% { transform: translate(-9%, 14%) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .mp-liquid i { animation: none; } }
+html.mp-sober .mp-liquid i { animation: none; }
+html.mp-sober .mp-grain { display: none; }
+/* Verre : décor et navigation seulement */
+.scr:not(.white):not(.dark) .search, .scr:not(.white):not(.dark) .ib, .scr:not(.white):not(.dark) .chip:not(.on) { background: rgba(255,255,255,0.62) !important; -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.75), 0 8px 24px -16px rgba(15,16,18,0.35) !important; color: #0f1012; }
+.scr.dark .chip:not(.on) { background: rgba(15,16,18,0.72) !important; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10) !important; color: #fff; }
+html.mp-sober .scr:not(.white):not(.dark) .search, html.mp-sober .scr:not(.white):not(.dark) .ib, html.mp-sober .scr:not(.white):not(.dark) .chip:not(.on) { background: rgba(255,255,255,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.mp-sober .scr.dark .chip:not(.on) { background: rgba(15,16,18,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { .scr:not(.white):not(.dark) .search, .scr:not(.white):not(.dark) .ib, .scr:not(.white):not(.dark) .chip:not(.on) { background: rgba(255,255,255,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; } .scr.dark .chip:not(.on) { background: rgba(15,16,18,0.94) !important; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+/* Interrupteur Liquide / Sobre */
+.mp-mode { position: fixed; z-index: 60; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(15,16,18,0.88); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 10px 30px -12px rgba(0,0,0,0.5); font-family: 'Inter', system-ui, sans-serif; }
+.mp-mode span { color: #9a9ca3; font-size: 12px; font-weight: 600; padding: 0 8px 0 10px; display: grid; place-items: center; }
+.mp-mode button { border: 0; height: 34px; padding: 0 14px; border-radius: 999px; background: transparent; color: #e9eaec; font: 600 12.5px 'Inter', system-ui, sans-serif; cursor: pointer; }
+.mp-mode button[aria-pressed="true"] { background: #fff; color: #0f1012; }
+.mp-mode button:focus-visible { outline: 3px solid #d9f26b; outline-offset: 2px; }
+
+.scr:not(.dark) > .mp-aurora, .scr.dark > .mp-light, .scr.dark > .mp-grain, .scr.white > .mp-light, .scr.white > .mp-grain { display: none; }
+.scr.dark { background: #0b0b0d !important; }
+
+</style>
+
+<header class="wrap hero">
+  <span class="eyebrow">Marketplace · suite</span>
+  <h1>Chercher, garder en tête, <b>réserver à prix figé</b>.</h1>
+  <p>La suite des écrans de marketplace de l'app : la recherche (avec la voix), les favoris et la réservation. Chez MoloPay, réserver remplace le panier : on ne paie pas tout d'un coup, on fige un prix et on commence à épargner. Tous les écrans sont interactifs.</p>
+</header>
+<div class="jump"><nav class="wrap" aria-label="Sections"><a href="#recherche">Recherche</a><a href="#favoris">Favoris</a><a href="#reservation">Réservation</a></nav></div>
+
+<main>
+<!-- ================= RECHERCHE ================= -->
+<section class="wrap sec" id="recherche" aria-labelledby="h-r">
+  <header><span class="eyebrow">Recherche</span><h2 id="h-r">Trouver en tapant, en parlant ou en touchant</h2>
+    <p>Pour un public qui lit plus ou moins bien, la recherche accepte la voix, propose des univers en images et corrige les fautes courantes (« frijo », « moto boxer »). Quand rien ne correspond, elle propose des alternatives et permet de demander le produit aux partenaires.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg><input id="q" type="search" placeholder="Moto, frigo, loyer…" aria-label="Rechercher" autocomplete="off"><button class="mic" type="button" id="mic" aria-label="Rechercher en parlant"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5.5" y="1.5" width="5" height="9" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v2"/></svg></button></div>
+          <div id="r-idle">
+            <span class="lbl">Récentes</span>
+            <div class="recent" id="recent"></div>
+            <span class="lbl" style="display:block;margin-top:8px">Par univers</span>
+            <div class="chips" style="margin-top:6px"><button class="chip" type="button" data-u="ess"><i style="background:var(--ess)"></i>Essentiels</button><button class="chip" type="button" data-u="tech"><i style="background:var(--tech)"></i>Technologie</button><button class="chip" type="button" data-u="log"><i style="background:var(--log)"></i>Logement</button><button class="chip" type="button" data-u="mob"><i style="background:var(--mob)"></i>Mobilité</button></div>
+            <span class="lbl" style="display:block;margin-top:8px">Souvent cherché à Douala</span>
+            <div class="chips" style="margin-top:6px" id="pop"></div>
+          </div>
+          <div id="r-res" hidden>
+            <div class="top"><span class="mut" id="r-count"></span><button class="chip" type="button" id="sort">Prix croissant</button></div>
+            <div class="chips" id="r-active" style="margin-top:6px"></div>
+            <div class="res" id="r-list" style="margin-top:8px"></div>
+          </div>
+          <div id="r-none" hidden class="empty">
+            <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="44" cy="44" r="26" fill="#fff" stroke="#0f1012" stroke-width="5"/><path d="m64 64 18 18" stroke="#0f1012" stroke-width="7" stroke-linecap="round"/></svg>
+            <b id="r-none-t">Aucune offre pour « … »</b>
+            <span class="mut">Essayez un mot plus simple, ou demandez ce produit : nos partenaires seront prévenus.</span>
+            <button class="pill" type="button" id="ask">Demander ce produit</button>
+            <span class="mut" id="ask-ok" hidden>Merci. Nous vous prévenons par SMS si un partenaire le propose.</span>
+          </div>
+        </div></div></div>
+      <figcaption><b>Essayez :</b> tapez « frijo », « moto » ou « télévision », touchez le micro, ou un univers. Une recherche sans résultat propose de demander le produit.</figcaption>
+    </figure>
+  </div></div>
+  <div class="rules">
+    <div class="rule"><b>Recherche vocale</b><span>Le micro est toujours visible, en citron, à droite du champ. Le texte reconnu s'affiche pour que le client vérifie.</span><span class="src">Rapport 08 · Medhi</span></div>
+    <div class="rule"><b>Tolérance aux fautes</b><span>« frijo », « frigidaire », « boxer » trouvent les bonnes offres ; on affiche « Résultats pour… ».</span><span class="src">Faible littératie · rapport 08</span></div>
+    <div class="rule"><b>Tri honnête</b><span>Pertinence ou prix ; jamais de résultat sponsorisé non signalé.</span><span class="src">Rapport 07 · loi 2011/012 art. 8</span></div>
+    <div class="rule"><b>La demande devient un signal</b><span>« Demander ce produit » alimente un tableau des demandes côté réseau partenaires.</span><span class="src">Recrutement partenaires H4</span></div>
+  </div>
+</section>
+
+<!-- ================= FAVORIS ================= -->
+<section class="wrap sec" id="favoris" aria-labelledby="h-f">
+  <header><span class="eyebrow">Favoris</span><h2 id="h-f">Garder une envie, sans fausse promesse de prix</h2>
+    <p>Un favori n'est pas une réservation : son prix peut encore changer. L'écran le dit clairement et montre l'écart avec le prix du jour où il a été ajouté. Seule la réservation fige le prix. On peut comparer deux favoris côte à côte, à coût égal.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="top"><span class="h">Mes envies</span><span class="mut" id="f-count"></span></div>
+          <div class="note info">Le prix d'un favori peut changer. <b>Il est figé seulement quand vous réservez.</b></div>
+          <div class="res" id="f-list"></div>
+          <div class="stack"><button class="pill ghost" type="button" id="f-cmp">Comparer 2 favoris</button></div>
+        </div></div></div>
+      <figcaption><b>Liste d'envies honnête :</b> prix du jour, écart depuis l'ajout, disponibilité indicative. Retirez un cœur pour voir la liste se mettre à jour.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone"><div class="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd">
+          <div class="top"><button class="ib" type="button" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button><b style="font-size:13px">Comparer</b><span style="width:36px"></span></div>
+          <div class="cmp" id="cmp"></div>
+          <div class="note info" id="cmp-note"></div>
+          <div class="stack"><button class="pill" type="button">Réserver le moins cher</button></div>
+        </div></div></div>
+      <figcaption><b>Comparer à coût égal :</b> même rythme de versement (5 000 FCFA par jour), date d'obtention et coût total de chaque option.</figcaption>
+    </figure>
+  </div></div>
+  <div class="rules">
+    <div class="rule"><b>Alerte utile, pas pressante</b><span>« Prévenez-moi si le prix baisse » ou « s'il revient en stock », réglable, jamais plus d'une fois par semaine.</span><span class="src">F-NOT-003 · rapport 07</span></div>
+    <div class="rule"><b>Disponibilité indicative</b><span>« En stock » ou « Sur commande », jamais un chiffre exact qui sert à presser.</span><span class="src">F-PUB-009</span></div>
+    <div class="rule no"><b>Interdit</b><span>« Plus que 2 ! », compte à rebours, prix barré fictif, « 12 personnes regardent ce produit ».</span><span class="src">Rapport 07, interdit n° 3</span></div>
+  </div>
+</section>
+
+<!-- ================= RÉSERVATION ================= -->
+<section class="wrap sec" id="reservation" aria-labelledby="h-v">
+  <header><span class="eyebrow">Réservation · le « panier » MoloPay</span><h2 id="h-v">Quatre étapes pour figer un prix</h2>
+    <p>Choisir la variante et la boutique de retrait, choisir son rythme, relire et signer l'accord, faire le premier versement. Le stock est réservé à la signature (F-CAT-005). Le client peut annuler sans frais tant que l'objectif n'est pas verrouillé.</p></header>
+  <div class="row"><div class="in">
+    <figure class="shot">
+      <div class="phone"><div class="scr" id="v-scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+        <div class="bd" id="v-bd"></div></div></div>
+      <figcaption><b>Parcours jouable :</b> choisissez une couleur et une boutique, un rythme, puis glissez pour signer. L'étape en cours est indiquée en haut.</figcaption>
+    </figure>
+    <div style="width:300px;display:grid;gap:10px">
+      <div class="rule"><b>Un projet à la fois par réservation</b><span>Pas de panier multi-articles : un objectif = un projet, un prix figé, une boutique. Le kit rentrée est un seul projet composé.</span><span class="src">Rapport 07 (étiquetage)</span></div>
+      <div class="rule"><b>L'accord se relit</b><span>Prix figé, rythme, date estimée, conditions de sortie, boutique de retrait et banque qui garde l'argent, avant la signature.</span><span class="src">F-SAV-001 · REG-CON-001</span></div>
+      <div class="rule"><b>Stock réservé à la signature</b><span>« Réservé pour vous » apparaît après la signature, avec la règle si la boutique est en rupture : équivalent ou remboursement intégral.</span><span class="src">F-CAT-005 · F-SAV-006</span></div>
+      <div class="rule"><b>Premier versement immédiat</b><span>Pastilles de 500 à 5 000 FCFA ; l'anneau ne se remplit qu'à la confirmation du serveur.</span><span class="src">Rapport 08 · charte M-20</span></div>
+    </div>
+  </div></div>
+</section>
+</main>
+<footer class="wrap">Maquette de démonstration : produits, prix, boutiques, écarts de prix et dates sont fictifs. Règles : <code>docs/05_direction_ux_et_ui/02_identite_visuelle.md</code>, <code>07_psychologie_de_marque_et_ux.md</code>, <code>08_ux_inclusive_et_publics_cibles.md</code>.</footer>
+
+<script>
+(function () {
+  var P = [
+    { id: 'moto', n: 'Moto Bajaj Boxer 150', u: 'mob', p: 650000, by: 'Moto Center Akwa', c: 'Douala', m: ['A', 'B'], ill: 'moto', max: 24 },
+    { id: 'tel', n: 'Tecno Camon 30', u: 'tech', p: 165000, by: 'Tech Mboa', c: 'Yaoundé', m: ['A', 'B'], ill: 'phone', max: 12 },
+    { id: 'frigo', n: 'Réfrigérateur 150 L', u: 'tech', p: 185000, by: 'Électro Bonapriso', c: 'Douala', m: ['A', 'B'], ill: 'fridge', max: 12 },
+    { id: 'caution', n: 'Caution studio, Logpom', u: 'log', p: 150000, by: 'Bailleur vérifié', c: 'Douala', m: ['C'], ill: 'key', max: 12 },
+    { id: 'ciment', n: 'Ciment, 50 sacs', u: 'log', p: 250000, by: 'Quincaillerie Mvog-Mbi', c: 'Yaoundé', m: ['C'], ill: 'sack2', max: 18 },
+    { id: 'riz', n: 'Riz parfumé 25 kg', u: 'ess', p: 17500, by: 'Marché Mfoundi Express', c: 'Yaoundé', m: ['A'], ill: 'sack', max: 3 },
+    { id: 'gaz', n: 'Bouteille de gaz 12,5 kg', u: 'ess', p: 24000, by: 'Gaz Service Bépanda', c: 'Douala', m: ['A'], ill: 'gas', max: 3 },
+    { id: 'kit', n: 'Kit rentrée CM2', u: 'ess', p: 45000, by: 'Librairie des Écoles', c: 'Yaoundé', m: ['A', 'C'], ill: 'bag', max: 6 },
+    { id: 'pc', n: 'Ordinateur portable 15"', u: 'tech', p: 285000, by: 'Tech Mboa', c: 'Yaoundé', m: ['A', 'B'], ill: 'laptop', max: 12 },
+    { id: 'coudre', n: 'Machine à coudre pro', u: 'mob', p: 210000, by: 'Atelier Couture Pro', c: 'Douala', m: ['A', 'B'], ill: 'machine', max: 12 },
+    { id: 'tricycle', n: 'Tricycle de livraison', u: 'mob', p: 1450000, by: 'Moto Center Akwa', c: 'Douala', m: ['A', 'B'], ill: 'trike', max: 24 },
+    { id: 'tv', n: 'Téléviseur 43" Smart', u: 'tech', p: 210000, by: 'Électro Bonapriso', c: 'Douala', m: ['A', 'B'], ill: 'tv', max: 12 }
+  ];
+  var MODEL = { A: 'Épargne', B: 'Crédit', C: 'Planifiée' };
+
+  // ---------- Illustrations ----------
+  var S = 'stroke="#0f1012" stroke-linecap="round" stroke-linejoin="round"';
+  var I = {
+    phone: '<rect x="31" y="8" width="38" height="84" rx="9" fill="#fff" ' + S + ' stroke-width="3"/><rect x="36" y="14" width="28" height="64" rx="4" fill="#0f1012"/><circle cx="42" cy="21" r="2.8" fill="#8fddf5"/><circle cx="49" cy="21" r="2.8" fill="#8fddf5"/><path d="M40 60c6-10 14-14 22-12" fill="none" stroke="#d9f26b" stroke-width="3"/><rect x="44" y="83" width="12" height="3" rx="1.5" fill="#0f1012"/>',
+    moto: '<circle cx="23" cy="66" r="14" fill="#fff" ' + S + ' stroke-width="5"/><circle cx="77" cy="66" r="14" fill="#fff" ' + S + ' stroke-width="5"/><circle cx="23" cy="66" r="3" fill="#0f1012"/><circle cx="77" cy="66" r="3" fill="#0f1012"/><path d="M23 66 40 46h22l15 20M40 46l-6-10h-8M58 46l8-13h8" fill="none" ' + S + ' stroke-width="4.5"/><rect x="38" y="37" width="22" height="10" rx="5" fill="#0f1012"/><path d="M44 52h14l-4 8H46Z" fill="#0f1012"/>',
+    trike: '<circle cx="22" cy="70" r="11" fill="#fff" ' + S + ' stroke-width="4.5"/><circle cx="66" cy="70" r="11" fill="#fff" ' + S + ' stroke-width="4.5"/><circle cx="86" cy="70" r="11" fill="#fff" ' + S + ' stroke-width="4.5"/><rect x="54" y="30" width="40" height="30" rx="4" fill="#fff" ' + S + ' stroke-width="4"/><path d="M22 70 36 50h18M36 50l-5-12h-8" fill="none" ' + S + ' stroke-width="4.5"/>',
+    sack: '<path d="M28 30c-4 14-6 34 0 52 4 6 40 6 44 0 6-18 4-38 0-52Z" fill="#fff" ' + S + ' stroke-width="3"/><path d="M32 30c2-6 7-10 18-10s16 4 18 10" fill="none" ' + S + ' stroke-width="3"/><path d="M38 22h24" ' + S + ' stroke-width="4"/><text x="50" y="62" text-anchor="middle" font-family="Outfit, sans-serif" font-weight="600" font-size="14" fill="#0f1012">RIZ</text>',
+    sack2: '<path d="M14 46c-2 10-2 24 0 34 3 4 28 4 31 0 2-10 2-24 0-34Z" fill="#fff" ' + S + ' stroke-width="3"/><path d="M55 46c-2 10-2 24 0 34 3 4 28 4 31 0 2-10 2-24 0-34Z" fill="#fff" ' + S + ' stroke-width="3"/><path d="M34 14c-2 10-2 24 0 34 3 4 28 4 31 0 2-10 2-24 0-34Z" fill="#fff" ' + S + ' stroke-width="3"/><text x="50" y="36" text-anchor="middle" font-family="Outfit, sans-serif" font-weight="600" font-size="8" fill="#0f1012">CIMENT</text>',
+    fridge: '<rect x="28" y="6" width="44" height="88" rx="8" fill="#fff" ' + S + ' stroke-width="3"/><path d="M28 36h44" ' + S + ' stroke-width="3"/><path d="M36 16v10M36 44v18" ' + S + ' stroke-width="4"/>',
+    gas: '<rect x="30" y="28" width="40" height="60" rx="17" fill="#fff" ' + S + ' stroke-width="3"/><rect x="42" y="12" width="16" height="16" rx="3" fill="#0f1012"/><path d="M34 56h32" ' + S + ' stroke-width="3"/><path d="M30 70h40" stroke="#d9f26b" stroke-width="6"/>',
+    laptop: '<rect x="20" y="20" width="60" height="42" rx="5" fill="#0f1012"/><rect x="26" y="26" width="48" height="30" rx="2" fill="#fff"/><path d="M34 46 44 38l8 6 12-10" fill="none" stroke="#c3bdff" stroke-width="3"/><path d="M10 66h80l-6 12H16Z" fill="#fff" ' + S + ' stroke-width="3"/>',
+    tv: '<rect x="10" y="18" width="80" height="52" rx="6" fill="#0f1012"/><rect x="16" y="24" width="68" height="40" rx="2" fill="#fff"/><circle cx="50" cy="44" r="10" fill="#ffa8c5"/><path d="M36 84h28M50 70v14" ' + S + ' stroke-width="5"/>',
+    key: '<circle cx="34" cy="50" r="17" fill="#fff" ' + S + ' stroke-width="4"/><circle cx="34" cy="50" r="5" fill="#0f1012"/><path d="M51 50h34M75 50v13M84 50v9" ' + S + ' stroke-width="5"/>',
+    machine: '<path d="M16 76h68M26 76V36a8 8 0 0 1 8-8h40a8 8 0 0 1 8 8v8H44v32" fill="#fff" ' + S + ' stroke-width="4"/><path d="M70 44v16M65 60h10" ' + S + ' stroke-width="4"/><circle cx="72" cy="36" r="3" fill="#0f1012"/>',
+    bag: '<rect x="20" y="32" width="60" height="52" rx="13" fill="#fff" ' + S + ' stroke-width="4"/><path d="M37 32v-6a13 13 0 0 1 26 0v6" fill="none" ' + S + ' stroke-width="4"/><rect x="37" y="52" width="26" height="13" rx="3" fill="#0f1012"/><path d="M30 44h40" stroke="#d9f26b" stroke-width="4"/>'
+  };
+  var U = { ess: ['Essentiels', 'var(--ess)'], tech: ['Technologie', 'var(--tech)'], log: ['Logement', 'var(--log)'], mob: ['Mobilité', 'var(--mob)'] };
+  var svg = function (k) { return '<svg viewBox="0 0 100 100" aria-hidden="true">' + I[k] + '</svg>'; };
+  var nb = function (n) { return Math.round(n).toLocaleString('fr-FR').replace(/[   ]/g, ' '); };
+  var F = function (n) { return nb(n) + ' FCFA'; };
+  var pd = function (id) { return P.filter(function (p) { return p.id === id; })[0]; };
+  var heartSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.5S2 10 2 6a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4-6 7.5-6 7.5Z"/></svg>';
+  var favs = { tel: { added: 159000 }, moto: { added: 650000 }, frigo: { added: 189000 } };
+  function row(p, extra) { return '<div class="item" role="group" aria-label="' + p.n + '"><div class="pic" style="background:' + U[p.u][1] + '">' + svg(p.ill) + '</div><div class="tx"><b>' + p.n + '</b><span>' + F(p.p) + '</span><em>' + (extra || p.by + ' · ' + p.c) + '</em></div><button class="heart" type="button" data-fav="' + p.id + '" aria-pressed="' + (favs[p.id] ? 'true' : 'false') + '" aria-label="' + (favs[p.id] ? 'Retirer des favoris' : 'Ajouter aux favoris') + '">' + heartSvg + '</button></div>'; }
+
+  // ---------- Recherche ----------
+  var SYN = { frijo: 'réfrigérateur', frigo: 'réfrigérateur', frigidaire: 'réfrigérateur', congelateur: 'réfrigérateur', television: 'téléviseur', télévision: 'téléviseur', tele: 'téléviseur', télé: 'téléviseur', boxer: 'moto', bajaj: 'moto', portable: 'tecno', telephone: 'tecno', téléphone: 'tecno', ordi: 'ordinateur', pc: 'ordinateur', loyer: 'caution', gaz: 'gaz', riz: 'riz' };
+  var norm = function (s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+  var recent = ['moto boxer', 'frigo', 'kit rentrée'], q = document.getElementById('q'), uFilter = null, asc = true;
+  function drawRecent() { document.getElementById('recent').innerHTML = recent.map(function (r) { return '<button type="button" data-q="' + r + '"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>' + r + '</button>'; }).join(''); }
+  document.getElementById('pop').innerHTML = ['Moto', 'Frigo', 'Gaz', 'Téléviseur'].map(function (t) { return '<button class="chip" type="button" data-q="' + t + '">' + t + '</button>'; }).join('');
+  function search() {
+    var raw = q.value.trim(), t = norm(raw), term = t, shown = raw;
+    Object.keys(SYN).forEach(function (k) { if (t.indexOf(norm(k)) > -1) { term = norm(SYN[k]); shown = SYN[k]; } });
+    var idle = !raw && !uFilter;
+    document.getElementById('r-idle').hidden = !idle;
+    if (idle) { document.getElementById('r-res').hidden = true; document.getElementById('r-none').hidden = true; return; }
+    var res = P.filter(function (p) { var hay = norm(p.n + ' ' + p.by + ' ' + U[p.u][0]); return (!uFilter || p.u === uFilter) && (!term || term.split(' ').every(function (w) { return hay.indexOf(w) > -1; })); });
+    res.sort(function (a, b) { return asc ? a.p - b.p : b.p - a.p; });
+    document.getElementById('r-res').hidden = res.length === 0;
+    document.getElementById('r-none').hidden = res.length > 0;
+    document.getElementById('ask-ok').hidden = true; document.getElementById('ask').hidden = false;
+    document.getElementById('r-none-t').textContent = 'Aucune offre pour « ' + raw + ' »';
+    var corrected = term !== t && raw ? ' · résultats pour « ' + shown + ' »' : '';
+    document.getElementById('r-count').textContent = res.length + ' offre' + (res.length > 1 ? 's' : '') + corrected;
+    document.getElementById('r-active').innerHTML = (uFilter ? '<button class="chip on" type="button" data-clear="u"><i style="background:' + U[uFilter][1] + '"></i>' + U[uFilter][0] + ' <span class="x">×</span></button>' : '') + '<button class="chip on" type="button">Douala et Yaoundé</button>';
+    document.getElementById('r-list').innerHTML = res.map(function (p) { return row(p); }).join('');
+  }
+  q.addEventListener('input', function () { search(); });
+  q.addEventListener('change', function () { var v = q.value.trim(); if (v && recent.indexOf(v.toLowerCase()) < 0) { recent.unshift(v.toLowerCase()); recent = recent.slice(0, 4); drawRecent(); } });
+  document.getElementById('sort').addEventListener('click', function () { asc = !asc; this.textContent = asc ? 'Prix croissant' : 'Prix décroissant'; search(); });
+  document.getElementById('ask').addEventListener('click', function () { this.hidden = true; document.getElementById('ask-ok').hidden = false; });
+  document.getElementById('mic').addEventListener('click', function () {
+    var b = this; b.style.background = 'var(--ink)'; b.style.color = '#fff'; q.value = ''; q.placeholder = 'Je vous écoute…';
+    var said = 'frigo pas cher', i = 0;
+    var t = setInterval(function () { q.value = said.slice(0, ++i); if (i >= said.length) { clearInterval(t); b.style.background = ''; b.style.color = ''; q.placeholder = 'Moto, frigo, loyer…'; search(); } }, 60);
+  });
+  drawRecent();
+
+  // ---------- Favoris ----------
+  function drawFavs() {
+    var ids = Object.keys(favs);
+    document.getElementById('f-count').textContent = ids.length + ' envie' + (ids.length > 1 ? 's' : '');
+    document.getElementById('f-list').innerHTML = ids.length ? ids.map(function (id) { var p = pd(id), d = p.p - favs[id].added;
+      var ex = d === 0 ? 'Prix inchangé depuis l\'ajout' : (d < 0 ? 'Baisse de ' + F(-d) + ' depuis l\'ajout' : 'Hausse de ' + F(d) + ' depuis l\'ajout');
+      return row(p, ex + ' · en stock'); }).join('') : '<div class="empty"><b>Aucune envie pour l\'instant</b><span class="mut">Touchez le cœur d\'une offre pour la garder ici.</span></div>';
+    var two = ids.slice(0, 2).map(pd);
+    document.getElementById('f-cmp').disabled = two.length < 2;
+    if (two.length === 2) {
+      document.getElementById('cmp').innerHTML = two.map(function (p) { var days = Math.ceil(p.p / 5000), d = new Date(); d.setDate(d.getDate() + days);
+        return '<div><div class="pic" style="background:' + U[p.u][1] + '">' + svg(p.ill) + '</div><b>' + p.n + '</b><div class="r"><span>Prix</span><b>' + nb(p.p) + '</b></div><div class="r"><span>À 5 000/jour</span><b>' + days + ' j</b></div><div class="r"><span>Obtenu le</span><b>' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + '</b></div><div class="r"><span>Frais</span><b>0</b></div></div>'; }).join('');
+      var diff = Math.abs(two[0].p - two[1].p), cheaper = two[0].p < two[1].p ? two[0] : two[1];
+      document.getElementById('cmp-note').innerHTML = '<b>' + cheaper.n + '</b> coûte ' + F(diff) + ' de moins, soit ' + Math.ceil(diff / 5000) + ' jours d\'épargne en moins.';
+    } else { document.getElementById('cmp').innerHTML = ''; document.getElementById('cmp-note').textContent = 'Ajoutez au moins deux favoris pour comparer.'; }
+  }
+  document.addEventListener('click', function (e) {
+    var h = e.target.closest('[data-fav]'); if (h) { var id = h.dataset.fav; if (favs[id]) delete favs[id]; else favs[id] = { added: pd(id).p }; drawFavs(); search(); return; }
+    var r = e.target.closest('[data-q]'); if (r) { q.value = r.dataset.q; search(); return; }
+    var u = e.target.closest('[data-u]'); if (u) { uFilter = u.dataset.u; search(); return; }
+    var c = e.target.closest('[data-clear]'); if (c) { uFilter = null; search(); return; }
+  });
+  drawFavs();
+
+  // ---------- Réservation ----------
+  var V = { step: 0, color: 'Noir', shop: 'akwa', rate: 5000, per: 1, first: 2000, done: false };
+  var prod = pd('tel');
+  var shops = { akwa: ['Tech Mboa · Mokolo, Yaoundé', 'Lun–sam 8 h–19 h · en stock'], bona: ['Électro Bonapriso · Douala', 'Lun–sam 8 h–19 h · sur commande (5 jours)'] };
+  var arrow = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+  var back = '<button class="ib" type="button" data-v="back" aria-label="Retour"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></button>';
+  function steps(n) { return '<div class="steps" aria-label="Étape ' + (n + 1) + ' sur 4">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i <= n ? 'on' : '') + '"></i>'; }).join('') + '</div>'; }
+  function plan() { var n = Math.ceil(prod.p / V.rate), days = n * V.per, d = new Date(); d.setDate(d.getDate() + days); return { n: n, date: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }; }
+  function arc(cx, cy, r, a0, a1) { return 'M' + (cx + r * Math.cos(a0)).toFixed(2) + ' ' + (cy + r * Math.sin(a0)).toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(a1)).toFixed(2) + ' ' + (cy + r * Math.sin(a1)).toFixed(2); }
+  function ring(on) { var o = ''; for (var i = 0; i < 8; i++) { var a0 = -Math.PI / 2 + i * Math.PI / 4 + 0.2, a1 = a0 + Math.PI / 4 - 0.4; o += '<path d="' + arc(20, 20, 15, a0, a1) + '" fill="none" stroke="' + (i < on ? '#0f1012' : 'rgba(15,16,18,0.15)') + '" stroke-width="5" stroke-linecap="round"/>'; } return '<svg viewBox="0 0 40 40" aria-hidden="true">' + o + '</svg>'; }
+  function vr() {
+    var bd = document.getElementById('v-bd'), scr = document.getElementById('v-scr'), h = '';
+    scr.className = 'scr' + (V.step === 3 ? ' dark' : V.step === 2 ? ' white' : '');
+    if (V.step === 0) {
+      h = '<div class="top">' + back + '<b style="font-size:13px">Réserver</b><span style="width:36px"></span></div>' + steps(0) +
+        '<div class="item" style="cursor:default"><div class="pic" style="background:var(--tech)">' + svg('phone') + '</div><div class="tx"><b>' + prod.n + '</b><span>' + F(prod.p) + '</span><em>256 Go</em></div></div>' +
+        '<span class="lbl">Couleur</span>' + ['Noir', 'Vert jade'].map(function (c, i) { return '<button class="opt' + (V.color === c ? ' on' : '') + '" type="button" data-color="' + c + '"><span class="sw" style="background:' + (i ? '#5f8f7d' : '#1b1c1f') + '"></span><span class="t">' + c + '</span></button>'; }).join('') +
+        '<span class="lbl">Où le récupérer</span>' + Object.keys(shops).map(function (k) { return '<button class="opt' + (V.shop === k ? ' on' : '') + '" type="button" data-shop="' + k + '"><span class="t"><b>' + shops[k][0] + '</b><span>' + shops[k][1] + '</span></span></button>'; }).join('') +
+        '<div class="stack"><button class="pill" type="button" data-v="next">Choisir mon rythme</button></div>';
+    } else if (V.step === 1) {
+      var p = plan();
+      h = '<div class="top">' + back + '<b style="font-size:13px">Votre rythme</b><span style="width:36px"></span></div>' + steps(1) +
+        '<div class="rhythm">' + [[1, 2000, 'Par jour'], [1, 5000, 'Par jour'], [7, 25000, 'Par semaine'], [30, 55000, 'Par mois']].map(function (r) { return '<button type="button" class="' + (V.per === r[0] && V.rate === r[1] ? 'on' : '') + '" data-rate="' + r[1] + '" data-per="' + r[0] + '">' + r[2] + '<b>' + nb(r[1]) + '</b></button>'; }).join('') + '</div>' +
+        '<div class="accord"><div class="kv"><span>Versements</span><span>' + p.n + '</span></div><div class="kv"><span>Téléphone à vous vers le</span><span>' + p.date + '</span></div><div class="kv"><span>Frais</span><span>0 FCFA</span></div></div>' +
+        '<div class="note info">Vous pourrez verser plus ou moins certains jours : seul le total compte.</div>' +
+        '<div class="stack"><button class="pill" type="button" data-v="next">Relire l\'accord</button></div>';
+    } else if (V.step === 2) {
+      var p2 = plan();
+      h = '<div class="top">' + back + '<b style="font-size:13px">Votre accord</b><span style="width:36px"></span></div>' + steps(2) +
+        '<div class="accord" style="background:var(--mist)"><div class="kv"><span>Produit</span><span>' + prod.n + ' · ' + V.color + '</span></div><div class="kv"><span>Prix figé</span><span>' + F(prod.p) + '</span></div><div class="kv"><span>Rythme</span><span>' + nb(V.rate) + ' / ' + (V.per === 1 ? 'jour' : V.per === 7 ? 'semaine' : 'mois') + '</span></div><div class="kv"><span>Date estimée</span><span>' + p2.date + '</span></div><div class="kv"><span>Retrait</span><span>' + shops[V.shop][0].split(' · ')[0] + '</span></div><div class="kv"><span>Argent gardé par</span><span>[banque partenaire]</span></div></div>' +
+        '<span class="lbl">Si vous changez d\'avis</span><div style="font-size:12px;display:grid;gap:3px"><span>· Annulation à tout moment avant verrouillage : remboursé à 100 %, sans frais.</span><span>· Boutique en rupture : article équivalent ou remboursement intégral.</span></div>' +
+        '<div class="stack"><div class="slide"><span>Glissez pour signer</span><button type="button" data-v="next" aria-label="Signer l\'accord">' + arrow + '</button></div></div>';
+    } else {
+      if (!V.done) {
+        h = '<div class="top"><span style="width:36px"></span><b style="font-size:13px">Accord signé</b><span style="width:36px"></span></div>' + steps(3) +
+          '<div class="note ok" style="background:var(--ink-2);color:var(--ess)">Prix figé à ' + F(prod.p) + ' · ' + V.color + ' réservé pour vous chez ' + shops[V.shop][0].split(' · ')[0] + '.</div>' +
+          '<span class="h" style="color:#fff">Premier versement</span>' +
+          '<div class="chips">' + [500, 1000, 2000, 5000].map(function (a) { return '<button class="chip' + (V.first === a ? ' on' : '') + '" type="button" data-first="' + a + '" style="' + (V.first === a ? 'background:#fff;color:var(--ink)' : 'background:var(--ink-2);color:#e9eaec') + '">' + nb(a) + '</button>'; }).join('') + '</div>' +
+          '<div class="accord" style="background:var(--ink-2)"><div class="kv"><span>Depuis</span><span>MTN MoMo · 6•• •• •• 42</span></div><div class="kv"><span>Montant</span><span>' + F(V.first) + '</span></div></div>' +
+          '<div class="stack"><button class="pill lime" type="button" data-v="pay">Verser ' + F(V.first) + '</button><button class="pill" type="button" data-v="later" style="background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px #fff">Plus tard</button></div>';
+      } else {
+        var on = Math.max(1, Math.round(V.first / prod.p * 8));
+        h = '<div class="top"><span style="width:36px"></span><b style="font-size:13px">C\'est parti</b><span style="width:36px"></span></div>' +
+          '<div class="ring" style="display:grid;place-items:center;background:var(--tech);border-radius:24px;padding:14px">' + ring(on) + '<span style="font-family:var(--display);font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums">' + F(V.first) + '</span><span style="font-size:11.5px;color:var(--ink)">sur ' + F(prod.p) + '</span></div>' +
+          '<div class="kv"><span>Reçu</span><span>MP-2026-005233</span></div><div class="kv"><span>Prochain versement</span><span>' + nb(V.rate) + ' demain</span></div>' +
+          '<div class="stack"><button class="pill light" type="button" data-v="restart">Recommencer la démo</button></div>';
+      }
+    }
+    bd.innerHTML = h;
+  }
+  document.getElementById('v-bd').addEventListener('click', function (e) {
+    var t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.color) V.color = t.dataset.color;
+    else if (t.dataset.shop) V.shop = t.dataset.shop;
+    else if (t.dataset.rate) { V.rate = +t.dataset.rate; V.per = +t.dataset.per; }
+    else if (t.dataset.first) V.first = +t.dataset.first;
+    else if (t.dataset.v === 'next') V.step = Math.min(3, V.step + 1);
+    else if (t.dataset.v === 'back') V.step = Math.max(0, V.step - 1);
+    else if (t.dataset.v === 'pay') { t.disabled = true; t.textContent = 'Validez sur MTN MoMo…'; setTimeout(function () { V.done = true; vr(); }, 1400); return; }
+    else if (t.dataset.v === 'later' || t.dataset.v === 'restart') { V = { step: 0, color: 'Noir', shop: 'akwa', rate: 5000, per: 1, first: 2000, done: false }; }
+    vr();
+  });
+  vr();
+})();
+</script>
+
+<script>
+(function () {
+  var G = {"home": ["#e9f7a8", "#ffd0e0", "#cfeefa", "#dcd8ff"], "technology": ["#bdeefc", "#5cc6ea", "#e6f8ff", "#a5e3f7"], "housing": ["#e9e6ff", "#a99fff", "#d7d2ff", "#c3bdff"], "mobility": ["#ffd9e6", "#ff8db4", "#ffc4d8", "#ffb3cc"], "aurora": ["#3d4a12", "#1d4d5c", "#3a2c5c"]}, MAP = [{"sel": ".scr", "light": "home", "aurora": true}];
+  function layer(kind, cls) { var d = document.createElement('div'); d.className = 'mp-liquid ' + (cls || ''); d.setAttribute('aria-hidden', 'true'); (G[kind] || []).forEach(function (c) { var i = document.createElement('i'); i.style.background = c; d.appendChild(i); }); return d; }
+  MAP.forEach(function (m) {
+    document.querySelectorAll(m.sel).forEach(function (s) {
+      s.classList.add('mp-scr');
+      if (m.light) { var a = layer(m.light, (m.staticLight ? 'mp-static ' : '') + 'mp-light'); s.insertBefore(a, s.firstChild); var g = document.createElement('div'); g.className = 'mp-grain'; g.setAttribute('aria-hidden', 'true'); s.insertBefore(g, a.nextSibling); }
+      if (m.aurora) { s.insertBefore(layer('aurora', 'mp-aurora'), s.firstChild); }
+    });
+  });
+  var bar = document.createElement('div'); bar.className = 'mp-mode'; bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Matières');
+  bar.innerHTML = '<span>Matières</span><button type="button" data-m="liquide" aria-pressed="true">Liquide</button><button type="button" data-m="sobre" aria-pressed="false">Sobre</button>';
+  document.body.appendChild(bar);
+  bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; document.documentElement.classList.toggle('mp-sober', b.dataset.m === 'sobre'); bar.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); });
+})();
+</script>

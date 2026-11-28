@@ -10,6 +10,8 @@ type Complaint = components['schemas']['ComplaintDetail'];
 /** Lecture injectée (`browserComplaintPorts`) : route réelle, motif inscrit à l'audit (F-BO-004). */
 export type ComplaintPorts = {
   readonly load: (complaintId: string, reason: string) => Promise<{ readonly ok: true; readonly complaint: Complaint } | { readonly ok: false; readonly problem: ProblemSummary }>;
+  /** C6 / D56 : ouverture d'un litige (support N2) ; la levée revient à une autre personne (file de travail). */
+  readonly openDispute: (complaintId: string) => Promise<{ readonly ok: true; readonly disputeId: string } | { readonly ok: false; readonly problem: ProblemSummary }>;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -30,6 +32,21 @@ export function ComplaintDetail({ ports, initialComplaintId = '' }: { readonly p
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [pending, setPending] = useState(false);
+
+  async function openDispute(): Promise<void> {
+    if (complaint === null) return;
+    setProblem(null);
+    setPending(true);
+    try {
+      const result = await ports.openDispute(complaint.complaintId);
+      if (result.ok) setComplaint({ ...complaint, openDispute: true });
+      else setProblem(result.problem);
+    } catch {
+      setProblem({ title: 'Ouverture du litige non confirmée', detail: 'Le service ne répond pas. Rechargez la réclamation avant de réessayer.' });
+    } finally {
+      setPending(false);
+    }
+  }
 
   async function load(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -68,11 +85,14 @@ export function ComplaintDetail({ ports, initialComplaintId = '' }: { readonly p
           <dl>
             <div><dt>Canal</dt><dd>{CHANNELS[complaint.channel]}</dd></div>
             <div><dt>Reçue le</dt><dd><time dateTime={complaint.receivedAt}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(complaint.receivedAt))}</time></dd></div>
-            <div><dt>Objectif</dt><dd>{complaint.agreementId ?? '—'}</dd></div>
+            <div><dt>Objectif</dt><dd>{complaint.agreementId === null ? '—' : <a href={`/objectifs?objectif=${encodeURIComponent(complaint.agreementId)}`} aria-label={`Historique de l’objectif ${complaint.agreementId}`}>{complaint.agreementId}</a>}</dd></div>
             <div><dt>Motif</dt><dd>{complaint.reason === null ? '—' : (REASONS[complaint.reason] ?? complaint.reason)}</dd></div>
             <div><dt>Description</dt><dd>{complaint.details ?? 'Aucune description saisie'}</dd></div>
           </dl>
           <p>Litige ouvert : {complaint.openDispute ? 'oui' : 'non'} · Close : {complaint.closed ? 'oui' : 'non'}</p>
+          {complaint.openDispute || complaint.closed || complaint.agreementId === null ? null : (
+            <Button variant="danger" disabled={pending} onClick={() => void openDispute()}>Ouvrir un litige</Button>
+          )}
         </section>
       )}
     </section>

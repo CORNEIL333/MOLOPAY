@@ -33,10 +33,12 @@ import {
   seedPaymentPlan,
   validateLandlord,
   validateMerchant,
+  publishCommitmentLimits,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /**
  * F-BO-003 / D65 : tableau de bord agrégé du back-office sur un scénario
@@ -107,6 +109,7 @@ beforeEach(async () => {
   for (const sql of migrations) {
     await admin.query(sql);
   }
+  await publishCommitmentLimits(admin);
   await admin.query('BEGIN');
   await validateMerchant(admin, uuidv7(), 'merchant-1');
   await validateLandlord(admin, uuidv7());
@@ -133,7 +136,7 @@ async function fullScenario(): Promise<void> {
   await withTransaction(database, (client) => confirmHandoverAtPartner(client, { code, partnerId: 'merchant-1', partnerUserId: counter.seller.userId, latitude: '4.051056', longitude: '9.767869', pepper: PEPPER }));
   const { payoutId } = await withTransaction(database, (client) => preparePayout(client, { id: uuidv7(), agreementId: GOAL_A, cityId: 'douala', principal: OPS }));
   await withTransaction(database, (client) => decidePayout(client, { payoutId, principal: FIN, decision: 'APPROVED', cityId: 'douala' }));
-  await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+  await withTransaction(database, (client) => instructPayout(client, { payoutId, principal: FIN, cityId: 'douala', signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
   await withTransaction(database, (client) => recordPayoutExecution(client, { payoutId, principal: FIN2, cityId: 'douala', outcome: 'EXECUTED', bankReference: 'ETAB-REG-1' }));
   // Accord C : 20 000 versés ; un litige levé (réclamation close), puis un litige ouvert ; une réclamation sans litige.
   for (let index = 0; index < 4; index += 1) {
