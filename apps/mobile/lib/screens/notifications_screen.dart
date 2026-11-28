@@ -121,9 +121,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: MpColors.paper,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFF3ECE5)),
+                        border: Border.all(color: MpColors.mist2),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

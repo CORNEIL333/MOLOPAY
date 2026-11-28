@@ -1,8 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
 import 'device_key.dart';
 import 'models.dart';
+import 'money.dart';
+
+final class FavoriteDelta {
+  const FavoriteDelta({required this.isDown, required this.amount});
+  final bool isDown;
+  final MoneyXaf amount;
+}
 
 /// État applicatif léger (session en mémoire, langue FR/EN, accessibilité, ville).
 class AppState extends ChangeNotifier {
@@ -22,6 +31,23 @@ class AppState extends ChangeNotifier {
   City? _selectedCity;
   SessionSummary? _session;
   bool _upgradeRequired = false;
+  final Map<String, MoneyXaf> _favorites = <String, MoneyXaf>{};
+
+  bool isFavorite(String offerId) => _favorites.containsKey(offerId);
+  Iterable<String> get favoriteOfferIds => _favorites.keys;
+
+  void toggleFavorite(Offer offer) {
+    if (_favorites.containsKey(offer.offerId)) { _favorites.remove(offer.offerId); }
+    else { _favorites[offer.offerId] = offer.priceXaf; }
+    notifyListeners();
+  }
+
+  FavoriteDelta? favoritePriceDelta(Offer live) {
+    final added = _favorites[live.offerId];
+    if (added == null || added == live.priceXaf) return null;
+    final diff = live.priceXaf.amount < added.amount ? added.amount - live.priceXaf.amount : live.priceXaf.amount - added.amount;
+    return FavoriteDelta(isDown: live.priceXaf.amount < added.amount, amount: MoneyXaf.fromBigInt(diff));
+  }
 
   /// SEC-MOB-005 : le serveur refuse cette version ; l'application n'offre plus que la mise à jour.
   bool get upgradeRequired => _upgradeRequired;
@@ -44,6 +70,7 @@ class AppState extends ChangeNotifier {
     if (locale != 'fr' && locale != 'en') return;
     if (_locale == locale) return;
     _locale = locale;
+    if (isAuthenticated) { unawaited(api.declareLanguage(locale).catchError((_) {})); }
     notifyListeners();
   }
 
@@ -87,6 +114,7 @@ class AppState extends ChangeNotifier {
     );
     final summary = SessionSummary.fromLogin(result, locale: _locale);
     _session = summary;
+    unawaited(api.declareLanguage(_locale).catchError((_) {}));
     notifyListeners();
     return summary;
   }

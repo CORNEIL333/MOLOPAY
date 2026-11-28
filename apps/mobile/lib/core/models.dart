@@ -980,3 +980,17 @@ final class CustomerNotificationFeed {
     );
   }
 }
+
+/// Code de remise à usage unique (`GET /v1/goals/{goalId}/handover-code`, D69).
+final class HandoverCodeInfo {
+  const HandoverCodeInfo({required this.code, required this.expiresAt, required this.status});
+  final String code;
+  final DateTime expiresAt;
+  final String status;
+
+  factory HandoverCodeInfo.fromJson(Map<String, Object?> json) => HandoverCodeInfo(
+    code: _reqString(json, 'code'),
+    expiresAt: DateTime.parse(_reqString(json, 'expiresAt')),
+    status: _reqString(json, 'status'),
+  );
+}

@@ -46,9 +46,9 @@ class HomeScreen extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: MpColors.paper,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFF1E7DD)),
+                  border: Border.all(color: MpColors.mist2),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -78,7 +78,7 @@ class HomeScreen extends StatelessWidget {
           onTap: () => onNavigateTab(1),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFFFEDD9),
+              color: MpColors.universeEssentials,
               borderRadius: BorderRadius.circular(32),
             ),
             child: Column(
@@ -152,7 +152,7 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            color: const Color(0xFFF3EEE6),
+            color: MpColors.mist,
           ),
           child: Row(
             children: [

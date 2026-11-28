@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../core/app_state.dart';
 import '../core/models.dart';
+import '../core/offer_search.dart';
 import '../core/problem.dart';
 import '../l10n/strings.dart';
+import '../ui/components.dart';
 import '../ui/design.dart';
 import 'offer_quote_panel.dart';
 
@@ -75,19 +77,28 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppStrings.of(widget.state.locale);
-    final query = _search.trim().toLowerCase();
-    final filtered = (_offerList?.offers ?? const <Offer>[]).where((offer) {
-      if (query.isEmpty) return true;
-      return offer.title.toLowerCase().contains(query) ||
-          offer.partnerName.toLowerCase().contains(query);
-    }).toList();
+    final allOffers = _offerList?.offers ?? const <Offer>[];
+    final filtered = searchOffersMobile(allOffers, _search);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(s.exploreTitle, style: type(34, weight: FontWeight.w800)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(child: Text(s.exploreTitle, style: type(34, weight: FontWeight.w800))),
+            MpChoiceChip(
+              label: s.isEn ? 'My wishlist (${widget.state.favoriteOfferIds.length})' : 'Mes envies (${widget.state.favoriteOfferIds.length})',
+              selected: widget.state.favoriteOfferIds.isNotEmpty,
+              onTap: () => showMpBottomSheet<void>(
+                context,
+                _FavoritesSheet(offers: allOffers, state: widget.state),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
-        Text(s.exploreCaption, style: type(14, color: muted)),
+        Text(s.isEn ? 'What’s your next project?' : 'Quel est votre prochain projet ?', style: type(14, color: muted)),
         const SizedBox(height: 18),
         TextField(
           key: const Key('catalog-search-field'),
@@ -95,14 +106,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
             hintText: s.searchHint,
             prefixIcon: const Icon(CupertinoIcons.search, color: muted),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: MpColors.paper,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Color(0xFFEFE6DC)),
+              borderSide: const BorderSide(color: MpColors.mist2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: Color(0xFFEFE6DC)),
+              borderSide: const BorderSide(color: MpColors.mist2),
             ),
           ),
           onChanged: (value) => setState(() => _search = value),
@@ -191,6 +202,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
                 ),
               ),
+              trailing: MpIconButton(
+                icon: CupertinoIcons.heart,
+                label: s.isEn ? 'Wishlist ${offer.title}' : 'Envies ${offer.title}',
+                active: widget.state.isFavorite(offer.offerId),
+                onPressed: () => setState(() => widget.state.toggleFavorite(offer)),
+              ),
             ),
         ],
       ],
@@ -229,10 +246,10 @@ class _FilterPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? ink : Colors.white,
+          color: selected ? ink : MpColors.paper,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: selected ? ink : const Color(0xFFEFE6DC),
+            color: selected ? ink : MpColors.mist2,
           ),
         ),
         child: Text(
@@ -270,7 +287,7 @@ class OfferDetailScreen extends StatelessWidget {
       PreorderAvailability(:final leadDays) => s.preorderDays(leadDays),
     };
     final compatiblePlans = plans
-        .where((p) => offer.models.contains(p.model))
+        .where((p) => p.model != OfferModel.financedPurchase && offer.models.contains(p.model))
         .toList();
 
     return Scaffold(
@@ -300,7 +317,7 @@ class OfferDetailScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEDD9),
+                    color: MpColors.mist,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
@@ -358,9 +375,9 @@ class _DetailRow extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: MpColors.paper,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF3ECE5)),
+        border: Border.all(color: MpColors.mist2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,4 +389,45 @@ class _DetailRow extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _FavoritesSheet extends StatelessWidget {
+  const _FavoritesSheet({required this.offers, required this.state});
+  final List<Offer> offers;
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEn = state.locale == 'en';
+    final saved = offers.where((o) => state.isFavorite(o.offerId)).toList();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(isEn ? 'My wishlist' : 'Mes envies', style: type(20, display: true, weight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text(
+          isEn ? 'A wishlist price can change. It is locked only when you reserve.' : 'Le prix d’un favori peut changer. Il est figé seulement quand vous réservez.',
+          style: type(12, color: muted),
+        ),
+        const SizedBox(height: 12),
+        if (saved.isEmpty)
+          Text(isEn ? 'No saved offers yet.' : 'Aucune envie enregistrée.', style: type(14, color: muted))
+        else
+          for (final offer in saved) ...[
+            Builder(builder: (_) {
+              final d = state.favoritePriceDelta(offer);
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(offer.title, style: type(15, weight: FontWeight.w600)),
+                subtitle: Text(
+                  d == null ? offer.priceXaf.format() : (d.isDown ? 'Baisse de ${d.amount.format()}' : 'Hausse de ${d.amount.format()}'),
+                  style: type(13, color: muted, tabular: true),
+                ),
+              );
+            }),
+          ],
+      ],
+    );
+  }
 }
