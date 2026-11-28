@@ -903,3 +903,7 @@
 - **Hors base :** les erreurs 5xx > 1 % relèvent des métriques de l'hébergeur (non câblées).
 - **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
 - **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.
+
+### U0 · Fondations des interfaces MVP 0.0.1 (direction UX et UI v1.1)
+- **Remplacement documentaire consigné :** les anciens fichiers `PROMPT_STITCH_APP_MOBILE.md` et `PROMPT_CHATGPT_APP_MOBILE.md` sont remplacés par le dossier de référence `docs/05_direction_ux_et_ui/` (`09_passage_maquettes_mvp_0.0.1.md`, `02_identite_visuelle.md` v1.1, `06_animations.md`, `jetons/`, `textes/mvp_0.0.1_fr_en.json`).
+- **Limite mesurée (F8, `06_animations.md` § 7.1) :** la bascule automatique vers le mode Sobre au-delà de 5 % de trames > 16 ms (`MpVisualEffectsController` branché sur `SchedulerBinding.addTimingsCallback`) est vérifiée par test unitaire déterministe sur Flutter, mais la mesure réelle sur appareil physique Android d'entrée de gamme (2 Go de RAM) n'a pas pu être exécutée sur ce poste sans appareil ni SDK Android ; à valider sur matériel cible avant ouverture au public.

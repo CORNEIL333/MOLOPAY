@@ -1,3 +1,16 @@
+# État du sprint — 2026-11-28
+
+## Fait · MVP 0.0.1 — Étape U0 · Fondations (`agent/gemini/mvp001-u0-fondations` & `agent/gemini/mvp001-u0b-fondations-mobile`, L1)
+- **Références :** `09_passage_maquettes_mvp_0.0.1.md` (§ 1, § 2 F1–F8), `02_identite_visuelle.md` (v1.1, matières liquide et verre), `06_animations.md` (`M-56`, § 3.4, § 7.1), `jetons/*`, `textes/mvp_0.0.1_fr_en.json`, rebasé sur `sprint/integration-t01urw` (`db9d8aa66`, contrat OpenAPI `0.45.0`). Découpé en 2 PR ≤ 400 lignes hors tests, fichiers générés, polices et captures : U0a Web (PR #11) et U0b Flutter.
+- **Livré et vérifié :**
+  1. **F1 · Jetons web et Flutter :** intégration de `tokens.generated.css`, `tokens.generated.ts` et `molopay_tokens.dart` ; alias transitoires `--achat-*` → `--mp-*` dans `packages/ui/src/styles.css` (supprimés en U4) ; remplacement intégral de l'ancienne palette dans `packages/ui`, `apps/web-client/public`, `apps/mobile` (`theme.dart`, `design.dart`) et `apps/mobile-showcase` ; 32 tests dans `tokens.test.ts` (WCAG 2.2 AA ≥ 4,5:1 clair/sombre, ≥ 10,5:1 texte noir sur aplats d'univers, refus < 2:1 sur blanc).
+  2. **F2 · Polices auto-hébergées :** Outfit et Inter variables embarquées localement (`next/font/local` sur les 3 applications Next.js, assets `pubspec.yaml` + `LicenseRegistry` SIL OFL 1.1 sur Flutter, sommes SHA-256 vérifiées par test, zéro appel Google Fonts).
+  3. **F5 · Mode réduit :** variables CSS réduites et `MpMotionConfig.reduced(context)` sur Flutter (`MediaQuery.disableAnimationsOf`, `AccessibilityFeatures.reduceMotion` et réglage applicatif).
+  4. **F8 · Matières liquide et verre :** `LiquidBackground` (`M-56`, dégradés radiaux pré-calculés animés en `transform` seul, `aria-hidden`, figé pendant toute saisie ou en mode réduit) et `GlassSurface` (clair/sombre, plafond strict de 2 surfaces par écran `MP_GLASS_BUDGET_EXCEEDED`, refus sous un montant ou un statut `MP_GLASS_FINANCIAL_FORBIDDEN`), repli Sobre automatique (`prefers-reduced-transparency`, `prefers-reduced-motion`, `.mp-sober`, interrupteur « Effets visuels : sobres » dans Profil, et sonde Flutter > 5 % de trames > 16 ms).
+  5. **F6 · Format des montants :** `formatXaf` / `formatXafSms` alimentés par `@achat/money` (`bigint` XAF exclusif, I-12) et `MoneyXaf.format` sur Flutter, chiffres tabulaires Outfit (« 25 000 FCFA »).
+  6. **Barrière U0 :** `pnpm lint` OK, `pnpm typecheck` OK, `vitest` UI 55/55 verts, `pnpm test:web` 296/296 verts (57 suites), `pnpm security:scan` OK, `flutter analyze` 0 anomalie (`mobile` et `mobile-showcase`), `flutter test` 53/53 verts, 8 captures Playwright (clair, sombre, mouvement réduit, Sobre × 360 px et 1280 px, `axe-core` 0 violation), grep `0b6b53|e4a11b|f16b27` = 0 hors historique.
+- **Suite immédiate :** `agent/gemini/mvp001-u1-composants` (étape U1 · les 18 composants restants de `09_…` § 3 sur Web puis Flutter).
+
 # État du sprint — 2026-11-17
 
 ## Fait depuis le 11 novembre (D62–D68)

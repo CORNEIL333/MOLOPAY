@@ -15,7 +15,11 @@ export function AmountXaf({
   label,
 }: AmountXafProps): ReactElement {
   return (
-    <span className={cx('achat-amount', className)} aria-label={label}>
+    <span
+      className={cx('achat-amount', className)}
+      data-mp-financial="true"
+      aria-label={label}
+    >
       {formatXaf(amount)}
     </span>
   );

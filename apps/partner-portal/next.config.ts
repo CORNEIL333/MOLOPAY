@@ -17,7 +17,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ['@achat/ui', '@achat/contracts'],
+  transpilePackages: ['@achat/ui', '@achat/contracts', '@achat/money'],
   headers() {
     return Promise.resolve([{ source: '/:path*', headers: securityHeaders }]);
   },

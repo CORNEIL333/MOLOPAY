@@ -10,12 +10,26 @@ export { ErrorState } from './ErrorState';
 export type { ErrorStateProps, ProblemSummary } from './ErrorState';
 export { GoalCard } from './GoalCard';
 export type { GoalCardProps } from './GoalCard';
+export {
+  GlassSurface,
+  LiquidBackground,
+  SoberEffectsToggle,
+  VisualEffectsProvider,
+  useVisualEffects,
+} from './materials';
+export type {
+  GlassSurfaceProps,
+  GlassTone,
+  LiquidBackgroundProps,
+  LiquidUniverse,
+  SoberEffectsToggleProps,
+} from './materials';
 export { ProgressBar } from './ProgressBar';
 export type { ProgressBarProps } from './ProgressBar';
 export { TextField } from './TextField';
 export type { TextFieldProps } from './TextField';
 export { TextArea } from './TextArea';
 export type { TextAreaProps } from './TextArea';
-export { formatXaf, isCanonicalXafAmount } from './format';
-export { tokens } from './tokens';
-export type { Tokens } from './tokens';
+export { formatXaf, formatXafSms, isCanonicalXafAmount } from './format';
+export { molopayTokens, tokens } from './tokens';
+export type { MolopayTokens, Tokens } from './tokens';

@@ -1,6 +1,12 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@achat/money': resolve(__dirname, './packages/money/src/index.ts'),
+    },
+  },
   test: {
     environment: 'node',
     include: [

@@ -2,13 +2,13 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const fromRoot = (relative: string): string =>
-  resolve(__dirname, relative);
+const fromRoot = (relative: string): string => resolve(__dirname, relative);
 
 export default defineConfig({
   plugins: [react({})],
   resolve: {
     alias: {
+      '@achat/money': fromRoot('./packages/money/src/index.ts'),
       '@achat/ui': fromRoot('./packages/ui/src/index.ts'),
       '@achat/contracts/api': fromRoot('./packages/contracts/src/api.d.ts'),
       '@achat/contracts/client': fromRoot('./packages/contracts/src/client.ts'),

@@ -5,7 +5,10 @@
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@achat/money": ["../money/src/index.ts"]
+    }
   },
   "include": [
     "src/**/*.ts",

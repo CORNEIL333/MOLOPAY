@@ -12,6 +12,7 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
+      "@achat/money": ["../../packages/money/src/index.ts"],
       "@achat/ui": ["../../packages/ui/src/index.ts"],
       "@achat/ui/*": ["../../packages/ui/src/*"],
       "@achat/contracts/api": ["../../packages/contracts/src/api.d.ts"],
