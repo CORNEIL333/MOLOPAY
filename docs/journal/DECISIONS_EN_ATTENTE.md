@@ -436,6 +436,7 @@
 ### D64 · Next.js 16.4.3 signalé vulnérable (GHSA-mfr8-8qww-v76h, modéré)
 - **Constat (17 novembre) :** `next build` refuse désormais de compiler (`SecurityFatalError`) : `pnpm test:e2e` (back-office) échoue au build, sans lien avec le code. `pnpm audit` : next ≥ 16.3.0 ≤ 16.4.4 vulnérable, corrigé en **16.4.5** (client web, back-office, racine). Le contrôle SCA (`--prod`, seuil élevé) passe.
 - **Option prudente appliquée :** aucune dépendance modifiée par l'agent (AGENTS.md § 8 : dépendance revue et épinglée). **À décider :** montée épinglée `next@16.4.5` dans les trois `package.json` et le lockfile, en PR dédiée revue. Le test de bout en bout est à rejouer ensuite.
+- **✅ Tranché par le fondateur (27 novembre) et fait :** `next@16.4.5` épinglé dans la racine et les trois applications web. Le fichier de verrouillage ne change que `next`, `@next/env` et `@next/swc-*`, de 16.4.3 à 16.4.5. `pnpm audit --prod` ne trouve aucune vulnérabilité connue. `next build` passe pour le client web, le back-office et le portail partenaire, ce dernier compilé pour la première fois. `pnpm test:e2e` : 2/2.
 - **Mise à jour D63 (tranche 3, 17 novembre) :** gestion des vendeurs par le gérant en HTTP : `GET /v1/partner/users`, `POST /v1/partner/sellers`, `POST /v1/partner/sellers/{sellerId}/enrollments` (jeton rendu une seule fois, jamais mémorisé), `POST /v1/partner/sellers/{sellerId}/disable` (motif). Vendeur → 403 `PARTNER_ROLE_DENIED` ; compte inconnu, d'un autre partenaire ou gérant → même 404 `PARTNER_USER_NOT_FOUND` (F-PRT-004, aucun oracle). Contrat 0.15.0. 6 tests HTTP ; 5 mutants tués, 2 équivalents (rejeu sans jeton déjà garanti ; motif vide déjà refusé par le store).
 - **Reste :** création du gérant au back-office (périmètre partenaire du personnel à trancher) ; écrans du portail partenaire ; tableau des commandes et règlements (F-PRT-004) ; abonnements (F-PRT-005, décision commerciale).
 - **Mise à jour D63 (tranche 4, 17 novembre) :** `GET /v1/partner/orders` (gérant et vendeur) : accords du seul partenaire de la session, brouillons exclus, 200 plus récents ; état, titre de la version d'offre figée, montant cible, progression dérivée du grand livre (I-9), date de remise. **Aucune donnée du client**, même à 100 % (option la plus prudente : F-PRT-004 autorise l'anonymisation levée à 100 %, mais le code de remise suffit au comptoir). Contrat 0.16.0 (l'ancien schéma prévoyait un nom de client). 5 tests HTTP ; 4 mutants tués.
@@ -903,6 +904,31 @@
 - **Hors base :** les erreurs 5xx > 1 % relèvent des métriques de l'hébergeur (non câblées).
 - **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
 - **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.
+
+### N7 · Neon : point d'accès direct pour les outils à session, pool et durée des requêtes bornés
+- **Demande du fondateur (27 nov.) :** « continue avec Neon ».
+- **Constat :** Neon fournit une adresse groupée (`-pooler`), sur laquelle les fonctions de session ne sont pas garanties. Or l'outil de migration prend un verrou de session, et le contrôle nocturne comme la supervision prennent leur rôle au démarrage de la connexion. Par ailleurs, l'API avait un pool fixe de 10 connexions, **sans durée maximale de requête ni délai de connexion** : une requête emballée ou une base injoignable bloquaient indéfiniment.
+- **Fait :**
+  - `assertDirectEndpoint` (`DATABASE_POOLER_FORBIDDEN`) est appliqué à `db:migrate`, `db:backup`, `db:transfer` (source et cible), au contrôle nocturne et à `ops:alerts` (nouvelle fonction `monitorDatabaseUrl`).
+  - Pool de l'API : `DATABASE_POOL_MAX` (1 à 50, défaut 10), délai de connexion de 10 s, connexions inactives rendues après 30 s.
+  - `DATABASE_STATEMENT_TIMEOUT_MS` (1 à 120 s, défaut 15 s), posé par `SET LOCAL` dans **chaque** transaction, donc valable aussi derrière le regroupeur. Vérifié sur PostgreSQL réel : une requête trop longue est interrompue (57014) et la limite ne fuit pas hors de la transaction.
+  - Procédure Neon et `.env.example` mis à jour.
+- **Tests :** 2 unitaires, 1 sur base réelle, plus un refus de l'adresse groupée dans les tests de chacun des cinq outils ; 5 mutants tués.
+- **À vérifier sur la console Neon :** la limite de connexions de la taille de calcul choisie, pour fixer `DATABASE_POOL_MAX` en dessous.
+
+### Plan du fondateur du 27 novembre, étape 2 · Documentation UX et site public reprises de `claude/kind-gauss-3npnkd`
+- **Constat :** la branche ne contient que de la documentation (77 fichiers), avec un historique sans ancêtre commun avec la nôtre : impossible à fusionner, donc **copiée**. 45 fichiers sont nouveaux, 19 identiques, 13 différents. Parmi ces 13, plusieurs sont des versions **plus anciennes** des nôtres (ADR-0004 du 26 octobre, journal, état, registre) : les recopier aurait effacé notre travail.
+- **Fait :**
+  - Copie des 45 nouveaux fichiers : `docs/05_direction_ux_et_ui/` (identité, catalogue des écrans, maquettes HTML, jetons de design, recherches, textes FR/EN) et les deux prompts Gemini.
+  - ADR du site public **renuméroté `ADR-0008`** (collision avec notre ADR-0006 PWA), ses 10 mentions corrigées.
+  - Seuls les **ajouts** de cette branche sont repris dans les documents communs :
+    - CDC_01 § 15 (F-PUB-001 à 010), CDC_02 (NF-PUB) et CDC_05 ;
+    - glossaire, plan de lots (lot 26), liste de contrôle du lancement, matrice de traçabilité ;
+    - lignes du LISEZMOI, paragraphe du dossier projet ;
+    - traitements du site public **renumérotés T-16 et T-17** dans le registre (version 1.2).
+  - Rien n'est repris de leurs anciennes versions d'ADR-0004, du journal ni de l'état.
+- **Vérifié :** aucun secret dans les fichiers copiés ; le script `jetons/generate.py` ne fait que lire et écrire son dossier, sans dépendance ni réseau.
+- **Statut :** ADR-0008 reste **Proposé**, en attente de ta validation avant le lot 26, comme sur la branche d'origine. Les exigences F-PUB et NF-PUB ne sont pas encore couvertes par des tests (lot 26 non commencé).
 
 ### U0 · Fondations des interfaces MVP 0.0.1 (direction UX et UI v1.1)
 - **Remplacement documentaire consigné :** les anciens fichiers `PROMPT_STITCH_APP_MOBILE.md` et `PROMPT_CHATGPT_APP_MOBILE.md` sont remplacés par le dossier de référence `docs/05_direction_ux_et_ui/` (`09_passage_maquettes_mvp_0.0.1.md`, `02_identite_visuelle.md` v1.1, `06_animations.md`, `jetons/`, `textes/mvp_0.0.1_fr_en.json`).

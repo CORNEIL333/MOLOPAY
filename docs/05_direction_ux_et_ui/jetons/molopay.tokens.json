@@ -1,0 +1,413 @@
+{
+  "$description": "Jetons de design MoloPay — source unique de vérité. Format W3C Design Tokens (DTCG). Valeurs : 02_identite_visuelle.md et 06_animations.md. Ne pas modifier sans décision du fondateur. Matières liquide et verre adoptées le 26 novembre 2026.",
+  "color": {
+    "$type": "color",
+    "ink": {
+      "$value": "#0f1012",
+      "$description": "Encre : texte, actions principales, navigation"
+    },
+    "ink-2": {
+      "$value": "#1c1d21"
+    },
+    "ink-3": {
+      "$value": "#2a2c31"
+    },
+    "paper": {
+      "$value": "#ffffff",
+      "$description": "Surfaces, cartes"
+    },
+    "mist": {
+      "$value": "#f2f2ee",
+      "$description": "Champs, puces inactives"
+    },
+    "mist-2": {
+      "$value": "#e4e5df"
+    },
+    "muted": {
+      "$value": "#6a6d73",
+      "$description": "Texte secondaire sur clair"
+    },
+    "muted-dark": {
+      "$value": "#9a9ca3",
+      "$description": "Texte secondaire sur sombre"
+    },
+    "universe": {
+      "essentials": {
+        "$value": "#d9f26b",
+        "$description": "Essentiels — citron. Aplat sous texte noir uniquement."
+      },
+      "technology": {
+        "$value": "#8fddf5",
+        "$description": "Technologie et équipement — ciel. Aplat sous texte noir uniquement."
+      },
+      "housing": {
+        "$value": "#c3bdff",
+        "$description": "Logement et immobilier — lilas. Aplat sous texte noir uniquement."
+      },
+      "mobility": {
+        "$value": "#ffa8c5",
+        "$description": "Mobilité et activité pro — hibiscus. Aplat sous texte noir uniquement."
+      }
+    },
+    "status": {
+      "success": {
+        "$value": "#1f7a4a"
+      },
+      "success-bg": {
+        "$value": "#e2f2e8"
+      },
+      "warning": {
+        "$value": "#8a5300"
+      },
+      "warning-bg": {
+        "$value": "#fbedd0"
+      },
+      "danger": {
+        "$value": "#c4262e",
+        "$description": "Erreurs uniquement, toujours avec icône et texte"
+      },
+      "danger-bg": {
+        "$value": "#fbe4e5"
+      }
+    },
+    "dark": {
+      "bg": {
+        "$value": "#0b0b0d"
+      },
+      "surface": {
+        "$value": "#17181b"
+      },
+      "surface-2": {
+        "$value": "#1c1d21"
+      },
+      "text": {
+        "$value": "#f1f2f4"
+      },
+      "line": {
+        "$value": "#2a2c31"
+      }
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "display": {
+        "$value": [
+          "Outfit",
+          "Segoe UI",
+          "system-ui",
+          "sans-serif"
+        ],
+        "$description": "Montants, titres"
+      },
+      "text": {
+        "$value": [
+          "Inter",
+          "Segoe UI",
+          "system-ui",
+          "sans-serif"
+        ],
+        "$description": "Texte, libellés, reçus"
+      }
+    },
+    "size": {
+      "$type": "dimension",
+      "xs": {
+        "$value": "12px"
+      },
+      "sm": {
+        "$value": "13px"
+      },
+      "md": {
+        "$value": "15px"
+      },
+      "lg": {
+        "$value": "17px"
+      },
+      "xl": {
+        "$value": "22px"
+      },
+      "2xl": {
+        "$value": "28px"
+      },
+      "amount": {
+        "$value": "40px"
+      },
+      "hero": {
+        "$value": "56px"
+      }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "light": {
+        "$value": 300
+      },
+      "regular": {
+        "$value": 400
+      },
+      "medium": {
+        "$value": 500
+      },
+      "semibold": {
+        "$value": 600
+      }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "sm": {
+      "$value": "12px"
+    },
+    "md": {
+      "$value": "20px"
+    },
+    "lg": {
+      "$value": "28px"
+    },
+    "xl": {
+      "$value": "40px"
+    },
+    "pill": {
+      "$value": "999px"
+    }
+  },
+  "space": {
+    "$type": "dimension",
+    "1": {
+      "$value": "4px"
+    },
+    "2": {
+      "$value": "8px"
+    },
+    "3": {
+      "$value": "12px"
+    },
+    "4": {
+      "$value": "16px"
+    },
+    "5": {
+      "$value": "24px"
+    },
+    "6": {
+      "$value": "32px"
+    },
+    "7": {
+      "$value": "48px"
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "touch-target": {
+      "$value": "44px",
+      "$description": "Cible tactile minimale (WCAG 2.2, NF-UX-001)"
+    },
+    "button-height": {
+      "$value": "48px"
+    },
+    "icon-button": {
+      "$value": "40px"
+    }
+  },
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "micro": {
+        "$value": "100ms"
+      },
+      "short": {
+        "$value": "150ms"
+      },
+      "base": {
+        "$value": "250ms"
+      },
+      "medium": {
+        "$value": "350ms"
+      },
+      "long": {
+        "$value": "500ms"
+      },
+      "xlong": {
+        "$value": "800ms"
+      },
+      "celebration": {
+        "$value": "1200ms"
+      },
+      "liquid": {
+        "$value": "32000ms",
+        "$description": "Cycle moyen d'un fond liquide (26 à 38 s selon la tache)"
+      }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "standard": {
+        "$value": [
+          0.2,
+          0,
+          0,
+          1
+        ]
+      },
+      "enter": {
+        "$value": [
+          0.05,
+          0.7,
+          0.1,
+          1
+        ]
+      },
+      "exit": {
+        "$value": [
+          0.3,
+          0,
+          0.8,
+          0.15
+        ]
+      },
+      "utility-enter": {
+        "$value": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "utility-exit": {
+        "$value": [
+          0.3,
+          0,
+          1,
+          1
+        ]
+      },
+      "linear": {
+        "$value": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    "spring": {
+      "$description": "Gestes uniquement, jamais pour un montant ou un statut",
+      "fast": {
+        "$value": {
+          "dampingRatio": 0.9,
+          "stiffness": 1400
+        }
+      },
+      "default": {
+        "$value": {
+          "dampingRatio": 0.9,
+          "stiffness": 700
+        }
+      },
+      "slow": {
+        "$value": {
+          "dampingRatio": 0.9,
+          "stiffness": 300
+        }
+      },
+      "effects": {
+        "$value": {
+          "dampingRatio": 1,
+          "stiffness": 1600
+        }
+      }
+    }
+  },
+  "glass": {
+    "$description": "Verre : décor et navigation seulement, jamais sous un montant ou un statut. Au plus 2 surfaces visibles par écran.",
+    "light": {
+      "$type": "color",
+      "$value": "rgba(255, 255, 255, 0.62)",
+      "$description": "Verre clair, texte noir"
+    },
+    "light-line": {
+      "$type": "color",
+      "$value": "rgba(255, 255, 255, 0.75)"
+    },
+    "light-text-secondary": {
+      "$type": "color",
+      "$value": "#45484e",
+      "$description": "Texte secondaire sur verre clair (≥ 4,5:1)"
+    },
+    "dark": {
+      "$type": "color",
+      "$value": "rgba(15, 16, 18, 0.72)",
+      "$description": "Verre sombre, texte blanc"
+    },
+    "dark-line": {
+      "$type": "color",
+      "$value": "rgba(255, 255, 255, 0.10)"
+    },
+    "sober-light": {
+      "$type": "color",
+      "$value": "rgba(255, 255, 255, 0.94)",
+      "$description": "Repli Sobre"
+    },
+    "sober-dark": {
+      "$type": "color",
+      "$value": "rgba(15, 16, 18, 0.94)",
+      "$description": "Repli Sobre"
+    },
+    "blur": {
+      "$type": "dimension",
+      "$value": "20px",
+      "$description": "Rayon maximal"
+    },
+    "saturate": {
+      "$type": "number",
+      "$value": 1.5
+    }
+  },
+  "gradient": {
+    "$description": "Fonds liquides : teintes mélangées en taches, pré-calculées en production (image ou dégradés radiaux), animées seulement en transform.",
+    "home": {
+      "$value": [
+        "#e9f7a8",
+        "#ffd0e0",
+        "#cfeefa",
+        "#dcd8ff"
+      ],
+      "$description": "Accueil : les 4 univers adoucis"
+    },
+    "essentials": {
+      "$value": [
+        "#f3fbcf",
+        "#d9f26b",
+        "#eaf7a4"
+      ]
+    },
+    "technology": {
+      "$value": [
+        "#bdeefc",
+        "#5cc6ea",
+        "#e6f8ff",
+        "#a5e3f7"
+      ]
+    },
+    "housing": {
+      "$value": [
+        "#e9e6ff",
+        "#a99fff",
+        "#d7d2ff"
+      ]
+    },
+    "mobility": {
+      "$value": [
+        "#ffd9e6",
+        "#ff8db4",
+        "#ffc4d8"
+      ]
+    },
+    "aurora": {
+      "$value": [
+        "#3d4a12",
+        "#1d4d5c",
+        "#3a2c5c"
+      ],
+      "$description": "Écrans sombres (verser, succès) : figée pendant toute saisie"
+    }
+  }
+}

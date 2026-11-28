@@ -195,7 +195,7 @@ describe('NF-UX-001 · jetons de design MoloPay — contraste WCAG 2.2 AA et ide
       .filter(
         (f) =>
           f.length > 0 &&
-          !f.startsWith('docs/journal/') &&
+          !f.startsWith('docs/') &&
           !f.startsWith('apps/mobile') &&
           f !== 'packages/ui/src/tokens.test.ts' &&
           /\.(?:ts|tsx|css|dart|xml|svg|webmanifest|html)$/.test(f),

@@ -5,6 +5,7 @@ import type { PartnerLoginPorts } from '../components/partner-login';
 import type { BoardPorts } from '../components/partner-boards';
 import type { SellersPorts } from '../components/sellers-panel';
 import type { OffersPorts } from '../components/offers-board';
+import type { ManagerDashboardPorts } from '../components/manager-dashboard';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie `partner_session` httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
@@ -167,6 +168,13 @@ export const browserOffersPorts: OffersPorts = {
     const result = await api().GET('/v1/partner/offers', { cache: 'no-store' });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, rows: result.data.offers };
   },
+};
+
+/** 09_… § 4.2 : agrégation des lectures réelles du tableau de bord gérant. */
+export const browserManagerDashboardPorts: ManagerDashboardPorts = {
+  loadOrders: () => browserBoardPorts.loadOrders(),
+  loadPayouts: () => browserBoardPorts.loadPayouts(),
+  loadOffers: () => browserOffersPorts.load(),
 };
 
 /** Déconnexion : révocation immédiate de la session côté serveur. */

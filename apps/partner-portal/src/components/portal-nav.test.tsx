@@ -5,18 +5,21 @@ import { expectNoA11yViolations } from '../../../web-client/test/a11y';
 import { PortalNav } from './portal-nav';
 
 describe('D63 navigation du portail selon le rôle', () => {
-  it('vendeur : comptoir, commandes, offres ; ni règlements ni vendeurs', () => {
+  it('vendeur : comptoir, commandes, offres ; ni tableau de bord gérant, ni règlements, ni vendeurs', () => {
     render(<PortalNav role="SELLER" signOut={vi.fn()} onSignedOut={vi.fn()} />);
     const nav = screen.getByRole('navigation', { name: 'Portail partenaire' });
     expect(nav).toHaveTextContent('Comptoir');
     expect(screen.getByRole('link', { name: 'Commandes' })).toHaveAttribute('href', '/commandes');
     expect(screen.getByRole('link', { name: 'Offres' })).toHaveAttribute('href', '/offres');
+    expect(screen.queryByRole('link', { name: 'Tableau de bord' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Règlements' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Vendeurs' })).toBeNull();
   });
 
-  it('gérant : règlements et vendeurs en plus', () => {
-    render(<PortalNav role="MANAGER" signOut={vi.fn()} onSignedOut={vi.fn()} />);
+  it('gérant : tableau de bord, règlements et vendeurs en plus', () => {
+    render(<PortalNav role="MANAGER" pathname="/tableau-de-bord" signOut={vi.fn()} onSignedOut={vi.fn()} />);
+    expect(screen.getByRole('link', { name: 'Tableau de bord' })).toHaveAttribute('href', '/tableau-de-bord');
+    expect(screen.getByRole('link', { name: 'Tableau de bord' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Règlements' })).toHaveAttribute('href', '/reglements');
     expect(screen.getByRole('link', { name: 'Vendeurs' })).toHaveAttribute('href', '/vendeurs');
   });

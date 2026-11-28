@@ -16,6 +16,7 @@ Lot 00 Outillage ─┬─► Lot 01 Money ─► Lot 02 Ledger ─► Lot 03 Ch
                                                 └─► Lot 13 Lending B ◄─┘
 Lot 14 Reconciliation · Lot 15 Disputes · Lot 16 Risk · Lot 17 Notifications · Lot 18 USSD
 Lot 19 Mobile · Lot 20 Portail partenaire · Lot 21 Back-office · Lot 22 Diaspora · Lot 23 Exports
+Lot 26 Site public marketplace (après 06, 09, 19 et l'API de simulation)
 Lot 24 Durcissement & charge · Lot 25 Préparation recette & pentest
 ```
 
@@ -47,6 +48,7 @@ Lot 24 Durcissement & charge · Lot 25 Préparation recette & pentest
 | **21 · Back-office** | Tableaux de bord, dossiers, maker-checker, audit, réseau isolé | F-BO-* | 08, 12–16 | L3 | Aucun chemin de modification du grand livre |
 | **22 · Diaspora** | Contribution à l'objectif d'un proche, acceptation, canal agréé réel (API du partenaire de transfert) | F-DIA-* | 10, 11 | L2 | Contrôles LBC/FT bloquants |
 | **23 · Exports et ancrage partenaires** | Exports signés, envoi réel des têtes aux témoins par canal authentifié, accusés signés | F-REP-*, INT-ANC-004 | 03, 14 | L3 | Un témoin réel (ou, avant signature des conventions, un témoin interne indépendant hors infrastructure de production) reçoit et vérifie les têtes |
+| **26 · Site public marketplace** | Application `apps/site` (Next.js, SSG/ISR, CDN) : accueil avec simulateur, catalogue public (univers, ville, recherche), fiches d'offre, pages partenaires, Diaspora, « Devenir partenaire », FAQ, pages légales ; API publique en lecture seule `/v1/public/*` (module `catalog`) ; simulateur branché sur le moteur partagé ; redirection vers l'inscription OTP et reprise dans l'app ou la PWA par jeton à usage unique ; SEO (schema.org, plan du site, Open Graph, `hreflang`) ; mesure d'audience sans cookie tiers. Maquette : `05_direction_ux_et_ui/maquettes/site-public.html`. ADR-0008 | F-PUB-*, NF-PUB-*, REG-CON-002 | 06, 09, 19 (ou PWA) | L1–L2 | Égalité site = API de simulation sur 10⁴ cas ; Core Web Vitals dans les cibles ; aucune route d'écriture ni donnée personnelle exposée ; parcours site → inscription → objectif prérempli testé |
 | **24 · Durcissement et charge** | Tests de charge, chaos, revue ASVS L3/L2, en-têtes, limitation de débit | NF-PERF-*, NF-REL-*, SEC-API-* | Tous | L2 | Cibles × 3 tenues ; liste ASVS renseignée |
 | **25 · Préparation recette** | Jeux de données de test générés (aucune donnée personnelle réelle), scripts de recette, dossier pour le pentest, runbooks | CDC_07, CDC_08 | Tous | L1 | Dossier de recette prêt pour les humains |
 
@@ -61,6 +63,7 @@ Lot 24 Durcissement & charge · Lot 25 Préparation recette & pentest
 | H5 | Recherche primaire (30 entretiens, 10 prochains clients) | Fondateur |
 | H6 | Test d'intrusion indépendant, exercice de crise | Fondateur + prestataire |
 | H7 | Hébergement, KMS/HSM, comptes cloud, secrets de production | Fondateur |
+| H8 | Site public : nom commercial et dépôt de marque (OAPI), nom de domaine, photos produits fournies par les partenaires, textes juridiques publiés, validation des contenus | Fondateur + juriste + partenaires |
 
 ## 3. Démarrage d'un lot (message type à l'agent)
 

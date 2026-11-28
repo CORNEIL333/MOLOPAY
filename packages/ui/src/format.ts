@@ -1,4 +1,4 @@
-import { isNegative, parseXaf, toCanonicalString, type Money } from '@achat/money';
+import { isNegative, parseXaf, sum, toCanonicalString, zeroXaf, type Money } from '@achat/money';
 
 const STRICT_NON_NEGATIVE = /^(0|[1-9][0-9]*)$/;
 
@@ -50,4 +50,10 @@ export function formatXafSms(amount: string | bigint | Money): string {
 
 export function isCanonicalXafAmount(amount: string): boolean {
   return typeof amount === 'string' && STRICT_NON_NEGATIVE.test(amount);
+}
+
+/** Additionne des montants canoniques XAF via `@achat/money` (`bigint` strict, I-12). */
+export function sumCanonicalXaf(values: readonly string[]): string {
+  if (values.length === 0) return toCanonicalString(zeroXaf());
+  return toCanonicalString(sum(values.map((v) => parseXaf(v))));
 }

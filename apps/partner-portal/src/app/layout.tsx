@@ -33,8 +33,10 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${outfit.variable} ${inter.variable}`}>
       <body>
-        <SessionNav locale={locale} />
-        <main>{children}</main>
+        <div className="mp-shell">
+          <SessionNav locale={locale} />
+          <main className="mp-main">{children}</main>
+        </div>
       </body>
     </html>
   );

@@ -59,3 +59,7 @@
 | SBOM | Inventaire des composants logiciels (CycloneDX) |
 | ADR | Architecture Decision Record, décision d'architecture tracée |
 | Harness | Environnement qui exécute un agent IA avec ses outils et ses permissions |
+| Site public | Site vitrine et marketplace consultable sans compte, destiné aux visiteurs non inscrits (ADR-0008) |
+| SSG / ISR | Génération statique des pages, éventuellement régénérées à intervalle (rendu incrémental) |
+| Core Web Vitals | Indicateurs de performance perçue d'une page web (LCP, INP, CLS) |
+| Jeton de reprise | Identifiant opaque à usage unique qui transmet l'offre et le rythme choisis du site vers l'application, sans donnée personnelle |

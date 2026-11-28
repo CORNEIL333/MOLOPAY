@@ -31,11 +31,12 @@ Le projet s'inspire de **MoloMolo Pay** (Côte d'Ivoire), fintech d'épargne-ach
 | Logement et immobilier | Loyer, caution, avance locative, matériaux, terrains | — | — | Oui |
 | Mobilité et activité professionnelle | Motos, véhicules, machines, matériel de commerce | Oui | Oui | — |
 
-### 3.3 Trois interfaces sur un socle commun
+### 3.3 Trois interfaces sur un socle commun, plus un site public
 
 - **Application client** : Android, iOS, web léger, canal USSD, dépôt en espèces chez le partenaire.
 - **Portail partenaire** : catalogue, plans autorisés, commandes, codes de remise, règlements, personnel.
 - **Back-office interne** : opérations, finance, conformité, litiges, fraude, audit.
+- **Site public marketplace** (ajout du 20 novembre 2026) : catalogue consultable sans compte, simulateur, pages Diaspora et « Devenir partenaire » ; il amène les visiteurs à l'inscription et ne traite aucun paiement (ADR-0008).
 
 ### 3.4 Quatre promesses
 

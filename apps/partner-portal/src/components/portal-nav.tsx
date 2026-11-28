@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@achat/ui';
+import { BrandRing, Button } from '@achat/ui';
 import { useState, type ReactElement } from 'react';
 import { getDictionary, type Locale } from '../i18n';
 
@@ -10,11 +10,13 @@ import { getDictionary, type Locale } from '../i18n';
  */
 export function PortalNav({
   role,
+  pathname,
   signOut,
   onSignedOut,
   locale = 'fr',
 }: {
   readonly role: 'MANAGER' | 'SELLER';
+  readonly pathname?: string;
   readonly locale?: Locale;
   readonly signOut: () => Promise<unknown>;
   readonly onSignedOut: () => void;
@@ -22,6 +24,7 @@ export function PortalNav({
   const t = getDictionary(locale).nav;
   const [pending, setPending] = useState(false);
   const links: readonly (readonly [string, string])[] = [
+    ...(role === 'MANAGER' ? ([['/tableau-de-bord', t.dashboard]] as const) : []),
     ['/comptoir', t.counter],
     ['/commandes', t.orders],
     ['/offres', t.offers],
@@ -41,14 +44,26 @@ export function PortalNav({
   }
 
   return (
-    <nav aria-label={t.label}>
-      <ul>
+    <nav className="mp-side" aria-label={t.label}>
+      <div className="mp-brand">
+        <BrandRing tone="light" />
+        <span>molopay</span>
+        <small>{t.brandBadge}</small>
+      </div>
+      <ul className="mp-navlist">
         {links.map(([href, label]) => (
-          <li key={href}><a href={href}>{label}</a></li>
+          <li key={href}>
+            <a className="mp-navlink" href={href} aria-current={pathname === href ? 'page' : undefined}>{label}</a>
+          </li>
         ))}
-        <li><a href={`/langue/${locale === 'en' ? 'fr' : 'en'}`} lang={locale === 'en' ? 'fr' : 'en'}>{t.language}</a></li>
+        <li>
+          <a className="mp-navlink" href={`/langue/${locale === 'en' ? 'fr' : 'en'}`} lang={locale === 'en' ? 'fr' : 'en'}>{t.language}</a>
+        </li>
       </ul>
-      <Button type="button" disabled={pending} onClick={() => void leave()}>{t.signOut}</Button>
+      {role === 'SELLER' ? <p className="mp-banner">{t.sellerNotice}</p> : null}
+      <div className="mp-side__footer">
+        <Button type="button" variant="secondary" disabled={pending} onClick={() => void leave()}>{t.signOut}</Button>
+      </div>
     </nav>
   );
 }

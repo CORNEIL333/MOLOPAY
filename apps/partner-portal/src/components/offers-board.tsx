@@ -2,7 +2,7 @@
 
 import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
-import { AmountXaf, EmptyState, ErrorState } from '@achat/ui';
+import { AmountXaf, EmptyState, ErrorState, StatusPill } from '@achat/ui';
 import { useEffect, useState, type ReactElement } from 'react';
 import { getDictionary, type Dictionary, type Locale } from '../i18n';
 
@@ -36,28 +36,34 @@ export function OffersBoard({ ports, locale = 'fr' }: { readonly ports: OffersPo
     return () => { live = false; };
   }, [ports, dictionary]);
   return (
-    <section>
-      <h1>{t.title}</h1>
-      <p>{t.notice}</p>
+    <section className="mp-page">
+      <header className="mp-top">
+        <div>
+          <h1>{t.title}</h1>
+          <p className="mp-sub">{t.notice}</p>
+        </div>
+      </header>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
         <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
       ) : (
-        <table aria-label={t.table}>
-          <thead>
-            <tr><th scope="col">{t.columns.offer}</th><th scope="col">{t.columns.price}</th><th scope="col">{t.columns.stock}</th><th scope="col">{t.columns.catalog}</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((offer) => (
-              <tr key={offer.offerId}>
-                <td>{offer.title ?? (offer.state === 'DRAFT' ? t.untitledDraft : t.untitled)}</td>
-                <td><AmountXaf amount={offer.priceXaf} /></td>
-                <td>{stock(offer, t)}</td>
-                <td>{offer.publiclyVisible ? t.visible : t.hidden}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mp-panel mp-table-wrap">
+          <table className="mp-table" aria-label={t.table}>
+            <thead>
+              <tr><th scope="col">{t.columns.offer}</th><th scope="col" className="mp-num">{t.columns.price}</th><th scope="col" className="mp-num">{t.columns.stock}</th><th scope="col">{t.columns.catalog}</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((offer) => (
+                <tr key={offer.offerId}>
+                  <td><strong>{offer.title ?? (offer.state === 'DRAFT' ? t.untitledDraft : t.untitled)}</strong></td>
+                  <td className="mp-num"><AmountXaf amount={offer.priceXaf} /></td>
+                  <td className="mp-num">{stock(offer, t)}</td>
+                  <td><StatusPill tone={offer.publiclyVisible ? 'ok' : 'plain'}>{offer.publiclyVisible ? t.visible : t.hidden}</StatusPill></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

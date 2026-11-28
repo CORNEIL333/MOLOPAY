@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { BrandRing, Button, ErrorState, TextField } from '@achat/ui';
 import { getDictionary, type Locale } from '../i18n';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { fromBase64url, toBase64url } from '../lib/base64url';
@@ -79,11 +79,16 @@ export function PartnerEnrollment({ ports, locale = 'fr' }: { readonly ports: Pa
   }
 
   return (
-    <section>
+    <section className="mp-panel mp-form">
+      <div className="mp-brand">
+        <BrandRing tone="light" />
+        <span>molopay</span>
+        <small>Pro</small>
+      </div>
       <h1>{t.title}</h1>
-      {done ? <p role="status">{t.done}</p> : null}
+      {done ? <p className="mp-banner" role="status">{t.done}</p> : null}
       {problem === null ? null : <ErrorState problem={problem} />}
-      <form onSubmit={(event) => void submit(event)} noValidate>
+      <form className="mp-form" onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={ids.login} label={t.login} autoComplete="username" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <TextField id={ids.code} label={t.code} autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>{t.submit}</Button>
