@@ -85,19 +85,6 @@ const STATUS_OVERRIDES: Readonly<Partial<Record<ErrorCode, number>>> = {
   SERVICE_UNAVAILABLE: 503,
 };
 
-const TITLES: Readonly<Record<number, string>> = {
-  400: 'Requête invalide',
-  401: 'Authentification requise',
-  403: 'Action interdite',
-  404: 'Ressource introuvable',
-  409: 'Conflit',
-  422: 'Règle métier non respectée',
-  426: 'Mise à jour de l’application requise',
-  429: 'Trop de requêtes',
-  500: 'Erreur interne',
-  503: 'Service indisponible',
-};
-
 // Le type d'un refus de débit reste générique : il ne décrit pas le mécanisme.
 const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   REQUEST_RATE_LIMITED: 'too-many-requests',
@@ -121,7 +108,7 @@ export function statusForCode(code: ErrorCode): number {
   if (BAD_REQUEST.has(code) || code.endsWith('_INVALID_REQUEST') || code.endsWith('_FIELD_FORBIDDEN')) {
     return 400;
   }
-const override = STATUS_OVERRIDES[code];
+  const override = STATUS_OVERRIDES[code];
   if (override !== undefined) return override;
   return 422;
 }

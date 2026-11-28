@@ -371,6 +371,23 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, ErrorMessage>> = {
   REQUEST_TOO_LARGE: { fr: 'Requête trop volumineuse', en: 'Request too large' },
   REQUEST_UNSUPPORTED_MEDIA_TYPE: { fr: 'Format non pris en charge', en: 'Unsupported media type' },
   SERVICE_UNAVAILABLE: { fr: 'Service temporairement indisponible', en: 'Service temporarily unavailable' },
+  ADMIN_TECH_ADMIN_LIMIT: { fr: 'Deux administrateurs techniques au maximum', en: 'At most two technical administrators' },
+  IDENTITY_LANGUAGE_INVALID: { fr: 'Langue non prise en charge', en: 'Unsupported language' },
+  IDENTITY_DECEASE_CASE_EXISTS: { fr: 'Dossier de décès déjà ouvert', en: 'Decease case already open' },
+  IDENTITY_DECEASE_CASE_NOT_FOUND: { fr: 'Dossier de décès introuvable', en: 'Decease case not found' },
+  IDENTITY_DECEASE_ALREADY_DECIDED: { fr: 'Dossier de décès déjà décidé', en: 'Decease case already decided' },
+  IDENTITY_ACCOUNT_DECEASED: { fr: 'Compte fermé (décès déclaré)', en: 'Account closed (decease reported)' },
+  IDENTITY_ACCOUNT_NOT_FOUND: { fr: 'Compte introuvable', en: 'Account not found' },
+  IDENTITY_TERMS_NOT_ACCEPTED: { fr: 'Conditions d’utilisation à accepter', en: 'Terms of use must be accepted' },
+  REPORT_PERIOD_INVALID: { fr: 'Période de rapport invalide', en: 'Invalid reporting period' },
+  CLIENT_UPGRADE_REQUIRED: { fr: 'Mettez à jour l’application', en: 'Please update the app' },
+  AGREEMENT_ACTIVE_LIMIT_REACHED: { fr: 'Nombre d’objectifs actifs atteint', en: 'Active goal limit reached' },
+  AGREEMENT_LIMITS_NOT_CONFIGURED: { fr: 'Limites d’objectifs indisponibles', en: 'Goal limits unavailable' },
+  NOTIFICATION_CHANNEL_UNCHANGED: { fr: 'Canal de notification déjà dans cet état', en: 'Notification channel already in that state' },
+  SIGNING_UNAVAILABLE: { fr: 'Service temporairement indisponible', en: 'Service temporarily unavailable' },
+  SETTLEMENT_OUTGOING_FROZEN: { fr: 'Flux sortants gelés', en: 'Outgoing flows frozen' },
+  SETTLEMENT_FREEZE_STATE: { fr: 'État de gel incompatible avec la demande', en: 'Freeze state conflicts with the request' },
+  SETTLEMENT_FREEZE_EXPIRED: { fr: 'Demande de gel expirée', en: 'Freeze request expired' },
 };
 
 export function errorMessage(code: ErrorCode, locale: ProblemLocale): string {

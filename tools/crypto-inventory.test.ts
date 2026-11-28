@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -29,6 +29,9 @@ export const DETECTORS: Readonly<Record<string, RegExp>> = {
 /** Motifs d'algorithmes faibles ou non inventoriés : leur apparition doit être une décision explicite. */
 const UNLISTED = /createHash\('(?:md5|sha1|sha224|sha384|sha512)'\)|createCipheriv\('(?!aes-256-gcm')|\b(?:pbkdf2|scrypt)(?:Sync)?\(|createSign\('RSA|'rsa'|\bdes-ede3?\b/i;
 
+// Chemins de l'inventaire en séparateur POSIX, quel que soit le système.
+const toPosix = (path: string): string => path.split(sep).join('/');
+
 function sources(directory: string): string[] {
   const found: string[] = [];
   for (const entry of readdirSync(directory)) {
@@ -49,7 +52,7 @@ function scan(): { readonly files: string[]; readonly usages: Map<string, Set<st
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
     for (const [id, pattern] of Object.entries(DETECTORS)) {
-      if (pattern.test(text)) usages.get(id)?.add(relative(ROOT, file));
+      if (pattern.test(text)) usages.get(id)?.add(toPosix(relative(ROOT, file)));
     }
   }
   return { files, usages };
@@ -100,7 +103,7 @@ describe('SEC-CRY-006 inventaire cryptographique à jour', () => {
   });
 
   it('aucun algorithme faible ou non inventorié dans le code de production', () => {
-    const offenders = files.filter((file) => UNLISTED.test(readFileSync(file, 'utf8'))).map((file) => relative(ROOT, file));
+    const offenders = files.filter((file) => UNLISTED.test(readFileSync(file, 'utf8'))).map((file) => toPosix(relative(ROOT, file)));
     expect(offenders).toEqual([]);
   });
 

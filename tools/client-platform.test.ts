@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -20,7 +20,7 @@ function files(directory: string, pattern: RegExp): string[] {
     if (['node_modules', '.next', 'build', '.dart_tool', 'dist', 'Pods'].includes(entry) || entry.startsWith('.')) continue;
     const path = join(directory, entry);
     if (statSync(join(ROOT, path)).isDirectory()) found.push(...files(path, pattern));
-    else if (pattern.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) found.push(path);
+    else if (pattern.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) found.push(path.split(sep).join('/'));
   }
   return found;
 }
@@ -62,7 +62,7 @@ describe('REG-DPD-003 — minimisation des données collectées par les applicat
 
   it('web : géolocalisation seulement au comptoir de remise du portail partenaire ; aucun accès aux contacts', () => {
     const sources = ['apps/web-client/src', 'apps/back-office/src', 'apps/partner-portal/src', 'apps/mobile/lib'].flatMap((directory) => files(directory, /\.(ts|tsx|dart)$/));
-    const geolocation = sources.filter((path) => /navigator\.geolocation|Geolocator|geolocator/.test(read(path))).map((path) => relative(ROOT, join(ROOT, path)));
+    const geolocation = sources.filter((path) => /navigator\.geolocation|Geolocator|geolocator/.test(read(path)));
     // Seul le port du comptoir de remise (portail partenaire) lit la position, une fois par remise.
     expect(geolocation).toEqual(['apps/partner-portal/src/lib/ports.ts']);
     const counter = read('apps/partner-portal/src/lib/ports.ts');

@@ -4,7 +4,19 @@
 # La composition de production dépend de l'hébergement (D2, ADR-0004).
 name: molopay-local
 
+# Image de l'API (elle contient l'outillage `db:migrate` / `db:roles`) :
+# construite une fois, partagée par `migrations`, `roles` et `api`.
+x-api-image: &api-image
+  build:
+    context: ..
+    dockerfile: infra/api.Dockerfile
+  image: molopay-local-api
+
 services:
+  # TLS local : certificat auto-signé pour le nom `database`, généré au premier
+  # démarrage et conservé dans un volume. Les clients exigent
+  # `sslmode=verify-full` (N2) et font confiance à ce certificat par
+  # NODE_EXTRA_CA_CERTS. Aucune clé n'est versionnée.
   database:
     image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE requis (ex. postgres:16-bookworm)}
     environment:
@@ -15,6 +27,22 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - database-data:/var/lib/postgresql/data
+      - pg-tls:/pg-tls
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        if [ ! -s /pg-tls/server.crt ] || [ ! -s /pg-tls/server.key ]; then
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 \
+            -keyout /pg-tls/server.key -out /pg-tls/server.crt \
+            -subj "/CN=database" -addext "subjectAltName=DNS:database"
+        fi
+        chown postgres:postgres /pg-tls/server.key /pg-tls/server.crt
+        chmod 600 /pg-tls/server.key
+        exec docker-entrypoint.sh postgres \
+          -c ssl=on \
+          -c ssl_cert_file=/pg-tls/server.crt \
+          -c ssl_key_file=/pg-tls/server.key
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U molopay -d molopay -h 127.0.0.1"]
       interval: 5s
@@ -23,41 +51,83 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Applique les migrations versionnées dans l'ordre, une seule fois par
-  # démarrage de la composition. En production, le pipeline signé avec
-  # approbation humaine reste seul autorisé (OPS-CHG-001).
+  # Applique les migrations par `pnpm db:migrate` (historique
+  # ops.schema_migration, empreintes vérifiées). En production, seul le
+  # pipeline signé avec approbation humaine applique des migrations
+  # (OPS-CHG-001).
   migrations:
-    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE requis (ex. postgres:16-bookworm)}
+    <<: *api-image
     depends_on:
       database:
         condition: service_healthy
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}
+      MIGRATION_DATABASE_URL: postgres://molopay:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}@database:5432/molopay?sslmode=verify-full
+      NODE_EXTRA_CA_CERTS: /pg-tls/server.crt
     volumes:
-      - ../db/migrations:/migrations:ro
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        set -eu
-        for file in /migrations/*.sql; do
-          echo "migration: $file"
-          psql -v ON_ERROR_STOP=1 -h database -U molopay -d molopay -q -f "$file"
-        done
+      - pg-tls:/pg-tls:ro
+    command: ["pnpm", "-s", "db:migrate"]
+    security_opt:
+      - no-new-privileges:true
 
-  api:
-    build:
-      context: ..
-      dockerfile: infra/api.Dockerfile
+  # Crée les comptes de connexion à droits minimaux depuis
+  # `pnpm db:roles plan` (même SQL que PROCEDURE_NEON.md § 4), sans créer de
+  # superutilisateur, puis pose le mot de passe du seul compte utilisé ici :
+  # `molopay_api`, qui prend `app_rw` à chaque transaction.
+  roles:
+    <<: *api-image
     depends_on:
-      database:
-        condition: service_healthy
       migrations:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgres://molopay:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}@database:5432/molopay
+      MIGRATION_DATABASE_URL: postgres://molopay:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (base locale jetable)}@database:5432/molopay?sslmode=verify-full
+      NODE_EXTRA_CA_CERTS: /pg-tls/server.crt
+      API_DB_PASSWORD: ${API_DB_PASSWORD:?API_DB_PASSWORD requis (base locale jetable)}
+    volumes:
+      - pg-tls:/pg-tls:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        case "$$API_DB_PASSWORD" in
+          ''|*[!A-Za-z0-9]*) echo "API_DB_PASSWORD_INVALID: alphanumérique requis" >&2; exit 2 ;;
+        esac
+        pnpm -s db:roles plan > /tmp/roles.sql
+        node -e '
+          const { readFileSync } = require("node:fs");
+          const { Client } = require("pg");
+          (async () => {
+            const client = new Client({ connectionString: process.env.MIGRATION_DATABASE_URL });
+            await client.connect();
+            try {
+              await client.query(readFileSync("/tmp/roles.sql", "utf8"));
+              await client.query(`ALTER ROLE molopay_api PASSWORD $${client.escapeLiteral(process.env.API_DB_PASSWORD)}`);
+            } finally {
+              await client.end();
+            }
+          })().catch((error) => {
+            process.stderr.write(`ROLES_PROVISIONING_FAILED $${String(error.message).split(":")[0]}\n`);
+            process.exit(1);
+          });
+        '
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    <<: *api-image
+    depends_on:
+      database:
+        condition: service_healthy
+      roles:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://molopay_api:${API_DB_PASSWORD:?API_DB_PASSWORD requis (base locale jetable)}@database:5432/molopay?sslmode=verify-full
       DATABASE_ROLE: app_rw
+      NODE_EXTRA_CA_CERTS: /pg-tls/server.crt
       PORT: "3000"
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    volumes:
+      - pg-tls:/pg-tls:ro
     ports:
       - "127.0.0.1:3000:3000"
     read_only: true
@@ -68,3 +138,4 @@ services:
 
 volumes:
   database-data:
+  pg-tls:

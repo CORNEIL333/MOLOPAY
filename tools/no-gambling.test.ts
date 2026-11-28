@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -15,6 +15,9 @@ const ROOT = resolve(__dirname, '..');
 const SCANNED = ['apps', 'packages', 'tools', 'db', 'tests/attack'];
 const SKIPPED_DIRECTORIES = new Set(['node_modules', '.next', 'dist', 'target', 'coverage', 'test', 'build', '.dart_tool']);
 const SELF = resolve(__filename);
+
+// Chemins comparés en séparateur POSIX, quel que soit le système.
+const relativePosix = (path: string): string => relative(ROOT, path).split(sep).join('/');
 
 export const FORBIDDEN = new RegExp(
   [
@@ -46,14 +49,14 @@ describe('NF-SAFE-001 aucune mécanique de loterie, de grattage ni de rémunéra
   it('le contrôle couvre le code et les textes de toutes les interfaces', () => {
     expect(files.length).toBeGreaterThan(300);
     for (const expected of ['apps/web-client/src/i18n', 'apps/mobile/lib/l10n/strings.dart', 'packages/contracts/openapi.json', 'apps/api/src/workflows/notify.ts', 'db/migrations/0001_ledger.sql']) {
-      expect(files.some((file) => relative(ROOT, file).startsWith(expected)), expected).toBe(true);
+      expect(files.some((file) => relativePosix(file).startsWith(expected)), expected).toBe(true);
     }
   });
 
   it('aucun fichier de production ne contient ce vocabulaire (texte ou identifiant)', () => {
     const offenders = files.flatMap((file) => {
       const lines = readFileSync(file, 'utf8').split('\n');
-      return lines.flatMap((line, index) => (FORBIDDEN.test(line) ? [`${relative(ROOT, file)}:${index + 1}`] : []));
+      return lines.flatMap((line, index) => (FORBIDDEN.test(line) ? [`${relativePosix(file)}:${index + 1}`] : []));
     });
     expect(offenders).toEqual([]);
   });

@@ -50,6 +50,10 @@ export async function runLocalPostgres(args: readonly string[]): Promise<number>
   if (!existsSync(tsx) || !existsSync(vitest)) throw new Error('LOCAL_DB_DEPENDENCIES_MISSING');
   // Environnement enfant isolé : aucune connexion ni option PostgreSQL héritée.
   const env = localDatabaseEnvironment(process.env);
+  // Les tests de transfert et de sauvegarde cherchent les binaires pg_dump /
+  // pg_restore : le lanceur leur donne ceux de la grappe qu'il vient de créer
+  // (la valeur par défaut des tests est un chemin Linux).
+  env['TRANSFER_PG_BIN'] ??= binDir;
   const port = await freePort();
   const root = mkdtempSync(join(tmpdir(), 'molopay-postgres-'));
   const data = join(root, 'data');

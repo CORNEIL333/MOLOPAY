@@ -18,6 +18,7 @@ const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL', 'OPTIONS', 'HEA
 /** Routes publiques autorisées (méthode + chemin), avec leur raison. */
 export const PUBLIC_ROUTES: Readonly<Record<string, string>> = {
   'GET /health': 'sonde de disponibilité, sans donnée',
+  'GET /health/ready': 'sonde de disponibilité (base et version du schéma), sans donnée',
   'GET /v1/offers': 'catalogue public (F-CAT-001)',
   'GET /v1/offers/:offerId': 'fiche d’offre publique',
   'GET /v1/plans': 'plans de paiement publics',

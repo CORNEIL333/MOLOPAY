@@ -6,11 +6,12 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **96 routes.**
+- **97 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
 | `GET` | `/health` | public | (défaut) | non | non | — | — | État de disponibilité de l'API |
+| `GET` | `/health/ready` | public | (défaut) | non | non | — | — | (absente du contrat) |
 | `POST` | `/v1/auth/device-challenges` | public | no-store | oui | oui | — | poivre PIN | Défi de connexion d'un appareil enregistré (D71) |
 | `POST` | `/v1/auth/otp-challenges` | public | no-store | oui | oui | — | poivre PIN | Envoyer un code d'inscription par SMS (F-ACC-001) |
 | `POST` | `/v1/auth/session-refreshes` | public | no-store | oui | oui | — | — | Renouveler la session client : défi REFRESH signé par l'appareil + jeton de rafraîchissement à usage unique (SEC-AUTH-005) |
