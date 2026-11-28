@@ -44,6 +44,7 @@ Rien n'ouvre tant que la **porte de lancement unique** n'est pas franchie (voir 
 | | `PROMPT_MAITRE_QODER.md` | Prompt de lancement du sprint MVP (jour 1) pour Qoder, et réglages préalables | Fondateur, Qoder |
 | | `PROMPT_GEMINI_DIRECTION_UX_UI.md` | Prompt de passation à Gemini de la direction UX et UI (identité, animations, maquettes, recherches) | Fondateur, Gemini |
 | | `PROMPT_GEMINI_MVP_0.0.1.md` | Prompt de réalisation des interfaces du MVP 0.0.1 par Gemini (ressources, étapes U0 à U4, critères) | Fondateur, Gemini |
+| | `PROMPT_KIMI_RECHERCHE_BACKOFFICE.md` | Sommaire du projet, vision et prompt de recherche pour Kimi : back-office, CRM, organisation de l'équipe, KYC, LBC/FT, contrôle d'accès, journaux et traçabilité | Fondateur, Kimi |
 | `04_annexes/` | `adr/ADR-0001…0006` | Décisions d'architecture | Architecte, agents |
 | | `registre_des_risques.md` | Risques, cotation, parades, propriétaires | Fondateur |
 | | `matrice_de_tracabilite.md` | Exigence → norme → test → preuve | QA, auditeurs |
