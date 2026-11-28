@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { BrandRing, Button, ErrorState, TextField } from '@achat/ui';
 import { getDictionary, type Locale } from '../i18n';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { fromBase64url, toBase64url } from '../lib/base64url';
@@ -75,10 +75,15 @@ export function PartnerLogin({ ports, onSignedIn, locale = 'fr' }: { readonly po
   }
 
   return (
-    <section>
+    <section className="mp-panel mp-form">
+      <div className="mp-brand">
+        <BrandRing tone="light" />
+        <span>molopay</span>
+        <small>Pro</small>
+      </div>
       <h1>{t.title}</h1>
       {problem === null ? null : <ErrorState problem={problem} />}
-      <form onSubmit={(event) => void submit(event)} noValidate>
+      <form className="mp-form" onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={loginId} label={t.login} autoComplete="username webauthn" value={login} error={error} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>
           {t.submit}

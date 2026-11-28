@@ -2,7 +2,7 @@
 
 import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
-import { AmountXaf, Button, EmptyState, ErrorState } from '@achat/ui';
+import { AmountXaf, Button, EmptyState, ErrorState, StatusPill } from '@achat/ui';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { getDictionary, type Locale } from '../i18n';
 
@@ -62,32 +62,36 @@ export function OrdersBoard({ ports, role, locale = 'fr' }: { readonly ports: Bo
   const t = dictionary.orders;
   const { rows, problem, loading, reload } = useLoad(ports.loadOrders, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
-    <section aria-busy={loading}>
-      <h1>{t.title}</h1>
-      <div className="catalog-filters__actions">
-        <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
-        {role === 'MANAGER' ? <p><a href="/v1/partner/orders/export" download>{t.export}</a></p> : null}
-      </div>
+    <section className="mp-page" aria-busy={loading}>
+      <header className="mp-top">
+        <h1>{t.title}</h1>
+        <div className="mp-actions">
+          <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
+          {role === 'MANAGER' ? <a className="mp-chip" href="/v1/partner/orders/export" download>{t.export}</a> : null}
+        </div>
+      </header>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
         <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
       ) : (
-        <table aria-label={t.table}>
-          <thead>
-            <tr><th scope="col">{t.columns.offer}</th><th scope="col">{t.columns.status}</th><th scope="col">{t.columns.amount}</th><th scope="col">{t.columns.progress}</th><th scope="col">{t.columns.handover}</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((order) => (
-              <tr key={order.orderId}>
-                <td>{order.offerTitle ?? order.offerId ?? '—'}</td>
-                <td>{t.status[order.status]}</td>
-                <td><AmountXaf amount={order.targetXaf} /></td>
-                <td>{`${Math.floor(order.progressBasisPoints / 100).toString()} %`}</td>
-                <td>{order.handedOverAt === null ? '—' : <time dateTime={order.handedOverAt}>{dateFormat(locale).format(new Date(order.handedOverAt))}</time>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mp-panel mp-table-wrap">
+          <table className="mp-table" aria-label={t.table}>
+            <thead>
+              <tr><th scope="col">{t.columns.offer}</th><th scope="col">{t.columns.status}</th><th scope="col" className="mp-num">{t.columns.amount}</th><th scope="col" className="mp-num">{t.columns.progress}</th><th scope="col">{t.columns.handover}</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((order) => (
+                <tr key={order.orderId}>
+                  <td><strong>{order.offerTitle ?? order.offerId ?? '—'}</strong></td>
+                  <td><StatusPill tone={order.status === 'FUNDED' || order.status === 'HANDED_OVER' ? 'ok' : order.status === 'DISPUTED' || order.status === 'FROZEN' ? 'bad' : 'plain'}>{t.status[order.status]}</StatusPill></td>
+                  <td className="mp-num"><AmountXaf amount={order.targetXaf} /></td>
+                  <td className="mp-num">{`${Math.floor(order.progressBasisPoints / 100).toString()} %`}</td>
+                  <td>{order.handedOverAt === null ? '—' : <time dateTime={order.handedOverAt}>{dateFormat(locale).format(new Date(order.handedOverAt))}</time>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -99,32 +103,39 @@ export function PayoutsBoard({ ports, locale = 'fr' }: { readonly ports: BoardPo
   const t = dictionary.payouts;
   const { rows, problem, loading, reload } = useLoad(ports.loadPayouts, dictionary.common.loadFailed, dictionary.common.serviceDown);
   return (
-    <section aria-busy={loading}>
-      <h1>{t.title}</h1>
-      <div className="catalog-filters__actions">
-        <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
-      </div>
+    <section className="mp-page" aria-busy={loading}>
+      <header className="mp-top">
+        <div>
+          <h1>{t.title}</h1>
+          <p className="mp-sub">{t.commissionNotice}</p>
+        </div>
+        <div className="mp-actions">
+          <Button type="button" variant="secondary" disabled={loading} onClick={reload}>{dictionary.common.refresh}</Button>
+        </div>
+      </header>
       {problem === null ? null : <ErrorState problem={problem} />}
       {rows === null || problem !== null ? null : rows.length === 0 ? (
         <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
       ) : (
-        <table aria-label={t.table}>
-          <thead>
-            <tr><th scope="col">{t.columns.order}</th><th scope="col">{t.columns.gross}</th><th scope="col">{t.columns.commission}</th><th scope="col">{t.columns.net}</th><th scope="col">{t.columns.status}</th><th scope="col">{t.columns.reference}</th></tr>
-          </thead>
-          <tbody>
-            {rows.map((payout) => (
-              <tr key={payout.payoutId}>
-                <td>{payout.agreementId}</td>
-                <td><AmountXaf amount={payout.grossXaf} /></td>
-                <td><AmountXaf amount={payout.commissionXaf} /></td>
-                <td><AmountXaf amount={payout.netXaf} /></td>
-                <td>{t.status[payout.status]}</td>
-                <td>{payout.bankReference ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mp-panel mp-table-wrap">
+          <table className="mp-table" aria-label={t.table}>
+            <thead>
+              <tr><th scope="col">{t.columns.order}</th><th scope="col" className="mp-num">{t.columns.gross}</th><th scope="col" className="mp-num">{t.columns.commission}</th><th scope="col" className="mp-num">{t.columns.net}</th><th scope="col">{t.columns.status}</th><th scope="col">{t.columns.reference}</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((payout) => (
+                <tr key={payout.payoutId}>
+                  <td>{payout.agreementId}</td>
+                  <td className="mp-num"><AmountXaf amount={payout.grossXaf} /></td>
+                  <td className="mp-num"><AmountXaf amount={payout.commissionXaf} /></td>
+                  <td className="mp-num"><AmountXaf amount={payout.netXaf} /></td>
+                  <td><StatusPill tone={payout.status === 'EXECUTED' ? 'ok' : payout.status === 'REJECTED' || payout.status === 'EXECUTION_REJECTED' ? 'bad' : 'warn'}>{t.status[payout.status]}</StatusPill></td>
+                  <td>{payout.bankReference ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

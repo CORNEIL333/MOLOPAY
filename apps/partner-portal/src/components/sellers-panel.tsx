@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { Button, ErrorState, StatusPill, TextField } from '@achat/ui';
 import { useCallback, useEffect, useId, useState, type FormEvent, type ReactElement } from 'react';
 import { getDictionary, type Locale } from '../i18n';
 
@@ -99,48 +99,50 @@ export function SellersPanel({ ports, locale = 'fr' }: { readonly ports: Sellers
   }
 
   return (
-    <section>
-      <h1>{t.title}</h1>
+    <section className="mp-page">
+      <header className="mp-top"><h1>{t.title}</h1></header>
       {problem === null ? null : <ErrorState problem={problem} />}
       {code === null ? null : (
-        <div role="status">
+        <div className="mp-panel" role="status">
           <p>{t.codeIntro(code.login)}</p>
           <p><code aria-label={t.codeLabel}>{code.value}</code></p>
           <Button type="button" onClick={() => { setCode(null); }}>{t.codeHanded}</Button>
         </div>
       )}
       {users === null ? null : (
-        <table aria-label={t.table}>
-          <thead>
-            <tr><th scope="col">{t.columns.login}</th><th scope="col">{t.columns.role}</th><th scope="col">{t.columns.state}</th><th scope="col">{t.columns.actions}</th></tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.userId}>
-                <td>{user.login}</td>
-                <td>{user.role === 'MANAGER' ? t.manager : t.seller}</td>
-                <td>{user.active ? t.active : t.disabled}</td>
-                <td>
-                  {user.role === 'SELLER' && user.active ? (
-                    <>
-                      <Button type="button" disabled={pending} aria-label={t.enrollmentLabel(user.login)} onClick={() => void issue(user)}>{t.enrollmentButton}</Button>
-                      <Button type="button" disabled={pending} aria-label={t.disableLabel(user.login)} onClick={() => { setDisabling(user); setReason(''); setReasonError(undefined); }}>{t.disableButton}</Button>
-                    </>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mp-panel mp-table-wrap">
+          <table className="mp-table" aria-label={t.table}>
+            <thead>
+              <tr><th scope="col">{t.columns.login}</th><th scope="col">{t.columns.role}</th><th scope="col">{t.columns.state}</th><th scope="col">{t.columns.actions}</th></tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.userId}>
+                  <td><strong>{user.login}</strong></td>
+                  <td>{user.role === 'MANAGER' ? t.manager : t.seller}</td>
+                  <td><StatusPill tone={user.active ? 'ok' : 'plain'}>{user.active ? t.active : t.disabled}</StatusPill></td>
+                  <td>
+                    {user.role === 'SELLER' && user.active ? (
+                      <div className="mp-actions">
+                        <Button type="button" variant="secondary" disabled={pending} aria-label={t.enrollmentLabel(user.login)} onClick={() => void issue(user)}>{t.enrollmentButton}</Button>
+                        <Button type="button" variant="danger" disabled={pending} aria-label={t.disableLabel(user.login)} onClick={() => { setDisabling(user); setReason(''); setReasonError(undefined); }}>{t.disableButton}</Button>
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {disabling === null ? null : (
-        <form onSubmit={(event) => void disable(event)} noValidate>
+        <form className="mp-panel mp-form" onSubmit={(event) => void disable(event)} noValidate>
           <h2>{t.disableTitle(disabling.login)}</h2>
           <TextField id={ids.reason} label={t.reason} value={reason} error={reasonError} onChange={(event) => { setReason(event.target.value); }} />
-          <Button type="submit" disabled={pending}>{t.confirmDisable}</Button>
+          <Button type="submit" variant="danger" disabled={pending}>{t.confirmDisable}</Button>
         </form>
       )}
-      <form onSubmit={(event) => void create(event)} noValidate>
+      <form className="mp-panel mp-form" onSubmit={(event) => void create(event)} noValidate>
         <h2>{t.newTitle}</h2>
         <TextField id={ids.login} label={t.newLogin} autoComplete="off" value={login} error={loginError} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>{t.create}</Button>

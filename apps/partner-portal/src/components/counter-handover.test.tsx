@@ -59,6 +59,39 @@ describe('F-SET-001 / D63 remise au comptoir', () => {
     expect(screen.getByLabelText('Code de remise du client')).toHaveValue('ABCDE12345');
   });
 
+  it('refuse en mode contrôles complets : exige les deux cases non pré-cochées et le numéro de série (≥ 4 car.)', async () => {
+    const user = userEvent.setup();
+    const injected = ports();
+    const { container } = render(<CounterHandover ports={injected} requireChecklist />);
+
+    const checkId = screen.getByRole('checkbox', { name: /pièce d’identité/i });
+    const checkOffer = screen.getByRole('checkbox', { name: /conforme à l’offre/i });
+    const serial = screen.getByLabelText(/Numéro de série/i);
+
+    expect(checkId).not.toBeChecked();
+    expect(checkOffer).not.toBeChecked();
+
+    await user.type(screen.getByLabelText('Code de remise du client'), 'ABCDE12345');
+    await user.click(screen.getByRole('button', { name: 'Confirmer la remise' }));
+    expect(injected.locate).not.toHaveBeenCalled();
+    expect(injected.confirm).not.toHaveBeenCalled();
+
+    await user.click(checkId);
+    await user.click(checkOffer);
+    await user.type(serial, 'SN1');
+    await user.click(screen.getByRole('button', { name: 'Confirmer la remise' }));
+    expect(injected.confirm).not.toHaveBeenCalled();
+
+    await user.clear(serial);
+    await user.type(serial, 'SN-4471');
+    await user.click(screen.getByRole('button', { name: 'Confirmer la remise' }));
+    await waitFor(() => { expect(injected.confirm).toHaveBeenCalledTimes(1); });
+    expect(checkId).not.toBeChecked();
+    expect(checkOffer).not.toBeChecked();
+    expect(serial).toHaveValue('');
+    await expectNoA11yViolations(container);
+  });
+
   it('structure accessible', async () => {
     const { container } = render(<CounterHandover ports={ports()} />);
     await expectNoA11yViolations(container);
