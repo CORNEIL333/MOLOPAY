@@ -1029,3 +1029,18 @@
   - écran back-office des canaux ;
   - appel de `PUT /v1/me/language` par les applications ;
   - génération des rappels d'échéance (le gabarit et la plage existent, mais aucun rappel n'est encore produit).
+
+### N8 · Neon : coupures de connexion sans chute du processus (28 novembre)
+- **Demande du fondateur (28 nov.) :** « pendant ce temps, continue à avancer sur les lots Neon ».
+- **Défaut trouvé :** Neon coupe les connexions au redémarrage ou à la mise à jour du calcul (arrêt administratif, code 57P01). Or ni le pool de l'API ni celui du travailleur SMS n'écoutaient les erreurs de `pg`.
+  - Une connexion inactive coupée émettait une erreur non écoutée, et le processus **tombait**.
+  - Même chose pour une connexion prise pendant une transaction, qui émet sur elle-même ; vérifié : `ECONNRESET` non géré en test.
+- **Fait :**
+  - **API (`http/database.ts`) :** écouteur d'erreur sur le pool et sur chaque connexion prise pendant `withTransaction` ; signalement par une ligne JSON avec **le code seul** (`DATABASE_CONNECTION_LOST`, jamais le message, qui peut contenir une adresse) ; `keepAlive` activé.
+  - **Travailleur SMS :** `createNotifierPool` (rôle `notification_worker` par défaut) avec le même écouteur ; les transactions du travailleur (`committed`) écoutent aussi leur connexion.
+  - Le pool de `pg` n'y remet jamais une connexion devenue inutilisable : la requête suivante repart sur une connexion neuve. Vérifié sur PostgreSQL réel avec `pg_terminate_backend`.
+- **Tests :**
+  - 4 sur base réelle : inactive coupée, coupée en pleine transaction (rien de validé), puis les deux mêmes cas pour le travailleur, avec son rôle par défaut ;
+  - 2 unitaires : code seul, et format de la ligne.
+- **Mutation :** 7 mutants tués. Un indicateur « connexion à écarter », d'abord ajouté, a été retiré : 4 mutants équivalents ont montré que `pg` le fait déjà.
+- **Hors périmètre, prudent :** aucune requête n'est rejouée automatiquement après une coupure. Une transaction interrompue échoue (500, ou nouvel essai du travailleur) et le client la rejoue avec sa clé d'idempotence (I-5).

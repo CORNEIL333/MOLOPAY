@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl, connectionErrorCode, reportConnectionLost } from '../apps/api/src/http/database';
 import { piiKeysFromEnv, type PiiKeys } from '../apps/api/src/modules/identity/phone-key';
 import { twilioConfigFromEnv, twilioSmsSender, type TwilioConfig } from '../apps/api/src/modules/identity/twilio-sms';
 import { runSmsWorker, type SmsDispatchOutcome } from '../apps/api/src/workflows/sms-worker';
@@ -45,6 +45,27 @@ export function smsWorkerConfigFromEnv(env: NodeJS.ProcessEnv): SmsWorkerConfig 
   return { url, idleDelayMs, twilio };
 }
 
+/**
+ * Pool du travailleur : rôle `notification_worker` pris au démarrage de la
+ * session ; N8 : une connexion coupée par Neon est écartée sans faire tomber
+ * le processus (code seul signalé).
+ */
+export function createNotifierPool(url: string, options: { readonly role?: 'notification_worker' | null; readonly onConnectionLost?: (code: string) => void } = {}): Pool {
+  const role = options.role === undefined ? 'notification_worker' : options.role;
+  const pool = new Pool({
+    connectionString: url,
+    ...(role === null ? {} : { options: `-c role=${role}` }),
+    application_name: 'molopay-notify-worker',
+    max: 2,
+    statement_timeout: 10_000,
+    connectionTimeoutMillis: 10_000,
+    keepAlive: true,
+  });
+  const lost = options.onConnectionLost ?? reportConnectionLost;
+  pool.on('error', (error) => lost(connectionErrorCode(error)));
+  return pool;
+}
+
 function codeOf(error: unknown): string {
   return error instanceof Error ? (/^([A-Z][A-Z0-9_]+)/.exec(error.message)?.[1] ?? 'NOTIFIER_FAILED') : 'NOTIFIER_FAILED';
 }
@@ -60,7 +81,7 @@ async function main(): Promise<number> {
     process.stdout.write(`${JSON.stringify({ status: 'CLOSED', code: codeOf(error) })}\n`);
     return 2;
   }
-  const pool = new Pool({ connectionString: config.url, options: '-c role=notification_worker', application_name: 'molopay-notify-worker', max: 2, statement_timeout: 10_000, connectionTimeoutMillis: 10_000 });
+  const pool = createNotifierPool(config.url);
   const controller = new AbortController();
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => controller.abort());
   const log = (outcome: SmsDispatchOutcome): void => {

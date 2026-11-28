@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { assertDirectEndpoint, assertSecureDatabaseUrl, databaseConfigFromEnv } from './database';
+import { describe, expect, it, vi } from 'vitest';
+import { assertDirectEndpoint, assertSecureDatabaseUrl, connectionErrorCode, databaseConfigFromEnv, reportConnectionLost } from './database';
 
 /**
  * N2 (ADR-0004, SEC-CRY-001) : vers Neon (ou toute base distante), la
@@ -72,3 +72,23 @@ describe('Neon — point d’accès direct et réglages du pool', () => {
   });
 });
 
+
+describe('N8 — coupure de connexion signalée par son code seul', () => {
+  it('code PostgreSQL ou système repris ; tout le reste réduit à CONNECTION_LOST, jamais le message', () => {
+    expect(connectionErrorCode({ code: '57P01', message: 'terminating connection due to administrator command' })).toBe('57P01');
+    expect(connectionErrorCode({ code: 'ECONNRESET', message: 'read ECONNRESET 10.0.0.5:5432' })).toBe('ECONNRESET');
+    for (const value of [new Error('Connection terminated unexpectedly ep-x.neon.tech'), { code: 'motdepasse@hote' }, { code: 57 }, null, 'texte', { code: 'E' }]) {
+      expect(connectionErrorCode(value)).toBe('CONNECTION_LOST');
+    }
+  });
+
+  it('signalement par défaut : une ligne JSON sur la sortie d’erreur, avec le code seul', () => {
+    const spy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    try {
+      reportConnectionLost('57P01');
+      expect(spy.mock.calls).toEqual([['{"event":"DATABASE_CONNECTION_LOST","code":"57P01"}\n']]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

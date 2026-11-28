@@ -11,9 +11,12 @@ export type DispatchCounts = Readonly<{
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Pool réservé au rôle notification_worker ; aucune requête externe dans la transaction. */
-async function committed<T>(pool: Pick<Pool, 'connect'>, action: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function committed<T>(pool: Pick<Pool, 'connect'>, action: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   let discard = false;
+  // N8 : coupure d'une connexion prise (Neon) : écoutée ici, jamais propagée au processus.
+  const onError = (): void => undefined;
+  client.on('error', onError);
   try {
     await client.query('BEGIN ISOLATION LEVEL READ COMMITTED');
     const result = await action(client);
@@ -23,7 +26,10 @@ async function committed<T>(pool: Pick<Pool, 'connect'>, action: (client: PoolCl
     try { await client.query('ROLLBACK'); }
     catch { discard = true; } // Conserver l'erreur initiale, retirer la connexion inutilisable.
     throw error;
-  } finally { client.release(discard); }
+  } finally {
+    client.removeListener('error', onError);
+    client.release(discard);
+  }
 }
 
 function parseClaim(result: { readonly rows: readonly Record<string, unknown>[] }): NotificationClaim | null {

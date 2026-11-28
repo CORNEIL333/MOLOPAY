@@ -13,7 +13,19 @@ export type DatabaseConfig = {
   readonly poolMax?: number;
   /** Durée maximale d'une requête, posée par `SET LOCAL` dans chaque transaction. */
   readonly statementTimeoutMs?: number;
+  /** N8 : connexion inactive coupée par la base (code seul) ; par défaut, une ligne JSON sur la sortie d'erreur. */
+  readonly onConnectionLost?: (code: string) => void;
 };
+
+/** Code d'une erreur de connexion, sans message (qui pourrait contenir une adresse). */
+export function connectionErrorCode(error: unknown): string {
+  const code = typeof error === 'object' && error !== null ? (error as { code?: unknown }).code : undefined;
+  return typeof code === 'string' && /^([0-9A-Z]{5}|E[A-Z_]{2,30})$/.test(code) ? code : 'CONNECTION_LOST';
+}
+
+export function reportConnectionLost(code: string): void {
+  process.stderr.write(`${JSON.stringify({ event: 'DATABASE_CONNECTION_LOST', code })}\n`);
+}
 
 const DEFAULT_POOL_MAX = 10;
 const DEFAULT_STATEMENT_TIMEOUT_MS = 15_000;
@@ -110,7 +122,13 @@ export function createDatabase(config: DatabaseConfig): Database {
     // Base injoignable : échec rapide plutôt qu'attente indéfinie ; connexions inactives rendues.
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 30_000,
+    // N8 : coupure silencieuse d'un lien réseau inactif détectée par le système.
+    keepAlive: true,
   });
+  // N8 : Neon coupe les connexions au redémarrage du calcul. Sans écouteur, l'erreur d'une
+  // connexion inactive ferait tomber le processus ; le pool l'écarte et en ouvre une neuve.
+  const lost = config.onConnectionLost ?? reportConnectionLost;
+  pool.on('error', (error) => lost(connectionErrorCode(error)));
   return { pool, role: config.role, statementTimeoutMs: config.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS };
 }
 
@@ -124,6 +142,11 @@ export async function withTransaction<T>(
   options: { readonly readOnlySnapshot?: boolean } = {},
 ): Promise<T> {
   const client = await database.pool.connect();
+  // N8 : une connexion prise est écoutée par l'appelant, pas par le pool. Sans écouteur, sa
+  // coupure (Neon) ferait tomber le processus ; la requête en cours échoue de toute façon, et
+  // le pool n'y remet jamais une connexion devenue inutilisable.
+  const onError = (): void => undefined;
+  client.on('error', onError);
   try {
     await client.query('BEGIN');
     if (options.readOnlySnapshot === true) {
@@ -147,6 +170,7 @@ export async function withTransaction<T>(
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;
   } finally {
+    client.removeListener('error', onError);
     client.release();
   }
 }
