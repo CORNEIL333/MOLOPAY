@@ -22,6 +22,26 @@ Ordre **obligatoire** :
    - configuration absente : `CONFIG_MISSING`.
 4. Vérifier `GET /health` (200), puis arrêter l'ancienne version. Sur SIGTERM, l'API ferme l'application puis ses connexions et sort avec le code 0 ; le gestionnaire de conteneurs doit lui laisser au moins 10 secondes.
 
+## 2 bis. Travailleur SMS (`pnpm notify:worker`, D121)
+
+Processus distinct de l'API, sur le même serveur ou un autre, lancé après `pnpm db:migrate` (migration 0081 au moins).
+
+- **Compte :** `molopay_notifier` (créé par `pnpm db:roles plan`), membre du seul rôle `notification_worker`. Il ne peut que prendre, confirmer ou replanifier une notification, et lire le numéro **chiffré** du destinataire pendant le bail SMS en cours.
+- **Variables :**
+  - `NOTIFIER_DATABASE_URL` : adresse **directe** (sans `-pooler`), `sslmode=verify-full` ;
+  - Twilio, comme l'API (`TWILIO_*`, un seul expéditeur) ;
+  - clés de protection du numéro, comme l'API (`PII_KMS_KEY_ARN`, `PHONE_INDEX_KEY_WRAPPED`) ;
+  - `NOTIFIER_IDLE_MS` (facultatif : attente quand la file est vide, 1 000 à 60 000 ms, 5 000 par défaut).
+- **Fermé sans configuration :** sans Twilio complet ou sans clés, le processus ne démarre pas (code 2, `{"status":"CLOSED","code":"SMS_UNCONFIGURED"}` ou `PII_KEYS_UNCONFIGURED`).
+- **Comportement :**
+  - seules les notifications **SMS** sont prises. Le SMS n'existe que pour les types ouverts par l'équipe (back-office, « canaux de notification ») ;
+  - les rappels ne partent qu'entre **8 h et 20 h, heure de Douala** (décidé par la base) ;
+  - échec Twilio : nouvel essai après 5 minutes, 5 tentatives au plus ; une notification épuisée est signalée par `pnpm ops:alerts` ;
+  - distribution « au moins une fois » : si la confirmation échoue après un envoi accepté, le SMS peut repartir une fois.
+- **Journal :** une ligne JSON par envoi (`SENT`), nouvel essai (`RETRY`) ou erreur (`ERROR`), sans numéro, texte ni identifiant de client.
+- **Arrêt :** `SIGTERM` termine l'itération en cours puis ferme la connexion.
+- **Push :** aucune notification push n'est envoyée tant que le prestataire n'est pas choisi (D122) ; elles restent en file.
+
 ## 3. Hors du dépôt (accès humains)
 
 - Image ou machine virtuelle, réseau, certificats TLS publics, gestionnaire de secrets : ressources AWS à créer par une personne habilitée.

@@ -26,19 +26,47 @@ async function committed<T>(pool: Pick<Pool, 'connect'>, action: (client: PoolCl
   } finally { client.release(discard); }
 }
 
+function parseClaim(result: { readonly rows: readonly Record<string, unknown>[] }): NotificationClaim | null {
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0]!;
+  const date = row['lease_until'];
+  if (result.rows.length !== 1 || typeof row['claim_id'] !== 'string' || !UUID.test(row['claim_id'])
+    || !Number.isInteger(row['attempt']) || (row['attempt'] as number) < 1 || (row['attempt'] as number) > 1000
+    || !(date instanceof Date) || !Number.isFinite(date.getTime())) throw new Error('NOTIFICATION_DISPATCH_INVALID_RESULT');
+  const envelope = parseNotificationEnvelope({ recipientId: row['recipient_id'], eventKey: row['event_key'],
+    event: row['event_type'], locale: row['locale'], channel: row['channel'] });
+  return Object.freeze({ ...envelope, claimId: row['claim_id'], attempt: row['attempt'] as number, leaseUntil: date.toISOString() });
+}
+
 /** La prise est commitée avant restitution. Un bail ne constitue aucune preuve d'envoi. */
 export async function claimNotification(pool: Pick<Pool, 'connect'>): Promise<NotificationClaim | null> {
+  return committed(pool, async (client) => parseClaim(await client.query<Record<string, unknown>>('SELECT * FROM notifications.claim_notification()')));
+}
+
+/**
+ * D121 (0081) : prise limitée au canal SMS ; rappels seulement entre 8 h et
+ * 20 h, heure de Douala (décidé par la base). Le push attend son prestataire (D122).
+ */
+export async function claimSmsNotification(pool: Pick<Pool, 'connect'>): Promise<NotificationClaim | null> {
   return committed(pool, async (client) => {
-    const result = await client.query<Record<string, unknown>>('SELECT * FROM notifications.claim_notification()');
+    const claim = parseClaim(await client.query<Record<string, unknown>>('SELECT * FROM notifications.claim_sms_notification()'));
+    if (claim !== null && claim.channel !== 'SMS') throw new Error('NOTIFICATION_DISPATCH_INVALID_RESULT');
+    return claim;
+  });
+}
+
+/**
+ * Numéro protégé (empreinte et chiffré, jamais en clair) du destinataire du
+ * bail SMS en cours ; null si le bail est perdu ou le compte n'est plus actif.
+ */
+export async function claimedSmsRecipient(pool: Pick<Pool, 'connect'>, claimId: string): Promise<{ readonly key: string; readonly ciphertext: string } | null> {
+  if (typeof claimId !== 'string' || !UUID.test(claimId)) throw new BusinessError('NOTIFICATION_INVALID_REQUEST');
+  return committed(pool, async (client) => {
+    const result = await client.query<{ phone_key: unknown; phone_ciphertext: unknown }>('SELECT phone_key, phone_ciphertext FROM notifications.claimed_sms_recipient($1)', [claimId]);
     if (result.rows.length === 0) return null;
     const row = result.rows[0]!;
-    const date = row['lease_until'];
-    if (result.rows.length !== 1 || typeof row['claim_id'] !== 'string' || !UUID.test(row['claim_id'])
-      || !Number.isInteger(row['attempt']) || (row['attempt'] as number) < 1 || (row['attempt'] as number) > 1000
-      || !(date instanceof Date) || !Number.isFinite(date.getTime())) throw new Error('NOTIFICATION_DISPATCH_INVALID_RESULT');
-    const envelope = parseNotificationEnvelope({ recipientId: row['recipient_id'], eventKey: row['event_key'],
-      event: row['event_type'], locale: row['locale'], channel: row['channel'] });
-    return Object.freeze({ ...envelope, claimId: row['claim_id'], attempt: row['attempt'] as number, leaseUntil: date.toISOString() });
+    if (result.rows.length !== 1 || typeof row.phone_key !== 'string' || typeof row.phone_ciphertext !== 'string') throw new Error('NOTIFICATION_DISPATCH_INVALID_RESULT');
+    return Object.freeze({ key: row.phone_key, ciphertext: row.phone_ciphertext });
   });
 }
 

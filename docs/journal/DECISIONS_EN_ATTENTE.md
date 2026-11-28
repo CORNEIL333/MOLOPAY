@@ -1003,3 +1003,29 @@
 - **Suite :**
   - tranche 2 : travailleur SMS (Twilio, numéro déchiffré par KMS, plages 8 h–20 h pour les rappels) ;
   - tranche 3 : push, après le choix du prestataire (D122).
+
+### D121 · Tranche 2 : travailleur SMS (`pnpm notify:worker`, migration 0081)
+- **Fait :**
+  - **0081 :**
+    - `claim_sms_notification` : prise limitée au SMS. Les rappels ne sont pris qu'entre 8 h et 20 h, heure de Douala (`within_reminder_window`, décidé par la base) ; hors plage, ils attendent sans consommer de tentative.
+    - `claimed_sms_recipient` : empreinte et chiffré du numéro, pour le seul bail SMS en cours et un compte actif ; réservé à `notification_worker`.
+    - Politique de consommation par défaut, posée si aucune n'existe ; jusqu'ici aucune migration ne la créait, et toute prise aurait été refusée en production. Valeurs : bail de 60 s, nouvel essai après 5 min, 5 tentatives.
+  - **`workflows/sms-worker.ts` :** à chaque itération, prise (bail commité), numéro déchiffré au dernier moment, gabarit dans la langue de la notification, envoi par l'adaptateur Twilio, puis confirmation avec la référence `SM…`. Tout échec entraîne un nouvel essai après délai. Boucle arrêtée par signal ; une erreur de base ne fait pas tomber le processus et est suivie d'une attente.
+  - **Port SMS :** `send` rend désormais la référence opaque du prestataire.
+  - **`tools/notify-worker.ts` :**
+    - compte `molopay_notifier`, rôle pris au démarrage de la session, adresse directe en `verify-full` ;
+    - fermé sans Twilio ou sans clés (code 2) ;
+    - journal sans numéro, texte ni identifiant.
+  - Procédure : `PROCEDURE_DEPLOIEMENT_API.md` § 2 bis.
+- **Tests :**
+  - 7 tests de base, avec l'adaptateur Twilio réel dont seul le transport HTTP est remplacé : envoi au numéro déchiffré et dans la bonne langue, refus et panne puis réussite à la 3ᵉ tentative, compte bloqué, bail expiré ou push sans numéro, droits (le travailleur ne lit ni le compte ni la file, l'API n'appelle pas la lecture du numéro), plage des rappels quelle que soit l'heure réelle, boucle et attente après erreur ;
+  - 3 tests de configuration.
+- **Mutation :** 26 mutants, 25 tués, 1 équivalent (contrôle du canal côté application, doublé par la base).
+- **Choix prudents (réversibles) :**
+  - distribution « au moins une fois » : si la confirmation échoue après un envoi accepté, le SMS peut repartir une fois ;
+  - un compte bloqué ne reçoit pas de SMS, et sa notification finit épuisée puis signalée par la supervision.
+- **Reste :**
+  - push (D122, prestataire) ;
+  - écran back-office des canaux ;
+  - appel de `PUT /v1/me/language` par les applications ;
+  - génération des rappels d'échéance (le gabarit et la plage existent, mais aucun rappel n'est encore produit).
