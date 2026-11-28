@@ -44,6 +44,8 @@ const EXPECTED_GRANTS: Readonly<Record<InternalRole, readonly AdminAction[]>> = 
     'PREPARE_BENEFICIARY_PAYOUT',
     // D56 : levée des litiges.
     'RESOLVE_DISPUTE',
+    // D121 : bascule SMS par type de notification.
+    'MANAGE_NOTIFICATION_CHANNELS',
   ],
   FINANCE: [
     'READ_FINANCIAL_HISTORY',
@@ -184,6 +186,9 @@ describe('ABAC · périmètre, plafond et motif', () => {
     // C24 / F-REP-002 : la consultation des indicateurs est toujours motivée.
     expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('aud-1', ['AUDIT']), 'READ_PRODUCT_KPIS', { reason: 'Revue mensuelle' })).toMatchObject({ allowed: true });
+    // D121 : la bascule SMS exige un motif.
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_NOTIFICATION_CHANNELS', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
+    expect(authorize(principal('ops-1', ['OPERATIONS']), 'MANAGE_NOTIFICATION_CHANNELS', { reason: 'Ouverture du SMS' })).toMatchObject({ allowed: true });
     // C19 / F-ACC-007 : la déclaration de décès est toujours motivée.
     expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', {})).toMatchObject({ allowed: false, code: 'ADMIN_REASON_REQUIRED' });
     expect(authorize(principal('sup-2', ['SUPPORT_N2']), 'DECLARE_CUSTOMER_DEATH', { reason: 'Acte présenté par la famille' })).toMatchObject({ allowed: true });

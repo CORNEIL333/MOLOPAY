@@ -41,14 +41,17 @@ Rien n'ouvre tant que la **porte de lancement unique** n'est pas franchie (voir 
 | | `CLAUDE.md` | Pointeur pour Claude Code vers `AGENTS.md` | Claude Code |
 | | `COLLABORATION_ET_GARDE_FOUS.md` | Rôles, portes d'approbation, interdits, escalade, sécurité des agents | Fondateur, agents |
 | | `PLAN_DE_LOTS.md` | Découpage du build en lots exécutables par agents, dépendances, définition de « terminé » | Fondateur, agents |
+| | `PROMPT_GEMINI_DIRECTION_UX_UI.md` | Prompt de passation à Gemini de la direction UX et UI (identité, animations, maquettes, recherches) | Fondateur, Gemini |
+| | `PROMPT_GEMINI_MVP_0.0.1.md` | Prompt de réalisation des interfaces du MVP 0.0.1 par Gemini (ressources, étapes U0 à U4, critères) | Fondateur, Gemini |
 | | `PROMPT_MAITRE_QODER.md` | Prompt de lancement du sprint MVP (jour 1) pour Qoder, et réglages préalables | Fondateur, Qoder |
-| `04_annexes/` | `adr/ADR-0001…0005` | Décisions d'architecture | Architecte, agents |
+| `04_annexes/` | `adr/ADR-0001…0008` | Décisions d'architecture | Architecte, agents |
 | | `registre_des_risques.md` | Risques, cotation, parades, propriétaires | Fondateur |
 | | `matrice_de_tracabilite.md` | Exigence → norme → test → preuve | QA, auditeurs |
 | | `registre_des_traitements.md` | Traitements de données personnelles (loi 2024/017) | Conformité |
 | | `guide_recherche_primaire.md` | Guide d'entretien clients et marchands | Fondateur |
 | | `checklist_porte_lancement.md` | Conditions de la porte de lancement unique | Fondateur |
 | | `sources.md` | Toutes les sources consultées | Tous |
+| `05_direction_ux_et_ui/` | `README.md` | **Direction UX et UI** : inventaire, analyse des manques, identité visuelle validée, inspirations, catalogue des écrans, maquettes HTML | Fondateur, produit, agents des lots 19 à 21 et 26 |
 
 ## 4. Ordre de lecture conseillé
 

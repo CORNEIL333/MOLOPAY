@@ -33,6 +33,8 @@ const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 
 const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_CONFLICT',
+  // D121 : bascule SMS déjà dans l'état demandé.
+  'NOTIFICATION_CHANNEL_UNCHANGED',
   'IDEMPOTENCY_KEY_REUSED',
   'PAYMENT_ALREADY_CONFIRMED',
   'UNAUTHORIZED_TRANSITION',
@@ -49,6 +51,8 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_INVALID',
+  // D121 : langue de l'application hors de fr / en.
+  'IDENTITY_LANGUAGE_INVALID',
   'INVALID_AMOUNT',
   'REPORT_PERIOD_INVALID',
 ]);
@@ -75,6 +79,7 @@ const TYPE_SLUGS: Readonly<Partial<Record<ErrorCode, string>>> = {
   PARTNER_AUTH_UNCONFIGURED: 'service-unavailable',
   HANDOVER_UNCONFIGURED: 'service-unavailable',
   SIGNING_UNCONFIGURED: 'service-unavailable',
+  SIGNING_UNAVAILABLE: 'service-unavailable',
   SMS_UNCONFIGURED: 'service-unavailable',
   SMS_DELIVERY_FAILED: 'service-unavailable',
 };
@@ -92,7 +97,7 @@ export function statusForCode(code: ErrorCode): number {
   if (code === 'REQUEST_RATE_LIMITED') return 429;
   // SEC-MOB-005 : application trop ancienne (mise à jour exigée).
   if (code === 'CLIENT_UPGRADE_REQUIRED') return 426;
-  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED' || code === 'SMS_UNCONFIGURED' || code === 'SMS_DELIVERY_FAILED') return 503;
+  if (code === 'RATE_LIMIT_UNCONFIGURED' || code === 'PIN_UNCONFIGURED' || code === 'STAFF_AUTH_UNCONFIGURED' || code === 'PARTNER_AUTH_UNCONFIGURED' || code === 'HANDOVER_UNCONFIGURED' || code === 'SIGNING_UNCONFIGURED' || code === 'SIGNING_UNAVAILABLE' || code === 'SMS_UNCONFIGURED' || code === 'SMS_DELIVERY_FAILED') return 503;
   return 422;
 }
 

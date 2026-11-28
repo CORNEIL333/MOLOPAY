@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { closeSync, createReadStream, mkdtempSync, openSync, renameSync, rmSync, writeFileSync, writeSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 import { awsKmsKeyWrapper } from '../apps/api/src/crypto/aws-kms';
 import { localKeyWrapper, type KeyWrapper } from '../apps/api/src/crypto/envelope';
 import { applicationRoles, assertEmptyTarget, compare, ensureRoles, SCHEMAS, snapshot, type TransferReport } from './transfer-database';
@@ -174,6 +174,8 @@ function stamp(now: Date): string {
 /** Copie chiffrée de la base source dans `outDirectory` : `molopay-<instant>.dump.enc` et son empreinte `.sha256`. */
 export async function backupDatabase(input: { readonly sourceUrl: string; readonly outDirectory: string; readonly wrapper: KeyWrapper; readonly pgBin?: string; readonly now?: Date }): Promise<{ readonly file: string; readonly sha256: string }> {
   assertSecureDatabaseUrl(input.sourceUrl, process.env);
+  // pg_dump (instantané sérialisable) : point d'accès direct exigé.
+  assertDirectEndpoint(input.sourceUrl);
   const bin = input.pgBin === undefined ? 'pg_dump' : join(input.pgBin, 'pg_dump');
   const name = `molopay-${stamp(input.now ?? new Date())}.dump.enc`;
   const file = resolve(input.outDirectory, name);

@@ -20,7 +20,8 @@ function testConfig(): TwilioConfig {
 
 describe('D1 / F-ACC-001 Twilio, environnement de test officiel', () => {
   it('envoi accepté vers un numéro valide', async () => {
-    await expect(twilioSmsSender(testConfig()).send({ phone: '+237690000000', text: 'MoloPay : test d’intégration.' })).resolves.toBeUndefined();
+    const { providerRef } = await twilioSmsSender(testConfig()).send({ phone: '+237690000000', text: 'MoloPay : test d’intégration.' });
+    expect(providerRef).toMatch(/^SM[0-9a-f]{32}$/);
   });
 
   it('numéro invalide refusé par Twilio (SMS_PROVIDER_REFUSED)', async () => {

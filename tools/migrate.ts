@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { Client } from 'pg';
-import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 import { padVersion as pad, readMigrations } from '../apps/api/src/http/migration-manifest';
 
 export { readMigrations };
@@ -76,6 +76,8 @@ export async function migrate(input: { readonly url: string; readonly directory:
   const files = readMigrations(input.directory);
   // N2 : vers Neon, TLS vérifié (verify-full) avant toute connexion.
   assertSecureDatabaseUrl(input.url, process.env);
+  // Verrou consultatif de session : point d'accès direct de Neon exigé.
+  assertDirectEndpoint(input.url);
   const client = new Client({ connectionString: input.url });
   await client.connect();
   try {

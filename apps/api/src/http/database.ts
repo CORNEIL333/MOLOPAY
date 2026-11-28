@@ -9,7 +9,40 @@ export type DatabaseConfig = {
   readonly connectionString: string;
   /** Rôle pris dans chaque transaction (moindre privilège), si défini. */
   readonly role: 'app_rw' | 'app_ro' | null;
+  /** Taille maximale du pool (Neon : nombre de connexions limité par la taille du calcul). */
+  readonly poolMax?: number;
+  /** Durée maximale d'une requête, posée par `SET LOCAL` dans chaque transaction. */
+  readonly statementTimeoutMs?: number;
 };
+
+const DEFAULT_POOL_MAX = 10;
+const DEFAULT_STATEMENT_TIMEOUT_MS = 15_000;
+
+function boundedInteger(env: NodeJS.ProcessEnv, name: string, min: number, max: number, fallback: number): number {
+  const raw = env[name]?.trim();
+  if (raw === undefined || raw === '') return fallback;
+  if (!/^[0-9]+$/.test(raw) || Number(raw) < min || Number(raw) > max) {
+    throw new Error(`CONFIG_INVALID: ${name} doit être un entier de ${min} à ${max}`);
+  }
+  return Number(raw);
+}
+
+/**
+ * Neon : le point d'accès groupé (`-pooler`) ne garantit pas les fonctions de
+ * session (verrou consultatif de session, paramètre de démarrage \`options\`).
+ * Les outils qui en dépendent (migration, sauvegarde, transfert, contrôle
+ * nocturne, supervision) exigent le point d'accès direct. L'API, qui ne pose
+ * que des réglages locaux à la transaction, peut utiliser l'un ou l'autre.
+ */
+export function assertDirectEndpoint(raw: string): void {
+  let host: string;
+  try {
+    host = new URL(raw).hostname;
+  } catch {
+    throw new Error('DATABASE_URL_INVALID: adresse de base illisible');
+  }
+  if (/-pooler\./.test(host)) throw new Error('DATABASE_POOLER_FORBIDDEN: point d’accès direct exigé (sans -pooler)');
+}
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
 /** Paramètres TLS qui modifieraient la vérification par défaut de node-postgres en verify-full. */
@@ -59,16 +92,26 @@ export function databaseConfigFromEnv(env: NodeJS.ProcessEnv): DatabaseConfig {
   return {
     connectionString,
     role: role === '' ? null : (role as 'app_rw' | 'app_ro'),
+    poolMax: boundedInteger(env, 'DATABASE_POOL_MAX', 1, 50, DEFAULT_POOL_MAX),
+    statementTimeoutMs: boundedInteger(env, 'DATABASE_STATEMENT_TIMEOUT_MS', 1000, 120_000, DEFAULT_STATEMENT_TIMEOUT_MS),
   };
 }
 
 export type Database = {
   readonly pool: Pool;
   readonly role: DatabaseConfig['role'];
+  readonly statementTimeoutMs?: number;
 };
 
 export function createDatabase(config: DatabaseConfig): Database {
-  return { pool: new Pool({ connectionString: config.connectionString, max: 10 }), role: config.role };
+  const pool = new Pool({
+    connectionString: config.connectionString,
+    max: config.poolMax ?? DEFAULT_POOL_MAX,
+    // Base injoignable : échec rapide plutôt qu'attente indéfinie ; connexions inactives rendues.
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
+  });
+  return { pool, role: config.role, statementTimeoutMs: config.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS };
 }
 
 /**
@@ -87,6 +130,11 @@ export async function withTransaction<T>(
       // Lecture pure : toutes les requêtes voient le même instantané (en READ
       // COMMITTED, chaque requête prend le sien) et aucune écriture n'est possible.
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+    }
+    // Durée maximale par requête, locale à la transaction (compatible avec le regroupeur de Neon).
+    const timeout = database.statementTimeoutMs;
+    if (timeout !== undefined && Number.isInteger(timeout) && timeout > 0) {
+      await client.query(`SET LOCAL statement_timeout = ${timeout}`);
     }
     if (database.role !== null) {
       // Valeur issue d'une liste blanche, jamais d'une entrée utilisateur.

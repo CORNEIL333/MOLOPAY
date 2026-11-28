@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import * as path from 'node:path';
 import { Client } from 'pg';
-import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 import { parseVerifierOutcome, recordIntegrityDivergence, type VerifierOutcome } from '../apps/api/src/modules/settlement/integrity-divergence.store';
 
 /**
@@ -44,6 +44,8 @@ export function reporterDatabaseUrl(env: NodeJS.ProcessEnv): string {
   const raw = env['DATABASE_URL'];
   if (raw === undefined || raw === '') throw new Error('NIGHTLY_DATABASE_MISSING');
   assertSecureDatabaseUrl(raw, env);
+  // Paramètre de démarrage `options=-c role=…` : point d'accès direct exigé.
+  assertDirectEndpoint(raw);
   return raw;
 }
 

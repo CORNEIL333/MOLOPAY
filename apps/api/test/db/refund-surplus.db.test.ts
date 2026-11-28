@@ -22,6 +22,7 @@ import {
   validateLandlord,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -137,7 +138,7 @@ async function prepare(kind: RefundKind, principal: AdminPrincipal = OPS, agreem
 async function runRefund(kind: RefundKind, outcome: 'EXECUTED' | 'REJECTED'): Promise<Refund> {
   const refund = await prepare(kind);
   await transact('app_rw', (client) => decideRefund(client, { refundId: refund.refundId, principal: FIN, decision: 'APPROVED' }));
-  await transact('app_rw', (client) => instructRefund(client, { refundId: refund.refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+  await transact('app_rw', (client) => instructRefund(client, { refundId: refund.refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
   await transact('app_rw', (client) =>
     recordRefundExecution(client, { refundId: refund.refundId, principal: FIN2, outcome, bankReference: `ETAB-${refund.refundId.slice(-8)}` }),
   );

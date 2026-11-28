@@ -1,4 +1,4 @@
-import type { KeyObject } from 'node:crypto';
+import type { InstructionSigner } from '../crypto/instruction-signer';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
@@ -46,11 +46,11 @@ export async function decideRefund(
 /** D49 / INT-NR-002 : instruction signée (APPROVE_REFUND, plafond). */
 export async function instructRefund(
   client: SqlClient,
-  input: { readonly refundId: string; readonly principal: AdminPrincipal; readonly signingKey: KeyObject; readonly keyId: string },
+  input: { readonly refundId: string; readonly principal: AdminPrincipal; readonly signer: InstructionSigner },
 ): Promise<{ readonly document: RefundInstructionDocument; readonly signature: Buffer }> {
   const refund = await load(client, input.refundId);
   assertAuthorized(input.principal, 'APPROVE_REFUND', { amountXaf: refund.amountXaf });
-  return insertRefundInstruction(client, { refund, actorId: input.principal.actorId, signingKey: input.signingKey, keyId: input.keyId });
+  return insertRefundInstruction(client, { refund, actorId: input.principal.actorId, signer: input.signer });
 }
 
 /** D49 / F-SET-004 : exécution rapportée par l'établissement (autre personne que l'émetteur). */

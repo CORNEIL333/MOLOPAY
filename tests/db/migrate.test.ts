@@ -129,6 +129,7 @@ describe('N1 — outil de migration (Neon, rôle sans superutilisateur)', () => 
 
   it('refuse : base distante sans TLS vérifié, avant toute connexion (DATABASE_TLS_REQUIRED)', async () => {
     await expect(migrate({ url: 'postgresql://owner@ep-exemple.eu-central-1.aws.neon.tech/molopay?sslmode=require', directory: SOURCE })).rejects.toThrow(/^DATABASE_TLS_REQUIRED/);
+    await expect(migrate({ url: 'postgresql://u@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full', directory: SOURCE })).rejects.toThrow(/^DATABASE_POOLER_FORBIDDEN/);
   });
 
   it('refuse : trou de numérotation ou fichier hors format, avant toute connexion', () => {

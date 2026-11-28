@@ -5,10 +5,24 @@ import type { NotificationEvent } from '../modules/notifications/domain';
 
 type SqlClient = Pick<PoolClient, 'query'>;
 
-// F-NOT-001 : SMS et push. Aucune préférence de langue n'est encore stockée :
-// le français, langue de référence, s'applique (D47).
-const CHANNELS = ['SMS', 'PUSH'] as const;
-const DEFAULT_LOCALE = 'fr';
+/**
+ * D121 (fondateur, 28 novembre) : push toujours ; SMS seulement si l'équipe
+ * l'a activé pour ce type de notification ; langue déclarée par
+ * l'application du client (français par défaut, langue de référence). Les
+ * deux réglages sont lus par la base, dans la transaction du fait : une
+ * bascule ne change jamais une notification déjà en file.
+ */
+async function channelsAndLocale(client: SqlClient, customerId: string, event: NotificationEvent): Promise<{ readonly channels: readonly ('PUSH' | 'SMS')[]; readonly locale: 'fr' | 'en' }> {
+  const result = await client.query<{ language: string; sms: boolean }>(
+    'SELECT identity.preferred_language($1) AS language, notifications.sms_enabled($2) AS sms',
+    [customerId, event],
+  );
+  const row = result.rows[0];
+  if (row === undefined || (row.language !== 'fr' && row.language !== 'en') || typeof row.sms !== 'boolean') {
+    throw new Error('NOTIFICATION_PREFERENCES_INVALID');
+  }
+  return { channels: row.sms ? ['PUSH', 'SMS'] : ['PUSH'], locale: row.language };
+}
 
 /**
  * Écrit les enveloppes d'un fait métier dans l'outbox, dans la transaction de
@@ -19,12 +33,13 @@ export async function notifyCustomer(
   client: SqlClient,
   input: { readonly customerId: string; readonly event: NotificationEvent; readonly eventKey: string },
 ): Promise<void> {
-  for (const channel of CHANNELS) {
+  const { channels, locale } = await channelsAndLocale(client, input.customerId, input.event);
+  for (const channel of channels) {
     await enqueueNotification(client, {
       recipientId: input.customerId,
       eventKey: input.eventKey,
       event: input.event,
-      locale: DEFAULT_LOCALE,
+      locale,
       channel,
     });
   }

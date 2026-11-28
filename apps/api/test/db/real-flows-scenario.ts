@@ -35,6 +35,7 @@ import {
   publishCommitmentLimits,
 } from './agreement-fixture';
 import { createPartnerStaff } from './partner-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /**
  * Lot 25 / D59 : scénario de recette rejoué par les flux réels de l'API sur
@@ -129,7 +130,7 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
   await transact(uri, 'app_rw', (client) => payBeneficiaryForCustomer(client, { agreementId: PAID_GOAL, customerId: CUSTOMER_ID }));
   const payout = await transact(uri, 'app_rw', (client) => prepareBeneficiaryPayout(client, { id: uuidv7(), agreementId: PAID_GOAL, principal: OPS }));
   await transact(uri, 'app_rw', (client) => decideBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN, decision: 'APPROVED' }));
-  await transact(uri, 'app_rw', (client) => instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN, signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+  await transact(uri, 'app_rw', (client) => instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN, signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
   await transact(uri, 'app_rw', (client) =>
     recordBeneficiaryPayoutExecution(client, { payoutId: payout.payoutId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-VIR-1' }),
   );
@@ -143,7 +144,7 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
   );
   const refund = await transact(uri, 'app_rw', (client) => prepareRefund(client, { id: uuidv7(), agreementId: REFUNDED_GOAL, kind: 'CANCELLATION', principal: OPS }));
   await transact(uri, 'app_rw', (client) => decideRefund(client, { refundId: refund.refundId, principal: FIN, decision: 'APPROVED' }));
-  await transact(uri, 'app_rw', (client) => instructRefund(client, { refundId: refund.refundId, principal: FIN, signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+  await transact(uri, 'app_rw', (client) => instructRefund(client, { refundId: refund.refundId, principal: FIN, signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
   await transact(uri, 'app_rw', (client) =>
     recordRefundExecution(client, { refundId: refund.refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-1' }),
   );
@@ -159,7 +160,7 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
   await pay(uri, PURCHASE, 100_000n, second);
   const surplus = await transact(uri, 'app_rw', (client) => prepareRefund(client, { id: uuidv7(), agreementId: PURCHASE, kind: 'SURPLUS', principal: OPS }));
   await transact(uri, 'app_rw', (client) => decideRefund(client, { refundId: surplus.refundId, principal: FIN, decision: 'APPROVED' }));
-  await transact(uri, 'app_rw', (client) => instructRefund(client, { refundId: surplus.refundId, principal: FIN, signingKey: PLATFORM.privateKey, keyId: 'k1' }));
+  await transact(uri, 'app_rw', (client) => instructRefund(client, { refundId: surplus.refundId, principal: FIN, signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }));
   await transact(uri, 'app_rw', (client) =>
     recordRefundExecution(client, { refundId: surplus.refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-2' }),
   );
@@ -173,7 +174,7 @@ export async function runRealFlowsScenario(uri: string, admin: Client): Promise<
     decidePayout(client, { payoutId: settlement.payoutId, principal: { ...FIN, cityIds: ['douala'] }, decision: 'APPROVED', cityId: 'douala' }),
   );
   await transact(uri, 'app_rw', (client) =>
-    instructPayout(client, { payoutId: settlement.payoutId, principal: { ...FIN, cityIds: ['douala'] }, cityId: 'douala', signingKey: PLATFORM.privateKey, keyId: 'k1' }),
+    instructPayout(client, { payoutId: settlement.payoutId, principal: { ...FIN, cityIds: ['douala'] }, cityId: 'douala', signer: localInstructionSigner(PLATFORM.privateKey, 'k1') }),
   );
   await transact(uri, 'app_rw', (client) =>
     recordPayoutExecution(client, { payoutId: settlement.payoutId, principal: { ...FIN2, cityIds: ['douala'] }, cityId: 'douala', outcome: 'EXECUTED', bankReference: 'ETAB-REG-1' }),

@@ -1,4 +1,5 @@
 import type { RelyingParty } from '../modules/admin/webauthn';
+import { instructionSigningArnFromEnv } from '../crypto/instruction-signer';
 import { assertSecureDatabaseUrl } from '../http/database';
 import { pinPepperFromEnv } from '../modules/identity/pin.store';
 import { twilioConfigFromEnv } from '../modules/identity/twilio-sms';
@@ -110,9 +111,9 @@ export function capabilityReport(env: NodeJS.ProcessEnv): CapabilityReport {
       return true;
     }),
     handoverCode: check(has('HANDOVER_PEPPER'), () => (peppers['HANDOVER_PEPPER'] = handoverPepperFromEnv(env))),
-    // D5 : la clé de signature des instructions doit vivre dans un HSM ; aucun chargement depuis l'environnement
-    // (pas de versement au lancement, décision du fondateur). Toujours fermée tant que le signataire KMS n'existe pas.
-    signedInstructions: 'CLOSED' as const,
+    // D5 : signature des instructions par AWS KMS seulement (aucune clé privée dans l'environnement) ;
+    // fermée sans INSTRUCTION_SIGNING_KMS_KEY_ARN (pas de versement au lancement tant que le fondateur ne la configure pas).
+    signedInstructions: check(has('INSTRUCTION_SIGNING_KMS_KEY_ARN'), () => instructionSigningArnFromEnv(env)),
   };
   try {
     distinctPeppers(peppers);

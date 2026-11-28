@@ -5,7 +5,8 @@ import * as path from 'node:path';
 /**
  * Rejoue en local les contrôles de `.github/workflows/ci.yml` quand les
  * exécuteurs GitHub ne sont pas disponibles (D30). N'appelle ni pnpm ni le
- * réseau : uniquement les binaires de node_modules. Les tests base exigent
+ * réseau : les binaires de node_modules, et `cargo` / `flutter` du système
+ * pour le vérificateur et le mobile (absents : étape en échec, signalée). Les tests base exigent
  * DATABASE_URL vers une base locale jetable (garde de tests/db/harness.ts).
  * Toute étape en échec rend le code de sortie non nul ; rien n'est sauté
  * silencieusement.
@@ -16,6 +17,9 @@ type Step = {
   readonly label: string;
   readonly bin: string;
   readonly args: readonly string[];
+  /** Outil du système (PATH) plutôt que de node_modules ; absent : étape en échec, jamais sautée. */
+  readonly system?: true;
+  readonly cwd?: string;
 };
 
 const root = process.cwd();
@@ -32,13 +36,19 @@ const STEPS: readonly Step[] = [
   { job: 'quality', label: 'types (api)', bin: 'tsc', args: ['-p', 'tsconfig.json'] },
   { job: 'quality', label: 'types (ui)', bin: 'tsc', args: ['-p', 'packages/ui/tsconfig.json'] },
   { job: 'quality', label: 'types (web)', bin: 'tsc', args: ['-p', 'apps/web-client/tsconfig.json'] },
+  { job: 'quality', label: 'types (back-office)', bin: 'tsc', args: ['-p', 'apps/back-office/tsconfig.json'] },
+  { job: 'quality', label: 'types (portail partenaire)', bin: 'tsc', args: ['-p', 'apps/partner-portal/tsconfig.json'] },
   { job: 'quality', label: 'tests unitaires', bin: 'vitest', args: ['run', '--config', 'vitest.config.ts'] },
+  { job: 'quality', label: 'tests web', bin: 'vitest', args: ['run', '--config', 'vitest.web.config.ts'] },
   { job: 'quality', label: 'contrat OpenAPI', bin: 'tsx', args: ['tools/check-openapi.ts'] },
   { job: 'quality', label: 'secrets', bin: 'tsx', args: ['tools/scan-secrets.ts'] },
   { job: 'quality', label: 'SCA', bin: 'tsx', args: ['tools/sca.ts'] },
   { job: 'db', label: 'tests base', bin: 'vitest', args: ['run', '--config', 'vitest.db.config.ts'] },
   { job: 'attack', label: 'suites d’attaque', bin: 'vitest', args: ['run', '--config', 'vitest.attack.config.ts'] },
   { job: 'e2e', label: 'bout en bout', bin: 'vitest', args: ['run', '--config', 'vitest.e2e.config.ts'] },
+  { job: 'verifier', label: 'vérificateur Rust', bin: 'cargo', args: ['test', '--locked', '--manifest-path', 'tools/verifier/Cargo.toml'], system: true },
+  { job: 'mobile', label: 'analyse Flutter', bin: 'flutter', args: ['analyze'], system: true, cwd: 'apps/mobile' },
+  { job: 'mobile', label: 'tests Flutter', bin: 'flutter', args: ['test'], system: true, cwd: 'apps/mobile' },
 ];
 
 const only = new Set(process.argv.slice(2));
@@ -59,8 +69,8 @@ for (const step of STEPS) {
   if (only.size > 0 && !only.has(step.job)) {
     continue;
   }
-  const executable = bin(step.bin);
-  if (!existsSync(executable)) {
+  const executable = step.system === true ? step.bin : bin(step.bin);
+  if (step.system !== true && !existsSync(executable)) {
     process.stderr.write(`CI_LOCAL_TOOL_MISSING: ${executable}\n`);
     process.exit(2);
   }
@@ -68,6 +78,7 @@ for (const step of STEPS) {
   const started = Date.now();
   const run = spawnSync(executable, [...step.args], {
     stdio: 'inherit',
+    cwd: step.cwd === undefined ? root : path.join(root, step.cwd),
     shell: process.platform === 'win32',
   });
   const ok = run.error === undefined && run.status === 0;

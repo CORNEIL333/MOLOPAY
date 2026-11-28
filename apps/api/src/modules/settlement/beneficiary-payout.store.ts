@@ -1,4 +1,5 @@
-import { createHash, sign, verify, type KeyObject } from 'node:crypto';
+import { createHash, verify, type KeyObject } from 'node:crypto';
+import type { InstructionSigner } from '../../crypto/instruction-signer';
 import { canonicalize } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
 import { parseXaf, xaf } from '@achat/money';
@@ -124,9 +125,9 @@ export async function insertBeneficiaryPayoutDecision(
 
 export async function insertBeneficiaryPayoutInstruction(
   client: SqlClient,
-  input: { readonly payout: BeneficiaryPayout; readonly actorId: string; readonly signingKey: KeyObject; readonly keyId: string },
+  input: { readonly payout: BeneficiaryPayout; readonly actorId: string; readonly signer: InstructionSigner },
 ): Promise<{ readonly document: BeneficiaryPayoutInstructionDocument; readonly signature: Buffer }> {
-  if (!ACTOR_PATTERN.test(input.actorId) || !KEY_ID_PATTERN.test(input.keyId)) {
+  if (!ACTOR_PATTERN.test(input.actorId) || !KEY_ID_PATTERN.test(input.signer.keyId)) {
     invalid('acteur ou clé invalide');
   }
   if (input.payout.decision !== 'APPROVED') {
@@ -143,11 +144,11 @@ export async function insertBeneficiaryPayoutInstruction(
     amount_xaf: input.payout.amountXaf.toString(),
   };
   const bytes = canonicalBytes(document);
-  const signature = sign(null, bytes, input.signingKey);
+  const signature = await input.signer.sign(bytes);
   await client.query(
     `INSERT INTO settlement.beneficiary_payout_instruction (payout_id, document, document_hash, signature, key_id, instructed_by, instructed_at)
      VALUES ($1, $2::jsonb, $3, $4, $5, $6, now())`,
-    [input.payout.payoutId, JSON.stringify(document), createHash('sha256').update(bytes).digest(), signature, input.keyId, input.actorId],
+    [input.payout.payoutId, JSON.stringify(document), createHash('sha256').update(bytes).digest(), signature, input.signer.keyId, input.actorId],
   );
   return Object.freeze({ document, signature });
 }
