@@ -1,30 +1,36 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../core/problem.dart';
 import '../l10n/strings.dart';
+import 'materials.dart';
+import 'molopay_tokens.dart';
 
-/// Palette et primitives visuelles reprises de `apps/mobile-showcase/lib/design.dart`.
-const orange = Color(0xFFF16B27);
-const ink = Color(0xFF34271F);
-const muted = Color(0xFF6B5D54);
-const paper = Color(0xFFFFFCF8);
-const peach = Color(0xFFFFE5CF);
-const dangerBg = Color(0xFFFFEFEA);
-const dangerInk = Color(0xFF9E2A1C);
+export 'materials.dart';
+export 'molopay_tokens.dart';
+
+/// Primitives visuelles construites sur les jetons MoloPay (remplace l'ancienne palette).
+const ink = MpColors.ink;
+const muted = MpColors.muted;
+const paper = MpColors.paper;
+const mist = MpColors.mist;
+const dangerBg = MpColors.statusDangerBg;
+const dangerInk = MpColors.statusDanger;
 
 TextStyle type(
   double size, {
   Color color = ink,
   FontWeight weight = FontWeight.w500,
+  bool display = false,
+  bool tabular = false,
 }) => TextStyle(
+  fontFamily: display || size >= 20 ? mpFontDisplay : mpFontText,
   fontSize: size,
   color: color,
   fontWeight: weight,
-  letterSpacing: size > 26 ? -1.1 : -0.2,
+  letterSpacing: size > 26 ? -1.0 : -0.2,
   height: 1.25,
+  fontFeatures: tabular ? const <FontFeature>[FontFeature.tabularFigures()] : null,
 );
 
 class Press extends StatefulWidget {
@@ -51,6 +57,7 @@ class _PressState extends State<Press> {
   @override
   Widget build(BuildContext context) {
     final active = widget.enabled && widget.onTap != null;
+    final reduced = MpMotionConfig.reduced(context);
     return Semantics(
       button: true,
       enabled: active,
@@ -62,10 +69,9 @@ class _PressState extends State<Press> {
         onTapUp: active ? (_) => setState(() => _down = false) : null,
         onTap: active ? widget.onTap : null,
         child: AnimatedScale(
-          scale: _down ? 0.97 : 1,
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 140),
+          scale: _down && !reduced ? 0.97 : 1,
+          duration: reduced ? Duration.zero : MpMotion.micro,
+          curve: MpMotion.standardCurve,
           child: Opacity(opacity: active ? 1 : 0.55, child: widget.child),
         ),
       ),
@@ -88,54 +94,44 @@ class Primary extends StatelessWidget {
   final bool loading;
 
   @override
-  Widget build(BuildContext context) => Press(
-    onTap: loading ? null : action,
-    enabled: !loading && action != null,
-    label: text,
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 54),
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
-      decoration: BoxDecoration(
-        color: dark ? ink : orange,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: (dark ? ink : orange).withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (loading)
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
+  Widget build(BuildContext context) {
+    final bg = dark ? MpColors.paper : MpColors.ink;
+    final fg = dark ? MpColors.ink : MpColors.paper;
+    return Press(
+      onTap: loading ? null : action,
+      enabled: !loading && action != null,
+      label: text,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(MpRadius.pill),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (loading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+              )
+            else ...[
+              Flexible(
+                child: Text(
+                  text,
+                  style: type(15, color: fg, weight: FontWeight.w600),
+                ),
               ),
-            )
-          else ...[
-            Flexible(
-              child: Text(
-                text,
-                style: type(16, color: Colors.white, weight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(
-              CupertinoIcons.arrow_right,
-              color: Colors.white,
-              size: 18,
-            ),
+              const SizedBox(width: 10),
+              Icon(CupertinoIcons.arrow_right, color: fg, size: 16),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class Glass extends StatelessWidget {
@@ -143,27 +139,16 @@ class Glass extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(20),
+    this.tone = MpGlassTone.light,
   });
 
   final Widget child;
   final EdgeInsets padding;
+  final MpGlassTone tone;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(28),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.90),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white),
-        ),
-        child: child,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      GlassSurface(padding: padding, tone: tone, child: child);
 }
 
 class Tile extends StatelessWidget {
@@ -191,20 +176,20 @@ class Tile extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 64),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFF3ECE5)),
+          color: MpColors.paper,
+          borderRadius: BorderRadius.circular(MpRadius.lg),
+          border: Border.all(color: MpColors.mist2),
         ),
         child: Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF0E4),
-                borderRadius: BorderRadius.circular(16),
+                color: MpColors.mist,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: orange, size: 22),
+              child: Icon(icon, color: MpColors.ink, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -254,26 +239,26 @@ class Blank extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(color: const Color(0xFFF2E9E0)),
+      color: MpColors.paper,
+      borderRadius: BorderRadius.circular(MpRadius.lg),
+      border: Border.all(color: MpColors.mist2),
     ),
     child: Column(
       children: [
         Container(
-          width: 68,
-          height: 68,
+          width: 64,
+          height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF0E5),
-            borderRadius: BorderRadius.circular(24),
+            color: MpColors.mist,
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Icon(icon, color: orange, size: 30),
+          child: Icon(icon, color: MpColors.ink, size: 28),
         ),
         const SizedBox(height: 16),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: type(20, weight: FontWeight.w700),
+          style: type(20, weight: FontWeight.w600, display: true),
         ),
         const SizedBox(height: 8),
         Text(
@@ -317,8 +302,8 @@ class ProblemBanner extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: dangerBg,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: dangerInk.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(MpRadius.md),
+          border: Border.all(color: dangerInk.withValues(alpha: 0.25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,7 +321,7 @@ class ProblemBanner extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: type(15, color: dangerInk, weight: FontWeight.w700),
+                    style: type(15, color: dangerInk, weight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -372,7 +357,7 @@ class HeroArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(30),
+    borderRadius: BorderRadius.circular(MpRadius.lg),
     child: SizedBox(
       height: height,
       width: double.infinity,
@@ -383,13 +368,13 @@ class HeroArt extends StatelessWidget {
         errorBuilder: (_, _, _) => Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [peach, paper],
+              colors: [MpColors.universeEssentials, MpColors.paper],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: const Center(
-            child: Icon(CupertinoIcons.house_fill, size: 96, color: orange),
+            child: Icon(CupertinoIcons.house_fill, size: 96, color: MpColors.ink),
           ),
         ),
       ),

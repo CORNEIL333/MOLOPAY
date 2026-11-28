@@ -21,3 +21,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/fonts/
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Variable.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

@@ -56,7 +56,7 @@ class HomeScreen extends StatelessWidget {
                     const Icon(
                       CupertinoIcons.location_solid,
                       size: 13,
-                      color: orange,
+                      color: ink,
                     ),
                     const SizedBox(width: 5),
                     Text(cityLabel, style: type(12, weight: FontWeight.w600)),
@@ -110,7 +110,7 @@ class HomeScreen extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: const BoxDecoration(
-                          color: orange,
+                          color: ink,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

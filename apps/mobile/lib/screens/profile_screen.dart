@@ -273,8 +273,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   Switch.adaptive(
                     value: widget.state.reduceMotion,
-                    activeTrackColor: orange,
+                    activeTrackColor: ink,
                     onChanged: widget.state.setReduceMotion,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      s.soberEffectsLabel,
+                      style: type(14, weight: FontWeight.w600),
+                    ),
+                  ),
+                  Switch.adaptive(
+                    key: const Key('sober-effects-switch'),
+                    value: widget.state.soberEffects,
+                    activeTrackColor: ink,
+                    onChanged: widget.state.setSoberEffects,
                   ),
                 ],
               ),

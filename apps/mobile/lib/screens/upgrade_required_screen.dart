@@ -31,7 +31,7 @@ class UpgradeRequiredScreen extends StatelessWidget {
                   const Icon(
                     CupertinoIcons.arrow_down_circle,
                     size: 56,
-                    color: orange,
+                    color: ink,
                   ),
                   const SizedBox(height: 16),
                   Semantics(

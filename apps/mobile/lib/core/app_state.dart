@@ -18,6 +18,7 @@ class AppState extends ChangeNotifier {
 
   String _locale;
   bool _reduceMotion = false;
+  bool _soberEffects = false;
   City? _selectedCity;
   SessionSummary? _session;
   bool _upgradeRequired = false;
@@ -34,6 +35,7 @@ class AppState extends ChangeNotifier {
 
   String get locale => _locale;
   bool get reduceMotion => _reduceMotion;
+  bool get soberEffects => _soberEffects;
   City? get selectedCity => _selectedCity;
   SessionSummary? get session => _session;
   bool get isAuthenticated => _session != null && api.hasSession;
@@ -48,6 +50,12 @@ class AppState extends ChangeNotifier {
   void setReduceMotion(bool value) {
     if (_reduceMotion == value) return;
     _reduceMotion = value;
+    notifyListeners();
+  }
+
+  void setSoberEffects(bool value) {
+    if (_soberEffects == value) return;
+    _soberEffects = value;
     notifyListeners();
   }
 
