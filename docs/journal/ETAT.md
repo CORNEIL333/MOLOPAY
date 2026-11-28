@@ -1,5 +1,10 @@
 # État du sprint — 2026-11-28
 
+## Fait · MVP 0.0.1 — Étape U4 · Portail partenaire, Back-office et Pôle Support/CRM (`agent/gemini/mvp001-u4-portail-bo` & `agent/gemini/mvp001-u4b-back-office`, L1)
+- **Découpage ≤ 400 lignes hors tests, fichiers générés et captures :**
+  - **U4a (`agent/gemini/mvp001-u4-portail-bo`) :** primitives plates `BrandRing` (8 segments SVG séparés du mot-marque) et `StatusPill` (point + mot), `sumCanonicalXaf` (`@achat/money` `bigint`), **nouveau tableau de bord du gérant** (`/tableau-de-bord` agrégeant `GET /v1/partner/orders`, `/payouts`, `/offers`), **comptoir enrichi** (2 contrôles obligatoires non pré-cochés + numéro de série ≥ 4 car. + journal de session), et restylage à plat complet FR/EN de tous les écrans du portail partenaire (`79/79` tests verts).
+  - **U4b (`agent/gemini/mvp001-u4b-back-office`) :** coque à **barre latérale noire (`#0f1012`)**, **nouvel écran Déclaration et décision de décès (`/clients/deces`, `F-ACC-007`)** branché sur `POST /v1/backoffice/customers/{accountId}/decease-cases` et `POST /v1/backoffice/decease-cases/{caseId}/decision` (double contrôle `MAKER_CANNOT_APPROVE`), **pôle Clients et support (`/clients`)** avec état honnête sans simulation de la Fiche client 360° (`PR #10`), validation partenaire et vérification bailleur détaillées dans `/conformite` et `/file`, retrait du style en ligne dans `agency-enrollment.tsx` (CSP stricte), et 16 captures Playwright (`82/82` tests back-office verts, `axe-core` = 0 violation, `0` surface en verre ni fond liquide).
+
 ## Fait · MVP 0.0.1 — Étape U0 · Fondations (`agent/gemini/mvp001-u0-fondations` & `agent/gemini/mvp001-u0b-fondations-mobile`, L1)
 - **Références :** `09_passage_maquettes_mvp_0.0.1.md` (§ 1, § 2 F1–F8), `02_identite_visuelle.md` (v1.1, matières liquide et verre), `06_animations.md` (`M-56`, § 3.4, § 7.1), `jetons/*`, `textes/mvp_0.0.1_fr_en.json`, rebasé sur `sprint/integration-t01urw` (`db9d8aa66`, contrat OpenAPI `0.45.0`). Découpé en 2 PR ≤ 400 lignes hors tests, fichiers générés, polices et captures : U0a Web (PR #11) et U0b Flutter.
 - **Livré et vérifié :**

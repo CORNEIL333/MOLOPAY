@@ -59,37 +59,41 @@ export function AgencyEnrollment({ ports }: { readonly ports: AgencyEnrollmentPo
 
   return (
     <section>
-      <h1>Inscription en agence</h1>
-      <p>Sans SMS : vérifiez en personne la pièce d’identité du client et que le téléphone présenté est le sien, puis remettez-lui le code. Il termine l’inscription sur son téléphone (code, PIN, conditions). Ne notez pas le numéro de la pièce.</p>
+      <header className="mp-top">
+        <div>
+          <h1>Inscription en agence</h1>
+          <p className="mp-sub">Sans SMS : vérifiez en personne la pièce d’identité du client et que le téléphone présenté est le sien, puis remettez-lui le code. Il termine l’inscription sur son téléphone (code, PIN, conditions). Ne notez pas le numéro de la pièce.</p>
+        </div>
+      </header>
       {problem === null ? null : <ErrorState problem={problem} />}
       {issued === null ? null : (
-        <div role="status">
+        <div className="mp-panel" role="status">
           {issued.code === null
             ? <p>Ce code a déjà été affiché. Émettez-en un nouveau si le client ne l’a pas reçu.</p>
             : (
               <>
                 <p>Code à remettre au client, valable jusqu’à {TIME.format(new Date(issued.expiresAt))} :</p>
-                <p style={{ fontSize: '2.5rem', letterSpacing: '0.3em', fontWeight: 700 }} aria-label={`Code ${issued.code.split('').join(' ')}`}>{issued.code}</p>
+                <p className="mp-code-display" aria-label={`Code ${issued.code.split('').join(' ')}`}>{issued.code}</p>
               </>
             )}
           <Button type="button" variant="secondary" onClick={() => { setIssued(null); setPhone('+237'); }}>Client suivant</Button>
         </div>
       )}
       {issued !== null ? null : (
-        <form onSubmit={(event) => void submit(event)} noValidate>
+        <form className="mp-panel mp-form" onSubmit={(event) => void submit(event)} noValidate>
           <TextField id={ids.phone} label="Téléphone du client" inputMode="tel" autoComplete="off" value={phone} error={error} onChange={(event) => { setPhone(event.target.value); }} />
-          <label htmlFor={ids.document}>Pièce présentée</label>
-          <select id={ids.document} value={documentType} onChange={(event) => { setDocumentType(event.target.value as Request['documentType']); }}>
+          <label className="achat-field__label" htmlFor={ids.document}>Pièce présentée</label>
+          <select id={ids.document} className="mp-select" value={documentType} onChange={(event) => { setDocumentType(event.target.value as Request['documentType']); }}>
             <option value="CNI">Carte nationale d’identité</option>
             <option value="PASSPORT">Passeport</option>
             <option value="RESIDENCE_PERMIT">Carte de séjour</option>
           </select>
-          <label htmlFor={ids.city}>Agence</label>
-          <select id={ids.city} value={cityId} onChange={(event) => { setCityId(event.target.value as Request['cityId']); }}>
+          <label className="achat-field__label" htmlFor={ids.city}>Agence</label>
+          <select id={ids.city} className="mp-select" value={cityId} onChange={(event) => { setCityId(event.target.value as Request['cityId']); }}>
             <option value="douala">Douala</option>
             <option value="yaounde">Yaoundé</option>
           </select>
-          <p>
+          <p className="mp-chk">
             <input id={ids.check} type="checkbox" checked={checked} onChange={(event) => { setChecked(event.currentTarget.checked); }} />{' '}
             <label htmlFor={ids.check}>J’ai vérifié la pièce et le téléphone en présence du client</label>
           </p>

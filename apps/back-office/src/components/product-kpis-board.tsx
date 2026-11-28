@@ -40,25 +40,27 @@ function days(from: string, to: string): number | null {
 function Breakdown({ label, cells, withAmount, empty }: { readonly label: string; readonly cells: readonly Cell[]; readonly withAmount: boolean; readonly empty: string }): ReactElement {
   if (cells.length === 0) return <p>{empty}</p>;
   return (
-    <table aria-label={label}>
-      <caption>{label}</caption>
-      <thead>
-        <tr>
-          <th scope="col">Case</th>
-          <th scope="col">Objectifs</th>
-          {withAmount ? <th scope="col">Montant</th> : null}
-        </tr>
-      </thead>
-      <tbody>
-        {cells.map((cell) => (
-          <tr key={cell.key}>
-            <th scope="row">{KEYS[cell.key] ?? cell.key}</th>
-            <td>{cell.goals === '<5' ? 'moins de 5' : cell.goals}</td>
-            {withAmount ? <td>{cell.amountXaf === undefined || cell.amountXaf === '<5' ? 'masqué' : <AmountXaf amount={cell.amountXaf} />}</td> : null}
+    <div className="mp-panel mp-table-wrap">
+      <table className="mp-table" aria-label={label}>
+        <caption>{label}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Case</th>
+            <th scope="col" className="mp-num">Objectifs</th>
+            {withAmount ? <th scope="col" className="mp-num">Montant</th> : null}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {cells.map((cell) => (
+            <tr key={cell.key}>
+              <th scope="row">{KEYS[cell.key] ?? cell.key}</th>
+              <td className="mp-num">{cell.goals === '<5' ? 'moins de 5' : cell.goals}</td>
+              {withAmount ? <td className="mp-num">{cell.amountXaf === undefined || cell.amountXaf === '<5' ? 'masqué' : <AmountXaf amount={cell.amountXaf} />}</td> : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -113,9 +115,9 @@ export function ProductKpisBoard({ ports }: { readonly ports: ProductKpisPorts }
   }
 
   return (
-    <section>
-      <h1>Indicateurs produits</h1>
-      <form onSubmit={(event) => void load(event)} noValidate>
+    <section className="mp-page">
+      <header className="mp-top"><h1>Indicateurs produits</h1></header>
+      <form className="mp-panel mp-form" onSubmit={(event) => void load(event)} noValidate>
         <TextField id={ids.from} label="Premier jour (inclus)" hint="AAAA-MM-JJ, heure de Douala" value={from} onChange={(event) => { setFrom(event.target.value); }} />
         <TextField id={ids.to} label="Jour de fin (exclu)" hint="AAAA-MM-JJ, au plus 366 jours après le premier" value={to} onChange={(event) => { setTo(event.target.value); }} />
         <TextField id={ids.reason} label="Motif de la consultation" value={reason} onChange={(event) => { setReason(event.target.value); }} />
@@ -125,28 +127,31 @@ export function ProductKpisBoard({ ports }: { readonly ports: ProductKpisPorts }
       {problem === null ? null : <ErrorState problem={problem} />}
       {report === null ? null : (
         <>
-          <h2>Totaux de la période</h2>
-          <ul aria-label="Totaux de la période">
-            <li>Volume confirmé : <AmountXaf amount={report.volume.totalXaf} /></li>
-            <li>Objectifs ouverts à la fin de la période : {report.openGoals.total}</li>
-            <li>
-              Objectifs à 100 % :{' '}
-              {report.completion.ratePercent === null
-                ? 'non calculé (aucun objectif activé)'
-                : `${decimal(report.completion.ratePercent)} % (${report.completion.funded} sur ${report.completion.activated} activés)`}
-            </li>
-            <li>
-              Délai de remise :{' '}
-              {report.handoverDelay.medianDays === null || report.handoverDelay.p90Days === null
-                ? 'aucune remise'
-                : `médiane ${decimal(report.handoverDelay.medianDays)} j, 90ᵉ centile ${decimal(report.handoverDelay.p90Days)} j (${report.handoverDelay.count} remise${report.handoverDelay.count > 1 ? 's' : ''})`}
-            </li>
-            <li>
-              Marge de commission : <AmountXaf amount={report.commissionMargin.totalXaf} /> sur {report.commissionMargin.count} commande{report.commissionMargin.count > 1 ? 's' : ''}
-              {report.commissionMargin.averageXaf === null ? null : <>, moyenne <AmountXaf amount={report.commissionMargin.averageXaf} /></>}
-            </li>
-            <li>Impayés B : sans objet (modèle B non ouvert)</li>
-          </ul>
+          <p className="mp-banner mp-banner--audit">{`Consultation journalisée. Motif : ${reason.trim()}. Visible par l’audit.`}</p>
+          <section className="mp-panel">
+            <h2>Totaux de la période</h2>
+            <ul aria-label="Totaux de la période">
+              <li>Volume confirmé : <AmountXaf amount={report.volume.totalXaf} /></li>
+              <li>Objectifs ouverts à la fin de la période : {report.openGoals.total}</li>
+              <li>
+                Objectifs à 100 % :{' '}
+                {report.completion.ratePercent === null
+                  ? 'non calculé (aucun objectif activé)'
+                  : `${decimal(report.completion.ratePercent)} % (${report.completion.funded} sur ${report.completion.activated} activés)`}
+              </li>
+              <li>
+                Délai de remise :{' '}
+                {report.handoverDelay.medianDays === null || report.handoverDelay.p90Days === null
+                  ? 'aucune remise'
+                  : `médiane ${decimal(report.handoverDelay.medianDays)} j, 90ᵉ centile ${decimal(report.handoverDelay.p90Days)} j (${report.handoverDelay.count} remise${report.handoverDelay.count > 1 ? 's' : ''})`}
+              </li>
+              <li>
+                Marge de commission : <AmountXaf amount={report.commissionMargin.totalXaf} /> sur {report.commissionMargin.count} commande{report.commissionMargin.count > 1 ? 's' : ''}
+                {report.commissionMargin.averageXaf === null ? null : <>, moyenne <AmountXaf amount={report.commissionMargin.averageXaf} /></>}
+              </li>
+              <li>Impayés B : sans objet (modèle B non ouvert)</li>
+            </ul>
+          </section>
           <h2>Ventilations</h2>
           <Breakdown label="Volume par univers" cells={report.volume.byUniverse} withAmount empty="Aucun versement confirmé sur la période." />
           <Breakdown label="Volume par ville" cells={report.volume.byCity} withAmount empty="Aucun versement confirmé sur la période." />

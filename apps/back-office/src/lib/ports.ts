@@ -13,18 +13,20 @@ import type { ProductKpisPorts } from '../components/product-kpis-board';
 import type { CustomerBlockPorts } from '../components/customer-block';
 import type { GoalHistoryPorts } from '../components/goal-history';
 import type { OutgoingFreezePorts } from '../components/outgoing-freeze';
+import type { DeceaseCasesPorts } from '../components/decease-cases';
 
 /** Client navigateur : même origine (réécriture vers l'API), cookie de session httpOnly. */
 function api(): ReturnType<typeof createApiClient> {
   return createApiClient({ baseUrl: '' });
 }
 
-function problemOf(error: unknown, status: number): { readonly title: string; readonly detail?: string; readonly status: number } {
-  const body = (typeof error === 'object' && error !== null ? error : {}) as { title?: unknown; detail?: unknown };
+function problemOf(error: unknown, status: number): { readonly title: string; readonly detail?: string; readonly code?: string; readonly status: number } {
+  const body = (typeof error === 'object' && error !== null ? error : {}) as { title?: unknown; detail?: unknown; code?: unknown };
   return {
     title: typeof body.title === 'string' ? body.title : `Erreur ${status.toString()}`,
     status,
     ...(typeof body.detail === 'string' ? { detail: body.detail } : {}),
+    ...(typeof body.code === 'string' ? { code: body.code } : {}),
   };
 }
 
@@ -265,6 +267,26 @@ export const browserOutgoingFreezePorts: OutgoingFreezePorts = {
       cache: 'no-store',
     });
     return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true };
+  },
+};
+
+/** F-ACC-007 : déclaration et décision de décès par les routes réelles (double contrôle vérifié en base). */
+export const browserDeceaseCasePorts: DeceaseCasesPorts = {
+  async declareCase(accountId, body) {
+    const result = await api().POST('/v1/backoffice/customers/{accountId}/decease-cases', {
+      params: { path: { accountId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body,
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, deceaseCase: result.data };
+  },
+  async decideCase(caseId, body) {
+    const result = await api().POST('/v1/backoffice/decease-cases/{caseId}/decision', {
+      params: { path: { caseId }, header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body,
+      cache: 'no-store',
+    });
+    return result.data === undefined ? { ok: false, problem: problemOf(result.error, result.response.status) } : { ok: true, decision: result.data };
   },
 };
 

@@ -178,67 +178,77 @@ export function AdminPanel({ post }: { readonly post: AdminPort }): ReactElement
   }
 
   return (
-    <section>
-      <h1>Administration</h1>
+    <section className="mp-page">
+      <header className="mp-top"><div><h1>Administration</h1><p className="mp-sub">Chaque acte sensible est préparé puis approuvé par une autre personne (SEC-AUTHZ-003).</p></div></header>
       {problem === null ? null : <ErrorState problem={problem} />}
-      {notice === null ? null : <p role="status">{notice}</p>}
+      {notice === null ? null : <p className="mp-banner" role="status">{notice}</p>}
       {error === undefined ? null : <p role="alert">{error}</p>}
       {token === null ? null : (
-        <div role="status">
+        <div className="mp-panel" role="status">
           <p>Code d’enrôlement à remettre en main propre à l’agent (valable 5 minutes) ; il ne sera plus affiché :</p>
           <p><code>{token}</code></p>
         </div>
       )}
 
-      <h2>Nouvel agent</h2>
-      <TextField id={ids.login} label="Identifiant du nouvel agent" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
-      <Button disabled={pending} onClick={prepareStaff}>Préparer la création</Button>
+      <div className="mp-cols mp-cols--split">
+        <div className="mp-panel mp-form">
+          <h2>Nouvel agent</h2>
+          <TextField id={ids.login} label="Identifiant du nouvel agent" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
+          <Button disabled={pending} onClick={prepareStaff}>Préparer la création</Button>
 
-      <h2>Agent existant</h2>
-      <TextField id={ids.target} label="Agent concerné" value={target} onChange={(event) => { setTarget(event.target.value.trim()); }} />
-      <TextField id={ids.staffApproved} label="Demande approuvée (agent)" value={staffApproved} onChange={(event) => { setStaffApproved(event.target.value.trim()); }} />
-      <Button disabled={pending} onClick={finalizeStaff}>Finaliser la création</Button>
-      <fieldset>
-        <legend>Rôles</legend>
-        {ROLES.map((role) => (
-          <label key={role}>
-            <input type="checkbox" checked={roles.includes(role)} onChange={() => { setRoles(toggle(roles, role)); }} /> {role}
-          </label>
-        ))}
-      </fieldset>
-      <fieldset>
-        <legend>Villes</legend>
-        {CITIES.map((city) => (
-          <label key={city}>
-            <input type="checkbox" checked={cities.includes(city)} onChange={() => { setCities(toggle(cities, city)); }} /> {city}
-          </label>
-        ))}
-      </fieldset>
-      <Button disabled={pending} onClick={prepareRoles}>Préparer l’attribution des rôles</Button>
-      <Button disabled={pending} onClick={grantRoles}>Attribuer les rôles approuvés</Button>
-      <Button variant="danger" disabled={pending} onClick={disable}>Désactiver l’agent</Button>
+          <h2>Enrôlement d’une clé</h2>
+          <TextField id={ids.staff} label="Agent à enrôler" value={staffId} onChange={(event) => { setStaffId(event.target.value.trim()); }} />
+          <Button disabled={pending} onClick={enroll}>Émettre un jeton d’enrôlement</Button>
 
-      <h2>Décider une demande</h2>
-      <TextField id={ids.request} label="Identifiant de la demande" value={requestId} onChange={(event) => { setRequestId(event.target.value.trim()); }} />
-      <TextField id={ids.reason} label="Motif de la décision" value={reason} onChange={(event) => { setReason(event.target.value); }} />
-      <Button disabled={pending} onClick={() => { decide('APPROVED'); }}>Approuver la demande</Button>
-      <Button variant="danger" disabled={pending} onClick={() => { decide('REJECTED'); }}>Refuser la demande</Button>
+          <h2>Décider une demande</h2>
+          <TextField id={ids.request} label="Identifiant de la demande" value={requestId} onChange={(event) => { setRequestId(event.target.value.trim()); }} />
+          <TextField id={ids.reason} label="Motif de la décision" value={reason} onChange={(event) => { setReason(event.target.value); }} />
+          <div className="mp-actions">
+            <Button disabled={pending} onClick={() => { decide('APPROVED'); }}>Approuver la demande</Button>
+            <Button variant="danger" disabled={pending} onClick={() => { decide('REJECTED'); }}>Refuser la demande</Button>
+          </div>
+        </div>
 
-      <h2>Paramètres financiers</h2>
-      <div className="achat-field">
-        <label className="achat-field__label" htmlFor={ids.setting}>Paramètre</label>
-        <select id={ids.setting} className="achat-field__input" value={setting} onChange={(event) => { setSetting(SETTINGS.find((key) => key === event.target.value) ?? 'merchant_commission_bps'); }}>
-          {SETTINGS.map((key) => <option key={key} value={key}>{key}</option>)}
-        </select>
+        <div className="mp-panel mp-form">
+          <h2>Agent existant</h2>
+          <TextField id={ids.target} label="Agent concerné" value={target} onChange={(event) => { setTarget(event.target.value.trim()); }} />
+          <TextField id={ids.staffApproved} label="Demande approuvée (agent)" value={staffApproved} onChange={(event) => { setStaffApproved(event.target.value.trim()); }} />
+          <Button disabled={pending} onClick={finalizeStaff}>Finaliser la création</Button>
+          <fieldset>
+            <legend>Rôles</legend>
+            {ROLES.map((role) => (
+              <label key={role} className="mp-chk">
+                <input type="checkbox" checked={roles.includes(role)} onChange={() => { setRoles(toggle(roles, role)); }} /> {role}
+              </label>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>Villes</legend>
+            {CITIES.map((city) => (
+              <label key={city} className="mp-chk">
+                <input type="checkbox" checked={cities.includes(city)} onChange={() => { setCities(toggle(cities, city)); }} /> {city}
+              </label>
+            ))}
+          </fieldset>
+          <div className="mp-actions">
+            <Button disabled={pending} onClick={prepareRoles}>Préparer l’attribution des rôles</Button>
+            <Button variant="secondary" disabled={pending} onClick={grantRoles}>Attribuer les rôles approuvés</Button>
+            <Button variant="danger" disabled={pending} onClick={disable}>Désactiver l’agent</Button>
+          </div>
+
+          <h2>Paramètres financiers</h2>
+          <div className="achat-field">
+            <label className="achat-field__label" htmlFor={ids.setting}>Paramètre</label>
+            <select id={ids.setting} className="mp-select" value={setting} onChange={(event) => { setSetting(SETTINGS.find((key) => key === event.target.value) ?? 'merchant_commission_bps'); }}>
+              {SETTINGS.map((key) => <option key={key} value={key}>{key}</option>)}
+            </select>
+          </div>
+          <TextField id={ids.value} label="Valeur" inputMode="numeric" value={value} onChange={(event) => { setValue(event.target.value.trim()); }} />
+          <Button disabled={pending} onClick={prepareSetting}>Préparer le paramètre</Button>
+          <TextField id={ids.approved} label="Demande approuvée" value={approved} onChange={(event) => { setApproved(event.target.value.trim()); }} />
+          <Button variant="secondary" disabled={pending} onClick={publishSetting}>Publier le paramètre</Button>
+        </div>
       </div>
-      <TextField id={ids.value} label="Valeur" inputMode="numeric" value={value} onChange={(event) => { setValue(event.target.value.trim()); }} />
-      <Button disabled={pending} onClick={prepareSetting}>Préparer le paramètre</Button>
-      <TextField id={ids.approved} label="Demande approuvée" value={approved} onChange={(event) => { setApproved(event.target.value.trim()); }} />
-      <Button disabled={pending} onClick={publishSetting}>Publier le paramètre</Button>
-
-      <h2>Enrôlement d’une clé</h2>
-      <TextField id={ids.staff} label="Agent à enrôler" value={staffId} onChange={(event) => { setStaffId(event.target.value.trim()); }} />
-      <Button disabled={pending} onClick={enroll}>Émettre un jeton d’enrôlement</Button>
     </section>
   );
 }

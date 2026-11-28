@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { BrandRing, Button, ErrorState, TextField } from '@achat/ui';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { fromBase64url, toBase64url } from '../lib/base64url';
 
@@ -77,11 +77,16 @@ export function StaffEnrollment({ ports }: { readonly ports: StaffEnrollmentPort
   }
 
   return (
-    <section>
+    <section className="mp-panel mp-form">
+      <div className="mp-brand">
+        <BrandRing tone="light" />
+        <span>molopay</span>
+        <small>Interne</small>
+      </div>
       <h1>Enrôler ma clé de sécurité</h1>
-      {done ? <p role="status">Clé enregistrée. Vous pouvez vous connecter.</p> : null}
+      {done ? <p className="mp-banner" role="status">Clé enregistrée. Vous pouvez vous connecter.</p> : null}
       {problem === null ? null : <ErrorState problem={problem} />}
-      <form onSubmit={(event) => void submit(event)} noValidate>
+      <form className="mp-form" onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={ids.login} label="Identifiant" autoComplete="username" value={login} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <TextField id={ids.code} label="Code d’enrôlement" autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>Enregistrer ma clé de sécurité</Button>
