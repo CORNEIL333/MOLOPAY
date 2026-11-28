@@ -1,0 +1,18 @@
+# Fins de ligne normalisées en LF dans le dépôt et dans les copies de travail
+# (évite les faux écarts sous Windows, ex. INVENTAIRE_ROUTES.md régénéré).
+* text=auto eol=lf
+
+# Fichiers binaires : jamais convertis.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.keystore binary

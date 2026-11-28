@@ -929,3 +929,19 @@
   - Rien n'est repris de leurs anciennes versions d'ADR-0004, du journal ni de l'état.
 - **Vérifié :** aucun secret dans les fichiers copiés ; le script `jetons/generate.py` ne fait que lire et écrire son dossier, sans dépendance ni réseau.
 - **Statut :** ADR-0008 reste **Proposé**, en attente de ta validation avant le lot 26, comme sur la branche d'origine. Les exigences F-PUB et NF-PUB ne sont pas encore couvertes par des tests (lot 26 non commencé).
+
+### Plan du fondateur du 27 novembre, étape 3 · CI alignée, actions épinglées, fins de ligne normalisées
+- **Fait :**
+  - **`ci.yml`** :
+    - déclenchée sur `sprint/integration` **et** `sprint/integration-*`, dont la branche active ;
+    - nouvelle étape `pnpm test:web` ;
+    - nouveau travail `verifier` (`cargo test --locked`, vérificateur Rust) ;
+    - nouveau travail `mobile` : SDK Flutter **officiel** 3.47.9 cloné depuis son dépôt, sans action tierce, puis `flutter pub get`, `flutter analyze`, `flutter test` ;
+    - les trois actions GitHub sont **épinglées par empreinte de commit** (SEC-SDLC-004), résolues depuis leurs dépôts officiels : `actions/checkout` et `actions/setup-node` v4, `pnpm/action-setup` v4 (étiquette annotée, empreinte du commit).
+  - **`pnpm ci:local`** : les mêmes contrôles. Il vérifiait les types de 3 projets sur 5 seulement et ne lançait ni les tests web, ni le vérificateur, ni Flutter : corrigé. `cargo` et `flutter` sont pris du système ; absents, l'étape est en échec, jamais sautée.
+  - **`.gitattributes`** : `* text=auto eol=lf`, binaires exclus. Aucun fichier du dépôt n'est renormalisé (tous déjà en LF) : la règle évite le faux écart sous Windows sur `INVENTAIRE_ROUTES.md` dans les copies de travail.
+- **Vérifié ici :** `ci:local verifier mobile` → vérificateur 10/10, analyse et tests Flutter OK ; YAML valide (6 travaux). Le test `tools/ci-config.test.ts` (6 cas) échoue si un contrôle, la branche active ou l'épinglage disparaît ; 2 mutants tués.
+- **Non fait, à ta main :**
+  - le déblocage de GitHub Actions (D30) dépend de la facturation de ton compte GitHub ; tant qu'il dure, la CI GitHub ne tourne pas, d'où `pnpm ci:local` ;
+  - `CODEOWNERS` n'est pas ajouté : l'AGENTS.md § 8 exige une demande explicite de ta part, avec la liste des propriétaires ;
+  - le shim global `pnpm` de ton poste et l'alignement du dossier racine `molopay` local sont sur ta machine, non reliée à cette session.
