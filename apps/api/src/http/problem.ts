@@ -33,6 +33,8 @@ const FORBIDDEN: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 
 const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_CONFLICT',
+  // D121 : bascule SMS déjà dans l'état demandé.
+  'NOTIFICATION_CHANNEL_UNCHANGED',
   'IDEMPOTENCY_KEY_REUSED',
   'PAYMENT_ALREADY_CONFIRMED',
   'UNAUTHORIZED_TRANSITION',
@@ -49,6 +51,8 @@ const CONFLICT: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
 
 const BAD_REQUEST: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   'REQUEST_INVALID',
+  // D121 : langue de l'application hors de fr / en.
+  'IDENTITY_LANGUAGE_INVALID',
   'INVALID_AMOUNT',
   'REPORT_PERIOD_INVALID',
 ]);

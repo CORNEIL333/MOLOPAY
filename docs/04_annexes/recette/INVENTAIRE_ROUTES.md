@@ -6,7 +6,7 @@
 - **Espace** : `public` (sans session), `client` (cookie `client_session`), `personnel` (cookie `staff_session`, WebAuthn, ADR-0007 proposé), `partenaire` (cookie `partner_session`, WebAuthn, D63).
 - **Origin** : toute méthode non sûre exige un en-tête `Origin` en liste blanche (garde globale).
 - **Fermée sans** : configuration absente ⇒ la route répond 503 (fermée par défaut).
-- **93 routes.**
+- **96 routes.**
 
 | Méthode | Chemin | Espace | Cache-Control | Origin | Idempotency-Key | Quota | Fermée sans | Résumé |
 |---|---|---|---|---|---|---|---|---|
@@ -38,6 +38,8 @@
 | `POST` | `/v1/backoffice/decease-cases/{caseId}/decision` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Décider un dossier de décès (F-ACC-007, tranche 1) |
 | `POST` | `/v1/backoffice/disputes/{disputeId}/resolution` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Lever un litige, par une autre personne (D56) |
 | `GET` | `/v1/backoffice/goals/{goalId}/history` | personnel | private, no-store | non | non | — | partie de confiance du personnel | Historique d’un objectif pour le support (F-SUP-003, consultation motivée et journalisée) |
+| `GET` | `/v1/backoffice/notifications/sms-channels` | personnel | private, no-store | non | non | — | partie de confiance du personnel | État du canal SMS par type de notification (D121) |
+| `PUT` | `/v1/backoffice/notifications/sms-channels/{eventType}` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Ouvrir ou fermer le SMS pour un type de notification (D121) |
 | `GET` | `/v1/backoffice/outgoing-freeze` | personnel | private, no-store | non | non | — | partie de confiance du personnel | État du gel des flux sortants et demandes en attente (SEC-INC-003) |
 | `POST` | `/v1/backoffice/outgoing-freeze/requests` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Demander le gel ou la levée du gel des flux sortants (SEC-INC-003) |
 | `POST` | `/v1/backoffice/outgoing-freeze/requests/{requestId}/confirmation` | personnel | private, no-store | oui | oui | — | partie de confiance du personnel | Confirmer une demande de gel ou de levée, par une autre personne (I-7) |
@@ -75,6 +77,7 @@
 | `GET` | `/v1/me` | client | private, no-store | non | non | — | — | Profil du client connecté |
 | `GET` | `/v1/me/data-rights` | client | private, no-store | non | non | DATA_RIGHTS_READ | — | Historique des demandes de droits du compte connecte |
 | `POST` | `/v1/me/data-rights` | client | private, no-store | oui | oui | DATA_RIGHTS_SUBMIT | — | Enregistrer une demande de droits sur ses donnees |
+| `PUT` | `/v1/me/language` | client | private, no-store | oui | oui | — | — | Déclarer la langue choisie dans l'application (D121) |
 | `POST` | `/v1/me/legal-name` | client | private, no-store | oui | oui | LEGAL_NAME_DECLARE | — | Déclarer son nom légal (KYC niveau 1, REG-LBC-001, D68) |
 | `GET` | `/v1/me/notifications` | client | private, no-store | non | non | — | — | Fil des notifications du client dans l'application (F-NOT-001) |
 | `GET` | `/v1/me/security` | client | private, no-store | non | non | SECURITY_READ | — | Consulter ses appareils et sessions renouvelables |

@@ -375,6 +375,8 @@ describe('F-SUP-003 historique chronologique d’un accord', () => {
 
 describe('F-NOT-001 litige : DISPUTE_UPDATED dans la même transaction', () => {
   it('ouverture puis levée : deux événements distincts par canal, aucun doublon au rejeu de lecture', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('DISPUTE_UPDATED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     const recorded = await complaint();
     const opened = await transact('app_rw', (client) =>
       openDisputeAndNotify(client, { id: uuidv7(), complaintId: recorded.id, principal: SUPPORT2 }),
@@ -451,6 +453,8 @@ describe('F-SUP-001 / D56 clôture des réclamations et délai de réponse', () 
   });
 
   it('F-NOT-001 la clôture notifie le client (DISPUTE_UPDATED, SMS et push) ; réclamation sans accord aussi', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('DISPUTE_UPDATED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     const recorded = await complaint(null);
     await close(recorded.id);
     const rows = await admin.query(

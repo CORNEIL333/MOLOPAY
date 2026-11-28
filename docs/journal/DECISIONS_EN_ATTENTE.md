@@ -967,3 +967,39 @@
   - `customer_id` (UUID opaque) reste dans le document de remboursement, car son format est figé par la migration 0045 ;
   - montant signé limité à 18 chiffres.
 - **Reste humain :** créer la clé KMS de production et la clé de test, accorder au rôle du serveur `kms:GetPublicKey` et `kms:Sign`, et remettre la clé publique à l'établissement. Il n'y a toujours pas de versement au lancement.
+
+### D121 · Notifications : tranché par le fondateur (28 novembre)
+
+- **Décisions du fondateur :**
+  - (a) **push au lancement**. Le SMS est activé par l'équipe, par objet de notification, avec une simple bascule ;
+  - (b) **plages d'envoi 8 h–20 h, heure de Douala** (proposition acceptée) ;
+  - (c) la **langue** du message est celle que l'utilisateur a choisie dans l'application.
+- **Lecture appliquée (prudente, réversible, à confirmer d'un mot si elle est fausse) :**
+  - « par objectif » est lu comme **par type de notification** (versement confirmé, rappel d'échéance, objectif atteint, code de remise, règlement, litige), c'est-à-dire l'objet du message, et non par projet d'épargne ;
+  - la bascule est un geste unique de l'équipe des opérations, **motivé et inscrit à l'audit**, sans double validation (« simple bascule ») ;
+  - SMS **désactivé par défaut** pour tous les types (le push est le canal de lancement ; chaque SMS coûte) ;
+  - la décision de canal est prise **à la mise en file** : une bascule s'applique aux événements suivants, jamais rétroactivement ;
+  - plages : F-NOT-003 les réserve aux **rappels**. Les confirmations (versement confirmé, code de remise, etc.) partent tout de suite, car l'utilisateur vient d'agir. Un rappel hors plage est reporté, jamais perdu ;
+  - langue : l'application déclare la langue choisie à l'API ; sans déclaration, le français (langue de référence) s'applique ;
+  - textes : gabarits FR/EN actuels, à valider par la conformité (NF-SAFE-003).
+- **⚖ D122 — nouveau, à trancher pour envoyer réellement un push :** le prestataire. Firebase Cloud Messaging est le passage obligé sur Android hors appareils Huawei ; APNs sur iOS, directement ou via FCM. Ce choix ajoute à l'application mobile une dépendance (`firebase_messaging`) hors de la liste blanche actuelle (REG-DPD-003, NF-PORT-002), et côté serveur une authentification de compte de service Google. En attendant, les notifications push restent en file : rien n'est simulé, et la supervision signale leur attente.
+
+### D121 · Tranche 1 : langue de l'application et bascule SMS par type (contrat 0.46.0)
+- **Fait :**
+  - **Migration 0080, en ajout seul et gardée par la base** (déclencheurs `ENABLE ALWAYS`, y compris en mode réplica ; aucune écriture directe ; horodatages posés par la base).
+    - `identity.language_preference` : `declare_language` (fr ou en ; compte actif seulement ; rien n'est écrit si la langue ne change pas) et `preferred_language` (dernière déclaration, sinon français).
+    - `notifications.sms_channel_setting` : `set_sms_channel` (motif obligatoire ; verrou par type ; état inchangé refusé avec `NOTIFICATION_CHANNEL_UNCHANGED`), `sms_enabled` (désactivé par défaut) et `sms_channel_states` (les six types, dans l'ordre du catalogue).
+  - **Mise en file (`notifyCustomer`) :** push toujours ; SMS seulement si le type est ouvert ; langue déclarée par le client. Les deux réglages sont lus dans la transaction du fait : une bascule ne change rien de ce qui est déjà en file.
+  - **Routes :**
+    - `PUT /v1/me/language` (client, rejouable) ; `GET /v1/me` renvoie désormais `language` ;
+    - `GET /v1/backoffice/notifications/sms-channels` et `PUT /v1/backoffice/notifications/sms-channels/{eventType}` : nouvelle action `MANAGE_NOTIFICATION_CHANNELS` donnée à OPERATIONS, motif obligatoire, audit `SMS_CHANNEL_SET` dans la même transaction.
+    - Nouveaux codes : `IDENTITY_LANGUAGE_INVALID` (400) et `NOTIFICATION_CHANNEL_UNCHANGED` (409).
+  - **Tests existants adaptés à la décision :** 8 tests attendaient « SMS et push » pour chaque notification. Ils ouvrent désormais le SMS pour leur type avant d'agir, et les deux canaux restent couverts. Le cas par défaut (push seul) est vérifié à part.
+- **Tests :** 10 tests de base, 4 tests HTTP pour la langue (dont les refus 400, 401 et le rejeu), 2 tests HTTP pour les bascules (refus 409, 400, 403, 401, rien d'inscrit). Les 168 tests des flux qui notifient passent.
+- **Mutation :** 33 mutants, 28 tués et 5 équivalents. Les équivalents sont des contrôles applicatifs doublés par la base (langue, motif, booléen) ; un droit accordé à `app_ro`, qui n'a pas accès au schéma ; et l'ordre explicite des types.
+- **Pour les interfaces (à faire) :**
+  - l'application mobile et le client web appellent `PUT /v1/me/language` au changement de langue et après connexion ;
+  - le back-office ajoute un écran « Canaux de notification » (six bascules, motif).
+- **Suite :**
+  - tranche 2 : travailleur SMS (Twilio, numéro déchiffré par KMS, plages 8 h–20 h pour les rappels) ;
+  - tranche 3 : push, après le choix du prestataire (D122).

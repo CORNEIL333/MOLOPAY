@@ -334,6 +334,8 @@ describe('INT-NR-002 / F-SET-004 instruction signée et exécution', () => {
   });
 
   it('exécution confirmée : SETTLEMENT_SENT 2200 du bénéficiaire → 1100, plus rien dû', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('SETTLEMENT_CONFIRMED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     await fundAndPay();
     const payoutId = await instructed();
     expect(await beneficiaryBalance()).toBe('300000');

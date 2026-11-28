@@ -389,6 +389,8 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   });
 
   it('F-NOT-001 / D52 exécution confirmée : client notifié (SMS et push), une seule fois ; rien sur un refus', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('SETTLEMENT_CONFIRMED', true, 'ops.test', 'SMS ouvert pour ce test')`);
     await cancel();
     const refundId = await approved();
     await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));

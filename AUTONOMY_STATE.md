@@ -70,6 +70,7 @@ Plateforme camerounaise d'achat planifié (modèles A, B, C) : API NestJS + Post
 | DONE | 24–25 nov. : C12 Twilio, C13 inscription en agence (0075), hébergement tranché (ADR-0004 : Neon + AWS Francfort, AWS KMS), C15 `pnpm db:transfer`, C14 tranche 1 (noyau de chiffrement + AWS KMS) | contrats 0.42.0 |
 | DONE | 25 nov. : C14 tranche 2 (0076, plus aucun numéro en clair en base) ; revue croisée de la PR #10 de Qoder (CRM) publiée | |
 | DONE | 28 nov. : D5 signataire des instructions derrière une interface asynchrone : AWS KMS (ECC_NIST_EDWARDS25519) en production, fermé sans `INSTRUCTION_SIGNING_KMS_KEY_ARN` ; format et vérification inchangés ; liste blanche des documents (aucune donnée personnelle) | 16 tests, 31 mutants tués, 3 équivalents ; `pnpm test:kms` (clé de test humaine) |
+| DONE | 28 nov. : D121 tranché par le fondateur (push au lancement, SMS par type activé par l'équipe, 8 h–20 h, langue de l'app) ; tranche 1 : langue déclarée et bascule SMS (0080, contrat 0.46.0) | 28 mutants tués, 5 équivalents ; restent travailleur SMS (tranche 2) et push (D122) |
 | BLOCKED | Mise en service des routes back-office | approbation d'ADR-0007, attestation matérielle, réseau isolé |
 | BLOCKED | Lot 11 adaptateurs prestataires réels | identifiants d'environnement de test officiels (humain) |
 | BLOCKED | Lot 13 Lending B | financeur agréé non désigné (D44) |

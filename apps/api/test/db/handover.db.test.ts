@@ -447,6 +447,8 @@ describe('I-6 remise imposée par la base', () => {
 
 describe('F-SAV-004 / F-NOT-001 code de remise prêt', () => {
   it('HANDOVER_READY est écrit avec le code, sans jamais contenir le code', async () => {
+    // D121 : SMS désactivé par défaut ; ouvert ici pour vérifier les deux canaux.
+    await admin.query(`SELECT notifications.set_sms_channel('HANDOVER_READY', true, 'ops.test', 'SMS ouvert pour ce test')`);
     await fund();
     const issued = await transact('app_rw', (client) =>
       issueHandoverCodeAndNotify(client, { agreementId: AGREEMENT_ID, pepper: PEPPER, actorId: 'system-handover' }),

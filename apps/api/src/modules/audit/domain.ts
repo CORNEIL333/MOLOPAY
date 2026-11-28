@@ -143,6 +143,8 @@ const ALLOWED_REF_KEYS_BY_ACTION: ReadonlyMap<string, ReadonlySet<string>> =
       DECEASE_DECIDED: ['case_id', 'account_id', 'decision', 'frozen_goals'],
       // C24 / F-REP-002 : consultation des indicateurs produits (période seulement).
       PRODUCT_KPIS_READ: ['from', 'to'],
+      // D121 : bascule SMS d'un type de notification (canal et nouvel état seulement).
+      SMS_CHANNEL_SET: ['channel', 'enabled'],
     }).map(
       ([action, keys]): [string, ReadonlySet<string>] => [
         action,
