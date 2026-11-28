@@ -945,3 +945,25 @@
   - le déblocage de GitHub Actions (D30) dépend de la facturation de ton compte GitHub ; tant qu'il dure, la CI GitHub ne tourne pas, d'où `pnpm ci:local` ;
   - `CODEOWNERS` n'est pas ajouté : l'AGENTS.md § 8 exige une demande explicite de ta part, avec la liste des propriétaires ;
   - le shim global `pnpm` de ton poste et l'alignement du dossier racine `molopay` local sont sur ta machine, non reliée à cette session.
+
+### D5 · Signataire AWS KMS des instructions de sortie de fonds (28 novembre)
+
+- **Fait :**
+  - **Interface asynchrone.** `apps/api/src/crypto/instruction-signer.ts` définit `InstructionSigner` (`keyId`, `publicKey`, `sign`), appelé par les trois émissions d'instruction : remboursement (`refund.store.ts`), règlement partenaire (`execution.store.ts`) et virement au bénéficiaire C (`beneficiary-payout.store.ts`).
+    - Le signataire local (`localInstructionSigner`) ne sert qu'aux tests. Aucune clé privée n'est lue depuis l'environnement.
+  - **Adaptateur KMS.** `awsKmsInstructionSigner` dans `apps/api/src/crypto/aws-kms.ts`, seul fichier qui importe le SDK AWS (garde NF-PORT-002 inchangée).
+    - Au démarrage : `GetPublicKey`. Refus de démarrer si la clé n'est pas `ECC_NIST_EDWARDS25519` / `SIGN_VERIFY` / `ED25519_SHA_512`, ou si KMS ne répond pas.
+    - Un alias est résolu en ARN de clé ; c'est cet ARN qui est enregistré comme `key_id`.
+    - À chaque instruction : `Sign` (message brut, `ED25519_SHA_512`), délai borné à 5 s, puis signature **revérifiée** avec la clé publique.
+    - En cas de panne : 503 `SIGNING_UNAVAILABLE`, rien n'est écrit, et le détail du fournisseur n'est jamais renvoyé.
+  - **Aucune donnée personnelle signée (exigence du 24 novembre).** Seuls les trois documents d'instruction connus sont acceptés, octet pour octet sous leur forme canonique. Tout autre message est refusé (`SIGNING_DOCUMENT_FORBIDDEN`) sans appel à KMS.
+    - Champs acceptés : UUID ; code partenaire ou bénéficiaire de la même forme qu'en base ; montant entier.
+  - **Format inchangé.** Ed25519 pur ; `verify*Instruction`, le vérificateur et les contraintes de base sont intacts. Les 177 tests de base des circuits de sortie passent, et la suite HTTP du règlement passe désormais par l'adaptateur KMS (transport remplacé par une vraie clé).
+  - **Configuration.** `INSTRUCTION_SIGNING_KMS_KEY_ARN` doit être distincte des clés de chiffrement (`SIGNING_KEY_NOT_DISTINCT`). `pnpm config:check` l'affiche ; `.env.example` et `PROCEDURE_DEPLOIEMENT_API.md` décrivent la mise en service, et l'inventaire cryptographique est à jour.
+  - **Test vivant.** `aws-kms-signer.live.test.ts` dans `pnpm test:kms`, qui exige `INSTRUCTION_SIGNING_KMS_TEST_KEY_ARN`.
+  - **Mutation.** 34 mutants : 31 tués, 3 équivalents (bornes et types rejetés plus loin). Un vrai défaut évité : `{"domain":"constructor"}` aurait passé avec `in` au lieu de `Object.hasOwn`.
+- **Choix prudents appliqués (réversibles) :**
+  - un code partenaire ou bénéficiaire contenant 8 chiffres consécutifs ou plus est refusé à la signature (forme d'un numéro de téléphone) ;
+  - `customer_id` (UUID opaque) reste dans le document de remboursement, car son format est figé par la migration 0045 ;
+  - montant signé limité à 18 chiffres.
+- **Reste humain :** créer la clé KMS de production et la clé de test, accorder au rôle du serveur `kms:GetPublicKey` et `kms:Sign`, et remettre la clé publique à l'établissement. Il n'y a toujours pas de versement au lancement.

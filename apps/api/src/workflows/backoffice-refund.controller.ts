@@ -1,7 +1,7 @@
-import type { KeyObject } from 'node:crypto';
 import { Body, Controller, Header, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import type { JsonValue } from '@achat/chain';
+import type { InstructionSigner } from '../crypto/instruction-signer';
 import { BusinessError } from '@achat/contracts';
 import { PG_POOL, type Database } from '../http/database';
 import type { HttpRequest } from '../http/express-types';
@@ -13,9 +13,9 @@ import { BANK_REFERENCE_PATTERN, oneOf, optionalText, requiredText, UUID_PATTERN
 import { decideBeneficiaryPayout, instructBeneficiaryPayout, prepareBeneficiaryPayout, recordBeneficiaryPayoutExecution } from './beneficiary-payout';
 import { decideRefund, instructRefund, prepareRefund, recordRefundExecution } from './refund';
 
-/** Clé Ed25519 de la plateforme pour signer les instructions (configuration, HSM en production, D5) ; null : 503. */
+/** Signataire des instructions (D5 : AWS KMS en production, `INSTRUCTION_SIGNING_KMS_KEY_ARN`) ; null : 503 SIGNING_UNCONFIGURED. */
 export const PLATFORM_SIGNING_KEY = Symbol('PLATFORM_SIGNING_KEY');
-export type PlatformSigningKey = { readonly key: KeyObject; readonly keyId: string };
+export type PlatformSigningKey = InstructionSigner;
 
 type Result = { readonly status: number; readonly body: JsonValue };
 
@@ -98,7 +98,7 @@ export class BackofficeRefundController {
     whitelistedBody(body ?? {}, []);
     const signing = this.signingKey();
     return this.run(staff, request, `bo-refund-instruction:${id}`, {}, async (client) => {
-      const signed = await instructRefund(client, { refundId: id, principal: staff, signingKey: signing.key, keyId: signing.keyId });
+      const signed = await instructRefund(client, { refundId: id, principal: staff, signer: signing });
       return { status: 201, body: { document: { ...signed.document }, signature: signed.signature.toString('base64'), keyId: signing.keyId } };
     });
   }
@@ -148,7 +148,7 @@ export class BackofficeRefundController {
     whitelistedBody(body ?? {}, []);
     const signing = this.signingKey();
     return this.run(staff, request, `bo-payout-instruction:${id}`, {}, async (client) => {
-      const signed = await instructBeneficiaryPayout(client, { payoutId: id, principal: staff, signingKey: signing.key, keyId: signing.keyId });
+      const signed = await instructBeneficiaryPayout(client, { payoutId: id, principal: staff, signer: signing });
       return { status: 201, body: { document: { ...signed.document }, signature: signed.signature.toString('base64'), keyId: signing.keyId } };
     });
   }

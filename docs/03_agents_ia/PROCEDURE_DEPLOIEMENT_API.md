@@ -25,4 +25,11 @@ Ordre **obligatoire** :
 ## 3. Hors du dépôt (accès humains)
 
 - Image ou machine virtuelle, réseau, certificats TLS publics, gestionnaire de secrets : ressources AWS à créer par une personne habilitée.
-- La signature des instructions (versements) reste fermée jusqu'au signataire AWS KMS (D5) ; il n'y a pas de versement au lancement.
+- La signature des instructions (versements) est fermée tant que `INSTRUCTION_SIGNING_KMS_KEY_ARN` est vide ; il n'y a pas de versement au lancement (décision du fondateur). Pour l'ouvrir, plus tard, le fondateur ou un opérateur habilité :
+  1. crée dans AWS KMS (Francfort) une clé **asymétrique** `ECC_NIST_EDWARDS25519`, usage `SIGN_VERIFY`, distincte des clés de chiffrement ;
+  2. n'accorde au rôle du serveur de l'API que `kms:GetPublicKey` et `kms:Sign` sur cette clé ;
+  3. renseigne son ARN (ou un alias) dans `INSTRUCTION_SIGNING_KMS_KEY_ARN`. Au démarrage, l'API lit la clé publique et refuse de démarrer si la clé n'est pas une clé Ed25519 de signature (`SIGNING_KMS_KEY_INVALID`) ou si KMS ne répond pas (`SIGNING_KMS_UNREACHABLE`) ;
+  4. remet la clé publique (`aws kms get-public-key`) à l'établissement de cantonnement par un canal authentifié, hors bande ;
+  5. lance `pnpm test:kms` avec une clé de test (`INSTRUCTION_SIGNING_KMS_TEST_KEY_ARN`).
+
+  En marche, une panne de KMS refuse l'instruction (503 `SIGNING_UNAVAILABLE`) sans rien écrire ; un nouvel essai est possible. Chaque signature est revérifiée avec la clé publique avant d'être enregistrée.

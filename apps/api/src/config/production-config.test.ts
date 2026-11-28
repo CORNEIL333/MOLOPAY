@@ -94,4 +94,17 @@ describe('pnpm config:check — capacités ouvertes ou fermées, sans aucune val
   it('production : la signature des instructions reste fermée (clé en HSM, D5) même si une clé est fournie', () => {
     expect(capabilityReport({ NODE_ENV: 'production', PLATFORM_SIGNING_KEY_PEM: 'x' }).capabilities.signedInstructions).toBe('CLOSED');
   });
+
+  it('D5 : signature ouverte seulement par une clé AWS KMS valide et distincte ; jamais la valeur dans le rapport', () => {
+    const arn = 'arn:aws:kms:eu-central-1:123456789012:key/11111111-2222-4333-8444-555555555555';
+    expect(capabilityReport({ NODE_ENV: 'production', INSTRUCTION_SIGNING_KMS_KEY_ARN: arn }).capabilities.signedInstructions).toBe('CONFIGURED');
+    const invalid = capabilityReport({ INSTRUCTION_SIGNING_KMS_KEY_ARN: 'cle-privee-locale' });
+    expect(invalid.capabilities.signedInstructions).toBe('CLOSED');
+    expect(invalid.status).toBe('INVALID');
+    expect(invalid.errors).toEqual(['SIGNING_KMS_KEY_INVALID']);
+    expect(JSON.stringify(invalid)).not.toContain('cle-privee-locale');
+    const shared = capabilityReport({ INSTRUCTION_SIGNING_KMS_KEY_ARN: arn, PII_KMS_KEY_ARN: arn });
+    expect(shared.errors).toEqual(['SIGNING_KEY_NOT_DISTINCT']);
+    expect(shared.capabilities.signedInstructions).toBe('CLOSED');
+  });
 });

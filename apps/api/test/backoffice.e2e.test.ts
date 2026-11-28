@@ -30,6 +30,7 @@ import {
   validateLandlord,
 } from './db/agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './db/harness';
+import { localInstructionSigner } from '../src/crypto/instruction-signer';
 
 /**
  * D62 / SEC-AUTH-004 : back-office de bout en bout — API réelle et base
@@ -120,7 +121,7 @@ beforeAll(async () => {
         database,
         allowedOrigins: new Set([origin]),
         staffRp: { rpId: 'localhost', origins: new Set([origin]) },
-        platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'e2e' },
+        platformSigningKey: localInstructionSigner(generateKeyPairSync('ed25519').privateKey, 'e2e'),
       }),
     ],
   }).compile();

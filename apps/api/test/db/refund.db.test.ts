@@ -24,6 +24,7 @@ import {
   validateLandlord,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -272,7 +273,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
     await cancel();
     const refundId = await approved();
     const instruction = await transact('app_rw', (client) =>
-      instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'plateforme-test-1' }),
+      instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'plateforme-test-1') }),
     );
     expect(instruction.document).toEqual({ domain: 'refund-instruction-v1', refund_id: refundId, customer_id: CUSTOMER_ID, amount_xaf: '100000' });
     expect(verifyRefundInstruction(KEYS.publicKey, instruction.document, instruction.signature)).toBe(true);
@@ -282,7 +283,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('exécution confirmée : REFUND_SENT 2100 → 1100, objectif REFUNDED, plus rien dû au client', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     const done = await transact('app_rw', (client) =>
       recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-1' }),
     );
@@ -302,7 +303,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('exécution refusée par l’établissement : rien n’est écrit, l’objectif reste annulé', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     const done = await transact('app_rw', (client) =>
       recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'REJECTED', bankReference: 'ETAB-REMB-2' }),
     );
@@ -314,7 +315,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('I-7 l’émetteur ne confirme pas l’exécution (MAKER_CANNOT_APPROVE)', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     const result = await failure(() =>
       transact('app_rw', (client) => recordRefundExecution(client, { refundId, principal: FIN, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-3' })),
     );
@@ -338,7 +339,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('la base refuse une exécution confirmée sans écriture (REFUND_INCOMPLETE)', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     const result = await failure(() =>
       transact('app_rw', (client) =>
         client.query(
@@ -390,7 +391,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('F-NOT-001 / D52 exécution confirmée : client notifié (SMS et push), une seule fois ; rien sur un refus', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     const outbox = (): Promise<unknown[]> =>
       admin
         .query<{ event_type: string; channel: string }>(`SELECT event_type, channel FROM notifications.outbox WHERE recipient_id = $1 AND event_type = 'SETTLEMENT_CONFIRMED' ORDER BY channel`, [CUSTOMER_ID])
@@ -407,7 +408,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('D52 exécution refusée par l’établissement : aucune notification', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     await transact('app_rw', (client) => recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'REJECTED', bankReference: 'ETAB-REMB-N2' }));
     const rows = await admin.query(`SELECT 1 FROM notifications.outbox WHERE event_type = 'SETTLEMENT_CONFIRMED'`);
     expect(rows.rowCount).toBe(0);
@@ -416,7 +417,7 @@ describe('INT-NR-002 / I-6 instruction signée et exécution', () => {
   it('remboursements, décisions, instructions et exécutions sont en ajout seul', async () => {
     await cancel();
     const refundId = await approved();
-    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+    await transact('app_rw', (client) => instructRefund(client, { refundId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
     await transact('app_rw', (client) => recordRefundExecution(client, { refundId, principal: FIN2, outcome: 'EXECUTED', bankReference: 'ETAB-REMB-4' }));
     for (const sql of [
       'UPDATE settlement.refund SET amount_xaf = 1',

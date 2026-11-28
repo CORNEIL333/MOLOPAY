@@ -31,6 +31,7 @@ import {
   validateBeneficiary,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -127,7 +128,7 @@ async function approved(): Promise<string> {
 
 async function instructed(): Promise<string> {
   const payoutId = await approved();
-  await transact('app_rw', (client) => instructBeneficiaryPayout(client, { payoutId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }));
+  await transact('app_rw', (client) => instructBeneficiaryPayout(client, { payoutId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }));
   return payoutId;
 }
 
@@ -301,7 +302,7 @@ describe('INT-NR-002 / F-SET-004 instruction signée et exécution', () => {
     await fundAndPay();
     const payoutId = await approved();
     const instruction = await transact('app_rw', (client) =>
-      instructBeneficiaryPayout(client, { payoutId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'plateforme-test-1' }),
+      instructBeneficiaryPayout(client, { payoutId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'plateforme-test-1') }),
     );
     expect(instruction.document).toEqual({
       domain: 'beneficiary-payout-instruction-v1',
@@ -318,7 +319,7 @@ describe('INT-NR-002 / F-SET-004 instruction signée et exécution', () => {
     const payout = await prepare();
     const store = await failure(() =>
       transact('app_rw', (client) =>
-        instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN, signingKey: KEYS.privateKey, keyId: 'k1' }),
+        instructBeneficiaryPayout(client, { payoutId: payout.payoutId, principal: FIN, signer: localInstructionSigner(KEYS.privateKey, 'k1') }),
       ),
     );
     expect(store.code).toBe('SETTLEMENT_NOT_APPROVED');
