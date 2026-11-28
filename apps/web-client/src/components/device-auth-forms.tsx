@@ -1,14 +1,15 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { Button, ChoiceChip, ErrorState, TextField } from '@achat/ui';
 import type { FormEvent, ReactElement } from 'react';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { Locale } from '../i18n';
 import {
   completeSignup,
   loginWithDevice,
   requestSignupOtp,
+  syncPreferredLanguage,
   type ClientAuthOutcome,
   type ClientLoginResult,
   type OtpChallenge,
@@ -19,6 +20,8 @@ import { TERMS_VERSION } from '../lib/terms';
 
 const PHONE_PATTERN = /^\+[1-9][0-9]{7,14}$/;
 const SIX_DIGITS = /^[0-9]{6}$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TRIVIAL_PINS = new Set(['123456', '654321', '000000', '111111', '222222', '333333', '444444', '555555', '666666', '777777', '888888', '999999']);
 
 export type DeviceSignupPorts = {
   readonly requestOtp?: (phone: string) => Promise<ClientAuthOutcome<OtpChallenge>>;
@@ -52,6 +55,8 @@ export function DeviceSignupForm({
   const id = useId();
   const isEn = locale === 'en';
   const [phone, setPhone] = useState('');
+  const [agencyMode, setAgencyMode] = useState(false);
+  const [agencyChallengeId, setAgencyChallengeId] = useState('');
   const [code, setCode] = useState('');
   const [pin, setPin] = useState('');
   const [deviceName, setDeviceName] = useState('Navigateur MoloPay');
@@ -61,6 +66,11 @@ export function DeviceSignupForm({
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('challengeId');
+    if (q !== null && UUID_PATTERN.test(q)) { setAgencyChallengeId(q); setAgencyMode(true); }
+  }, []);
 
   const errorTitle = isEn ? 'Sign-up unavailable' : 'Inscription impossible';
 
@@ -95,13 +105,26 @@ export function DeviceSignupForm({
 
   async function submitSignup(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (challenge === null || pending || submitting.current) return;
+    const resolvedChallengeId = agencyMode ? agencyChallengeId.trim() : (challenge?.challengeId ?? '');
+    if ((!agencyMode && challenge === null) || pending || submitting.current) return;
     setProblem(null);
+    if (agencyMode && !UUID_PATTERN.test(resolvedChallengeId)) {
+      setFieldError(isEn ? 'Enter the valid agency enrollment ID.' : 'Saisissez l’identifiant valide du dossier d’agence.');
+      return;
+    }
     if (!SIX_DIGITS.test(code) || !SIX_DIGITS.test(pin) || deviceName.trim().length === 0) {
       setFieldError(
         isEn
-          ? 'Enter the 6-digit SMS code, a 6-digit PIN, and a device name.'
-          : 'Saisissez le code SMS à 6 chiffres, un PIN à 6 chiffres et un nom d’appareil.',
+          ? 'Enter the 6-digit code, a 6-digit PIN, and a device name.'
+          : 'Saisissez le code à 6 chiffres, un PIN à 6 chiffres et un nom d’appareil.',
+      );
+      return;
+    }
+    if (TRIVIAL_PINS.has(pin)) {
+      setFieldError(
+        isEn
+          ? 'This code is too easy to guess. Avoid 123456 or 111111.'
+          : 'Ce code est trop facile à deviner. Évitez 123456 ou 111111.',
       );
       return;
     }
@@ -127,7 +150,7 @@ export function DeviceSignupForm({
     try {
       const devicePublicKey = await ports.providePublicKey();
       const body: SignupRequest = {
-        challengeId: challenge.challengeId,
+        challengeId: resolvedChallengeId,
         code,
         pin,
         devicePublicKey,
@@ -139,8 +162,12 @@ export function DeviceSignupForm({
         : await completeSignup(body, errorTitle);
       setPin('');
       if (outcome.ok) {
-        if (onComplete === undefined) window.location.assign('/objectifs');
-        else onComplete(outcome.value);
+        if (onComplete === undefined) {
+          await syncPreferredLanguage(locale);
+          window.location.assign('/objectifs');
+        } else {
+          onComplete(outcome.value);
+        }
       } else {
         setProblem(outcome.problem);
       }
@@ -165,9 +192,24 @@ export function DeviceSignupForm({
       <h1 id={`${id}-title`} className="page-title">
         {isEn ? 'Create an account' : 'Créer un compte'}
       </h1>
+      <div className="mp-tabs">
+        <ChoiceChip
+          pressed={agencyMode}
+          onClick={() => { setAgencyMode((prev) => !prev); setFieldError(null); setProblem(null); }}
+        >
+          {isEn ? 'I have a code from an agency' : 'J’ai un code donné en agence'}
+        </ChoiceChip>
+      </div>
+      {agencyMode ? (
+        <p className="mp-banner">
+          {isEn
+            ? 'A MoloPay agent checked your ID and gave you a 6-digit code. It is valid for 5 minutes.'
+            : 'Un agent MoloPay a vérifié votre pièce d’identité et vous a donné un code à 6 chiffres. Il est valable 5 minutes.'}
+        </p>
+      ) : null}
       {problem === null ? null : <ErrorState problem={problem} />}
       {fieldError === null ? null : <p role="alert">{fieldError}</p>}
-      {challenge === null ? (
+      {challenge === null && !agencyMode ? (
         <form className="auth-form" noValidate onSubmit={(e) => { void submitPhone(e); }}>
           <TextField
             id={`${id}-phone`}
@@ -184,9 +226,19 @@ export function DeviceSignupForm({
         </form>
       ) : (
         <form className="auth-form" noValidate onSubmit={(e) => { void submitSignup(e); }}>
+          {agencyMode ? (
+            <TextField
+              id={`${id}-agency-challenge`}
+              label={isEn ? 'Agency enrollment ID' : 'Identifiant du dossier d’agence'}
+              value={agencyChallengeId}
+              onChange={(e) => { setAgencyChallengeId(e.currentTarget.value); }}
+              disabled={pending}
+              required
+            />
+          ) : null}
           <TextField
             id={`${id}-code`}
-            label={isEn ? 'SMS code' : 'Code SMS'}
+            label={agencyMode ? (isEn ? 'Code from agency' : 'Code remis en agence') : (isEn ? 'SMS code' : 'Code SMS')}
             inputMode="numeric"
             maxLength={6}
             value={code}
@@ -280,8 +332,12 @@ export function DeviceLoginForm({
         : await loginWithDevice(payload, errorTitle);
       setPin('');
       if (outcome.ok) {
-        if (onComplete === undefined) window.location.assign('/objectifs');
-        else onComplete(outcome.value);
+        if (onComplete === undefined) {
+          await syncPreferredLanguage(locale);
+          window.location.assign('/objectifs');
+        } else {
+          onComplete(outcome.value);
+        }
       } else {
         setProblem(outcome.problem);
       }

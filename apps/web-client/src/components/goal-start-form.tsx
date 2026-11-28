@@ -2,10 +2,10 @@
 
 import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState } from '@achat/ui';
+import { Button, ErrorState, SlideToConfirm } from '@achat/ui';
 import type { FormEvent, ReactElement } from 'react';
 import { useId, useRef, useState } from 'react';
-import type { Dictionary } from '../i18n';
+import type { Dictionary, Locale } from '../i18n';
 import { browserApi } from '../lib/browser-api';
 import { problemFrom } from '../lib/problem';
 import { TERMS_VERSION } from '../lib/terms';
@@ -34,28 +34,35 @@ async function createDefaultGoal(
   };
 }
 
+export type GoalStartLabels = Pick<
+  Dictionary['offer'],
+  'startTitle' | 'termsLabel' | 'termsRequired' | 'startButton' | 'startErrorTitle' | 'loginToStart'
+>;
+
 export function GoalStartForm({
   offerId,
   quote,
   labels,
+  locale = 'fr',
   createGoal,
   onComplete,
 }: {
   readonly offerId: string;
   readonly quote: Quote;
-  readonly labels: Dictionary['offer'];
+  readonly labels: GoalStartLabels;
+  readonly locale?: Locale;
   readonly createGoal?: (input: GoalRequest) => Promise<GoalOutcome>;
   readonly onComplete?: (goal: Goal) => void;
 }): ReactElement {
   const id = useId();
+  const isEn = locale === 'en';
   const [accepted, setAccepted] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
   const [problem, setProblem] = useState<ProblemSummary | null>(null);
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
+  async function runCreate(): Promise<void> {
     if (pending || submitting.current) return;
     setProblem(null);
     if (!accepted) {
@@ -67,7 +74,6 @@ export function GoalStartForm({
     setPending(true);
     try {
       if (quote.model !== 'SAVE_THEN_BUY') {
-        // Seul le modèle A part d'une offre ; B est fermé (D26), C part d'un bénéficiaire.
         setProblem({ title: labels.startErrorTitle });
         return;
       }
@@ -98,13 +104,33 @@ export function GoalStartForm({
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    void runCreate();
+  }
+
   return (
     <section className="goal-start" aria-labelledby={`${id}-title`}>
       <h3 id={`${id}-title`} className="quote-result__subtitle">
         {labels.startTitle}
       </h3>
+      <p className="mp-sub">
+        <strong>{isEn ? '3. Read the agreement' : '3. Relire l’accord'}</strong>
+      </p>
+      <ul>
+        <li>
+          {isEn
+            ? 'Cancel any time before locking: 100% refunded, no fees.'
+            : 'Annulation à tout moment avant verrouillage : remboursé à 100 %, sans frais.'}
+        </li>
+        <li>
+          {isEn
+            ? 'Shop out of stock: equivalent item or full refund.'
+            : 'Boutique en rupture : article équivalent ou remboursement intégral.'}
+        </li>
+      </ul>
       {problem === null ? null : <ErrorState problem={problem} />}
-      <form className="goal-start__form" noValidate onSubmit={(event) => void submit(event)}>
+      <form className="goal-start__form" noValidate onSubmit={submit}>
         <div className="achat-field">
           <label className="goal-start__terms" htmlFor={`${id}-terms`}>
             <input
@@ -124,6 +150,12 @@ export function GoalStartForm({
             </p>
           )}
         </div>
+        <SlideToConfirm
+          label={isEn ? 'Slide to sign' : 'Glissez pour signer'}
+          confirmActionLabel={isEn ? 'Sign with keyboard' : 'Signer au clavier'}
+          locked={pending}
+          onConfirm={() => { void runCreate(); }}
+        />
         <Button type="submit" disabled={pending}>
           {labels.startButton}
         </Button>

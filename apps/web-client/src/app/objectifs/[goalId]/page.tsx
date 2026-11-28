@@ -24,7 +24,17 @@ export default async function GoalPage({ params }: { readonly params: Promise<{ 
       ? (await api.GET('/v1/goals/{goalId}/beneficiary-receipt', { params: { path: { goalId } }, cache: 'no-store' })).data ?? null
       : null;
     return <div className="goal-detail">
-      <h1 className="page-title">{labels.goals.title}</h1>
+      <div className="mp-ph">
+        <h1 className="page-title">{labels.goals.title}</h1>
+        <div className="mp-actions">
+          <a className="mp-chip" href={`/objectifs/${encodeURIComponent(goalId)}/verser`}>
+            {locale === 'en' ? 'Pay' : 'Verser'}
+          </a>
+          <a className="mp-chip" href={`/objectifs/${encodeURIComponent(goalId)}/code-remise`}>
+            {locale === 'en' ? 'Handover code' : 'Code de remise'}
+          </a>
+        </div>
+      </div>
       <GoalOverview goal={goal.data} labels={labels.goals} locale={locale} />
       <GoalActionsPanel goal={goal.data} locale={locale} />
       <BeneficiaryPanel goal={goal.data} receipt={receipt} locale={locale} />

@@ -66,6 +66,16 @@ export async function requestSignupOtp(
   return { ok: false, problem: problemFrom(response.error, response.response, fallbackTitle) };
 }
 
+export async function syncPreferredLanguage(language: 'fr' | 'en'): Promise<void> {
+  try {
+    await browserApi().PUT('/v1/me/language', {
+      params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+      body: { language },
+      cache: 'no-store',
+    });
+  } catch { /* synchronisation non bloquante */ }
+}
+
 export async function completeSignup(
   input: SignupRequest,
   fallbackTitle: string,
