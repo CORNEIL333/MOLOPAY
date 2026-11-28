@@ -83,7 +83,7 @@ export class BackofficeSettlementController {
       throw new BusinessError('SIGNING_UNCONFIGURED', 'Clé de signature des instructions non configurée');
     }
     return this.run(staff, request, `bo-settlement-instruction:${id}`, { cityId }, async (client) => {
-      const signed = await instructPayout(client, { payoutId: id, principal: staff, cityId, signingKey: signing.key, keyId: signing.keyId });
+      const signed = await instructPayout(client, { payoutId: id, principal: staff, cityId, signer: signing });
       return { status: 201, body: { document: { ...signed.document }, signature: signed.signature.toString('base64'), keyId: signing.keyId } };
     });
   }

@@ -1,4 +1,4 @@
-import type { KeyObject } from 'node:crypto';
+import type { InstructionSigner } from '../crypto/instruction-signer';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
@@ -83,8 +83,7 @@ export async function instructPayout(
     readonly payoutId: string;
     readonly principal: AdminPrincipal;
     readonly cityId: string;
-    readonly signingKey: KeyObject;
-    readonly keyId: string;
+    readonly signer: InstructionSigner;
   },
 ): Promise<{ readonly document: PayoutInstructionDocument; readonly signature: Buffer }> {
   const { payout } = await payoutWithOwner(client, input.payoutId);
@@ -93,8 +92,7 @@ export async function instructPayout(
   return insertInstruction(client, {
     payout,
     actorId: input.principal.actorId,
-    signingKey: input.signingKey,
-    keyId: input.keyId,
+    signer: input.signer,
   });
 }
 

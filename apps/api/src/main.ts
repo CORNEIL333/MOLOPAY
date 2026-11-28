@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { distinctPeppers, handoverPepperFromEnv, relyingPartyFromEnv } from './config/production-config';
+import { awsKmsInstructionSigner } from './crypto/aws-kms';
+import { instructionSignerFromEnv } from './crypto/instruction-signer';
 import { createDatabase, databaseConfigFromEnv } from './http/database';
 import { verifySchemaAtStartup } from './http/migration-manifest';
 import { allowedOriginsFromEnv } from './http/origin.guard';
@@ -30,8 +32,9 @@ export async function bootstrap(): Promise<void> {
       partnerRp: relyingPartyFromEnv(process.env, 'PARTNER'),
       // Code de remise à usage unique ; sans poivre : remise fermée.
       handoverPepper,
-      // D5 : instructions signées seulement par une clé en HSM (signataire KMS à venir) ; pas de versement au lancement.
-      platformSigningKey: null,
+      // D5 : instructions signées seulement par une clé AWS KMS non exportable ; sans
+      // INSTRUCTION_SIGNING_KMS_KEY_ARN, sorties de fonds fermées (503). Aucune clé privée lue depuis l'environnement.
+      platformSigningKey: await instructionSignerFromEnv(process.env, (arn) => awsKmsInstructionSigner(arn)),
       allowedOrigins: allowedOriginsFromEnv(process.env),
       // Fermé par défaut : sans PIN_PEPPER, aucune action sous PIN n'est possible.
       pinPepper,

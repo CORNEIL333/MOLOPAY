@@ -1,6 +1,7 @@
 import type { components } from '@achat/contracts/api';
 import { AmountXaf } from '@achat/ui';
 import type { ReactElement } from 'react';
+import { FavoriteToggleButton } from './favorites-view';
 
 export type Offer = components['schemas']['Offer'];
 export type OfferModel = components['schemas']['OfferModel'];
@@ -25,11 +26,14 @@ export function OfferCard({
   readonly labels: OfferCardLabels;
 }): ReactElement {
   return (
-    <article className="offer-card">
-      <p className="offer-card__meta">
-        {labels.universes[offer.universe]} ·{' '}
-        {offer.cities.map((city) => labels.cities[city]).join(' · ')}
-      </p>
+    <article className="offer-card" data-mp-universe={offer.universe.toLowerCase()}>
+      <div className="mp-ph">
+        <p className="offer-card__meta">
+          {labels.universes[offer.universe]} ·{' '}
+          {offer.cities.map((city) => labels.cities[city]).join(' · ')}
+        </p>
+        <FavoriteToggleButton offerId={offer.offerId} priceXaf={offer.priceXaf} locale="fr" />
+      </div>
       <h2 className="offer-card__title">{offer.title}</h2>
       <p className="offer-card__partner">{offer.partnerName}</p>
       <p className="offer-card__price">
@@ -40,7 +44,7 @@ export function OfferCard({
         {labels.availability[offer.availability.kind === 'IN_STOCK' && offer.availability.units === 0 ? 'OUT_OF_STOCK' : offer.availability.kind]}
       </p>
       <ul className="offer-card__models">
-        {offer.models.map((model) => (
+        {offer.models.filter((model) => model !== 'FINANCED_PURCHASE').map((model) => (
           <li key={model}>{labels.models[model]}</li>
         ))}
       </ul>

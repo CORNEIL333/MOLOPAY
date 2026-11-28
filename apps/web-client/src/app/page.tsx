@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react';
-import { ErrorState } from '@achat/ui';
+import { ErrorState, LiquidBackground } from '@achat/ui';
 import { CatalogView } from '../components/catalog-view';
 import type { CatalogFilters } from '../components/catalog-view';
 import { DataFreshness } from '../components/data-freshness';
+import { OfferSearchPanel } from '../components/favorites-view';
 import { getDictionary } from '../i18n';
 import { currentLocale } from '../lib/locale';
 import { serverApi } from '../lib/server-api';
@@ -37,7 +38,7 @@ export default async function CatalogPage({ searchParams }: {
       return <><h1 className="page-title">{labels.catalog.title}</h1><ErrorState problem={problemFrom(failure.error, failure.response, labels.catalog.errorTitle)} /><a href={retryHref}>{labels.common.retry}</a></>;
     }
     if (result.data === undefined || all.data === undefined) throw new Error('CATALOG_READ_FAILED');
-    return <><CatalogView offers={result.data.offers} filters={filters} labels={labels.catalog} partners={catalogPartners(all.data.offers)} /><DataFreshness label={labels.common.lastUpdated} asOf={result.data.asOf} locale={locale} /></>;
+    return <><LiquidBackground universe="home" /><OfferSearchPanel offers={all.data.offers} locale={locale} /><CatalogView offers={result.data.offers} filters={filters} labels={labels.catalog} partners={catalogPartners(all.data.offers)} /><DataFreshness label={labels.common.lastUpdated} asOf={result.data.asOf} locale={locale} /></>;
   } catch {
     return <><h1 className="page-title">{labels.catalog.title}</h1><ErrorState problem={{ title: labels.catalog.errorTitle, detail: labels.errors.network }} /><a href={retryHref}>{labels.common.retry}</a></>;
   }

@@ -1,5 +1,6 @@
-import { AmountXaf } from '@achat/ui';
+import { AmountXaf, Badge } from '@achat/ui';
 import type { ReactElement } from 'react';
+import { FavoriteToggleButton } from './favorites-view';
 import type {
   City,
   Offer,
@@ -28,15 +29,19 @@ export function OfferDetail({
 }): ReactElement {
   return (
     <header className="offer-detail" aria-labelledby="offer-title">
-      <p className="offer-detail__meta">
-        {labels.universes[offer.universe]} ·{' '}
-        {offer.cities.map((city) => labels.cities[city]).join(' · ')}
-      </p>
+      <div className="mp-ph">
+        <p className="offer-detail__meta">
+          {labels.universes[offer.universe]} ·{' '}
+          {offer.cities.map((city) => labels.cities[city]).join(' · ')}
+        </p>
+        <FavoriteToggleButton offerId={offer.offerId} priceXaf={offer.priceXaf} locale="fr" />
+      </div>
       <h1 id="offer-title" className="page-title">
         {offer.title}
       </h1>
       <p className="offer-detail__partner">
-        {labels.partnerLabel} : {offer.partnerName}
+        {labels.partnerLabel} : {offer.partnerName}{' '}
+        <Badge tone="success">Partenaire vérifié</Badge>
       </p>
       <dl className="offer-detail__facts">
         <div>
@@ -56,7 +61,7 @@ export function OfferDetail({
       </dl>
       <h2 className="offer-detail__subtitle">{labels.modelsLabel}</h2>
       <ul className="offer-detail__models">
-        {offer.models.map((model) => (
+        {offer.models.filter((model) => model !== 'FINANCED_PURCHASE').map((model) => (
           <li key={model}>{labels.models[model]}</li>
         ))}
       </ul>

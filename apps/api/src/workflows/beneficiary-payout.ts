@@ -1,4 +1,4 @@
-import type { KeyObject } from 'node:crypto';
+import type { InstructionSigner } from '../crypto/instruction-signer';
 import { BusinessError } from '@achat/contracts';
 import type { PoolClient } from 'pg';
 import { assertAuthorized, type AdminPrincipal } from '../modules/admin/domain';
@@ -47,11 +47,11 @@ export async function decideBeneficiaryPayout(
 /** D50 / INT-NR-002 : instruction signée (APPROVE_BENEFICIARY_PAYOUT, plafond). */
 export async function instructBeneficiaryPayout(
   client: SqlClient,
-  input: { readonly payoutId: string; readonly principal: AdminPrincipal; readonly signingKey: KeyObject; readonly keyId: string },
+  input: { readonly payoutId: string; readonly principal: AdminPrincipal; readonly signer: InstructionSigner },
 ): Promise<{ readonly document: BeneficiaryPayoutInstructionDocument; readonly signature: Buffer }> {
   const payout = await load(client, input.payoutId);
   assertAuthorized(input.principal, 'APPROVE_BENEFICIARY_PAYOUT', { amountXaf: payout.amountXaf });
-  return insertBeneficiaryPayoutInstruction(client, { payout, actorId: input.principal.actorId, signingKey: input.signingKey, keyId: input.keyId });
+  return insertBeneficiaryPayoutInstruction(client, { payout, actorId: input.principal.actorId, signer: input.signer });
 }
 
 /**

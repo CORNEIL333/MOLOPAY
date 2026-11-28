@@ -1,4 +1,5 @@
-import { createHash, sign, verify, type KeyObject } from 'node:crypto';
+import { createHash, verify, type KeyObject } from 'node:crypto';
+import type { InstructionSigner } from '../../crypto/instruction-signer';
 import { canonicalize } from '@achat/chain';
 import { BusinessError } from '@achat/contracts';
 import { xaf } from '@achat/money';
@@ -46,10 +47,10 @@ export function verifyPayoutInstruction(
  */
 export async function insertInstruction(
   client: SqlClient,
-  input: { readonly payout: Payout; readonly actorId: string; readonly signingKey: KeyObject; readonly keyId: string },
+  input: { readonly payout: Payout; readonly actorId: string; readonly signer: InstructionSigner },
 ): Promise<{ readonly document: PayoutInstructionDocument; readonly signature: Buffer }> {
   const { payout } = input;
-  if (!ACTOR_PATTERN.test(input.actorId) || !KEY_ID_PATTERN.test(input.keyId)) {
+  if (!ACTOR_PATTERN.test(input.actorId) || !KEY_ID_PATTERN.test(input.signer.keyId)) {
     invalid('acteur ou clé invalide');
   }
   if (payout.decision !== 'APPROVED') {
@@ -66,7 +67,7 @@ export async function insertInstruction(
     net_xaf: payout.netXaf.toString(),
   };
   const bytes = canonicalBytes(document);
-  const signature = sign(null, bytes, input.signingKey);
+  const signature = await input.signer.sign(bytes);
   await client.query(
     `INSERT INTO settlement.payout_instruction
        (payout_id, document, document_hash, signature, key_id, instructed_by, instructed_at)
@@ -76,7 +77,7 @@ export async function insertInstruction(
       JSON.stringify(document),
       createHash('sha256').update(bytes).digest(),
       signature,
-      input.keyId,
+      input.signer.keyId,
       input.actorId,
     ],
   );

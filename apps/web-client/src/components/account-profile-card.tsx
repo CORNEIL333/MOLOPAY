@@ -1,4 +1,5 @@
 import type { components } from '@achat/contracts/api';
+import { SoberEffectsToggle } from '@achat/ui';
 import type { ReactElement } from 'react';
 import type { Locale } from '../i18n';
 import { TermsAcceptance } from './terms-acceptance';
@@ -52,6 +53,10 @@ export function AccountProfileCard({
         </div>
       </dl>
       {account.termsAccepted ? null : <TermsAcceptance locale={locale} version={account.currentTermsVersion} />}
+      <SoberEffectsToggle
+        label={isEn ? 'Visual effects: sober' : 'Effets visuels : sobres'}
+        description={isEn ? 'Replaces glass blur and freezes liquid backgrounds' : 'Retire le flou de verre et fige les fonds liquides'}
+      />
       <p><a href="/compte/notifications">Notifications</a></p>
     </section>
   );

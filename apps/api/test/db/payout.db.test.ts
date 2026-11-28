@@ -39,6 +39,7 @@ import {
   validateMerchant,
 } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 const MIGRATIONS = [
   ...AGREEMENT_STACK_MIGRATIONS,
@@ -429,7 +430,7 @@ describe('F-SET-004 instruction signée et exécution', () => {
     principal: AdminPrincipal = FIN,
   ): Promise<{ readonly document: PayoutInstructionDocument; readonly signature: Buffer }> {
     return transact('app_rw', (client) =>
-      instructPayout(client, { payoutId, principal, cityId: 'douala', signingKey: keys.privateKey, keyId: 'plateforme-test-1' }),
+      instructPayout(client, { payoutId, principal, cityId: 'douala', signer: localInstructionSigner(keys.privateKey, 'plateforme-test-1') }),
     );
   }
 
