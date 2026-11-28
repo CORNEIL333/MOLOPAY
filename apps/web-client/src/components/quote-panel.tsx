@@ -9,6 +9,7 @@ import type { Locale } from '../i18n';
 import { browserApi } from '../lib/browser-api';
 import { formatDate, formatDateTime } from '../lib/date';
 import { problemFrom } from '../lib/problem';
+import { GoalStartForm } from './goal-start-form';
 import type { Offer, OfferModel } from './offer-card';
 
 type QuoteRequest = components['schemas']['QuoteRequest'];
@@ -132,6 +133,16 @@ export function QuotePanel({
         {labels.quoteTitle}
       </h2>
       <p className="page-subtitle">{labels.quoteDescription}</p>
+      <p className="mp-banner">
+        <strong>{locale === 'en' ? '1. Where to collect it' : '1. Où le récupérer'} :</strong>{' '}
+        {offer.partnerName} ({offer.cities.join(', ')})
+      </p>
+      <p className="mp-sub">
+        <strong>{locale === 'en' ? '2. Your pace' : '2. Votre rythme'} ·</strong>{' '}
+        {locale === 'en'
+          ? 'You can pay more or less on some days: only the total counts.'
+          : 'Vous pourrez verser plus ou moins certains jours : seul le total compte.'}
+      </p>
 
       {plans.length === 0 ? (
         <p>{labels.noPlans}</p>
@@ -219,6 +230,7 @@ export function QuotePanel({
           <p className="quote-result__expiry">
             {labels.expiresAt} {formatDateTime(quote.expiresAt, locale)}
           </p>
+          <GoalStartForm offerId={offer.offerId} quote={quote} labels={labels} locale={locale} />
         </div>
       )}
     </section>
