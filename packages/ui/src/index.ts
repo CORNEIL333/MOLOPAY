@@ -11,7 +11,19 @@ export type { EmptyStateProps } from './EmptyState';
 export { ErrorState } from './ErrorState';
 export type { ErrorStateProps, ProblemSummary } from './ErrorState';
 export { GoalCard } from './GoalCard';
-export type { GoalCardProps } from './GoalCard';
+export type { GoalCardProps, GoalStatusKind, GoalUniverseKey } from './GoalCard';
+export {
+  AmountChips,
+  ChoiceChip,
+  CotisationRing,
+  IconButton,
+  InclusiveAmount,
+  MpIcon,
+  PinOtpField,
+  amountInWords,
+  cemacBanknotes,
+} from './u1-core';
+export type { BanknoteCount, MpIconName } from './u1-core';
 export {
   GlassSurface,
   LiquidBackground,
