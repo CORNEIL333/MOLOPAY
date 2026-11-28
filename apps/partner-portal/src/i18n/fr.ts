@@ -1,0 +1,64 @@
+/** NF-UX-002 : textes du portail partenaire, français (référence). */
+export const fr = {
+  common: { serviceDown: 'Le service ne répond pas. Réessayez.', loadFailed: 'Chargement impossible', actionFailed: 'Action impossible', none: '—', refresh: 'Actualiser' },
+  login: {
+    title: 'Portail partenaire MoloPay', login: 'Identifiant', submit: 'Se connecter avec ma clé de sécurité',
+    invalidLogin: 'Identifiant invalide (minuscules, chiffres, point, tiret).',
+    failedTitle: 'Connexion impossible', failedDetail: 'La clé de sécurité n’a pas confirmé la connexion. Réessayez.',
+  },
+  enrollment: {
+    title: 'Enrôler ma clé de sécurité', login: 'Identifiant', code: 'Code d’enrôlement', submit: 'Enregistrer ma clé de sécurité',
+    done: 'Clé enregistrée. Vous pouvez vous connecter.',
+    invalidLogin: 'Identifiant invalide (minuscules, chiffres, point, tiret).',
+    invalidCode: 'Code d’enrôlement invalide : recopiez le code remis, en un seul bloc.',
+    failedTitle: 'Enrôlement impossible', failedDetail: 'La clé de sécurité n’a pas été créée. Réessayez ou demandez un nouveau code.',
+  },
+  counter: {
+    title: 'Remise au comptoir', code: 'Code de remise du client', submit: 'Confirmer la remise',
+    invalidCode: 'Le code de remise compte 10 caractères (lettres et chiffres).',
+    noPositionTitle: 'Position indisponible', noPositionDetail: 'Autorisez la localisation du comptoir : la remise doit être géolocalisée.',
+    failedTitle: 'Remise non confirmée', failedDetail: 'Le service ne répond pas. Ne remettez pas l’article ; réessayez.',
+    doneLead: (order: string): string => `Remise confirmée pour la commande ${order} à `,
+    doneTail: '. Vous pouvez remettre l’article.',
+    offline: 'Hors connexion : ne remettez pas l’article tant que la remise n’est pas confirmée par le serveur.',
+  },
+  orders: {
+    title: 'Commandes', table: 'Commandes', export: 'Exporter les commandes (CSV)',
+    emptyTitle: 'Aucune commande pour le moment.', emptyDescription: 'Les commandes de vos clients apparaîtront ici dès leur premier versement.',
+    columns: { offer: 'Offre', status: 'État', amount: 'Montant', progress: 'Progression', handover: 'Remise' },
+    status: {
+      ACTIVE: 'Épargne en cours', FUNDED: 'Financée à 100 %', HANDED_OVER: 'Remise', PAID_TO_BENEFICIARY: 'Réglée au bénéficiaire',
+      CANCELLED_BY_CUSTOMER: 'Annulée par le client', DISPUTED: 'En litige', FROZEN: 'Gelée', REFUNDED: 'Remboursée', CLOSED: 'Clôturée',
+    },
+  },
+  payouts: {
+    title: 'Règlements', table: 'Règlements',
+    emptyTitle: 'Aucun règlement pour le moment.', emptyDescription: 'Les règlements apparaissent après chaque remise confirmée.',
+    columns: { order: 'Commande', gross: 'Brut', commission: 'Commission', net: 'Net', status: 'État', reference: 'Référence' },
+    status: { PREPARED: 'Préparé', APPROVED: 'Approuvé', REJECTED: 'Refusé', INSTRUCTED: 'Ordre transmis', EXECUTED: 'Payé', EXECUTION_REJECTED: 'Paiement rejeté' },
+  },
+  offers: {
+    title: 'Offres', table: 'Offres', notice: 'Les modifications d’offres passent par l’équipe MoloPay.',
+    emptyTitle: 'Aucune offre.', emptyDescription: 'Vos offres apparaîtront ici après leur création par l’équipe MoloPay.',
+    columns: { offer: 'Offre', price: 'Prix', stock: 'Stock disponible', catalog: 'Catalogue' },
+    untitled: 'Sans titre', untitledDraft: 'Sans titre (brouillon)', preorder: 'Précommande', visible: 'Visible au catalogue', hidden: 'Non visible',
+  },
+  sellers: {
+    title: 'Personnel', table: 'Personnel', columns: { login: 'Identifiant', role: 'Rôle', state: 'État', actions: 'Actions' },
+    manager: 'Gérant', seller: 'Vendeur', active: 'Actif', disabled: 'Désactivé',
+    enrollmentButton: 'Code d’enrôlement', enrollmentLabel: (login: string): string => `Émettre un code d’enrôlement pour ${login}`,
+    disableButton: 'Désactiver', disableLabel: (login: string): string => `Désactiver ${login}`,
+    codeIntro: (login: string): string => `Code d’enrôlement de ${login}, valable 5 minutes, à remettre en main propre. Il ne sera plus affiché.`,
+    codeLabel: 'Code d’enrôlement à remettre en main propre', codeHanded: 'J’ai remis le code',
+    disableTitle: (login: string): string => `Désactiver ${login}`, reason: 'Motif de la désactivation', reasonRequired: 'Le motif est obligatoire.', confirmDisable: 'Confirmer la désactivation',
+    newTitle: 'Nouveau vendeur', newLogin: 'Identifiant du nouveau vendeur', create: 'Créer le vendeur',
+    invalidLogin: 'Identifiant invalide (minuscules, chiffres, point, tiret ; 3 caractères au moins).',
+  },
+  nav: {
+    label: 'Portail partenaire', counter: 'Comptoir', orders: 'Commandes', offers: 'Offres', payouts: 'Règlements', sellers: 'Vendeurs',
+    signOut: 'Se déconnecter', language: 'English',
+  },
+};
+
+type Widen<T> = T extends (...args: infer A) => string ? (...args: A) => string : T extends string ? string : { readonly [K in keyof T]: Widen<T[K]> };
+export type Dictionary = Widen<typeof fr>;

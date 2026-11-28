@@ -1,0 +1,7 @@
+body { margin: 0; background: #f7f4ee; color: #1f2421; font: 1rem/1.5 'Segoe UI', system-ui, sans-serif; }
+main { max-width: 36rem; padding: 2rem 1.5rem; margin: auto; }
+.brand { font-size: 1.625rem; font-weight: 800; color: #0b6b53; }
+section { margin-top: 2rem; }
+a { display: inline-flex; align-items: center; min-height: 44px; color: #0b6b53; }
+a:focus-visible { outline: 3px solid #0b6b53; outline-offset: 4px; }
+@media (prefers-color-scheme: dark) { body { background: #101412; color: #f2f5f2; } .brand, a { color: #5bd0ae; } a:focus-visible { outline-color: #8be4c8; } }

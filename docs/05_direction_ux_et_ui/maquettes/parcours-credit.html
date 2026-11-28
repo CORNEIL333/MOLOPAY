@@ -1,0 +1,343 @@
+<title>Parcours crédit MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : carte des états en tête, puis le prototype (téléphone) à gauche et l'explication de l'écran courant à droite. */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6; --pg-soft: #f4f4f0;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e4e5df; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --ess: #d9f26b; --tech: #8fddf5; --log: #c3bdff; --mob: #ffa8c5; --ok: #1f7a4a; --ok-bg: #e2f2e8; --warn: #8a5300; --warn-bg: #fbedd0; --bad: #c4262e; --bad-bg: #fbe4e5;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif; --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; --pg-soft: #121315; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; --pg-soft: #121315; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 400; letter-spacing: -0.03em; text-wrap: balance; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ess); outline-offset: 2px; }
+.eyebrow { font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--pg-muted); }
+header.hero { padding-block: 48px 24px; display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(2.3rem, 5.5vw, 4rem); line-height: 1; font-weight: 300; letter-spacing: -0.05em; }
+.hero h1 b { font-weight: 600; }
+.hero p { color: var(--pg-muted); max-width: 70ch; font-size: 1.05rem; }
+
+/* Carte des états */
+.map { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 26px; padding: 18px; display: grid; gap: 12px; }
+.map .lane { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.map .lane .lbl { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pg-muted); width: 100%; }
+.stt { border: 0; display: inline-flex; flex-direction: column; gap: 1px; padding: 8px 12px; border-radius: 14px; background: var(--pg-soft); font-size: 0.8rem; text-align: left; cursor: pointer; }
+.stt code { font-family: ui-monospace, Consolas, monospace; font-size: 0.68rem; color: var(--pg-muted); }
+.stt.on { background: var(--pg-ink); color: var(--pg-bg); }
+.stt.on code { color: var(--pg-bg); opacity: 0.7; }
+.stt.branch { box-shadow: inset 0 0 0 1.5px var(--pg-line); background: transparent; }
+.stt.branch.on { background: var(--pg-ink); box-shadow: none; }
+.arr { color: var(--pg-muted); font-size: 0.9rem; }
+
+/* Prototype */
+.proto { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; padding-block: 28px 48px; align-items: start; }
+@media (max-width: 820px) { .proto { grid-template-columns: minmax(0, 1fr); } .phone { justify-self: center; } }
+.phone { width: 300px; max-width: 100%; aspect-ratio: 300 / 620; border-radius: 46px; padding: 9px; background: #0a0a0b; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; position: sticky; top: 16px; }
+@media (max-width: 820px) { .phone { position: relative; top: 0; } }
+.scr { position: relative; height: 100%; border-radius: 38px; overflow: hidden; background: var(--paper); color: var(--ink); display: flex; flex-direction: column; font-size: 13px; line-height: 1.4; }
+.scr.dark { background: radial-gradient(120% 60% at 50% 0%, #1e2024, #0b0b0d 60%); color: #fff; }
+.isl { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 84px; height: 24px; border-radius: 20px; background: #000; z-index: 3; }
+.sb { display: flex; justify-content: space-between; padding: 13px 24px 0; font-size: 11px; font-weight: 600; height: 34px; flex: none; }
+.bd { flex: 1; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.bd::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: no-preference) { .bd { animation: in 250ms cubic-bezier(0.05, 0.7, 0.1, 1); } @keyframes in { from { opacity: 0; transform: translateX(14px); } } }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; }
+.ib { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--mist); border: 0; flex: none; color: var(--ink); cursor: pointer; }
+.dark .ib { background: var(--ink-2); color: #fff; }
+.ib svg { width: 15px; height: 15px; }
+.h { font-family: var(--display); font-size: 22px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; }
+.mut { color: var(--muted); font-size: 12px; }
+.dark .mut { color: var(--muted-dark); }
+.pill { height: 48px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px; width: 100%; cursor: pointer; flex: none; }
+.pill.light { background: #fff; color: var(--ink); }
+.pill.lime { background: var(--ess); color: var(--ink); }
+.pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dark .pill.ghost { color: #fff; box-shadow: inset 0 0 0 1.5px #fff; }
+.pill:disabled { opacity: 0.35; cursor: not-allowed; }
+.stack { display: grid; gap: 8px; margin-top: auto; flex: none; }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--mist-2); }
+.kv:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.kv.big span:last-child { font-family: var(--display); font-size: 17px; font-weight: 500; }
+.dark .kv { border-color: var(--ink-3); }
+.dark .kv span:first-child { color: var(--muted-dark); }
+.box { border-radius: 20px; padding: 12px 14px; display: grid; gap: 4px; }
+.prod { background: var(--tech); color: var(--ink); }
+.prod .t { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.7; }
+.prod b { font-family: var(--display); font-size: 17px; font-weight: 500; }
+.opt { border-radius: 20px; padding: 12px; display: grid; gap: 4px; border: 2px solid var(--mist-2); background: #fff; cursor: pointer; text-align: left; }
+.opt.on { border-color: var(--ink); }
+.opt .t { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; }
+.opt .n { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.opt .n small { font-size: 11px; color: var(--muted); letter-spacing: 0; font-family: var(--text); }
+.tag { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--mist); }
+.tag.lime { background: var(--ess); }
+.rngl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.rngl b { color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--mist); border-radius: 999px; padding: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 999px; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted); }
+.seg button.on { background: var(--ink); color: #fff; }
+.alert { border-radius: 14px; padding: 10px 12px; font-size: 12px; font-weight: 500; }
+.alert.warn { background: var(--warn-bg); color: var(--warn); }
+.alert.ok { background: var(--ok-bg); color: var(--ok); }
+.alert.info { background: var(--mist); color: var(--ink); }
+.dark .alert.info { background: var(--ink-2); color: #fff; }
+.tg { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; padding: 9px 11px; border-radius: 14px; background: var(--mist); cursor: pointer; }
+.tg input { appearance: none; -webkit-appearance: none; width: 38px; height: 22px; border-radius: 999px; background: var(--mist-2); position: relative; cursor: pointer; flex: none; margin: 0; }
+.tg input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 100ms; }
+.tg input:checked { background: var(--ink); }
+.tg input:checked::after { transform: translateX(16px); }
+.list { display: grid; gap: 5px; font-size: 12px; }
+.list div { display: flex; gap: 8px; align-items: flex-start; }
+.list div::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-top: 6px; flex: none; }
+.list.no div::before { background: var(--bad); }
+.sched { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.sched th { text-align: left; font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 4px 4px; }
+.sched td { padding: 5px 4px; border-top: 1px solid var(--mist-2); }
+.sched td:last-child, .sched th:last-child { text-align: right; }
+.sched tr.paid td { color: var(--muted); }
+.sched tr.next td { font-weight: 700; }
+.dots { display: flex; gap: 4px; }
+.dots i { flex: 1; height: 6px; border-radius: 3px; background: var(--mist-2); }
+.dots i.p { background: var(--ink); }
+.dark .dots i { background: var(--ink-3); } .dark .dots i.p { background: #fff; }
+.wait { display: grid; place-items: center; gap: 12px; text-align: center; padding-block: 18px; }
+.wait svg { width: 70px; height: 70px; }
+.check { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--ess); color: var(--ink); justify-self: center; }
+.check svg { width: 30px; height: 30px; }
+.slide { position: relative; height: 54px; border-radius: 999px; background: var(--ink-2); display: grid; place-items: center; font-size: 12px; color: var(--muted-dark); flex: none; }
+.slide button { position: absolute; left: 4px; top: 4px; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--ess); display: grid; place-items: center; cursor: pointer; }
+.slide button svg { width: 18px; height: 18px; }
+
+/* Panneau d'explication */
+.explain { display: grid; gap: 16px; min-width: 0; }
+.explain .stepno { font-family: var(--display); font-size: 0.95rem; color: var(--pg-muted); }
+.explain h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); line-height: 1.02; }
+.explain .why { color: var(--pg-muted); max-width: 62ch; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.cardx { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 20px; padding: 14px 16px; display: grid; gap: 4px; font-size: 0.9rem; align-content: start; }
+.cardx b { font-family: var(--display); font-weight: 500; font-size: 1rem; }
+.cardx span { color: var(--pg-muted); }
+.cardx.no { border-color: var(--bad); }
+.cardx.no b { color: var(--bad); }
+.refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.refs span { font-family: ui-monospace, Consolas, monospace; font-size: 0.74rem; padding: 4px 10px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.nav button { height: 42px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--pg-ink); background: transparent; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.nav button.fill { background: var(--pg-ink); color: var(--pg-bg); }
+.nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+footer { padding-block: 28px 56px; border-top: 1px solid var(--pg-line); color: var(--pg-muted); font-size: 0.86rem; }
+</style>
+
+<header class="wrap hero">
+  <span class="eyebrow">Direction UX et UI · modèle B · achat financé</span>
+  <h1>Recevoir maintenant, <b>sans jamais être poussé</b> au crédit.</h1>
+  <p>Le parcours complet du crédit, du choix jusqu'au dernier remboursement. Le crédit est accordé par un financeur agréé, jamais par MoloPay. Il n'est proposé qu'à la demande active du client, avec son coût total comparé à l'épargne à 0 FCFA. Naviguez écran par écran, ou cliquez un état sur la carte, y compris les embranchements « refusé » et « en retard ».</p>
+</header>
+
+<section class="wrap" aria-label="Carte des états">
+  <div class="map" id="map"></div>
+</section>
+
+<section class="wrap proto" aria-label="Prototype">
+  <div class="phone"><div class="scr" id="scr"><div class="isl"></div><div class="sb"><span>9:41</span><span>4G · 82 %</span></div><div class="bd" id="bd"></div></div></div>
+  <div class="explain" aria-live="polite">
+    <span class="stepno" id="x-no"></span>
+    <h2 id="x-h"></h2>
+    <p class="why" id="x-why"></p>
+    <div class="cards" id="x-cards"></div>
+    <div class="refs" id="x-refs"></div>
+    <div class="nav"><button type="button" id="prev">Écran précédent</button><button type="button" class="fill" id="next">Écran suivant</button></div>
+  </div>
+</section>
+
+<footer class="wrap">Prototype de démonstration : produit, financeur, taux (21,5 % d'exemple), échéances et dates sont fictifs. Les taux réels sont fixés par le financeur dans le respect du taux d'usure ; le TEG intègre la période d'épargne préalable quand l'acompte a été épargné (instruction BEAC). Sources : <code>CDC_01</code> § 4 (F-FIN), <code>CDC_05</code> § 5.3, <code>CDC_06</code> (REG-CON, REG-DPD), loi 2011/012, rapport <code>07_psychologie_de_marque_et_ux.md</code>.</footer>
+
+<script>
+(function () {
+  // ---------- Calculs (exemple) ----------
+  var PRICE = 165000, RATE = 0.215, st = { dep: 0.3, n: 6, mode: null, consent: false, inc: 120000, paid: 2 };
+  var nb = function (n) { return Math.round(n).toLocaleString('fr-FR').replace(/[   ]/g, ' '); };
+  var F = function (n) { return nb(n) + ' FCFA'; };
+  function calc() {
+    var dep = Math.round(PRICE * st.dep / 500) * 500, fin = PRICE - dep, i = RATE / 12;
+    var m = Math.ceil(fin * i / (1 - Math.pow(1 + i, -st.n)) / 5) * 5, tot = m * st.n, cost = tot - fin;
+    return { dep: dep, fin: fin, m: m, cost: cost, total: dep + tot };
+  }
+  var addMonths = function (k) { var d = new Date(2026, 11, 5); d.setMonth(d.getMonth() + k); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  var I = {
+    back: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg>',
+    arrow: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
+  };
+  var top = function (t) { return '<div class="top"><button class="ib" type="button" data-go="prev" aria-label="Retour">' + I.back + '</button><b style="font-size:13px">' + t + '</b><span style="width:34px"></span></div>'; };
+  var prod = '<div class="box prod"><span class="t">TECHNOLOGIE</span><b>Tecno Camon 30</b><span style="font-size:12px">Tech Mboa, Yaoundé · prix figé 165 000 FCFA</span></div>';
+
+  // ---------- Écrans ----------
+  var S = [
+    { id: 'choose', state: 'Choix', code: '—', dark: false, h: 'Deux façons, côte à côte', why: "Le client voit l'épargne à 0 FCFA et le crédit avec son coût total au même endroit, avec le même poids visuel. Aucune option n'est présélectionnée : le crédit n'existe que si le client le choisit activement.",
+      cards: [['Opt-in actif', "Aucune option cochée par défaut ; le bouton Continuer reste grisé tant que rien n'est choisi."], ['Même poids visuel', 'Deux cartes identiques ; pas de « recommandé » sur le crédit.'], ['no', 'Interdit', 'Proposer le crédit par défaut, ou le crédit dans le menu USSD.']],
+      refs: ['F-FIN-003', 'REG-CON-001', 'Loi 2011/012 art. 12', 'FCCPC 19(h)'],
+      html: function () { var c = calc(); return top('Comment payer ?') + prod +
+        '<button class="opt' + (st.mode === 'A' ? ' on' : '') + '" type="button" data-mode="A"><span class="t">Épargner, puis recevoir <span class="tag lime">0 FCFA de frais</span></span><span class="n">165 000 <small>FCFA au total</small></span><span class="mut">Vers le 18 février, à votre rythme</span></button>' +
+        '<button class="opt' + (st.mode === 'B' ? ' on' : '') + '" type="button" data-mode="B"><span class="t">Recevoir maintenant <span class="tag">Crédit</span></span><span class="n">' + nb(c.total) + ' <small>FCFA au total</small></span><span class="mut">Acompte ' + F(c.dep) + ', puis ' + st.n + ' mensualités · sous réserve d\'accord du financeur</span></button>' +
+        '<div class="stack"><button class="pill" type="button" data-go="' + (st.mode === 'A' ? 'saveA' : 'next') + '"' + (st.mode ? '' : ' disabled') + '>Continuer</button></div>'; } },
+    { id: 'saveA', hidden: true, state: 'Épargne (modèle A)', code: '—', h: "Le client a choisi d'épargner", why: "Choisir l'épargne n'est jamais un échec du parcours : c'est l'option sans coût. Aucune relance vers le crédit ne suit.", cards: [['Pas de relance', 'Aucun rappel « Vous pourriez l\'avoir maintenant » après ce choix.']], refs: ['FCCPC 19(e)'],
+      html: function () { return top('Épargner') + prod + '<div class="alert ok">Votre objectif est créé. Prix figé à 165 000 FCFA, 0 FCFA de frais.</div><div class="stack"><button class="pill" type="button" data-goto="choose">Revenir au choix</button></div>'; } },
+    { id: 'simulate', state: 'Simulation', code: 'DRAFT', h: "Simuler, sans s'engager", why: "Acompte et durée se règlent librement ; chaque changement met à jour la mensualité, le coût du crédit, le TEG et le coût total, toujours comparés à l'épargne. Les chiffres sont indicatifs : seule l'offre du financeur engage.",
+      cards: [['Coût en un chiffre', 'Le coût du crédit est affiché en FCFA, pas seulement en pourcentage.'], ['Comparaison permanente', 'La différence avec l\'épargne reste visible sous la simulation.'], ['TEG et période d\'épargne', 'Si l\'acompte a été épargné, le TEG intègre cette période (instruction BEAC).']],
+      refs: ['F-FIN-003', 'REG-CON-001', 'Loi 2011/012 art. 9', 'Instruction BEAC TEG'],
+      html: function () { var c = calc(); return top('Simuler le crédit') +
+        '<div class="rngl"><span>Acompte</span><b>' + Math.round(st.dep * 100) + ' % · ' + F(c.dep) + '</b></div><input type="range" min="0.3" max="0.6" step="0.05" value="' + st.dep + '" data-set="dep" aria-label="Acompte">' +
+        '<span class="mut">Durée</span><div class="seg">' + [3, 6, 9, 12].map(function (n) { return '<button type="button" data-n="' + n + '" class="' + (st.n === n ? 'on' : '') + '">' + n + ' mois</button>'; }).join('') + '</div>' +
+        '<div><div class="kv"><span>Montant financé</span><span>' + F(c.fin) + '</span></div><div class="kv"><span>' + st.n + ' mensualités de</span><span>' + F(c.m) + '</span></div><div class="kv"><span>Coût du crédit · TEG 21,5 %</span><span>' + F(c.cost) + '</span></div><div class="kv big"><span>Coût total</span><span>' + F(c.total) + '</span></div></div>' +
+        '<div class="alert info">En épargnant, vous paieriez <b>' + F(c.cost) + ' de moins</b>, et vous recevriez le téléphone vers le 18 février.</div>' +
+        '<div class="stack"><button class="pill" type="button" data-go="next">Vérifier ma capacité</button><button class="pill ghost" type="button" data-goto="choose">Plutôt épargner</button></div>'; } },
+    { id: 'afford', state: 'Capacité', code: 'DRAFT', h: 'Vérifier que la mensualité est supportable', why: "Avant tout envoi, deux questions simples sur les revenus et les charges. Si la mensualité dépasse un tiers du reste à vivre, MoloPay le dit clairement et propose une durée plus longue ou l'épargne, sans bloquer la décision du client.",
+      cards: [['Protection, pas paternalisme', 'Le client garde la décision ; MoloPay montre l\'effort mensuel en clair.'], ['Déclaratif', 'Les montants déclarés sont transmis au financeur seulement avec consentement (étape suivante).']],
+      refs: ['F-FIN-001', 'Charte de recouvrement', 'Rapport 07'],
+      html: function () { var c = calc(), ratio = c.m / st.inc; return top('Votre budget') +
+        '<span class="h">Pouvez-vous payer ' + F(c.m) + ' par mois ?</span>' +
+        '<div class="rngl"><span>Revenus par mois (environ)</span><b>' + F(st.inc) + '</b></div><input type="range" min="40000" max="400000" step="10000" value="' + st.inc + '" data-set="inc" aria-label="Revenus">' +
+        '<div class="kv"><span>Part de vos revenus</span><span>' + Math.round(ratio * 100) + ' %</span></div>' +
+        (ratio > 0.33 ? '<div class="alert warn">La mensualité dépasse un tiers de vos revenus. Vous pouvez allonger la durée, augmenter l\'acompte, ou épargner sans frais.</div>' : '<div class="alert ok">La mensualité représente moins d\'un tiers de vos revenus.</div>') +
+        '<div class="stack"><button class="pill" type="button" data-go="next">Continuer</button><button class="pill ghost" type="button" data-goto="simulate">Changer la simulation</button></div>'; } },
+    { id: 'consent', state: 'Consentement', code: 'DRAFT', h: 'Partager son dossier : un accord à part', why: "Le dossier transmis au financeur est listé ligne à ligne. Le consentement est séparé, non précoché, et révocable à tout moment depuis le profil. Sans lui, aucune demande de crédit n'est possible, et l'épargne reste ouverte.",
+      cards: [['Ce qui part, ce qui ne part pas', 'Le client voit exactement les données transmises et celles qui ne le sont jamais.'], ['Révocable', 'Retrait du consentement en un geste depuis Profil › Mes accords.'], ['no', 'Interdit', 'Accès aux contacts, au journal d\'appels ou à la galerie, par MoloPay comme par le financeur.']],
+      refs: ['REG-DPD-008', 'Loi 2024/017', 'F-FIN-001', 'FCCPC formulaire 001'],
+      html: function () { return top('Votre dossier') +
+        '<span class="h">Ce que nous envoyons à [Financeur agréé]</span>' +
+        '<div class="list"><div>Votre identité vérifiée (palier P1)</div><div>L\'offre : Tecno Camon 30, 165 000 FCFA</div><div>Acompte et durée choisis</div><div>Vos revenus déclarés</div><div>Votre historique d\'épargne MoloPay</div></div>' +
+        '<span class="mut" style="font-weight:600">Jamais envoyé, jamais lu</span><div class="list no"><div>Vos contacts, appels, SMS, photos</div><div>Votre localisation</div></div>' +
+        '<label class="tg">J\'accepte que ce dossier soit envoyé à [Financeur agréé]. Je peux retirer cet accord à tout moment.<input type="checkbox" data-consent' + (st.consent ? ' checked' : '') + '></label>' +
+        '<div class="stack"><button class="pill" type="button" data-go="next"' + (st.consent ? '' : ' disabled') + '>Envoyer ma demande</button></div>'; } },
+    { id: 'pending', state: 'Décision du financeur', code: 'SUBMITTED_TO_LENDER', dark: true, h: 'Le financeur décide, seul', why: "MoloPay ne décide pas et ne prédit pas la réponse. L'écran d'attente est honnête : qui décide, en combien de temps, et ce qui se passe dans chaque cas. Aucune animation de succès avant la réponse authentifiée.",
+      cards: [['Décision externe', 'La réponse arrive par un canal authentifié du financeur ; elle est enregistrée avec sa référence.'], ['Attente honnête', 'Délai annoncé, notification à l\'arrivée, aucune fausse barre de progression.']],
+      refs: ['F-FIN-002', 'Charte d\'animation M-24'],
+      html: function () { return top('Votre demande') +
+        '<div class="wait"><svg viewBox="0 0 40 40" id="spin"></svg><span class="h" style="color:#fff">Demande envoyée</span><span class="mut">[Financeur agréé] étudie votre dossier. Réponse en général sous 24 h. Vous recevrez un SMS.</span></div>' +
+        '<div class="alert info">C\'est le financeur qui décide, pas MoloPay. Votre prix de 165 000 FCFA reste figé pendant l\'étude.</div>' +
+        '<div class="stack"><button class="pill lime" type="button" data-go="next">Simuler : accordé</button><button class="pill ghost" type="button" data-goto="declined">Simuler : refusé</button></div>'; } },
+    { id: 'declined', branch: true, state: 'Refus', code: 'DECLINED', h: 'Un refus, dit avec respect', why: "Le refus vient du financeur. MoloPay l'annonce sans culpabiliser, propose l'épargne (avec l'acompte déjà prévu comme premier versement), et ne relance aucun crédit pendant un délai de carence.",
+      cards: [['Délai de carence', 'Pas de nouvelle proposition de crédit pendant 90 jours [à fixer].'], ['Alternative utile', 'L\'objectif d\'épargne est prérempli ; l\'acompte devient le premier versement.'], ['no', 'Interdit', 'Proposer un autre prêteur plus cher, ou une « deuxième chance » payante.']],
+      refs: ['F-FIN-002', 'FCCPC 19(e)', 'Rapport 07, interdit n° 6'],
+      html: function () { var c = calc(); return top('Réponse du financeur') +
+        '<span class="h">[Financeur agréé] n\'a pas pu accorder ce crédit</span><span class="mut">Raison communiquée : capacité de remboursement insuffisante pour cette durée.</span>' +
+        '<div class="alert ok">Vous pouvez avoir ce téléphone en épargnant : votre premier versement de ' + F(c.dep) + ' le rapproche déjà de 30 %.</div>' +
+        '<div class="stack"><button class="pill" type="button" data-goto="saveA">Épargner pour ce téléphone</button><button class="pill ghost" type="button" data-goto="choose">Revenir au choix</button></div>'; } },
+    { id: 'offer', state: 'Offre ferme', code: 'APPROVED', h: "L'offre du financeur, à signer en connaissance de cause", why: "Avant toute signature : montant, TEG, coût total, échéancier complet, droit de rétractation et remboursement anticipé. La signature se fait par glisser puis PIN sur l'appareil enregistré, horodatée dans l'accord.",
+      cards: [['Échéancier complet', 'Toutes les dates et tous les montants, pas un résumé.'], ['14 jours pour changer d\'avis', 'Rétractation annoncée avant la signature.'], ['Remboursement anticipé', 'Sans pénalité sauf mention contraire de la convention, affichée ici.']],
+      refs: ['F-FIN-003', 'F-FIN-006', 'Loi 2011/012 art. 7, 9', 'REG-CON-001'],
+      html: function () { var c = calc(), rows = ''; for (var k = 1; k <= st.n; k++) rows += '<tr><td>' + k + '</td><td>' + addMonths(k) + '</td><td>' + F(c.m) + '</td></tr>';
+        return top('Offre de [Financeur agréé]') +
+        '<div class="alert ok">Crédit accordé · réf. FIN-2026-0442</div>' +
+        '<div><div class="kv"><span>Acompte (à verser)</span><span>' + F(c.dep) + '</span></div><div class="kv"><span>Montant prêté</span><span>' + F(c.fin) + '</span></div><div class="kv"><span>TEG</span><span>21,5 %</span></div><div class="kv"><span>Coût du crédit</span><span>' + F(c.cost) + '</span></div><div class="kv big"><span>Coût total</span><span>' + F(c.total) + '</span></div></div>' +
+        '<table class="sched"><thead><tr><th>N°</th><th>Date</th><th>Montant</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<span class="mut">Rétractation : 14 jours. Remboursement anticipé sans pénalité. Contrat complet en français et en anglais.</span>' +
+        '<div class="stack"><div class="slide"><span>Glissez pour signer</span><button type="button" data-go="next" aria-label="Signer l\'offre">' + I.arrow + '</button></div></div>'; } },
+    { id: 'deposit', state: 'Acompte', code: 'DOWN_PAYMENT_CONFIRMED', dark: true, h: "L'acompte, puis le code de remise", why: "L'acompte est versé comme un versement normal (écran sombre, confirmation serveur). Ce n'est qu'à sa confirmation que le code de remise apparaît : aucune remise sans décision « accordé » et sans acompte confirmé.",
+      cards: [['Ordre garanti', 'Décision authentifiée → acompte confirmé → code de remise.'], ['Même geste que l\'épargne', 'Le versement suit le parcours Verser habituel.']],
+      refs: ['F-FIN-002', 'F-SAV-004', 'CDC_05 § 5.3'],
+      html: function () { var c = calc(); return top('Acompte confirmé') +
+        '<div class="check">' + I.ok + '</div><div style="text-align:center"><span class="h" style="color:#fff">' + F(c.dep) + '</span><br><span class="mut">Acompte reçu · reçu MP-2026-005102</span></div>' +
+        '<div class="box" style="background:var(--ink-2)"><span class="mut">Votre code de remise</span><span style="font-family:var(--display);font-size:30px;letter-spacing:0.25em">731 905</span><span class="mut">Tech Mboa, Yaoundé · valable 10 jours · à usage unique</span></div>' +
+        '<div class="stack"><button class="pill light" type="button" data-go="next">Le téléphone est remis</button></div>'; } },
+    { id: 'repay', state: 'Remboursement', code: 'REPAYING', h: 'Rembourser, et voir le bout', why: "L'écran de remboursement montre ce qui est payé, ce qui reste, la prochaine échéance, et combien coûterait un remboursement anticipé. Les mensualités sont collectées pour le compte du financeur, jamais comme revenu de MoloPay.",
+      cards: [['Pour le compte du financeur', 'L\'écran le dit ; les écritures distinguent fonds du financeur et commission d\'apport.'], ['Anticiper, c\'est économiser', 'Le montant pour solder aujourd\'hui est affiché, avec les intérêts évités.'], ['Rappels sobres', 'Un rappel 3 jours avant, un le jour même, entre 8 h et 20 h.']],
+      refs: ['F-FIN-004', 'F-FIN-006', 'F-NOT-003'],
+      html: function () { var c = calc(), left = c.m * (st.n - st.paid), rows = ''; for (var k = 1; k <= st.n; k++) rows += '<tr class="' + (k <= st.paid ? 'paid' : k === st.paid + 1 ? 'next' : '') + '"><td>' + k + '</td><td>' + addMonths(k) + '</td><td>' + (k <= st.paid ? 'Payé ✓' : F(c.m)) + '</td></tr>';
+        var fin = c.fin, i = RATE / 12, bal = fin; for (var j = 0; j < st.paid; j++) bal = bal * (1 + i) - c.m; var early = Math.round(bal), saved = left - early;
+        return top('Mon crédit') + prod.replace('prix figé 165 000 FCFA', 'remis le 21 nov.') +
+        '<div class="dots">' + Array.from({ length: st.n }, function (_, k) { return '<i class="' + (k < st.paid ? 'p' : '') + '"></i>'; }).join('') + '</div>' +
+        '<div><div class="kv"><span>Payé</span><span>' + st.paid + ' / ' + st.n + '</span></div><div class="kv"><span>Reste à payer</span><span>' + F(left) + '</span></div><div class="kv"><span>Solder aujourd\'hui</span><span>' + F(early) + ' (−' + F(saved) + ')</span></div></div>' +
+        '<table class="sched"><tbody>' + rows + '</tbody></table>' +
+        '<span class="mut">Vos paiements sont reversés à [Financeur agréé].</span>' +
+        '<div class="stack"><button class="pill" type="button" data-go="next">Payer l\'échéance de ' + F(c.m) + '</button><button class="pill ghost" type="button" data-goto="late">Simuler : échéance manquée</button></div>'; } },
+    { id: 'late', branch: true, state: 'Retard', code: 'IN_ARREARS', h: 'Un retard, sans humiliation', why: "En cas de retard, le ton reste celui d'un partenaire : rappel de la situation, options concrètes, contact humain. La charte de recouvrement limite les rappels en nombre et en horaires, et interdit tout contact avec les proches ou toute publication.",
+      cards: [['Charte responsable', 'Au plus 2 rappels par semaine, entre 8 h et 20 h [paramétrable] ; jamais le dimanche.'], ['Options réelles', 'Payer une partie, demander un échelonnement au financeur, parler à quelqu\'un.'], ['no', 'Interdit', 'Contacter les proches, menacer, publier, bloquer à distance le téléphone acheté.']],
+      refs: ['F-FIN-005', 'F-NOT-003', 'CBK 2022', 'Rapport 07, interdits n° 7 et 14'],
+      html: function () { var c = calc(); return top('Échéance du 5 févr.') +
+        '<span class="h">Votre échéance de ' + F(c.m) + ' n\'est pas encore payée</span><span class="mut">Cela arrive. Voici ce que vous pouvez faire. Aucun frais n\'a été ajouté à ce jour [selon la convention du financeur].</span>' +
+        '<div class="stack" style="margin-top:0"><button class="pill" type="button" data-goto="repay">Payer maintenant</button><button class="pill ghost" type="button">Payer une partie</button><button class="pill ghost" type="button">Demander un échelonnement</button><button class="pill ghost" type="button">Être rappelé</button></div>' +
+        '<div class="alert info">Nous ne contacterons jamais vos proches. Votre téléphone ne sera jamais bloqué à distance.</div>'; } },
+    { id: 'done', state: 'Soldé', code: 'REPAID → CLOSED', dark: true, h: 'Fini : une attestation, et la porte ouverte', why: "Le crédit soldé donne lieu à une attestation téléchargeable. MoloPay félicite sobrement (pas de confettis : c'est une dette remboursée, pas un gain) et propose, sans insister, un nouvel objectif d'épargne plutôt qu'un nouveau crédit.",
+      cards: [['Attestation', 'Document de fin de crédit émis par le financeur, accessible dans Profil › Documents.'], ['Épargne d\'abord', 'La suggestion qui suit est un objectif d\'épargne, jamais un crédit présélectionné.']],
+      refs: ['F-FIN-004', 'Charte d\'animation (pas de célébration sur une dette)'],
+      html: function () { return top('Mon crédit') +
+        '<div class="check">' + I.ok + '</div><div style="text-align:center;display:grid;gap:4px"><span class="h" style="color:#fff">Crédit remboursé</span><span class="mut">Tecno Camon 30 · 6 / 6 échéances · réf. FIN-2026-0442</span></div>' +
+        '<div class="dots">' + '<i class="p"></i>'.repeat(6) + '</div>' +
+        '<button class="pill ghost" type="button">Télécharger l\'attestation (PDF)</button>' +
+        '<div class="stack"><button class="pill lime" type="button" data-goto="choose">Créer un objectif d\'épargne</button></div>'; } }
+  ];
+  var MAIN = ['choose', 'simulate', 'afford', 'consent', 'pending', 'offer', 'deposit', 'repay', 'done'];
+  var idx = function (id) { return S.findIndex(function (s) { return s.id === id; }); };
+  var cur = 'choose';
+
+  // ---------- Carte ----------
+  function drawMap() {
+    var main = MAIN.map(function (id) { var s = S[idx(id)]; return '<button class="stt" type="button" data-goto="' + id + '"><span>' + s.state + '</span><code>' + s.code + '</code></button>'; }).join('<span class="arr" aria-hidden="true">→</span>');
+    var br = ['declined', 'late'].map(function (id) { var s = S[idx(id)]; return '<button class="stt branch" type="button" data-goto="' + id + '"><span>' + s.state + '</span><code>' + s.code + '</code></button>'; }).join('');
+    document.getElementById('map').innerHTML = '<div class="lane"><span class="lbl">Parcours principal (états de CDC_05 § 5.3)</span>' + main + '</div><div class="lane"><span class="lbl">Embranchements</span>' + br + '</div>';
+  }
+  function render() {
+    var s = S[idx(cur)], scr = document.getElementById('scr');
+    scr.classList.toggle('dark', !!s.dark);
+    document.getElementById('bd').innerHTML = s.html();
+    var pos = MAIN.indexOf(cur);
+    document.getElementById('x-no').textContent = pos > -1 ? 'Écran ' + (pos + 1) + ' sur ' + MAIN.length + ' · état ' + s.code : (s.branch ? 'Embranchement · état ' + s.code : 'Hors parcours crédit');
+    document.getElementById('x-h').textContent = s.h;
+    document.getElementById('x-why').textContent = s.why;
+    document.getElementById('x-cards').innerHTML = s.cards.map(function (c) { return c[0] === 'no' ? '<div class="cardx no"><b>' + c[1] + '</b><span>' + c[2] + '</span></div>' : '<div class="cardx"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>'; }).join('');
+    document.getElementById('x-refs').innerHTML = s.refs.map(function (r) { return '<span>' + r + '</span>'; }).join('');
+    document.querySelectorAll('#map .stt').forEach(function (b) { b.classList.toggle('on', b.dataset.goto === cur); });
+    document.getElementById('prev').disabled = pos === 0;
+    document.getElementById('next').disabled = pos === -1 || pos === MAIN.length - 1 || (cur === 'choose' && st.mode !== 'B') || (cur === 'consent' && !st.consent);
+    var sp = document.getElementById('spin'); if (sp) spinner(sp);
+  }
+  function go(dir) {
+    var pos = MAIN.indexOf(cur);
+    if (pos === -1) { if (dir > 0) return; cur = cur === 'declined' ? 'pending' : cur === 'late' ? 'repay' : 'choose'; }
+    else { var n = pos + dir; if (n < 0 || n >= MAIN.length) return; cur = MAIN[n]; }
+    if (cur === 'done') st.paid = st.n;
+    render();
+  }
+  // Anneau d'attente (M-24)
+  var tick = null;
+  function arc(cx, cy, r, a0, a1) { return 'M' + (cx + r * Math.cos(a0)).toFixed(2) + ' ' + (cy + r * Math.sin(a0)).toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(a1)).toFixed(2) + ' ' + (cy + r * Math.sin(a1)).toFixed(2); }
+  function spinner(svg) {
+    clearInterval(tick); var w = 0, red = false; try { red = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    var draw = function () { var o = ''; for (var i = 0; i < 8; i++) { var a0 = -Math.PI / 2 + i * Math.PI / 4 + 0.2, a1 = a0 + Math.PI / 4 - 0.4, d = (i - w + 8) % 8; o += '<path d="' + arc(20, 20, 15, a0, a1) + '" fill="none" stroke="' + (d < 3 ? '#d9f26b' : '#3a3c41') + '" stroke-opacity="' + (d < 3 ? 1 - d * 0.3 : 1) + '" stroke-width="5" stroke-linecap="round"/>'; } svg.innerHTML = o; };
+    draw(); if (!red) tick = setInterval(function () { if (!document.body.contains(svg)) { clearInterval(tick); return; } w = (w + 1) % 8; draw(); }, 150);
+  }
+
+  // ---------- Événements ----------
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-go],[data-goto],[data-mode],[data-n]'); if (!t) return;
+    if (t.dataset.mode) { st.mode = t.dataset.mode; render(); return; }
+    if (t.dataset.n) { st.n = +t.dataset.n; if (st.paid >= st.n) st.paid = Math.min(2, st.n - 1); render(); return; }
+    if (t.dataset.goto) { cur = t.dataset.goto; if (cur === 'repay' && st.paid >= st.n) st.paid = 2; render(); return; }
+    if (t.dataset.go === 'next') { if (cur === 'repay' && st.paid < st.n - 1) { st.paid++; render(); return; } go(1); }
+    if (t.dataset.go === 'prev') go(-1);
+  });
+  function rerender(k) { var y = document.getElementById('bd').scrollTop; render(); document.getElementById('bd').scrollTop = y; var el = document.querySelector('[data-set="' + k + '"]'); if (el) el.focus(); }
+  document.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.set; if (!k) return; st[k] = +e.target.value; var lab = e.target.previousElementSibling && e.target.previousElementSibling.querySelector('b'); if (lab) lab.textContent = k === 'inc' ? F(st.inc) : Math.round(st.dep * 100) + ' %'; });
+  document.addEventListener('change', function (e) {
+    if (e.target.dataset && e.target.dataset.set) { rerender(e.target.dataset.set); return; }
+    if (e.target.hasAttribute && e.target.hasAttribute('data-consent')) { st.consent = e.target.checked; render(); }
+  });
+  document.getElementById('next').addEventListener('click', function () { if (cur === 'repay' && st.paid < st.n - 1) { st.paid++; render(); return; } go(1); });
+  document.getElementById('prev').addEventListener('click', function () { go(-1); });
+  drawMap(); render();
+})();
+</script>

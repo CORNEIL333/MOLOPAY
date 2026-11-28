@@ -4,22 +4,22 @@
 
 ## 2026-10-26
 
-### D1 · Go absent de la machine
-- **Constat :** `go version` → command not found ; aucun binaire dans `Program Files/Go`.
-- **Option appliquée :** installer un toolchain Go officiel portable **dans le dossier du projet** (`.toolchains/go`, ignoré par Git) si le réseau vers go.dev le permet ; sinon écrire le vérificateur et consigner qu'il n'a pas été compilé.
-- **Retour arrière :** supprimer `.toolchains/`.
-- **À trancher :** conserver ce mode d'installation pour le sprint, ou fournir Go via l'image de développement.
+### D1 · Go absent de la machine, bascule du vérificateur vers Rust
+- **Constat :** `go version` → command not found ; aucun binaire dans `Program Files/Go`. Le téléchargement du toolchain officiel a échoué deux fois (curl exit 56 « schannel: server closed abruptly », fichier bloqué à 10 162 240 octets sur 79 010 309 ; PowerShell en délai dépassé). Rust 1.96.1 est installé et fonctionnel.
+- **Option appliquée :** le vérificateur indépendant (lot 04) est écrit en **Rust** dans `tools/verifier/`, module séparé sans import TypeScript (commit `9dd0ee6`). ADR-0001 autorise Go ou Rust pour l'outil de vérification indépendant ; l'exigence d'indépendance (langage et module distincts) est conservée. Le lot reste intitulé « vérificateur indépendant ».
+- **Retour arrière :** réécrire le module en Go si un toolchain est fourni ; aucune interface avec le reste du dépôt hors export JSON.
+- **À trancher :** fournir Go (préféré par le prompt initial) ou valider définitivement Rust pour le sprint.
 
 ### D2 · Docker absent de la machine
-- **Constat :** `docker` introuvable ; aucun Docker Desktop installé.
-- **Option appliquée :** conformément au prompt § 6, lot 02 livré (migrations + code + tests) **sans exécuter `test:db`** ; les tests PostgreSQL restent à lancer dès que Docker ou un PostgreSQL 16 de test est disponible. Aucun faux PostgreSQL n'est utilisé (zéro simulation).
-- **Retour arrière :** aucun changement système.
-- **À trancher :** fournir Docker (ou un PostgreSQL 16 local de test) pour valider les contraintes SQL.
+- **Constat :** `docker` introuvable ; aucun Docker Desktop installé. `psql`, `initdb` et `pg_ctl` le sont aussi : aucun PostgreSQL local.
+- **Option appliquée :** conformément au prompt § 6, lot 02 livré (migrations + code + tests) **sans exécuter `test:db`** ; les tests PostgreSQL restent à lancer dès que Docker ou un PostgreSQL 16 de test est disponible. Aucun faux PostgreSQL n'est utilisé (zéro simulation). Depuis la reprise, `pnpm test:db` accepte aussi `DATABASE_URL` vers une base existante (harnais `apps/api/test/db/harness.ts`, documenté dans le README) ; sans Docker ni `DATABASE_URL`, la commande sort en code 2 `DOCKER_UNAVAILABLE` et n'exécute aucun test base.
+- **Retour arrière :** aucun changement système ; retirer `DATABASE_URL` de l'environnement pour revenir à Testcontainers.
+- **À trancher :** fournir Docker, un PostgreSQL 16 local de test, ou exécuter `test:db` via `DATABASE_URL` sur une base jetable.
 
 ### D3 · `.env.local` absent
 - **Constat :** aucun fichier `.env.local` ; pas d'identifiants d'environnements de test (SMS, agrégateur).
-- **Option appliquée :** lot 06 (Identity) n'est pas commencé faute d'adaptateur SMS réel testable ; aucun faux prestataire ne sera créé.
-- **Retour arrière :** déposer les identifiants de test dans `.env.local` (non versionné).
+- **Option appliquée :** le lot 06 livre le domaine identité complet (OTP, PIN Argon2id, appareils, sessions, signatures de transaction, récupération) et ses tests ; **aucun adaptateur SMS n'est livré** et aucun faux prestataire n'est créé. La remise du code OTP à un opérateur réel reste branchée plus tard derrière une interface d'envoi.
+- **Retour arrière :** déposer les identifiants de test dans `.env.local` (non versionné) puis brancher l'adaptateur SMS réel.
 
 ### D4 · Commits non signés
 - **Constat :** aucune clé de signature configurée ; `commit.gpgsign` absent.
@@ -32,5 +32,1015 @@
 - **Retour arrière :** supprimer les fichiers temporaires générés par les tests.
 
 ### D6 · Autorité d'horodatage RFC 3161
-- **Option appliquée :** utilisation d'une TSA publique réelle sans compte (DigiCert `http://timestamp.digicert.com`, avec repli documenté sur FreeTSA) pour les tests d'intégration ; à remplacer par la TSA retenue en production.
-- **Retour arrière :** changer l'URL dans la configuration ; aucune donnée n'est publiée (empreinte SHA-256 seule).
+- **Constat (2026-10-26) :** la TSA publique DigiCert répond en HTTPS ? Non : l'endpoint documenté `http://timestamp.digicert.com` répond en HTTP 200 `application/timestamp-reply` et délivre un jeton signé ; aucune donnée sensible n'est transmise (empreinte SHA-256 d'une tête publique).
+- **Option appliquée :** `DEFAULT_TSA_URL = http://timestamp.digicert.com` pour le test d'intégration `pnpm test:tsa`, avec `TSA_URL` surchargeable. Le jeton réel est vérifié : signature CMS (y compris `SignerInfo` en `rsaEncryption` + SHA-256), `messageDigest`, `messageImprint`, nonce, `genTime`, EKU horodatage `1.3.6.1.5.5.7.3.8`, chaîne de certificats jusqu'aux racines Mozilla fournies par Node.
+- **Retour arrière :** changer `TSA_URL` ou `DEFAULT_TSA_URL` ; aucun état publié, aucune donnée personnelle ni montant dans l'empreinte.
+- **À trancher :** TSA retenue en production (contrat, politique, HTTPS obligatoire ou non, conservation des jetons et de leurs preuves de receipt).
+
+### D7 · Image PostgreSQL des tests base
+- **Constat :** Docker absent localement (D2). Pour que la CI et le futur poste de test soient reproductibles, l'image est épinglée par tag et digest : `postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab`.
+- **Option appliquée :** digest du manifeste multi-architecture vérifié sur le registre officiel Docker Hub le 2026-10-26 ; aucune autre image n'est utilisée.
+- **Retour arrière :** changer la constante `POSTGRES_IMAGE` du test ; aucun impact hors tests.
+- **À trancher :** politique de mise à jour des digests d'images (revue mensuelle ou Renovate).
+
+### D8 · INT-LED-008 (état métier et écriture dans la même transaction)
+- **Constat :** le lot 02 livre le grand livre seul ; aucune table d'état métier (paiement, accord) n'existe encore. L'invariant « pas d'état sans écriture, pas d'écriture sans état » ne peut pas être prouvé sans cette table, et aucun faux module ne sera créé (zéro simulation).
+- **Option appliquée :** INT-LED-008 reste ouvert ; il sera couvert par le lot paiements (11) avec une transaction réelle état + écriture, et un test d'attaque provoquant l'échec de l'écriture pour vérifier le rollback de l'état.
+- **Retour arrière :** aucun code à retirer.
+- **À trancher :** confirmer que la couverture d'INT-LED-008 au lot 11 est acceptable pour la revue L3 du lot 02.
+
+### D9 · Vérificateur indépendant livré dans le monorepo, extraction à planifier
+- **Constat :** CDC_04 (INT-VER-001) et ADR-0001 exigent un outil dans « un autre dépôt » ; le prompt maître autorise explicitement `tools/verifier/` et demande de consigner l'extraction comme décision en attente.
+- **Option appliquée :** lot 04 livré dans `tools/verifier/` (crate Rust autonome, aucun import TS, `Cargo.lock` versionné) pour rester dans le dossier projet et ne pas créer de dépôt externe sans accord. L'indépendance de langage et de code est réelle ; seule la séparation de dépôt reste à faire.
+- **Retour arrière :** extraire `tools/verifier/` vers un dépôt dédié puis le référencer en sous-module ou via un artefact signé ; aucun changement d'interface (export JSON + clé publique hors bande).
+- **À trancher :** dépôt cible, droits d'accès et procédure de publication du binaire vérificateur.
+
+### D10 · Lecture HTTP du journal d'audit différée au RBAC (lot 08)
+- **Constat :** SEC-AUTHZ-001 exige un contrôle d'accès serveur sur chaque requête ; aucun mécanisme d'authentification ni de RBAC n'existe encore. Exposer `/audit/events` maintenant rendrait les journaux de sécurité consultables sans autorisation.
+- **Option appliquée :** la couche de lecture est livrée et testée (requêtes SQL entièrement paramétrées, pagination et filtres validés), mais aucun contrôleur HTTP n'est monté. L'exposition se fera quand un guard d'authentification existera (lot 06), avec les décisions RBAC du lot 08.
+- **Retour arrière :** monter `AuditController` et son module dans `AppModule` dès que le guard existe ; aucun changement de données.
+- **À trancher :** rôles autorisés à consulter l'audit (auditeur, conformité, administrateur) et politique de conservation/rétention de 10 ans (SEC-LOG-001).
+
+### D11 · Vocabulaire des types d'écriture non figé par le CDC
+- **Constat :** les fixtures utilisent `GENESIS`, `PAYMENT_RECEIVED`, `SETTLEMENT_SENT`, `FEE_CHARGED`, `PAYMENT_REVERSED`, `ADJUSTMENT`, mais aucun document normatif ne liste les types autorisés.
+- **Option appliquée (mise à jour du 2026-10-26) :** le vérificateur Rust applique désormais une **liste blanche fermée** de huit types (`ADJUSTMENT`, `FEE_CHARGED`, `GENESIS`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REVERSED`, `REVERSAL`, `SETTLEMENT_SENT`) ; un type inconnu est refusé `ENTRY_INVALID` même si son hash est recalculé. Le miroir dans `packages/chain` n'est pas ajouté : le test adversarial doit pouvoir produire un type inconnu au hash valide, ce qui exigerait un chemin de test distinct. Aucun nouveau type ne peut être écrit en production sans mettre à jour cette liste et son test.
+- **Retour arrière :** retirer la liste blanche du vérificateur (déconseillé) ; ou étendre la liste dans le même commit qu'un nouveau type réel.
+- **À trancher :** figer la liste des types d'opération dans le CDC, avec leur règle de contre-passation.
+
+### D12 · Horodatage d'audit et intégrité du hash côté application
+- **Constat :** `audit.event.recorded_at` reçoit l'horodatage fourni par l'application (nécessaire pour que le hash soit reproductible hors base), et la base ne peut pas recalculer `event_hash` sans canonicalisation JCS. La base garantit la continuité de séquence et de `prev_hash`, l'ajout seul et le refus des clés sensibles ; le contenu est vérifié par `verifyAuditChain` et par un test de bout en bout.
+- **Option appliquée :** l'horloge serveur applicative est la source de vérité tant qu'aucun acteur externe ne peut fournir `ts` (aucun endpoint HTTP d'audit n'est monté). Un test base relit deux événements écrits via `appendAuditEvent` et rejoue la chaîne complète.
+- **Retour arrière :** passer à `recorded_at DEFAULT now()` et inclure l'horodatage base dans le contenu canonique lors de la prochaine migration.
+- **À trancher :** source d'horodatage opposable (horloge base, TSA) et conservation des preuves de recalcul.
+
+### D13 · Domaine admin non exposé et schéma de charge utile non formalisé
+- **Constat :** le lot 08 livre le domaine RBAC/maker-checker et les migrations, mais aucun contrôleur HTTP : sans authentification réelle (lot 06), exposer les actions back-office serait fail-open. Les charges utiles `SETTLEMENT`/`LEDGER_REVERSAL` ne sont pas encore schématisées par le CDC ; le domaine exige `amount_xaf` pour les approbations plafonnées et lie `city_id`/`partner_id` au contexte lorsqu'ils sont présents, mais ne peut pas exiger des champs non spécifiés.
+- **Option appliquée :** aucun endpoint admin monté ; le contexte d'autorisation ne peut pas diverger d'un montant déclaré, et la ville/partenaire déclarés sont liés au contexte. Les charges utiles restent des objets JSON canonisés et scellés par SHA-256.
+- **Retour arrière :** monter les contrôleurs derrière un guard d'authentification et ajouter des schémas de charge utile par type.
+- **À trancher :** schémas de charge utile par type de demande et mécanisme d'authentification des agents (OIDC interne, MFA, sessions).
+
+### D14 · Identité livrée sans couche de persistance ni HTTP
+- **Constat :** le lot 06 livre le domaine pur et les migrations, mais aucun repository ni contrôleur HTTP. Les décisions de sécurité qui dépendent de l'état persisté (preuve OTP rejouée, compteurs OTP/PIN concurrents, appareil/PIN réellement chargés) ne peuvent pas être prouvées par le seul domaine.
+- **Option appliquée :** le domaine exige que l'appelant fournisse des objets déjà chargés (`Account`, `Device`, `PinState`) et revérifie l'empreinte SHA-256 de la clé d'appareil ; les preuves OTP portent un MAC HMAC-SHA-256 poivré. La couche de persistance devra lire l'appareil, le PIN et les compteurs sous verrou (`SELECT ... FOR UPDATE`) et refuser un défi OTP déjà consommé. Aucun endpoint n'est monté sans guard d'authentification. La base ne peut pas recalculer le MAC OTP : elle garantit seulement la cohérence (défi non créé consommé, consommation unique, expiration ≤ 15 min) ; la preuve cryptographique reste dans le domaine.
+- **Retour arrière :** ajouter un repository transactionnel et un guard, puis des tests base concurrents ; aucun changement de schéma.
+- **À trancher :** stratégie de concurrence (verrou de ligne vs colonne de version) et propriétaire du chargement des objets d'identité.
+
+### D15 · Récupération de compte limitée au KYC renforcé
+- **Constat :** SEC-AUTH-007 exige un KYC renforcé et un délai de 24 h pour les comptes avec solde ; aucune attestation d'appareil de confiance n'existe encore. Une récupération `TRUSTED_DEVICE` sans preuve d'appareil serait un contournement.
+- **Option appliquée :** seul `KYC_STRONG` est accepté par le domaine et par la contrainte SQL. La fin de récupération passe par la fonction atomique `identity.complete_recovery(p_recovery, p_challenge)`, qui vérifie KYC, délai, OTP RECOVERY consommé récent, change le numéro puis révoque appareils et sessions. Elle n'accepte **aucun horodatage appelant** : délai, fenêtre OTP de dix minutes et écritures utilisent `now()`. Le trigger `recovery_anchor` force `requested_at`, `available_at` (24 h si solde), `status='PENDING'` et `completed_at=NULL`. Le rôle `app_rw` n'a ni `UPDATE(phone)`, ni `UPDATE(kyc_level)`, ni `UPDATE` direct sur `identity.recovery`.
+- **Retour arrière :** ajouter une méthode `TRUSTED_DEVICE` avec signature d'attestation vérifiée et migration additive.
+- **À trancher :** mécanisme d'attestation d'appareil (Play Integrity/App Attest) et conditions d'acceptation.
+
+### D16 · Atomicité OTP/PIN et confiance dans les objets chargés
+- **Constat :** les compteurs OTP et PIN sont des entiers lus puis réécrits par le domaine ; deux requêtes concurrentes peuvent perdre un incrément si la persistance ne verrouille pas. De même, le domaine ne peut pas prouver qu'un `Account`, `Device` ou `PinState` vient de la base.
+- **Option appliquée (mise à jour du 2026-10-26) :** `identity/auth.store.ts` exécute le compteur OTP et la rotation du refresh en une seule requête `UPDATE … WHERE … RETURNING` (décrément et consommation dans la même instruction ; ancien refresh consommé une fois ; compte et appareil vérifiés par `EXISTS`). Le solde de récupération n'est plus fourni par l'appelant : `ClientBalance` (constructeur privé) est dérivé de `ledger.account_balance` (compte 2100, nature LIABILITY) par `readClientLedgerTotals`, et `requestRecovery` refuse un objet forgé. Le niveau KYC n'est pas modifiable par `app_rw`. **Risques résiduels :** les compteurs PIN restent lus puis réécrits par le domaine ; les requêtes SQL des stores n'ont **jamais été exécutées** faute de PostgreSQL (D2), même si huit tests base supplémentaires sont écrits ; `has_balance` reste matérialisé en base au moment de la demande, sans relecture du grand livre à la confirmation.
+- **Retour arrière :** revenir à des lectures/écritures séparées dans `auth.store.ts` ; le domaine et ses tests restent inchangés.
+- **À trancher :** verrouillage des compteurs PIN, et fraîcheur du solde entre la demande et la confirmation de récupération.
+
+### D17 · Fonctions de récupération `SECURITY DEFINER`
+- **Constat :** `identity.complete_recovery` et `identity.cancel_recovery` doivent modifier des colonnes non accordées à `app_rw`. `SECURITY DEFINER` exécute avec les droits du rôle qui a appliqué la migration.
+- **Option appliquée :** exécution révoquée à `PUBLIC`, accordée uniquement à `app_rw` ; `search_path` figé à `pg_catalog` ; noms de tables qualifiés ; signatures `complete_recovery(uuid, uuid)` et `cancel_recovery(uuid)`, sans horodatage appelant. `cancel_recovery` fait un `UPDATE ... WHERE status='PENDING'` et vérifie `ROW_COUNT` (pas de course test-puis-écriture). La migration doit donc être appliquée par un rôle propriétaire de schéma, distinct du rôle applicatif.
+- **Retour arrière :** révoquer les exécutions et revenir à des mises à jour directes avec des grants colonne.
+- **À trancher :** rôle de migration en production (propriétaire dédié, coffre de credentials) et revue des fonctions `SECURITY DEFINER`.
+
+### D18 · Horodatage maker-checker ancré en base, durée de validité déclarée
+- **Constat :** `prepared_at` et `decided_at` étaient fournis par l'application. Un décideur pouvait antidater sa décision pour approuver une demande déjà expirée, et un préparateur pouvait dater une demande dans le futur. Les tests ne prouvaient qu'une cohérence déclarative, pas l'écoulement réel du temps.
+- **Option appliquée :** migration `0006_admin_clock.sql`. `admin.anchor_request_clock` remplace `prepared_at` par `clock_timestamp()` et conserve la durée `expires_at - prepared_at` déclarée, désormais bornée à 7 jours comme le domaine (le bris de glace reste à 2 h) ; `assert_decision` remplace `decided_at` par `clock_timestamp()` avant tout contrôle. `clock_timestamp()` est requis : `now()` renvoie l'heure de début de transaction, qu'un appelant peut étirer avant l'INSERT. La liste des clés interdites du journal d'audit est aussi complétée (`clientpin`, `pincode`, `cvvcode`, `authtoken`, `newpassword`, `pin_hash`, `code_hash`, `token_hash`, `api_key`, `private_key`, `otp_mac`…) dans `0005_audit_metadata.sql` et dans le domaine, car la normalisation transformait `client_pin` en `clientpin`. Les clés hors `[A-Za-z0-9_.-]` sont refusées pour que la normalisation SQL et TypeScript reste identique (51 clés en miroir exact).
+- **Retour arrière :** supprimer le trigger `approval_request_clock` et restaurer la version 0003 de `assert_decision` ; pour l'audit, revenir à la liste de 0002 (déconseillé).
+- **À trancher :** politique de durée par type de demande au-delà du plafond uniforme de 7 jours, et ancrage de `setting_version.created_at`, qui reste déclaré par l'appelant mais ne conditionne aucune autorisation.
+
+### D19 · Horloge murale pour le délai et la preuve OTP de récupération
+- **Constat :** le trigger `recovery_anchor` et `complete_recovery` comparaient le délai de 24 h et la fenêtre OTP de dix minutes à `now()`, l'heure de début de transaction. Une transaction ouverte puis étirée avant l'INSERT pouvait raccourcir le délai effectif, et une preuve OTP vieillie pendant une transaction longue restait acceptée.
+- **Option appliquée :** migration `0007_identity_clock.sql`. `anchor_recovery_request` et `complete_recovery` utilisent `clock_timestamp()` (horloge murale serveur), sans accepter d'heure appelante ; les contrôles KYC, statut, numéro et attribution restent inchangés, et les privilèges de la fonction sont réappliqués. Un test base discrimine l'ancien comportement : `pg_sleep(0.2)` avant l'INSERT, puis vérification que `requested_at` suit l'horloge murale et que `available_at - requested_at` vaut exactement 24 h.
+- **Retour arrière :** restaurer la version 0004 des deux fonctions (déconseillé).
+- **À trancher :** aucune décision ouverte ; le rôle de migration reste celui défini en D17.
+
+### D20 · Références d'audit en liste blanche par action
+- **Constat :** la normalisation de l'audit refusait des clés par liste noire et acceptait des métadonnées imbriquées ; une clé sensible non répertoriée passait.
+- **Option appliquée :** registre fermé `action → clés autorisées` (7 actions génériques, 16 actions identité, 28 actions admin reconnues par motif fermé), valeurs scalaires uniquement ; action inconnue refusée `AUDIT_INVALID_EVENT`, clé non déclarée ou non scalaire refusée `AUDIT_REFS_FORBIDDEN`. Toute nouvelle action d'audit exige une entrée explicite et un test.
+- **Retour arrière :** revenir à la validation générique de `normalizeContent` (déconseillé).
+- **À trancher :** propriétaire du registre (sécurité ou module émetteur) et procédure de revue lors de l'ajout d'une action.
+
+### D21 · Vocabulaire du catalogue et activation des plans
+- **Constat :** le CDC impose quatre univers et deux villes mais ne fournit aucun identifiant canonique ; il exige qu'un partenaire ne puisse pas créer de conditions de crédit sans préciser la forme de la requête.
+- **Option appliquée :** identifiants fermés `ESSENTIALS|TECHNOLOGY|HOUSING|MOBILITY` et `yaounde|douala` (ce dernier aligné sur `cityId` du back-office). L'activation d'un plan accepte uniquement `planId`, `offerId`, `model` ; toute autre clé (taux, durée, frais) est refusée `CATALOG_FIELD_FORBIDDEN`. Un plan doit être approuvé par la plateforme et, pour `FINANCED_PURCHASE`, porter une référence d'approbation du financeur. Aucune migration et aucun câblage HTTP/audit : la journalisation de la tentative refusée exige un type d'événement catalogue qui n'existe pas encore.
+- **Retour arrière :** changer les constantes et le registre d'actions dans `catalog/domain.ts` ; aucun schéma touché.
+- **À trancher :** identifiants définitifs des univers/villes, et type d'événement d'audit pour les refus d'activation (lot 09 avec persistance).
+
+### D22 · `DATABASE_URL` pour les tests base : garde de base jetable
+- **Constat :** les suites PostgreSQL détruisent les schémas du domaine ; accepter une URL arbitraire pourrait effacer une base partagée.
+- **Option appliquée :** `DATABASE_URL` n'est acceptée que si l'hôte est local (`localhost`, `127.0.0.1`, `::1`) ; une base distante exige `ALLOW_REMOTE_TEST_DB=1`. Aucun conteneur n'est lancé ni arrêté dans ce mode. Le README racine documente les deux modes.
+- **Retour arrière :** supprimer le support `DATABASE_URL` et revenir à Testcontainers seul.
+- **À trancher :** maintien de l'option distante pour une CI sans Docker, et politique de nom de base (`*_test` obligatoire).
+
+### D23 · Version provisoire des conditions d’offre
+- **Constat :** la création d’un projet exige `acceptTermsVersion`, mais aucun texte juridique approuvé n’est fourni. La constante `2026-10-26-v1` est donc un identifiant technique provisoire, pas une approbation juridique.
+- **Option appliquée :** le parcours web local transmet cet identifiant explicite après une case d’acceptation ; aucune disponibilité en production n’est déclarée et aucune règle juridique supplémentaire n’est inventée.
+- **Retour arrière :** remplacer la constante par la version du texte approuvé avant toute ouverture réelle ; le serveur reste responsable d’accepter ou refuser cette version.
+- **À trancher :** texte, version et date d’effet des conditions applicables à chaque offre.
+
+### D24 · PostgreSQL local indisponible (reprise Claude Code)
+- **Constat :** ni Docker ni PostgreSQL sur le poste. `scoop install postgresql` (18.6) a échoué deux fois (délai dépassé) et cinq téléchargements `curl` avec reprise ont été coupés (`Recv failure: Connection was reset`) alors que l'hôte répond `200`. Budget de trois tentatives dépassé : arrêt.
+- **Option appliquée :** aucune base distante ni simulateur (`pg-mem` écarté : zéro simulation). Les tests base restent écrits et non exécutés : **99** (87 + 12 catalogue).
+- **Retour arrière :** sans objet.
+- **À trancher :** installer Docker Desktop ou PostgreSQL 16 sur une connexion stable, puis `DATABASE_URL=postgres://…@127.0.0.1/… pnpm test:db`. Noter que Scoop fournit 18.6 alors que la CI fige `postgres:16.15`.
+- **Mise à jour 2026-10-29 · résolu pour `test:db` :** PostgreSQL 16.15 installé par le fondateur (`winget`, service Windows protégé par mot de passe, non utilisé). Pour ne manipuler aucun secret, les tests tournent sur une **grappe jetable** créée avec les binaires officiels (`initdb --auth=trust`, écoute `localhost` seule, port 54329, dossier temporaire de session) : `DATABASE_URL=postgres://postgres@localhost:54329/achat_test`. Résultat : **110/110 verts**. Aucune contrainte SQL modifiée ; 5 jeux de données de test corrigés (motif de rejet manquant, blocage/révocation sans date ni motif, session avec refresh antérieur à l’accès, `TRUNCATE` arrêté par la clé étrangère avant le trigger → testé avec `CASCADE`, référence `session` interdite pour `LOGOUT_SEEN`).
+- **Outillage :** `pnpm` 12.6.0 est cassé sur ce poste (shim pointant vers un fichier absent) ; les commandes du § 5 ont été lancées via `node_modules/.bin`. `pnpm security:scan` n'a donc couvert que les secrets : la SCA (`pnpm audit`) n'a pas pu tourner.
+
+### D25 · Dossier partenaire modifié après validation
+- **Constat :** F-PRT-001 exige une validation maker-checker mais ne dit pas ce qui se passe si le dossier (notamment `settlement_account_ref`) change ensuite.
+- **Option appliquée (la plus prudente) :** l'approbation porte l'empreinte JCS/SHA-256 du dossier ; toute nouvelle version repasse le partenaire `PENDING`, donc invisible du catalogue, jusqu'à une nouvelle approbation. L'empreinte est calculée par l'application ; la base vérifie qu'elle égale celle de la décision approuvée et le store revérifie l'empreinte stockée à la lecture.
+- **Retour arrière :** limiter la revalidation aux seuls champs sensibles (règlement, représentant) par une nouvelle migration.
+- **À trancher :** liste des champs dont la modification exige une revalidation ; formats officiels RCCM/NIU (non inventés : seuls longueur et jeu de caractères sont contrôlés).
+
+### D26 · Circuit d'approbation des plans de paiement (lot 09)
+- **Constat :** F-CAT-002 exige des plans « approuvés par la plateforme et, pour B, par le financeur », mais aucune source ne fixe le type de demande maker-checker (`APPROVAL_KINDS` n'a pas de `PAYMENT_PLAN`), ni le contenu d'un plan (durée, rythme, frais), ni le format de la référence d'approbation du financeur.
+- **Option appliquée :** persistance des plans **non implémentée**. Le domaine (`activatePartnerPlan`) et sa journalisation (`activatePartnerPlanAudited`, `CATALOG_ACTION`) sont prêts ; un plan reste une donnée fournie par l'appelant serveur.
+- **Retour arrière :** sans objet.
+- **À trancher :** réutiliser `FINANCIAL_SETTING` ou ajouter un type `PAYMENT_PLAN` (ADR, touche `admin`), champs d'un plan, et forme de la preuve d'approbation du financeur (I-10).
+
+### D27 · Accords A/C : points non tranchés par les sources (lot 10)
+- **Conflit signalé (non arbitré) :** `CDC_05` § 5.2 n'autorise l'annulation client que depuis `ACTIVE`, alors que `CDC_01` F-PLN-004 dit « annuler avant règlement » (donc aussi depuis `FUNDED` pour C) et F-SAV-005 « annuler un objectif non verrouillé » sans restreindre l'état.
+- **Option appliquée (la plus stricte, réversible) :** la liste blanche suit `CDC_05` à la lettre ; `FUNDED → CANCELLED_BY_CUSTOMER` est refusé (`UNAUTHORIZED_TRANSITION`). Ajouter la transition plus tard est une extension, pas un affaiblissement.
+- **Verrou (F-SAV-003) :** l'annulation client d'un objectif verrouillé est toujours refusée (`AGREEMENT_LOCKED`) ; les cas prévus (décès, défaillance marchand, force majeure) passent par `FROZEN → REFUNDED`, opération qui sera soumise au maker-checker. Le verrou n'est jamais levé par le client.
+- **Barème de restitution :** seul le barème par défaut publié (100 %, sans frais) est accepté (`FULL_NO_FEE`) ; aucun autre barème n'est inventé.
+- **Plan :** les champs de `CDC_05` § 4 (`rhythm`, `min_amount`, `max_duration`) sont utilisés ; un plan porte un seul rythme et le client choisit son rythme en choisissant le plan. Unité de `max_duration` non précisée : **jours** retenus. Le circuit d'approbation reste D26.
+- **À trancher :** transitions d'annulation depuis `FUNDED` ; unité de durée ; liste des barèmes autorisés.
+
+### D28 · Format de la signature d'appareil des accords (lot 10)
+- **Constat :** INT-NR-001 et SEC-AUTH-002 exigent une signature par la clé de l'appareil (Ed25519, module identity) pour l'acceptation et l'annulation, sans fixer le message signé.
+- **Option appliquée :** message = JCS de `{domain: "agreement-transition-v1", agreement_id, terms_hash, from, to, seq}` ; le rang `seq` empêche de rejouer une signature sur un autre événement ; la base exige `device_id` + `signature` exactement pour `DRAFT → ACTIVE` et `ACTIVE → CANCELLED_BY_CUSTOMER` (migration 0012) et les refuse ailleurs. La vérification Ed25519 est faite par l'application (PostgreSQL n'a pas Ed25519) ; signature et empreinte sont conservées pour le vérificateur.
+- **Reste à câbler :** la preuve de saisie du PIN (SEC-AUTH-002 « après saisie du PIN ») et la lecture de l'appareil depuis identity se feront dans le contrôleur HTTP (agreements ne peut pas importer identity).
+- **À trancher :** valider ce format avant que l'app mobile ne l'implémente (lot 19).
+
+### D29 · Bénéficiaires du modèle C (lot 10)
+- **Constat :** CDC_05 § 4 décrit `Partner.type (merchant, beneficiary)` et le glossaire définit le bénéficiaire comme un partenaire ; SEC-AUTHZ-003 soumet partenaires et bénéficiaires au maker-checker. Aucune source ne dit quelles pièces d'identité exiger d'un bénéficiaire personne physique (un bailleur particulier n'a pas de RCCM).
+- **Option appliquée (la plus stricte) :** un bénéficiaire suit exactement l'onboarding partenaire (mêmes champs obligatoires, dont RCCM et NIU), avec `partner_type = BENEFICIARY` et une catégorie parmi celles de F-PLN-001 (`LANDLORD`, `AGENCY`, `SCHOOL`, `MATERIALS_SELLER`, `LAND_SELLER`), dans l'empreinte approuvée (migration 0013). Un bailleur particulier sans RCCM ne peut donc pas encore être enregistré. Seuls les marchands publient des offres ; la base refuse un objectif C vers un partenaire qui n'est pas un bénéficiaire validé.
+- **Hors périmètre de cette tranche :** F-PLN-002 (bail ou titre foncier vérifié par la conformité avant tout règlement) sera branché sur le règlement (lot 12) : le règlement C devra exiger cette vérification maker-checker.
+- **À trancher :** pièces exigées d'un bénéficiaire personne physique ; liste définitive des catégories.
+
+### D30 · CI GitHub indisponible (compte bloqué pour facturation)
+- **Constat (2026-10-31) :** les jobs de `.github/workflows/ci.yml` ne démarrent pas (« account is locked due to a billing issue ») ; le fondateur n'a pas de budget pour le débloquer.
+- **Option appliquée :** `tools/ci-local.ts` (`pnpm ci:local`, ou `node_modules/.bin/tsx tools/ci-local.ts`) rejoue les mêmes étapes que la CI sur le poste, tests base compris contre une base locale jetable (`DATABASE_URL`). Aucune étape n'est sautée ; tout échec rend le code de sortie non nul. Le workflow GitHub est inchangé et reprendra seul au déblocage.
+- **Limite :** la SCA échoue tant que `pnpm` est cassé sur le poste (D24) ; c'est un échec d'outillage, pas un résultat d'audit. Réparation possible : `npm install -g pnpm@12.6.0`.
+- **Premier passage :** 11 étapes sur 12 OK (dont 159 tests base), SCA en échec (pnpm).
+
+### D31 · Défaillance marchand (F-SAV-006, lot 10)
+- **Constat :** F-SAV-006 exige de proposer un article équivalent ou le remboursement intégral et de tracer l'incident au registre des partenaires, sans dire qui déclare la défaillance, si elle se lève, ni qui paie l'écart de prix d'un article équivalent.
+- **Option appliquée (effet uniquement restrictif) :** registre `catalog.partner_incident` en ajout seul (une défaillance par marchand, horodatage serveur, motif obligatoire). Dès l'enregistrement : offres retirées du catalogue public, publication refusée (`CATALOG_PARTNER_IN_DEFAULT`), nouvel accord A et activation d'un brouillon refusés en base. Les accords touchés (DRAFT, ACTIVE, FUNDED, DISPUTED, FROZEN) sont listés avec les deux remèdes ; ils peuvent être gelés (`ACTIVE → FROZEN`). Pas de maker-checker à la déclaration : elle ne fait que bloquer. **Aucune levée** n'est possible : lever le blocage serait l'opération sensible.
+- **Reste (lot 12) :** exécution des remèdes (remboursement via le grand livre, remplacement par un article équivalent sans surcoût pour le client), journalisation d'audit de la déclaration.
+- **À trancher :** rôle habilité à déclarer ; procédure de levée (maker-checker ?) ; prise en charge de l'écart de prix d'un article équivalent.
+- **Décision du fondateur (2026-10-31) : proposition acceptée.** Mise en œuvre (migration 0015) :
+  - déclaration par une seule personne (`DECLARE_MERCHANT_DEFAULT` : PARTNER_NETWORK, OPERATIONS, RISK, COMPLIANCE ; motif obligatoire, périmètre partenaire), journalisée (`MERCHANT_DEFAULT_DECLARED`) ;
+  - gel automatique des accords A `ACTIVE` dans la même transaction (tout ou rien) ; les accords gelés sont renvoyés pour notification (lot 17) ;
+  - levée uniquement par une nouvelle version du dossier, créée après l'incident et validée en maker-checker ; l'incident reste au registre ; accords gelés non réactivés ; versions d'offre et brouillons antérieurs à l'incident restent bloqués jusqu'à republication ; récidive possible après levée ;
+  - écart de prix d'un article équivalent : à la charge de la plateforme puis recouvré auprès du marchand (clause contractuelle à valider par le juriste) ; restitution au client si l'équivalent est moins cher ; choix du client signé. Mise en œuvre au lot 12.
+
+### D32 · Routes HTTP des accords : contrat OpenAPI en conflit avec CDC_05 (lot 10)
+- **Conflit signalé (non arbitré) :**
+  - `packages/contracts/openapi.json`, schéma `Goal.status` : `ACTIVE | LOCKED | COMPLETED | CANCELLED | FROZEN`.
+  - `CDC_05` § 5.2 : `DRAFT → ACTIVE → FUNDED → HANDED_OVER | PAID_TO_BENEFICIARY → CLOSED`, `CANCELLED_BY_CUSTOMER`, `REFUNDED`, `DISPUTED`, `FROZEN`, et « `LOCKED` est un attribut, pas un état ».
+  - `GoalRequest` (`offerId`, `quoteId`, `acceptTermsVersion`) crée un objectif directement, sans signature d'appareil ni PIN, alors que INT-NR-001 et SEC-AUTH-002 les exigent ; `QuoteRequest.durationMonths` (1–36) alors que le domaine a retenu des jours faute de source (D27).
+- **Manques constatés :** aucune couche HTTP authentifiée (seul `/health` existe) : pas de pool PostgreSQL dans Nest, pas de garde de session (`cookieAuth` / `client_session`), pas de store de tentatives PIN (verrouillage atomique).
+- **Recommandation :** (1) aligner le contrat sur CDC_05 (statuts du § 5.2 + booléen `locked`) ; (2) création en deux temps : `POST /v1/goals` crée un brouillon à partir du devis, puis `POST /v1/goals/{goalId}/activation` avec signature d'appareil + PIN ; idem `/cancellation` ; `/lock` ; (3) durée en **mois** comme le devis (tranche D27) ; (4) construire d'abord le socle HTTP (pool, garde de session, store PIN, erreurs RFC 9457, Idempotency-Key, contrôle d'origine) avant les routes.
+- **En attendant :** aucune route d'accord n'est exposée.
+
+### D33 · Rappels : réservation conservatrice et configuration (lot 17)
+- Contexte : F-NOT-003 impose horaires et fréquence ; aucun prestataire ni travailleur de livraison disponible.
+- Option appliquée : quota global par destinataire (tous projets/canaux), consommé à la réservation, y compris si un envoi ultérieur échoue. Clé UUID idempotente ; changer de canal sur une clé est refusé. Pas de politique par défaut. Configuration accessible au propriétaire de migration uniquement, aucun endpoint administratif ajouté.
+- Limites : ce mécanisme ne constitue ni une outbox ni une preuve de livraison ; le futur dispatch doit revérifier la plage horaire et coordonner réservation, tentatives et idempotence du prestataire. Aucun destinataire réel, texte libre, numéro ou jeton stocké. Le lien du destinataire au compte authentifié doit être imposé dans le futur câblage serveur.
+- À trancher : valeurs des horaires et plafonds, circuit administratif de configuration, politique de reprise/expiration des réservations et conservation. Une réservation existante ne doit pas autoriser seule un envoi différé.
+- Réversibilité : ne pas câbler le store ; modifier la politique par le circuit humain approuvé. Aucune donnée financière touchée, aucune suppression de migration proposée.
+
+### D34 · Consommation de notifications : reprise bornée, sans livraison (lot 17)
+- Contexte : NF-REL-005 impose reprise et suivi des échecs ; aucun adaptateur officiel ni contrat d'acquittement disponible dans le module.
+- Option prudente : aucun réglage de consommation par défaut, rôle travailleur séparé et non connecté ; bail exclusif avec identité de tentative renouvelée, délai de reprise et plafond explicites. Le plafond est mémorisé lors de la première prise : modifier max_attempts ne change pas les enveloppes déjà prises. Les enveloppes épuisées sont conservées, dénombrables, sans circuit automatique de remise en file. Aucun champ d'erreur libre ou contenu fournisseur stocké.
+- Liste blanche de prise : PAYMENT_CONFIRMED, GOAL_FUNDED, HANDOVER_READY, SETTLEMENT_CONFIRMED, DISPUTE_UPDATED. PAYMENT_REMINDER reste différé tant que la coordination à l'instant d'envoi de D33 n'est pas construite, même si une réservation existe déjà.
+- À décider : durées et plafond opérationnels, circuit de configuration et reprise manuelle, conservation, supervision effective et contrat d'idempotence/acquittement du prestataire officiel. Les bornes techniques de configuration ne sont pas des valeurs recommandées.
+- Limites : pas d'envoi, de clôture de succès ni de preuve de réception. Le futur travailleur doit commiter la prise avant tout effet externe et conserver la clé logique de notification auprès du prestataire ; un bail ne garantit pas l'absence d'envoi en double si un appel externe survit à son expiration.
+- Réversibilité : laisser la configuration vide et le rôle sans connexion ; aucun travailleur ou endpoint démarré par cette tranche. Aucune donnée financière touchée.
+- Suite diagnostic local : `pnpm notifications:check --max-pending N --max-deferred-reminders N` exige ses deux seuils. Épuisement toujours signalé, dépassement strict des seuils (égalité acceptée). Rôle observateur limité aux compteurs ; outil limité à la base molopay_test en boucle locale. Aucun ordonnanceur ni canal de transmission installé : le diagnostic ponctuel ne vaut pas supervision active. Seuils opérationnels, détection par âge et destinataire d'alerte restent à décider ; aucun envoi externe autorisé par cette commande.
+
+### D35 · Sécurité du compte : blocage APP et déblocage humain (lots 06/19)
+- Périmètre : consulter ses appareils et sessions, fermer les autres sessions, se déconnecter et bloquer son propre compte depuis une session valide. Le canal est APP : appareil enregistré ne signifie pas appareil attesté. Aucune attestation, récupération ou ré-enrôlement de confiance revendiqué.
+- Option prudente : blocage, révocation des appareils et sessions, audit et clé d'idempotence dans une même transaction. Le rôle applicatif perd le droit de modifier directement les champs de blocage ; aucune fonction ni route de déblocage n'est ajoutée.
+- À décider avant exploitation : procédure humaine de déblocage après vérification renforcée, ré-enrôlement, et autorisations des canaux support/USSD. Les contrôles de débit globaux restent à compléter au lot de durcissement ; cette tranche n'autorise aucun lancement public.
+- Limites : les routes nécessitent une session déjà valide. OTP/SMS et ouverture de nouvelle session ne sont pas implémentés par cette tranche. Après logout/blocage, un nouveau passage dans le garde refuse le cookie invalidé ; seuls des rejouages déjà authentifiés avant le commit peuvent récupérer le succès mémorisé.
+- Réversibilité : ne pas exposer les nouvelles routes avant revue humaine ; aucune réactivation automatique et aucune modification financière. F-ACC-006 reste partiel (APP uniquement, sans support/USSD ni ré-enrôlement).
+### D36 · F-ACC-005 : réception des demandes, traitement à compléter
+- Option appliquée : registre de réception immuable, quatre types fermés, historique privé paginé et reçu ; aucun texte libre, document, export incomplet ou effacement automatique. RECEIVED signifie seulement enregistré, pas pris en charge ni exécuté.
+- À décider/livrer : circuit humain habilité, échanges sécurisés pour préciser rectification/opposition, vérification d'identité adaptée, export complet en moins de 30 jours, règles de conservation et suite des événements de traitement. Cette réception seule ne satisfait pas F-ACC-005.
+- Aucun changement aux textes juridiques provisoires D23, aucune promesse de service opérationnel, aucune donnée financière modifiée. Pas d'exposition publique avant revue humaine et durcissement du débit.
+
+### D37 · Échec préexistant de rotation de session (6 novembre)
+- Preuve : première grappe PostgreSQL jetable 2dhkFP, identity.db.test.ts « fait tourner le refresh une seule fois » échoue avec 23514 / session_access_window ; 304 autres tests passent, quatre nouvelles routes échouent comme attendu avant code (404).
+- Cause lue : access_issued_at et access_expires_at calculés avec deux clock_timestamp() distincts ; quelques microsecondes peuvent dépasser la limite de quinze minutes.
+- Option prudente : test de durée exacte, puis instant SQL unique matérialisé pour la rotation ; aucune relaxation de contrainte ni modification des tests existants. Revue indépendante requise avec cette tranche.
+
+### D38 · Quotas des routes compte : valeurs et périmètre restant (SEC-API-003)
+- Option appliquée : aucune valeur d'exploitation inventée. Sans politique, les quatre routes répondent 503 ; seuls les tests posent des seuils. Une politique ne se modifie pas : une nouvelle version ouvre de nouveaux budgets.
+- Limites : compte et appareil seulement ; IP, numéro et partenaire non couverts. Les compteurs ne sont pas purgés (une ligne par action, version, dimension et sujet). Toute la consommation passe par le verrou du compte : le coût sous charge n'est pas mesuré.
+- À décider : fenêtres et plafonds par action, circuit d'insertion d'une politique, purge des compteurs, limites IP/numéro/partenaire.
+- Réversibilité : retirer le décorateur `CustomerQuota` d'une route ; aucune donnée financière touchée.
+
+### D39 · Paiements, tranche 1 : points non tranchés par les sources (lot 11)
+- **Constat :** l'agrégateur n'est pas choisi ; aucune documentation officielle, aucun environnement de test ni identifiant n'est disponible. Les adaptateurs réels sont donc impossibles sans violer « zéro simulation » ou « pas de secret ».
+- **Option appliquée (la plus prudente, réversible) :** migration 0026 et module `payments` sans prestataire : tentatives immuables (accord ACTIVE exigé, clé d'idempotence unique, horloge serveur), journal d'états en liste blanche (CDC_05 § 5.1), anti-rejeu des webhooks par nonce et fenêtre ± 5 min imposés en base, vérification HMAC-SHA256 en temps constant côté domaine, port `PaymentProvider` sans implémentation. `CONFIRMED`, `REFUND_PENDING` et `REFUNDED` sont **refusés en base** (`PAYMENT_LEDGER_LINK_REQUIRED`) tant que la confirmation n'est pas liée à une écriture du grand livre (I-6).
+- **Lecture inter-modules :** la base de `payments` lit `agreements.agreement_state` pour refuser un paiement sur un accord non ACTIVE (contrôle restrictif). Le code TypeScript de `payments` n'importe pas `agreements` (frontières CDC_05 § 3 respectées).
+- **À trancher :**
+  1. agrégateur retenu (et donc format du message signé, en-têtes, nonce, liste d'IP) ;
+  2. plan de comptes de la confirmation (débit / crédit, compte cantonné, I-8) pour la tranche 2 ;
+  3. trop-perçu : refuser une tentative qui dépasse le reste dû, ou l'accepter et rembourser ;
+  4. espèces (F-PAY-005) : partenaires habilités, reçu signé, rapprochement sous 24 h ;
+  5. numérotation des reçus (F-PAY-006) ;
+  6. durée de conservation des nonces (aujourd'hui conservés sans purge).
+- **Mise à jour (tranche 2, 10 novembre) :**
+  - Point 2 **réglé par les sources** : CDC_04 § 2.2 fixe l'écriture d'un versement (débit 1200, crédit 2100 du client). Appliqué par la migration 0027 ; la base vérifie comptes, sens et montant.
+  - Point 3, option prudente appliquée : une tentative supérieure au reste dû (cible − versements confirmés) est refusée (`PAYMENT_EXCEEDS_REMAINING`). Deux tentatives concurrentes encore en attente peuvent toutefois dépasser la cible : le trop-perçu sera remboursé (lot 12). Retour arrière : remplacer `payments.anchor_attempt`.
+  - Point 4 : la confirmation des espèces est refusée (`PAYMENT_INVALID_REQUEST`) jusqu'à décision.
+  - **Limite connue :** la base de `payments` impose « pas de contribution sans écriture conforme » et « pas de CONFIRMED sans contribution », mais pas « pas d'écriture PAYMENT_CONFIRMED sans contribution » : ce dernier contrôle exigerait un déclencheur sur les tables du grand livre, que `payments` ne doit pas modifier. Le store l'assure ; à couvrir par le rapprochement (lot 14) ou une règle du module ledger.
+  - **Reste hors périmètre :** passage de l'accord à `FUNDED` à 100 % (lot 10/12), écriture 1100/1200 à réception des fonds sur le compte cantonné (lot 14), reçus numérotés (F-PAY-006).
+
+### D40 · Rapprochement, tranche 1 : contrôle de cantonnement (lot 14)
+- **Appliqué (INT-REC-002/004, sources suffisantes) :** migration 0030 ; la finance saisit le solde du relevé du compte cantonné et les règlements sortants en transit ; la base dérive du grand livre les fonds de tiers (Σ 2100 + 2200 + 2300) et les encaissements en transit (1200), calcule l'écart et ouvre un incident si l'écart ≠ 0 FCFA. Incidents non classés de plus de 48 h listés pour escalade.
+- **À trancher :** source et format des relevés (établissement de cantonnement, agrégateur) pour automatiser INT-REC-001 ; qui saisit et qui approuve le relevé (maker-checker ?) ; circuit de classement des écarts et des écritures de régularisation (INT-REC-003) ; destinataire des escalades (INT-REC-004) ; compte des règlements en transit (absent du plan minimal CDC_04 § 2.1, saisi à la main en attendant).
+- **Limite :** aucun compte 2200/2300 n'existe encore (lots 12/13) : leur inclusion dans la somme n'est vérifiée que par lecture du code.
+
+### D41 · Réclamations et litiges, tranche 1 (lot 15)
+- **Appliqué (F-SUP-001/002/003) :** migration 0032 et module `disputes`. Réclamation numérotée au hasard (`R-` + 10 caractères Crockford, jamais séquentiel, AGENTS § 8), canal en liste blanche (application, rappel USSD, téléphone), heure de réception serveur. Litige ouvert sur une réclamation liée à un accord : l'accord passe à DISPUTED dans la même transaction (versements et annulation alors refusés) ; levée par une autre personne que l'ouverture (I-7), accord ramené à son état d'origine dans la même transaction. Historique chronologique d'un accord (statuts, tentatives, versements, réclamations, litiges), réservé au client de l'accord.
+- **Option prudente :** aucun texte libre ni pièce jointe dans une réclamation (données personnelles, D36) ; issue « remboursement » d'un litige non disponible (lot 12) ; un accord DISPUTED sans litige est détecté (`disputes.disputed_without_dispute`), pas bloqué, car `disputes` ne modifie pas les tables d'`agreements`.
+- **À trancher :** délai de réponse publié (F-SUP-001, REG-CON-003) ; contenu d'une réclamation (catégories, texte, pièces, conservation) ; rôles habilités à ouvrir et lever un litige (matrice admin, lot 08) ; échanges avec le support dans l'historique ; procédure de médiation et voies de recours publiées (REG-CON-003).
+
+### D42 · Comptes comptables des partenaires (lot 12)
+- **Constat :** `ledger.account.owner_id` est un UUID ; les partenaires ont un identifiant texte.
+- **Décision (2026-11-10, délégation) :** identifiant comptable UUID v7 immuable attribué à la première validation du partenaire, en ajout seul. Détail : compte rendu § D42.
+
+### D43 · Plafonds KYC par niveau (REG-LBC-001, lot 07)
+- **Décision (2026-11-10, délégation) :** valeurs de départ paramétrées (N1 200 000 FCFA détenus / 500 000 par mois ; N2 2 000 000 / 2 000 000 ; N3 10 000 000 / 10 000 000 ; au-delà examen COMPLIANCE). ⚖ À faire valider par l'établissement de cantonnement. Détail : compte rendu § D43.
+
+### D44 · Financeur du modèle B (lot 13)
+- **Décision (2026-11-10, délégation) :** B reste fermé sans convention signée ; critères de sélection fixés. ⚖ Choix et signature réservés au fondateur. Détail : compte rendu § D44.
+
+## 2026-11-10 · Décisions prises par délégation du fondateur
+
+> Le fondateur a délégué la décision des points ouverts. Aucune ne touche un invariant (§ 7) ni un interdit (§ 8). Justifications, recherches et sources : `docs/journal/COMPTE_RENDU_DECISIONS_2026-11-10.md`. « ⚖ » = à confirmer par un tiers (juriste, agrégateur, établissement, financeur).
+
+- **D1** Rust validé. **D4** signature SSH dès qu'une clé est fournie. **D6** TSA sous contrat en production ⚖. **D7** revue mensuelle des digests. **D9** extraction du vérificateur avant la recette. **D10** audit lisible par AUDIT et COMPLIANCE, conservation 10 ans. **D11** types d'écriture figés par ADR au lot 12. **D13** OIDC + MFA pour les agents internes. **D21** identifiants confirmés. **D22** nom de base `_test` obligatoire.
+- **D23, D25** textes juridiques ⚖ juriste ; revalidation d'un partenaire si règlement, représentant, identifiants légaux ou type changent.
+- **D26** type `PAYMENT_PLAN` ; FINANCE prépare, COMPLIANCE approuve ; plan = modèle, rythme, minimum, durée 1–36 mois ; aucun frais ; B fermé jusqu'au lot 13.
+- **D27** CDC_05 prévaut (annulation depuis ACTIVE) ; durée en mois ; barème unique 100 % sans frais ; PR de doc proposée pour `FUNDED → CANCELLED_BY_CUSTOMER` (C).
+- **D29** personne physique : pièce officielle + preuve du droit sur le bien + règlement à son nom ; NIU facultatif ⚖.
+- **D30** CI locale obligatoire jusqu'au déblocage GitHub.
+- **D32** contrat aligné sur CDC_05, création en deux temps (brouillon, activation signée + PIN), `durationMonths`.
+- **D33/D34** 8 h–20 h Douala ; 1 rappel/jour/projet, 3/semaine/client ; réservation 24 h ; 5 tentatives ; conservation 90 jours.
+- **D35** déblocage en maker-checker SUPPORT_N2 / COMPLIANCE après vérification renforcée. **D36** réponse sous 30 jours ⚖ loi 2024/017.
+- **D38** quotas v1 : SECURITY_READ 60/h ; REVOKE_OTHERS 5/h ; DATA_RIGHTS_READ 30/h ; DATA_RIGHTS_SUBMIT 5/24 h (compte et appareil).
+- **D39** NotchPay et CinetPay présélectionnés ⚖ KYB ; anti-rejeu adapté (signature + déduplication par transaction + confirmation API obligatoire) ; espèces reportées ; reçus numérotés par client + empreinte d'écriture ; nonces 90 jours.
+- **D40** relevés camt.053 ou CSV signé ⚖ ; relevé saisi en maker-checker ; écarts classés FINANCE/COMPLIANCE ; escalade direction + établissement.
+- **D41** R-2020/06 : réponse sous 15 jours visés, 45 jours max ; catégories fermées + texte limité ; SUPPORT_N2 ouvre, OPERATIONS/COMPLIANCE lève ; médiateur CNEF ; conservation 5 ans ⚖.
+- **D42, D43, D44** : voir ci-dessus.
+
+### D45 · Code de remise (F-SAV-004, F-SET-001, lot 12)
+- **Décision (2026-11-10, délégation du fondateur) :** code de 10 caractères Crockford (50 bits aléatoires), affiché en deux groupes (« ABCDE-12345 ») et en QR, montré une seule fois au client ; seule une empreinte HMAC-SHA256 poivrée est conservée (poivre fourni par la configuration, ≥ 32 octets, comme D14). Validité = paramètre versionné `handover_code_validity_days` (1 à 90 jours, FINANCIAL_SETTING en maker-checker), **fermé par défaut** ; valeur proposée : 30 jours. Un seul code valide à la fois ; nouveau code possible après expiration. Code inconnu et code d'un autre marchand renvoient la même erreur (aucun oracle).
+- **Remise :** saisie par le marchand de l'accord, avec latitude/longitude ; écriture HANDOVER débit 2100 du client / crédit 2200 du marchand au prix figé (CDC_04 § 2.2), remise et FUNDED → HANDED_OVER dans la même transaction, chacune refusée par la base sans les autres. Vérificateur Rust : type HANDOVER ajouté à la liste blanche (D11).
+- **Reste (lot 12, tranches suivantes) :** notification client et marchand (F-SAV-004, lot 17) ; limitation des essais de code par marchand (lot 24) ; trop-perçu restitué ; règlement net de commission après délai de contestation (F-SET-002) ; maker-checker et instruction signée (F-SET-003/004). Taux de commission et délai de contestation : à décider.
+
+### D46 · Règlement des marchands : préparation et décision (F-SET-002/003, lot 12)
+- **Appliqué :** migration 0041. Un règlement par remise ; la base calcule brut (prix figé), commission (arrondi au plus proche, demi-franc vers le haut, même formule que `mulDivRoundHalfUp`) et net. Préparation par `PREPARE_SETTLEMENT` (OPERATIONS, FINANCE) dans la ville de l'offre ; décision par `APPROVE_SETTLEMENT` (FINANCE), autre personne (I-7, vérifié aussi en base), plafond de montant de l'approbateur ; approbation = écriture FEE_CHARGED débit 2200 / crédit 7100 dans la même transaction ; refus motivé, sans écriture. Maker-checker appliqué à **tout** règlement (seuil de F-SET-003 non fixé : option la plus stricte).
+- **Fermé par défaut :** `merchant_commission_bps` (0 à 10 000) et `settlement_contestation_days` (0 à 60) doivent être publiés en FINANCIAL_SETTING. **Aucune valeur n'est proposée par l'agent** : ce sont des prix et des engagements commerciaux. ⚖ À fixer par le fondateur (et par type d'abonnement, F-PRT-005, le cas échéant).
+- **Écart de sources signalé :** F-SET-002 dit qu'un litige suspend le règlement, mais CDC_05 § 5.2 n'autorise DISPUTED que depuis ACTIVE ou FUNDED, pas après la remise. Option prudente : toute réclamation reçue après la remise bloque la préparation du règlement (`SETTLEMENT_BLOCKED`), jusqu'à ce qu'un circuit de clôture des réclamations existe.
+- **Reste :** instruction signée, exécution par l'établissement de cantonnement, alerte à 24 h (F-SET-004, états INSTRUCTED → EXECUTED | REJECTED de CDC_05 § 5.4) ; écriture de sortie 2200 → 1100 à l'exécution.
+- **Mise à jour D46 (F-SET-004) :** migration 0042. Instruction canonique `{domain, payout_id, partner_id, net_xaf}` signée Ed25519 par la clé de la plateforme (configuration ; clé de développement générée par les tests, D5), conservée avec son empreinte ; la base exige qu'elle reprenne le règlement approuvé. Exécution rapportée par l'établissement, enregistrée par une autre personne que l'émetteur avec sa référence ; EXECUTED = écriture SETTLEMENT_SENT 2200 → 1100 dans la même transaction ; REJECTED sans écriture. Instructions non confirmées sous 24 h listées (`settlement.overdue_instructions`). ⚖ Format et canal réels de l'instruction à convenir avec l'établissement de cantonnement ; clé HSM de production (D5).
+- **Limite :** tant que la réception 1200 → 1100 n'est pas écrite (rapprochement, lot 14), le compte miroir 1100 peut devenir débiteur négatif ; l'invariant de cantonnement s'appuie sur le relevé, pas sur 1100.
+
+### D32 · Mise en œuvre, tranche 1 (10 novembre)
+- **Appliqué :** contrat OpenAPI 0.3.0 (changement incompatible assumé) : `Goal` suit CDC_05 § 5.2 (10 statuts, `locked` booléen, modèle, plan, durée en mois, versé et progression dérivés du grand livre, titre/marchand nullables pour C) ; `GoalRequest` = brouillon {model, offerId | beneficiaryId + targetXaf, planId, durationMonths, acceptTermsVersion} ; `Quote` porte désormais `planId` et `durationMonths`. Routes `GET /v1/goals`, `GET /v1/goals/{goalId}`, `POST /v1/goals` (brouillon, Idempotency-Key, Origin, session). Client web adapté (statuts FR/EN, objectif C, formulaire : modèle A seulement, B refusé).
+- **Reste (tranche 2) :** `POST /v1/goals/{goalId}/activation`, `/cancellation`, `/lock` avec signature d'appareil Ed25519 et PIN (INT-NR-001, SEC-AUTH-002) ; route des plans et des devis serveur ; version des conditions encore provisoire (D23).
+- **Mise à jour D32 (tranche 2) :** `GET /v1/goals/{goalId}/signing-payload?transition=ACTIVATE|CANCEL` (octets exacts à signer, format D28), `POST /v1/goals/{goalId}/activation` et `/cancellation` (PIN + signature Ed25519 de l'appareil de la session), `POST /v1/goals/{goalId}/lock` (PIN). PIN vérifié dans sa propre transaction validée (l'échec reste compté). Poivre PIN fourni par la configuration (`PIN_PEPPER`), **fermé par défaut** : 503 `PIN_UNCONFIGURED`. Contrôleur placé dans `workflows` (orchestration identity + agreements).
+
+### D47 · Notifications des faits métier (F-NOT-001, INT-IDEM-004, lot 17)
+- **Appliqué :** enveloppes écrites dans l'outbox (0019) dans la transaction du fait : PAYMENT_CONFIRMED (clé = contribution), GOAL_FUNDED (clé = accord), HANDOVER_READY (émission du code, jamais le code lui-même), DISPUTE_UPDATED (ouverture et levée). SMS et push pour chaque fait (F-NOT-001). Clés d'événement déterministes (UUID v8 dérivé du fait par SHA-256 d'une sérialisation JSON) : un rejeu ne duplique rien. Aucun envoi (lot 17, D33/D34).
+- **Option prudente :** langue « fr » (référence) tant qu'aucune préférence de langue n'est stockée au compte ; émission du code de remise séparée de la confirmation (une validité non publiée ne doit pas faire échouer un versement).
+- **À faire :** préférence de langue du client ; notifications au marchand (F-SAV-004 « notifier client et marchand ») et SETTLEMENT_CONFIRMED : destinataire partenaire à définir (l'outbox n'adresse que des UUID de client) ; choix du canal selon le consentement du client.
+
+### D48 · Règlement au bénéficiaire du modèle C (F-PLN-002/003)
+- **Décision (11 novembre, délégation du fondateur) :** pièce exigée selon la catégorie du bénéficiaire : bailleur ou agence → bail ; vendeur de terrain → titre foncier ; école et vendeur de matériaux → aucune (F-PLN-002 ne vise que loyer, caution et terrain). Dépôt par le client de l'objectif ; seule l'empreinte SHA-256 est conservée. Examen par la conformité en maker-checker : une personne propose (APPROVED ou REJECTED motivé), une autre confirme (nouvelle action `REVIEW_BENEFICIARY_DOCUMENT`, COMPLIANCE ; I-7 vérifié aussi en base).
+- **Appliqué :** migrations 0043/0044 ; règlement demandé par le client sur un objectif C FUNDED : écriture BENEFICIARY_PAYMENT débit 2100 / crédit 2200 du bénéficiaire, règlement et FUNDED → PAID_TO_BENEFICIARY dans la même transaction ; refusé sans pièce validée. Vérificateur Rust : BENEFICIARY_PAYMENT en liste blanche.
+- **Reste :** stockage chiffré du fichier lui-même (infrastructure) ; route HTTP sous PIN ; règlement à l'échéance convenue (ordonnanceur) ; sortie des fonds vers le bénéficiaire (instruction et exécution comme D46, à généraliser au-delà des remises) ; reçu au client et au bénéficiaire (F-PLN-003). ⚖ Liste des pièces acceptées comme preuve de propriété (D29).
+
+### D49 · Remboursement au client (F-PLN-004, F-SAV-005, CDC_05 § 5.4, lot 12)
+- **Décision (11 novembre, délégation du fondateur) :** un remboursement par objectif, possible seulement depuis CANCELLED_BY_CUSTOMER, FROZEN ou DISPUTED ; **montant calculé par la base** = 100 % des versements confirmés au grand livre, sans frais (F-SAV-005 : annulation sans pénalité ; aucun frais de remboursement n'est prévu par les sources). Circuit identique aux règlements (D46) : préparation `PREPARE_REFUND` (OPERATIONS, FINANCE), décision `APPROVE_REFUND` (FINANCE, plafond de montant) par une autre personne, instruction canonique `{domain: refund-instruction-v1, refund_id, customer_id, amount_xaf}` signée Ed25519, exécution rapportée par l'établissement et enregistrée par une autre personne que l'émetteur (I-7 vérifié aussi en base).
+- **Appliqué :** migrations 0045/0046. EXECUTED = écriture REFUND_SENT débit 2100 du client / crédit 1100, exécution et transition → REFUNDED dans la même transaction ; la base refuse REFUNDED sans écriture couvrant les versements, et une exécution sans transition (I-6). REJECTED : aucune écriture, l'objectif reste à son état. Vérificateur Rust : REFUND_SENT en liste blanche. 11 mutants des règles de base tués.
+- **Reste :** route HTTP du back-office ; remboursement du trop-perçu (versement au-delà de la cible) ; alerte à 24 h sur les instructions non confirmées (comme `settlement.overdue_instructions`) ; notification REFUND_SENT au client (lot 17). ⚖ Délai de remboursement promis au client et canal (Mobile Money d'origine ou autre) à convenir avec l'établissement de cantonnement.
+
+### D50 · Virement des fonds au bénéficiaire C (F-PLN-003, F-SET-003/004, lot 12)
+- **Décision (11 novembre, délégation du fondateur) :** après le règlement au bénéficiaire (D48, 2100 → 2200), un virement par objectif sort les fonds du compte cantonné. Bénéficiaire et montant calculés par la base (cible de l'objectif) ; **aucune commission** prélevée sur le bénéficiaire (aucune source n'en prévoit ; option la plus prudente). Circuit identique à D46/D49 : préparation `PREPARE_BENEFICIARY_PAYOUT` (OPERATIONS, FINANCE), décision `APPROVE_BENEFICIARY_PAYOUT` (FINANCE, plafond) par une autre personne, instruction canonique `beneficiary-payout-instruction-v1` signée Ed25519, exécution enregistrée par une autre personne que l'émetteur ; EXECUTED = écriture SETTLEMENT_SENT 2200 du bénéficiaire → 1100 (type déjà en liste blanche du vérificateur) ; REJECTED sans écriture. Pas de périmètre de ville : les bénéficiaires n'ont pas de ville au registre.
+- **Appliqué :** migration 0047 ; alerte 24 h commune `settlement.overdue_outgoing_instructions` (règlements, remboursements, virements — couvre le reste de D49). 15 mutants des règles de base tués.
+- **Reste :** routes HTTP du back-office ; virement à l'échéance convenue (ordonnanceur) ; reçu au client et au bénéficiaire (F-PLN-003, lot 17). ⚖ Commission éventuelle sur le modèle C : décision commerciale du fondateur.
+
+### D51 · Trop-perçu et nouvelle tentative de remboursement (D39, D49)
+- **Constat :** D39 laisse possible un trop-perçu (deux tentatives concurrentes, chacune sous le reste dû, toutes deux confirmées) sans aucune voie de restitution ; et un remboursement d'annulation refusé par l'établissement ne pouvait plus être retenté (un seul remboursement par objectif, à vie).
+- **Décision (11 novembre, délégation du fondateur) :** `settlement.refund` porte une nature `CANCELLATION | SURPLUS`. Trop-perçu = versements confirmés − cible − déjà remboursé, restituable seulement cible atteinte (FUNDED, HANDED_OVER, PAID_TO_BENEFICIARY), sans changer l'état de l'objectif. Annulation = versements confirmés − déjà remboursé. « Déjà remboursé » = débits 2100 des écritures REFUND_SENT **de cet objectif**. Un seul remboursement **en cours** par objectif (verrou consultatif en base) ; un remboursement refusé par l'approbateur ou par l'établissement peut être préparé de nouveau. Même circuit maker-checker, instruction signée et exécution que D49.
+- **Appliqué :** migration 0048 ; 11 tests PostgreSQL ; 9 mutants tués (dont un survivant initial : comptage par client au lieu de par objectif).
+- **Reste :** détection automatique du trop-perçu et alerte aux opérations (aujourd'hui préparation manuelle) ; notification au client (lot 17). ⚖ Délai de restitution promis au client (comme D49).
+
+### D52 · Notification des fonds sortis au client (F-NOT-001, lot 17)
+- **Décision (11 novembre) :** F-NOT-001 ne liste que six faits notifiés ; aucun type d'événement n'est ajouté. Le fait « règlement » (`SETTLEMENT_CONFIRMED`, gabarit générique sans montant) est émis au client, SMS et push, dans la transaction de l'exécution confirmée d'un remboursement (D49/D51) ou d'un virement au bénéficiaire de son objectif C (D50). Rien sur un refus de l'établissement (les opérations retentent). Clé déterministe par remboursement / virement.
+- **À valider (⚖ gabarits) :** un texte distinct « remboursement effectué » serait plus clair pour le client ; il exige d'étendre la liste de F-NOT-001 et de faire valider les gabarits FR/EN.
+
+### D53 · Règles de fraude explicables, tranche 1 (SEC-FRD-001/002, lot 16)
+- **Décision (11 novembre, délégation du fondateur) :** trois règles évaluables sur données internes, à fenêtre glissante ]now − fenêtre, now] et seuil « plus de N » : vélocité des versements confirmés par client (PAYMENT_VELOCITY), annulations répétées par client (REPEATED_CANCELLATIONS), remises anormales par boutique (HANDOVER_SPIKE). Seuils dans le paramètre versionné `risk_rule_thresholds` (maker-checker), **fermé par défaut** : sans publication, aucune détection n'est lancée et l'absence est signalée (`RISK_SETTINGS_NOT_CONFIGURED`). Chaque alerte porte ses preuves (faits comptés, fenêtre, seuil). Aucune sanction automatique (SEC-FRD-002).
+- **Valeurs proposées, à publier par Risque/Conformité (⚖ appétence au risque) :** vélocité > 3 versements en 60 min ; > 2 annulations en 30 jours ; > 20 remises par boutique en 24 h. Non publiées par l'agent.
+- **Bloqué :** « plusieurs comptes par appareil » (l'empreinte stockée est celle de la clé d'appareil, pas du terminal : attestation, lot 19) ; « changement de numéro suivi de retrait » (aucun historique des numéros ni de retrait client à ce jour).
+- **Mise à jour D53 (tranche 2) :** migration 0049 (schéma `risk` : alertes en ajout seul, preuves de forme fixe et cohérentes vérifiées par la base, une alerte ouverte par règle et sujet sous verrou, cohérence règle/nature du sujet) ; passe de détection `workflows/risk-detection.ts` (faits lus par chaque module : versements, annulations, remises) ; décision tracée et motivée par la nouvelle action `DECIDE_RISK_ALERT` (RISK, COMPLIANCE), **sans périmètre de ville** (les clients n'ont pas de ville au registre ; `MANAGE_RISK_ALERT`, limité par ville, reste inchangé) ; aucune sanction appliquée. 8 mutants de base tués.
+- **Reste :** ordonnanceur de la passe (exploitation) ; ouverture d'un dossier lié (SEC-FRD-002) et mesures réversibles (gel, D31) en maker-checker ; échantillonnage des remises (SEC-FRD-003) ; tableau de bord (F-BO-003, lot 21).
+
+### D54 · Classement des écarts de cantonnement (INT-REC-003/004, lot 14)
+- **Décision (11 novembre, délégation du fondateur) :** une personne de FINANCE propose une classe (en transit, frais, doublon, inconnu) avec son explication ; une autre la valide ou la refuse avec motif (nouvelle action `CLASSIFY_RECONCILIATION_GAP`, FINANCE ; I-7 vérifié aussi en base). Une proposition en attente ou validée bloque la suivante ; un refus en permet une nouvelle. La classe en vigueur est la proposition validée (la colonne `incident.classification` de 0030, en ajout seul, reste vide).
+- **Interprétation prudente d'INT-REC-004 :** un écart de plus de 48 h reste escaladé tant qu'il n'a pas de classe validée **autre que « inconnu »**.
+- **Appliqué :** migration 0050 ; 8 tests PostgreSQL ; 8 mutants tués.
+- **Reste :** correction par écriture de régularisation approuvée (circuit de contre-passation existant, à relier à l'écart) ; relevés réels de l'agrégateur et du compte cantonné (INT-REC-001, bloqué : accès humain) ; solde du suspens 2900 en fin de mois (INT-REC-005).
+
+### D55 · Suspens 2900 en fin de mois (INT-REC-005, lot 14)
+- **Décision (11 novembre) :** à une date de clôture, si le solde du suspens 2900 n'est pas nul, chaque écriture l'ayant mouvementé jusqu'à cette date doit être justifiée ; justification proposée par une personne de FINANCE, validée par une autre (`CLASSIFY_RECONCILIATION_GAP`, I-7 en base), uniquement sur une écriture touchant 2900. Lecture : solde à la date et lignes non justifiées.
+- **Appliqué :** migration 0051 ; 8 tests PostgreSQL ; 7 mutants tués.
+- **Reste :** ordonnanceur de fin de mois et escalade si des lignes restent non justifiées (exploitation) ; écriture de régularisation qui solde le suspens (circuit de contre-passation).
+
+### D56 · Clôture des réclamations, délai de réponse, rôles du litige (F-SUP-001/002, lot 15)
+- **Décision (11 novembre, application de D41) :** actions `OPEN_DISPUTE` et `CLOSE_COMPLAINT` (SUPPORT_N2), `RESOLVE_DISPUTE` (OPERATIONS, COMPLIANCE) ; I-7 inchangé (la levée exige une autre personne que l'ouverture). Clôture d'une réclamation : issue en liste fermée (`ANSWERED`, `WITHDRAWN`), sans texte libre, refusée tant qu'un litige ouvert sur elle n'est pas levé (store et base). Délai : réclamations non closes après 15 jours listées, dépassement du maximum de 45 jours signalé (valeurs D41, ⚖ R-2020/06).
+- **Écart D46 traité :** une réclamation reçue après la remise ne bloque plus le règlement du marchand que tant qu'elle n'est pas close (`settlement.anchor_payout` repris de 0041, diff vérifié : seule la condition change).
+- **Appliqué :** migration 0052 ; 8 tests PostgreSQL ; 7 mutants tués.
+- **Reste :** notification de la clôture au client (fait DISPUTE_UPDATED) ; routes support (back-office, bloqué) ; texte de réponse et pièces (D41, à trancher).
+
+### D57 · Réservation du stock (F-CAT-005, lot 10)
+- **Décision (11 novembre, délégation du fondateur) :** une unité est réservée quand l'accord devient ACTIVE (engagement signé), pas au brouillon (sinon des brouillons pourraient épuiser le stock). Réservation dérivée des états (ACTIVE, FUNDED, DISPUTED, FROZEN) : annulation et remboursement la libèrent sans écriture supplémentaire. Disponible = stock déclaré par la dernière version publiée − réservations − remises postérieures à cette version ; précommande non limitée. Imposé par la base sous verrou par offre (`CATALOG_STOCK_UNAVAILABLE`).
+- **Appliqué :** migration 0053, fonction `agreements.available_stock` ; 8 tests PostgreSQL dont concurrence ; 7 mutants tués, 1 équivalent (retour anticipé en précommande : un stock NULL ne déclenche pas le refus).
+- **Reste (F-CAT-005) :** règle de réapprovisionnement quand l'objectif dure plus que la disponibilité, et proposition d'une offre de remplacement ou du remboursement intégral en cas de rupture (⚖ engagement commercial, à décider) ; affichage du disponible dans le catalogue public.
+
+### D58 · Reçu de règlement au bénéficiaire C (F-PLN-003)
+- **Appliqué :** `GET /v1/goals/{goalId}/beneficiary-receipt` (client de l'objectif, session) : montant, bénéficiaire, date d'exécution, référence de l'établissement et 8 premiers caractères hexadécimaux de l'empreinte de l'écriture (vérifiable au grand livre, comme D39) ; disponible seulement après exécution confirmée (404 `SETTLEMENT_NOT_FOUND` sinon). Contrat 0.5.0. Le client est aussi notifié (D52).
+- **Bloqué :** envoi du reçu au bénéficiaire : l'outbox n'adresse que des clients (D47) ; canal partenaire à concevoir avec le portail partenaire (lot 20).
+
+### D59 · Export du grand livre et vérification indépendante sur flux réels (INT-VER-001/003, lot 23)
+- **Appliqué :** `ledger/export.store.ts` exporte toutes les écritures au format du vérificateur (contenu haché exact). Test d'intégration : grand livre produit par les flux réels (versements, règlement au bénéficiaire, virement, remboursement), lot Merkle et tête signée Ed25519 (clé de test générée), vérifié par le binaire Rust réel (équilibre, chaîne, Merkle, signature, témoin) ; une altération de montant est détectée.
+- **Constat :** `pnpm verify:ledger` réutilise un binaire release existant sans le recompiler ; un binaire antérieur à une modification de la liste blanche pourrait être utilisé. Le nouveau test recompile (incrémental) avant usage. **À décider (outillage) :** recompiler systématiquement dans `verify:ledger`.
+- **Reste (lot 23) :** export signé périodique et envoi aux témoins réels (canal authentifié, conventions) ; clé de journal de production (HSM, D5).
+
+### D60 · Quotas des routes client du modèle C (SEC-API-003)
+- **Décision (11 novembre, délégation du fondateur, même méthode que D38) :** dépôt de pièce du bénéficiaire 10 par 24 h, règlement au bénéficiaire 5 par heure, par compte et par appareil ; le reçu (lecture) n'est pas limité. Au-delà : 429 `REQUEST_RATE_LIMITED` avec `Retry-After`, sans révéler compteur ni plafond. Le PIN garde en plus son propre verrouillage.
+- **Appliqué :** migration 0054 (liste blanche des actions élargie ; `identity.consume_customer_quota` repris de 0025, diff vérifié ; politique version 1). Décorateur retiré : test rouge.
+- **Reste :** quotas des routes d'objectifs (création, activation, annulation, verrou) ; limites par IP et par numéro (D38).
+
+### D61 · Quotas des routes d'objectifs (SEC-API-003)
+- **Décision (11 novembre, délégation du fondateur, méthode D38) :** création d'objectif 20 par 24 h ; activation, annulation et verrou sous PIN : budget commun de 10 par heure ; par compte et par appareil. Le PIN garde son verrouillage propre.
+- **Appliqué :** migration 0055 (fonction reprise de 0054, diff vérifié) ; décorateurs sur les quatre routes ; tests 429 ; retrait des décorateurs → tests rouges.
+- **Reste :** limites par IP et par numéro (D38) ; lectures non limitées (catalogue public, objectifs, devis).
+
+### D62 · Authentification du personnel par WebAuthn (SEC-AUTH-004/005, lot 21) — ADR-0007 proposé
+- **Option appliquée (régime sprint, la plus prudente et réversible, en attente d'approbation) :** WebAuthn vérifié par l'API elle-même (`node:crypto`, aucune dépendance ajoutée) ; TOTP et OTP écartés car non résistants à l'hameçonnage (SEC-AUTH-004). Détails, points ouverts et alternative (fournisseur OIDC) dans `docs/04_annexes/adr/ADR-0007-authentification-personnel-webauthn.md`.
+- **Tranche 1 appliquée :** `modules/admin/webauthn.ts`, vérification pure de l'inscription et de l'assertion : ES256 et EdDSA, UP et UV exigés, défi ≥ 16 octets comparé en temps constant, origine et RP ID en liste blanche, inter-origines refusé, compteur strictement croissant, code unique `STAFF_AUTH_INVALID`. 9 tests avec un authentificateur logiciel conforme à la spécification (vraies clés) ; 14 mutants tués.
+- **⚖ À trancher :** attestation matérielle (AAL3 : liste des modèles de clés autorisés) ; réseau isolé ; préférence éventuelle pour un fournisseur d'identité.
+- **Suite :** comptes du personnel et rôles en base (maker-checker), défis à usage unique, sessions de 15 min, garde HTTP reconstruisant l'`AdminPrincipal`, puis routes du back-office.
+- **Mise à jour D62 (tranche 2) :** migration 0056 (schéma `admin`, en ajout seul) : compte et rôles du personnel nés d'une demande `ROLE_GRANT` approuvée par une autre personne, contenu exact vérifié par la base (pas d'élévation de privilège) ; désactivation par une seule personne motivée ; enrôlement d'une clé avec jeton remis hors bande (empreinte seule conservée) ; défis à usage unique de 5 min ; compteur d'assertion strictement croissant imposé par la base ; sessions de 15 min au plus (plus strict que 15 min d'inactivité), révocables ; principal reconstruit côté serveur (`resolveStaffPrincipal`). Store du moteur maker-checker (`admin/approval.store.ts`). 12 tests PostgreSQL ; 8 mutants tués, 1 non prouvé (expiration du défi en base, non testable sans avancer l'horloge ; le store la contrôle aussi).
+- **Suite (tranche 3) :** routes HTTP du personnel (défi, connexion, déconnexion) et garde `StaffSessionGuard` ; routes du back-office branchées sur les flux existants. **Rien n'est mis en service** avant l'approbation d'ADR-0007.
+- **Mise à jour D62 (tranche 3) :** `StaffSessionGuard` (cookie `staff_session` distinct du client, httpOnly, Secure, SameSite=Strict, 15 min ; principal reconstruit en base à chaque requête) ; routes `POST /v1/staff/login-challenges`, `POST /v1/staff/sessions`, `DELETE /v1/staff/sessions/current` ; première route du back-office `POST /v1/backoffice/refunds/{refundId}/decision` branchée sur `decideRefund` (I-7 et plafonds inchangés). **Fermé par défaut** : sans partie de confiance configurée, 503 `STAFF_AUTH_UNCONFIGURED` ; `main.ts` ne la configure pas tant qu'ADR-0007 n'est pas approuvé. Idempotency-Key exigée sur toutes ces routes (aucune exemption au contrôle CI) : seul le corps est mémorisé, le jeton n'existe que dans le cookie posé à la première exécution. Contrat 0.6.0.
+- **Pour mettre en service (décision du fondateur) :** approuver ADR-0007, fixer RP ID et origine du back-office, liste des clés matérielles autorisées, réseau isolé ; puis brancher les autres flux (virements, règlements, litiges, écarts, alertes) sur le même modèle.
+- **Mise à jour D62 (tranche 4) :** circuits complets du back-office pour les remboursements (préparation, décision, instruction signée, exécution) et les virements aux bénéficiaires C, en HTTP, avec corps en liste blanche ; clé de signature des instructions fournie par la configuration (`platformSigningKey`, HSM en production, D5), **fermée par défaut** (503 `SIGNING_UNCONFIGURED`). Contrat 0.7.0. Réversible : ces routes ne dépendent que du principal, quelle que soit la source d'authentification retenue.
+- **Mise à jour D62 (tranche 5) :** 8 routes de contrôle au back-office (classement des écarts et suspens en maker-checker, décision sur les alertes de fraude, ouverture et levée des litiges, clôture des réclamations), même modèle ; contrat 0.8.0. Reste : règlements marchands (ville en contexte), lectures du back-office (listes à traiter), préparation des demandes ROLE_GRANT et paramètres financiers en HTTP.
+- **Mise à jour D62 (tranche 6) :** règlements des marchands au back-office (4 routes ; ville fournie par l'agent, contrôlée dans son périmètre et contre l'offre de l'accord) ; contrat 0.9.0. **Défaut corrigé :** `ADMIN_SCOPE_DENIED` et `ADMIN_AMOUNT_LIMIT` (refus d'autorisation) sortaient en 422 au lieu de 403 ; jamais exposés en HTTP jusqu'ici.
+- **Mise à jour D62 (tranche 7) :** `GET /v1/backoffice/queue` (F-BO-003) : remboursements, virements et règlements par étape, instructions en retard, écarts à escalader, suspens non justifié, alertes ouvertes, réclamations en retard ; motif de consultation exigé (règle existante de `READ_FINANCIAL_HISTORY`) et consultation inscrite à l'audit chaîné dans la même transaction (F-BO-004). Contrat 0.10.0.
+- **Mise à jour D62 (tranche 8) :** administration en HTTP — demandes maker-checker (types ouverts : `ROLE_GRANT`, `FINANCIAL_SETTING`), création de compte et attribution de rôles depuis une demande approuvée (base garante), désactivation motivée, jeton d'enrôlement rendu une seule fois (jamais conservé dans le magasin d'idempotence), publication d'un paramètre financier approuvé par son préparateur. Contrat 0.11.0. **Conséquence :** dès la mise en service, le fondateur pourra faire publier commission et délai de contestation (D46) et seuils de fraude (D53) depuis le back-office, en maker-checker.
+- **Mise à jour D62 (tranche 9) :** application web `apps/back-office` (Next.js, mêmes dépendances épinglées que le client, aucune nouvelle) : connexion par clé de sécurité (`navigator.credentials.get`, vérification de l'utilisateur exigée, aucun mot de passe, échec générique) et file de travail avec motif obligatoire ; en-têtes stricts (cadres interdits, WebAuthn limité à la même origine, aucune mise en cache). Les écrans d'action (décisions, instructions, exécutions) restent à faire.
+- **Mise à jour D62 (tranches 13–14) :** lacune comblée — l'enrôlement d'une clé n'avait ni route ni écran : `POST /v1/staff/credentials` (sans session, le jeton remis en main propre fait office de preuve ; jamais mémorisé) et page `/enrolement` (`navigator.credentials.create`, ES256/EdDSA, vérification de l'utilisateur exigée). L'administration remet un **code d'enrôlement** unique (`défi.challenge.jeton`). Contrat 0.12.0.
+- **Test de bout en bout** du back-office : API réelle, base jetable, application compilée, Chromium réel avec authentificateur WebAuthn virtuel (CTAP2 via CDP) — enrôlement, connexion par clé, file motivée, approbation d'un remboursement, décision et audit vérifiés en base. Dépendance ajoutée : `playwright` **1.63.0** épinglée (prévue par ADR-0001, identique à la version déjà installée) ; CI : installation de Chromium dans le job bout en bout.
+- **Points d'exploitation :** l'adresse de l'API doit être fournie au **build** du back-office (réécritures figées) ; le défi d'enrôlement expire en 5 minutes, ce qui impose une remise immédiate du code (⚖ à allonger si la remise en main propre l'exige).
+
+
+### D63 · Comptes et authentification des partenaires (SEC-AUTH-006, F-PRT-003, lot 20)
+- **Constat (17 novembre) :** la confirmation de remise au comptoir (`confirmHandoverAtPartner`, F-SET-001) n'a aucune route HTTP : aucun compte partenaire n'existe ; `settlement.handover.partner_user_id` est un texte libre fourni par l'appelant.
+- **Option appliquée (régime sprint, la plus prudente et réversible) :**
+  - comptes nominatifs `catalog.partner_user` (rôles `MANAGER`, `SELLER`), réservés à un **marchand validé** ;
+  - **gérant** créé uniquement depuis une demande `PARTNER_APPROVAL` approuvée par une autre personne (préparation `PREPARE_PARTNER`, décision `APPROVE_PARTNER`), charge exacte `{operation: CREATE_PARTNER_MANAGER, partner_id, user_id, login}` vérifiée par la base ;
+  - **vendeur** créé par un gérant actif du même partenaire (F-PRT-003 : le partenaire gère son personnel) ; un gérant ne peut désactiver que ses vendeurs ; un gérant n'est désactivé que par le personnel interne ;
+  - **WebAuthn pour tous** (gérant et vendeur), UP + UV exigés : satisfait « MFA du gérant » et l'option « WebAuthn » des vendeurs ; **TOTP écarté** (secret partagé à conserver côté serveur, rejouable par hameçonnage) ;
+  - même mécanique que D62 (vérification `admin/webauthn.ts`, défis à usage unique de 5 min, compteur croissant, jeton d'enrôlement hors bande, sessions de 15 min au plus, SEC-AUTH-005), **dans un espace distinct** (tables, cookie et partie de confiance propres au portail partenaire) : une session partenaire ne vaut jamais session du personnel, et inversement ;
+  - **fermé par défaut** : sans partie de confiance partenaire configurée, 503.
+- **⚖ À trancher par le fondateur :** RP ID et origine du portail partenaire ; durée de session au comptoir (15 min impose une reconnexion fréquente des vendeurs) ; ouverture aux bénéficiaires du modèle C (reçus, D58) ; périmètre par boutique (ABAC « boutique » de SEC-AUTHZ-001 : aucune notion de boutique en base aujourd'hui, le périmètre est le partenaire) ; abonnements (F-PRT-005).
+- **Tranches prévues :** 1) base et store (migration 0057) ; 2) routes de connexion partenaire et route de remise au comptoir, identité du vendeur imposée par la session et vérifiée par la base ; 3) gestion des vendeurs par le gérant ; 4) écrans du portail.
+- **Mise à jour D63 (tranche 1, 17 novembre) :** migration 0057 (schéma `catalog`, en ajout seul : comptes, désactivations, défis, clés, assertions, sessions des partenaires) ; `catalog/partner-user.store.ts` (SQL seul) et `workflows/partner-auth.ts` (vérification WebAuthn par `admin/webauthn.ts` avec la partie de confiance partenaire, code `PARTNER_AUTH_INVALID`). Le moteur maker-checker accepte désormais un contexte d'autorisation (partenaire) : sans lui, une demande `PARTNER_APPROVAL` était impossible à préparer ou décider (règle de périmètre existante, inchangée). 19 tests PostgreSQL ; 16 mutants des règles de base tués (un 17e, l'expiration du défi en base, non prouvable sans avancer l'horloge, comme en D62).
+- **Constat à trancher :** les attributions de rôles du personnel (0056) n'ont pas de périmètre partenaire ; un agent `PARTNER_NETWORK` connecté par session ne peut donc préparer aucune demande `PARTNER_APPROVAL` (refus `ADMIN_SCOPE_DENIED`, prudent). Proposition : ajouter un périmètre partenaire aux attributions (maker-checker `ROLE_GRANT`) avant d'ouvrir la création des gérants au back-office.
+- **SCA :** une alerte modérée (`glob` ≤ 14.0.1, GHSA-3g3m-2fjr-6pw4) via `testcontainers`, dépendance de test uniquement ; le contrôle (`--prod`, seuil élevé) passe ; aucune dépendance modifiée.
+- **Mise à jour D63 (tranche 2, 17 novembre) :** routes `POST /v1/partner/login-challenges`, `POST /v1/partner/credentials`, `POST /v1/partner/sessions`, `DELETE /v1/partner/sessions/current` et `POST /v1/partner/handovers` (remise au comptoir) ; `PartnerSessionGuard` (cookie `partner_session` distinct, principal partenaire reconstruit en base) ; migration 0058 : la base exige que `settlement.handover.partner_user_id` soit un compte actif du marchand. **Fermé par défaut** : sans partie de confiance partenaire, 503 `PARTNER_AUTH_UNCONFIGURED` ; sans poivre des codes de remise, 503 `HANDOVER_UNCONFIGURED`. Contrat 0.14.0 : le brouillon antérieur (connexion par courriel et mot de passe, code à 6 chiffres, `storeId`) est remplacé — il contredisait SEC-AUTH-006 (MFA du gérant), le code réel de remise (10 caractères Crockford, D45) et l'absence de boutiques en base. Sessions croisées refusées (personnel ↔ partenaire). 11 tests HTTP ; 8 mutants tués, 1 équivalent (le corps en liste blanche refuse déjà `partnerId`).
+- **Reste (tranches 3–4) :** gestion des vendeurs par le gérant en HTTP (création, enrôlement, désactivation) ; création du gérant au back-office (périmètre partenaire du personnel à trancher) ; écrans du portail ; limitation des tentatives de code par vendeur (le code fait 50 bits, risque faible).
+
+### D64 · Next.js 16.4.3 signalé vulnérable (GHSA-mfr8-8qww-v76h, modéré)
+- **Constat (17 novembre) :** `next build` refuse désormais de compiler (`SecurityFatalError`) : `pnpm test:e2e` (back-office) échoue au build, sans lien avec le code. `pnpm audit` : next ≥ 16.3.0 ≤ 16.4.4 vulnérable, corrigé en **16.4.5** (client web, back-office, racine). Le contrôle SCA (`--prod`, seuil élevé) passe.
+- **Option prudente appliquée :** aucune dépendance modifiée par l'agent (AGENTS.md § 8 : dépendance revue et épinglée). **À décider :** montée épinglée `next@16.4.5` dans les trois `package.json` et le lockfile, en PR dédiée revue. Le test de bout en bout est à rejouer ensuite.
+- **✅ Tranché par le fondateur (27 novembre) et fait :** `next@16.4.5` épinglé dans la racine et les trois applications web. Le fichier de verrouillage ne change que `next`, `@next/env` et `@next/swc-*`, de 16.4.3 à 16.4.5. `pnpm audit --prod` ne trouve aucune vulnérabilité connue. `next build` passe pour le client web, le back-office et le portail partenaire, ce dernier compilé pour la première fois. `pnpm test:e2e` : 2/2.
+- **Mise à jour D63 (tranche 3, 17 novembre) :** gestion des vendeurs par le gérant en HTTP : `GET /v1/partner/users`, `POST /v1/partner/sellers`, `POST /v1/partner/sellers/{sellerId}/enrollments` (jeton rendu une seule fois, jamais mémorisé), `POST /v1/partner/sellers/{sellerId}/disable` (motif). Vendeur → 403 `PARTNER_ROLE_DENIED` ; compte inconnu, d'un autre partenaire ou gérant → même 404 `PARTNER_USER_NOT_FOUND` (F-PRT-004, aucun oracle). Contrat 0.15.0. 6 tests HTTP ; 5 mutants tués, 2 équivalents (rejeu sans jeton déjà garanti ; motif vide déjà refusé par le store).
+- **Reste :** création du gérant au back-office (périmètre partenaire du personnel à trancher) ; écrans du portail partenaire ; tableau des commandes et règlements (F-PRT-004) ; abonnements (F-PRT-005, décision commerciale).
+- **Mise à jour D63 (tranche 4, 17 novembre) :** `GET /v1/partner/orders` (gérant et vendeur) : accords du seul partenaire de la session, brouillons exclus, 200 plus récents ; état, titre de la version d'offre figée, montant cible, progression dérivée du grand livre (I-9), date de remise. **Aucune donnée du client**, même à 100 % (option la plus prudente : F-PRT-004 autorise l'anonymisation levée à 100 %, mais le code de remise suffit au comptoir). Contrat 0.16.0 (l'ancien schéma prévoyait un nom de client). 5 tests HTTP ; 4 mutants tués.
+- **⚖ À trancher :** afficher un nom (ou initiales) du client au partenaire une fois l'objectif à 100 % ? Export CSV (F-PRT-004) et règlements au gérant (`/v1/partner/payouts`, le vendeur n'y a pas accès, F-PRT-003) : prochaines tranches.
+- **Mise à jour D63 (tranche 5, 17 novembre) :** `GET /v1/partner/payouts`, **gérant uniquement** (vendeur → 403, F-PRT-003) : règlements du seul partenaire, brut, commission, net (entiers XAF en texte), état dérivé des étapes (`PREPARED`, `APPROVED`, `REJECTED`, `INSTRUCTED`, `EXECUTED`, `EXECUTION_REJECTED`), date et référence d'exécution seulement si exécuté ; aucun identifiant du personnel. Contrat 0.17.0 (schémas `Payout`/`PayoutList` du brouillon, inutilisés, remplacés). 4 tests HTTP ; 9 mutants tués.
+- **Reste du lot 20 :** export CSV (F-PRT-004) ; création du gérant au back-office (périmètre partenaire du personnel à trancher) ; écrans du portail ; catalogue et stocks par le partenaire (F-PRT-002, `/v1/partner/offers`) ; abonnements (F-PRT-005).
+- **Mise à jour D63 (tranche 6, 17 novembre) :** `GET /v1/partner/orders/export` (F-PRT-004), **gérant uniquement** (extraction en masse) : CSV RFC 4180 (UTF-8, CRLF, pièce jointe), mêmes colonnes que la liste, sans donnée client ; cellules commençant par `= + - @`, tabulation ou retour chariot préfixées d'une apostrophe (injection de formules). Contrat 0.18.0. 10 tests unitaires, 1 test HTTP ; 6 mutants tués.
+- **Mise à jour D63 (tranche 7, 17 novembre) :** `GET /v1/partner/offers` (F-PRT-002, gérant et vendeur, lecture seule) : version courante des offres du seul partenaire, titre, état, prix figé (texte XAF), stock déclaré et disponible (D57), visibilité au catalogue public (partenaire validé, non défaillant, offre publiée et présentée). Contrat 0.19.0. 4 tests HTTP ; 4 mutants tués.
+- **⚖ À trancher (F-PRT-002) :** le partenaire peut-il modifier lui-même offres, stocks, points de remise et horaires (versions en ajout seul, validation par le personnel ?) ou la publication reste-t-elle au personnel en maker-checker comme aujourd'hui ? Aucune écriture partenaire sur le catalogue tant que ce n'est pas décidé.
+- **Mise à jour D63 (tranche 8a, 17 novembre) :** application web `apps/partner-portal` (Next.js, mêmes dépendances épinglées que le back-office ; le lockfile ne gagne qu'une entrée d'espace de travail, aucun paquet nouveau) : connexion par clé de sécurité (`/`), enrôlement avec le code remis (`/enrolement`), remise au comptoir (`/comptoir` : code de 10 caractères normalisé, position du comptoir à 6 décimales, aucune remise sans position). En-têtes stricts ; géolocalisation et WebAuthn limités à la même origine. 14 tests de composants (accessibilité comprise) ; 7 mutants tués. **Non compilé** : le build Next.js 16.4.3 est refusé (D64).
+- **Suite (8b) :** écrans commandes, règlements (gérant), vendeurs (gérant : création, code d'enrôlement affiché une fois, désactivation), export CSV, offres ; orientation selon le rôle après connexion.
+- **Mise à jour D63 (tranche 8b, 17 novembre) :** écrans de gestion du portail : `/commandes` (liste, export CSV proposé au gérant), `/reglements` (gérant), `/vendeurs` (gérant : création, code d'enrôlement affiché une seule fois puis masqué, désactivation motivée) ; orientation après connexion (gérant → commandes, vendeur → comptoir). Nouvelle route `GET /v1/partner/sessions/current` (rôle relu en base, contrat 0.20.0) au lieu d'un rôle gardé dans le navigateur. 12 tests de composants, 1 test HTTP ; 7 mutants tués. Écran des offres : à faire. **Non compilé** (D64).
+- **Mise à jour D63 (tranche 8c, 17 novembre) :** écran `/offres` (lecture : prix, stock disponible sur déclaré, précommande, visibilité au catalogue) et barre de navigation selon le rôle relu en base (vendeur : comptoir, commandes, offres ; gérant : + règlements, vendeurs), déconnexion par révocation serveur (retour à la connexion même si l'appel échoue). 8 tests de composants ; 6 mutants tués. Portail fonctionnellement complet pour le périmètre en lecture et le comptoir ; **non compilé** (D64).
+
+### D65 · Tableau de bord agrégé du back-office (F-BO-003, lot 21)
+- **Option appliquée (régime sprint, prudente et réversible) :** `GET /v1/backoffice/dashboard`, même règle d'accès que la file de travail (droit `READ_FINANCIAL_HISTORY` existant, motif obligatoire, consultation inscrite à l'audit chaîné dans la même transaction) — aucune nouvelle action ni modification de la matrice des rôles. Agrégats : accords par modèle, univers, villes et état (nombre, montant cible, fonds confirmés dérivés), règlements par état (nombre, net), remises, litiges ouverts, réclamations ouvertes, alertes de fraude ouvertes. Montants en entiers XAF texte ; aucune donnée personnelle ni identifiant du personnel. Contrat 0.21.0. Scénario réel complet (accord A remis et réglé, accord C en litige, brouillon exclu, alertes décidée/ouverte) ; 3 tests HTTP ; 10 mutants tués.
+- **⚖ Constat à trancher :** un accord n'enregistre pas la ville du client. La ville affichée est celle de la version d'offre (`douala`, `yaounde` ou `douala+yaounde` si l'offre dessert les deux) et rien pour le modèle C. Proposition : enregistrer la ville à la création de l'accord (champ figé, comme le prix) pour des indicateurs par ville exacts.
+- **Écran web :** à ajouter au back-office (tableau, motif) — prochaine tranche.
+- **Mise à jour D65 :** écran `/tableau-de-bord` du back-office (motif obligatoire, compteurs, accords par modèle/univers/villes/état, règlements par état ; un échec efface l'instantané précédent). 5 tests de composants ; 5 mutants tués. Non compilé (D64).
+- **Lot 24 (17 novembre) :** le contrôle transversal de cache (`route-policy.test.ts`) ne connaissait que les sessions client et personnel ; étendu à la session partenaire, il a révélé `POST /v1/partner/handovers` en `no-store` au lieu de `private, no-store` : corrigé (contrat mis à jour).
+
+### D66 · Filtrage contre la liste consolidée de l'ONU (REG-LBC-002, lot 07)
+- **Constat (17 novembre) :** aucun filtrage sanctions/PPE n'existait. La liste consolidée officielle du Conseil de sécurité est publique et accessible (`https://scsanctions.un.org/resources/xml/en/consolidated.xml`, 2,1 Mo, 733 personnes et 274 entités le 2026-11-17).
+- **Option appliquée (tranche 1, réversible) :** module `kyc` et migration 0059 (ajout seul) :
+  - analyseur XML minimal et strict, **sans dépendance ajoutée** : DOCTYPE/entités externes (XXE), CDATA et document mal formé refusés ; validé sur le fichier réel complet ;
+  - import versionné en une transaction : empreinte SHA-256 unique (jamais réimporté), nombre d'entrées vérifié par la base à la validation (liste tronquée refusée), entrées figées ensuite ;
+  - filtrage d'un nom contre la version la plus récente ; sans liste : refus `KYC_LIST_UNAVAILABLE` (jamais « aucun rapprochement » par défaut) ; version, nom normalisé et références figés ; issue dérivée et vérifiée par la base ;
+  - rapprochement **prudent (rappel d'abord)** : mêmes mots dans n'importe quel ordre, accents et ponctuation ignorés, sigles entre parenthèses séparés, inclusion de l'un dans l'autre dès deux mots ; un nom d'un seul mot n'est rapproché qu'à l'identique. Mesure sur la liste réelle : « Quincaillerie du Centre » → 0, « Mohamed Ali » → 7 pistes, « Abdul Rahman » → 12 pistes (homonymes fréquents, à examiner) ;
+  - examen d'un rapprochement par une autre personne que l'auteur du filtrage (base garante), une seule décision motivée (`FALSE_POSITIVE` ou `CONFIRMED_MATCH`).
+  - 17 tests unitaires (extrait réel du fichier officiel, SHA-256 du fichier complet consigné), 9 tests PostgreSQL ; 19 mutants tués.
+- **⚖ À trancher :** règle de rapprochement (tolérance orthographique, translittérations) ; source PPE (aucune liste officielle camerounaise identifiée — fournisseur agréé ?) ; listes nationales (gel des avoirs CEMAC/ANIF) ; fréquence de mise à jour ; effet d'une correspondance confirmée (refus d'entrée en relation, déclaration à l'ANIF — juridique).
+- **Constat bloquant pour les clients :** le nom du client n'est pas enregistré (le niveau 1 de REG-LBC-001 l'exige) ; seul le filtrage des partenaires (raison sociale du dossier) est possible aujourd'hui.
+- **Suite (tranche 2) :** filtrage des partenaires au back-office (Réseau partenaires) et examen par la Conformité, en HTTP ; outil d'import `pnpm sanctions:import <fichier>` pour l'exploitation ; validation d'un partenaire subordonnée à un filtrage `CLEAR` ou `FALSE_POSITIVE` (à décider : restrictif).
+- **Mise à jour D66 (tranche 2, 17 novembre) :** actions `SCREEN_PARTNER` (Réseau partenaires, Conformité) et `REVIEW_SANCTIONS_MATCH` (Conformité) ajoutées à la matrice des rôles (test exhaustif mis à jour d'abord) ; routes `POST /v1/backoffice/partners/{partnerId}/screenings` (raison sociale du dernier dossier), `GET /v1/backoffice/partners/{partnerId}/screening`, `POST /v1/backoffice/screenings/{screeningId}/review` (motif, auteur du filtrage refusé par la base). Contrat 0.22.0. 3 tests HTTP ; 4 mutants tués.
+- **⚖ Import en exploitation (à trancher) :** un import par téléversement permettrait à un initié de charger une liste altérée (entrée retirée). Option prudente proposée : le serveur télécharge lui-même le fichier depuis l'URL officielle (hôte autorisé en sortie, ADR réseau), import déclenché par la Conformité et journalisé. Aucun outil d'import vers une base réelle n'est fourni par l'agent (AGENTS § 4 : aucun script ne touche la production).
+- **⚖ Validation des partenaires :** subordonner `recordPartnerValidation` à un filtrage `CLEAR` ou `FALSE_POSITIVE` récent ? (restrictif ; à décider avec la Conformité).
+- **Mise à jour D66 (écran) :** page `/conformite` du back-office : filtrage d'un partenaire, références rapprochées, examen motivé (faux positif ou correspondance confirmée) ; refus serveur affiché. 5 tests de composants ; 5 mutants tués. Non compilé (D64).
+
+### D67 · Défis de connexion du personnel et des partenaires non limités (lot 24, SEC-API-003)
+- **Constat :** `POST /v1/staff/login-challenges` et `POST /v1/partner/login-challenges` enregistrent un défi (5 min) pour tout identifiant existant, sans quota ; les tables sont en ajout seul, donc une rafale fait croître la base indéfiniment. Aucun risque d'usurpation (signature WebAuthn exigée), risque de saturation seulement.
+- **Analyse :** un plafond en base par compte (ex. 5 défis vivants) bornerait la croissance mais permettrait à un tiers connaissant un identifiant d'empêcher la connexion de son titulaire ; un refus explicite révélerait l'existence du compte (SEC-API-003). La bonne place est la **limitation par IP en périphérie (WAF, CDC_03)**, complétée par un quota par identifiant aux valeurs décidées (D38).
+- **Option appliquée :** aucun code (pas de demi-mesure qui crée un déni de service ciblé) ; les deux routes restent fermées par défaut (ADR-0007, D63). **⚖ À trancher :** valeurs de quota par IP et par identifiant, et WAF en exploitation.
+
+### D68 · KYC niveau 1 : nom déclaré et filtré (REG-LBC-001, REG-LBC-002, F-ACC-003, lot 07)
+- **Constat :** aucun code n'élevait un client au niveau `BASIC` ; le nom (exigé au niveau 1) n'était pas enregistré, ce qui empêchait aussi le filtrage des clients (D66).
+- **Option appliquée (régime sprint, prudente) :** migration 0060 et route `POST /v1/me/legal-name` (session, Origin, Idempotency-Key, verrou de session comme les droits sur les données) :
+  - déclaration du nom légal en ajout seul (compte actif exigé par la base) ;
+  - dans la même transaction : filtrage du nom contre la liste ONU la plus récente, rattachement en base du filtrage à la déclaration (même compte, postérieur), puis élévation par `kyc.grant_basic_level` (fonction de base, seule voie, le rôle applicatif n'ayant aucun droit de mise à jour sur le compte) : compte actif, numéro vérifié, dernière déclaration filtrée sans rapprochement ou faux positif écarté par la Conformité ; une correspondance confirmée ou un examen en attente bloque ;
+  - sans liste importée : tout est refusé (fermé par défaut) ;
+  - **aucune alerte de la personne (LBC/FT)** : la réponse ne distingue jamais un rapprochement d'une vérification en cours (`verification: IN_PROGRESS`) et ne renvoie pas le nom ;
+  - un faux positif examiné débloque le niveau (même transaction que l'examen).
+  - Contrat 0.23.0. 7 tests PostgreSQL, 3 tests HTTP ; 10 mutants tués, 1 équivalent (la base refuse déjà l'élévation après correspondance confirmée).
+- **⚖ À trancher :** quota de la route (méthode D60 : proposé 3 par 24 h et par compte) ; effet d'une nouvelle déclaration correspondant à la liste chez un client déjà `BASIC` (aujourd'hui : niveau conservé, examen en attente — rétrograder ? geler ?) ; déclaration à l'ANIF en cas de correspondance confirmée (juridique) ; écran client (web) pour la déclaration.
+- **Mise à jour D68 (écran client) :** page `/compte/identite` du client web (FR/EN), lien depuis « Mon compte » : saisie du nom complet, résultat neutre (« niveau ouvert » ou « vérification en cours », jamais de détail). 5 tests de composants (accessibilité comprise) ; 4 mutants tués. Non compilé (D64).
+
+### D69 · Routes du contrat sans implémentation (inventaire du 17 novembre)
+- **Constat :** comparaison automatique des routes déclarées par l'application et du contrat OpenAPI : aucune route implémentée hors contrat ; 16 routes du **brouillon de contrat** n'étaient pas implémentées, dont une appelée par le client web.
+- **Fait :** `GET /v1/goals/{goalId}/contributions` (F-PAY-006, D39) implémentée : versements confirmés de l'objectif au seul client, ordre des reçus, numéro de reçu propre au client, montants entiers en texte, `REVERSED` si l'écriture a été contre-passée ; objectif d'un autre client : même 404. Contrat 0.24.0. 4 tests HTTP ; 3 mutants tués, 1 équivalent (la base lie déjà chaque versement au client de l'accord).
+- **Restent non implémentées, avec leur blocage :**
+  - `/v1/auth/signups`, `/v1/auth/otp-challenges`, `/v1/auth/otp-challenges/{id}/verify` : envoi d'OTP par SMS, aucun prestataire ni identifiant d'environnement de test (D1, zéro simulation) ;
+  - `POST /v1/auth/sessions` (connexion par PIN et appareil) et `GET /v1/me` : réalisables sans prestataire mais inutiles tant qu'aucun appareil ne peut être enrôlé (inscription bloquée) — **prochain candidat**, à faire avec D16 (compteurs PIN sous verrou) ;
+  - `GET /v1/goals/{goalId}/handover-code` : le code n'est conservé qu'en empreinte (D45) ; il ne peut pas être réaffiché : contrat à revoir (remise à l'émission par notification, ou nouvelle émission explicite) — ⚖ ;
+  - `POST /v1/goals/{goalId}/claims` : réclamation client (F-SUP-001) — store existant, route à faire ;
+  - `/v1/admin/*` (approbations, audit, grand livre, rapprochement, session, `me`) : remplacées par `/v1/backoffice/*` (D62) ; à retirer du contrat ou à rediriger — ⚖ (décision de contrat).
+
+### D70 · Réclamation du client sur son objectif (F-SUP-001)
+- **Appliqué :** `POST /v1/goals/{goalId}/claims` (session, verrou de session, Idempotency-Key) : réclamation sur l'objectif du seul client (autre client : 404, rien d'enregistré), canal `APP`, motif en liste blanche et description de 10 à 1000 caractères conservés dans `disputes.complaint_detail` (migration 0061, ajout seul, un seul détail, sans caractère de contrôle, jamais journalisé ni notifié) ; accusé de réception immédiat avec numéro `R-…` (ajouté au contrat 0.25.0) et heure serveur. 3 tests HTTP ; 5 mutants tués, 1 équivalent.
+- **⚖ À trancher :** quota (méthode D60, proposé 5 par 24 h et par compte) ; affichage du délai de réponse publié (D56 : 15 j cible, 45 j max, à valider) ; écran client.
+- **Mise à jour D70 (écran client) :** formulaire « Signaler un problème » sur la page d'un objectif (FR/EN) : motif, description (10 à 1000 caractères), rappel de ne jamais écrire PIN, code SMS ni numéro de pièce, accusé avec numéro `R-…` et date. 5 tests de composants ; 4 mutants tués. Non compilé (D64).
+
+### D71 · Connexion client : le brouillon de contrat contredit SEC-AUTH-001
+- **Constat :** `POST /v1/auth/sessions` (brouillon) n'exige que `phone` et `pin`. SEC-AUTH-001 exige ensuite « PIN + appareil enregistré (clé asymétrique générée dans le Keystore/Secure Enclave) ». Un PIN de 6 chiffres sans preuve d'appareil exposerait chaque numéro connu à des essais (seul le verrouillage progressif protégerait). Le CDC prime sur le brouillon (AGENTS § 2).
+- **Proposition (non implémentée) :** défi émis pour un appareil enregistré, signé par sa clé Ed25519 (même vérification que les signatures de transaction), puis PIN vérifié sous verrou (`verifyPinFromStore`, D16) ; réponse indiscernable pour un numéro ou un appareil inconnu ; contrat à corriger en conséquence.
+- **Bloqué :** aucun appareil ne peut être enregistré tant que l'inscription par OTP n'a pas de prestataire SMS (D1, zéro simulation) ; implémenter la connexion avant l'enrôlement ne servirait à rien. Reprendre avec le lot SMS.
+
+### D72 · Quotas de la déclaration du nom légal et des réclamations (SEC-API-003)
+- **Décision (17 novembre, méthode déléguée de D60/D61) :** `LEGAL_NAME_DECLARE` 3 par 24 h, `CLAIM_SUBMIT` 5 par 24 h, par compte et par appareil ; au-delà 429 `REQUEST_RATE_LIMITED` avec `Retry-After`, sans compteur ni plafond révélés. Migration 0062 (fonction reprise de 0055, diff vérifié : seule la liste des actions change), décorateurs sur les deux routes, contrat 0.26.0. Retrait de chaque décorateur : test rouge.
+- **⚖ À valider** par le fondateur avec les autres valeurs D38/D60/D61.
+
+### D73 · Détail d'une réclamation au back-office (F-SUP-001, F-BO-004)
+- **Appliqué :** `GET /v1/backoffice/complaints/{complaintId}?reason=…` : même règle d'accès que l'historique d'un objectif (`READ_FINANCIAL_HISTORY`, motif obligatoire), consultation inscrite à l'audit chaîné avec l'identifiant du client (jamais renvoyé dans la réponse) ; référence, canal, objectif, réception, motif et description du client (nuls pour une réclamation téléphonique sans détail), réclamation close, litige ouvert. Contrat 0.27.0. 2 tests HTTP ; 5 mutants tués.
+- **Mise à jour D73 (écran) :** page `/reclamations` du back-office (identifiant, motif de consultation obligatoire, détail : canal, réception, objectif, motif lisible, description ou « aucune description saisie », litige ouvert, close). 6 tests de composants ; 5 mutants tués. Non compilé (D64).
+- **Mise à jour D70 (accusé notifié) :** à l'ouverture d'une réclamation par le client, notification `DISPUTE_UPDATED` mise en file dans la même transaction (gabarit existant réutilisé, comme la clôture en D56 ; aucun détail de la réclamation dans le message, F-NOT-002). Envoi réel toujours différé (lot 17, fondateur).
+
+### Lot 25 · Inventaire des routes pour la recette et le test d'intrusion (17 novembre)
+- **Appliqué :** `pnpm routes:inventory` génère `docs/04_annexes/recette/INVENTAIRE_ROUTES.md` depuis le code (routes, espace d'authentification, `Cache-Control`, Origin, quotas, configuration sans laquelle la route reste fermée) et le contrat (résumé, Idempotency-Key) : 76 routes. Un test unitaire échoue si le document ne correspond plus au code, et vérifie que toute écriture exige Origin et Idempotency-Key. Aucune dépendance ajoutée.
+- **CDC_07 concurrence (17 novembre) :** double remise simultanée du même code par deux comptes du marchand, en HTTP réel : une seule remise et une seule écriture `HANDOVER` (déjà garanti). **Défaut corrigé :** le perdant recevait `IDEMPOTENCY_KEY_REUSED` (409, refus du grand livre car l'acteur diffère) au lieu de `HANDOVER_CODE_USED` ; désormais traduit dans `confirmHandover`. Test stable sur exécutions répétées.
+- **CDC_07 concurrence (17 novembre) :** 1 000 versements confirmés simultanément sur un même objectif, plus 100 rejeus concurrents des mêmes confirmations (pool de 10 connexions, flux réel) : fonds confirmés exacts (aucune perte, aucun double comptage), reçus 1…1000 sans trou, séquence du grand livre continue, export vérifié par le binaire Rust indépendant (`LEDGER VERIFIED entries=1001`). Plan de test à minimum de 1 000 FCFA pour rester sous les plafonds KYC (D43), qui refusent légitimement 1 000 × 5 000 FCFA.
+
+### D74 · Détail d'un filtrage pour l'examen par la Conformité (REG-LBC-002, F-BO-004)
+- **Constat :** l'examen d'un rapprochement ne montrait que les références ; la Conformité ne pouvait pas comparer le nom filtré aux noms listés.
+- **Appliqué :** `GET /v1/backoffice/screenings/{screeningId}?reason=…` : nom normalisé filtré, entrées rapprochées **de la version de liste utilisée** (noms et alias, nature, date d'inscription), examen éventuel. Donnée d'identité : droit `READ_IDENTITY_DOCUMENT` (Conformité, support N2), motif obligatoire, consultation inscrite à l'audit chaîné (identifiant du client en référence pour un client). Contrat 0.28.0, inventaire régénéré. 2 tests HTTP ; 4 mutants tués.
+- **Suite :** afficher ce détail dans l'écran `/conformite` avant la décision.
+- **Mise à jour D74 (écran) :** `/conformite` affiche, après un rapprochement et sur motif de consultation, le nom filtré et les entrées listées (référence, nature, date d'inscription, noms et alias) avant le formulaire d'examen. 1 test de composant ajouté ; 4 mutants tués. Non compilé (D64).
+
+### D75 · Rapprochements sanctions en attente dans la file de travail (REG-LBC-002, F-BO-003)
+- **Constat (18 novembre) :** un rapprochement issu de la déclaration du nom d'un client (D68) n'était visible nulle part : la Conformité ne pouvait pas savoir qu'un examen l'attendait, et le client restait au niveau `NONE` indéfiniment.
+- **Appliqué :** section `pendingSanctionsReviews` de `GET /v1/backoffice/queue` (filtrages avec rapprochement non encore examinés, partenaires et clients, sans nom ni référence listée : le détail passe par D74 avec `READ_IDENTITY_DOCUMENT`) ; section « Rapprochements sanctions à examiner » dans l'écran de la file. Contrat 0.29.0. 1 test HTTP, 1 test de composant ; 2 mutants tués.
+- **⚖ À décider :** délai d'examen cible et escalade (sur le modèle des 48 h des écarts, D54) ; information du client en cas d'attente prolongée (sans alerte, LBC/FT).
+- **Mise à jour D75 (écran) :** `/conformite` permet d'ouvrir un filtrage existant par son identifiant (celui de la file), sur motif de consultation : détail (D74) puis examen ; un filtrage déjà examiné n'offre plus de formulaire d'examen. 3 tests de composants ; 4 mutants tués. Non compilé (D64).
+- **Mise à jour D75 (navigation) :** la file de travail renvoie directement vers `/conformite?filtrage=…` (rapprochement à examiner) et `/reclamations?reclamation=…` (réclamation en retard) ; l'identifiant n'est prérempli que s'il est un UUID valide ; le motif de consultation reste exigé à l'ouverture. 3 tests de composants.
+
+### D76 · Mesure de couverture NF-MNT-002 non outillée
+- **Constat (18 novembre) :** NF-MNT-002 exige ≥ 90 % des lignes et 100 % des transitions sur `ledger`, `payments`, `settlement` (≥ 75 % ailleurs) ; aucun outil de mesure n'est installé, la couverture n'a donc jamais été mesurée (critère de « terminé », AGENTS § 10). Les tests de mutation manuels (scripts de l'agent) compensent en partie, sans chiffre global.
+- **Option appliquée :** aucune dépendance ajoutée sans revue (AGENTS § 8).
+- **⚖ À décider :** ajouter `@vitest/coverage-v8` épinglé à la version de Vitest déjà utilisée (même éditeur), avec seuils NF-MNT-002 dans la CI ; et Stryker (prévu par ADR-0001) pour le score de mutation du grand livre.
+
+### NF-UX-002 · Portail partenaire en français et en anglais (19 novembre)
+- **Constat :** les écrans du portail partenaire (destiné aux marchands) étaient écrits en dur en français ; NF-UX-002 exige français et anglais au lancement, textes externalisés.
+- **Appliqué :** dictionnaires `apps/partner-portal/src/i18n/{fr,en}.ts` (mêmes clés vérifiées par test), langue choisie par cookie `achat_locale` puis langue du navigateur puis français (même règle que le client web), route `/langue/{fr|en}`, attribut `lang` du document, lien de bascule dans la navigation ; les 7 composants reçoivent la langue. 7 tests (dont tous les écrans en anglais) ; forcer le français fait échouer 4 tests.
+- **Reste :** les titres des problèmes renvoyés par l'API (RFC 9457) sont en français quelle que soit la langue (comportement commun aux trois applications) ; le back-office (personnel interne) reste en français seul — à confirmer si NF-UX-002 s'applique aux outils internes.
+
+### NF-UX-005 · Confirmation explicite avant le règlement C (19 novembre)
+- **Constat :** sur le client web, le règlement au bénéficiaire (irréversible, cité par NF-UX-005) partait dès la saisie du PIN, sans résumé.
+- **Appliqué :** étape « Préparer le règlement » qui affiche le résumé (montant réglé, bénéficiaire, caractère irréversible), puis PIN et « Confirmer le règlement », avec « Annuler » (aucun appel serveur). FR/EN. 1 test ajouté, 2 tests adaptés ; 2 mutations détectées. L'annulation d'un objectif n'a pas d'écran web (parcours mobile sous signature d'appareil).
+
+### D77 · Aucun indice de rapprochement dans la réponse au client (B-1, 19 novembre)
+- **Constat (revue indépendante) :** `POST /v1/me/legal-name` renvoyait `BASIC/COMPLETED` pour un nom sans rapprochement et `NONE/IN_PROGRESS` sinon : la seconde réponse signifiait toujours un rapprochement (alerte de la personne interdite, LBC/FT). Le test passait pour une mauvaise raison (il vérifiait seulement l'absence de mots-clés).
+- **Appliqué :** réponse unique `{ "verification": "RECEIVED" }`, identique octet pour octet dans les deux cas (test qui compare les deux réponses) ; le niveau reste accordé en base par `kyc.grant_basic_level`. Client web : un seul message neutre. Contrat 0.30.0.
+- **Indice résiduel :** le niveau 1 ouvre des plafonds plus élevés (`kyc_limits`) ; un client refusé au-delà du plafond NONE peut en déduire que son niveau n'a pas été accordé. Aucun écran n'affiche le niveau.
+- **⚖ À décider :** comment et quand informer le client de son niveau (ex. accord différé d'un délai fixe pour tous, message unique « vérifications réglementaires » pour tout refus de plafond lié au niveau) — avis Conformité requis.
+
+### I-1 · Caractères invisibles et homoglyphes dans le filtrage (19 novembre)
+- **Constat (revue indépendante) :** un espace de largeur nulle (U+200B) coupait un mot (« ER IC BADEGE ») et une lettre cyrillique identique à une lettre latine (« Е ») changeait le mot : le nom échappait au rapprochement ONU.
+- **Appliqué :** `parseLegalName` refuse les caractères de contrôle, de format et invisibles (`\p{Cf}`, `Default_Ignorable_Code_Point`) et le mélange d'écritures (latin, cyrillique, grec, arménien, cherokee, copte, autre) dans un même nom ; `normalizeName` retire les caractères invisibles et ramène les capitales cyrilliques et grecques visuellement identiques aux lettres latines, des deux côtés de la comparaison (rappel accru, examen par la Conformité). 6 tests ; 5 mutants tués.
+- **Reste :** la table d'homoglyphes est volontairement courte (lettres capitales courantes) ; une table complète (Unicode TR39 « confusables ») demanderait un jeu de données externe à revoir (aucune dépendance ajoutée).
+
+### I-2 / I-5 · Filtrage vérifié par la base, liste officielle seulement (19 novembre)
+- **Constat (revue indépendante) :** la base croyait l'application sur le contenu d'un filtrage : un filtrage « sans rapprochement » forgé pour un nom listé, rattaché à la déclaration, ouvrait le niveau 1 ; une version de liste datée du futur, ou d'un autre hôte, devenait la référence.
+- **Appliqué (migration 0063) :** la base recalcule les références rapprochées (`kyc.matching_references`, même règle que `name-match.ts`) et exige la version de liste la plus récente ; un filtrage ne se rattache à une déclaration que s'il porte le nom déclaré (`kyc.normalize_name` ; **rectifié par IMP-2 ci-dessous** : l'identité avec la normalisation applicative ne valait que pour les lettres latines, cyrilliques et grecques) ; caractères invisibles refusés dans une déclaration ; source limitée à `https://scsanctions.un.org/`, date de génération jamais future. 9 tests ; 9 mutants tués.
+- **Exigence d'exploitation :** la base doit offrir la collation ICU `und-x-icu` (images PostgreSQL officielles : oui) ; sinon la migration échoue.
+- **Reste :** le filtrage d'un partenaire porte la raison sociale lue en base par l'application ; la base ne vérifie pas encore qu'il s'agit du dernier dossier du partenaire.
+
+### I-3 · Filtrage d'un partenaire limité au périmètre (19 novembre)
+- **Constat :** `SCREEN_PARTNER` n'était pas limité au périmètre partenaire de l'agent du Réseau partenaires (contrairement à `PREPARE_PARTNER`).
+- **Appliqué :** action ajoutée aux actions à périmètre partenaire ; filtrage et lecture d'état reçoivent le partenaire. Comme aucun périmètre partenaire n'est attribué au personnel (D63, option « Non »), le Réseau partenaires ne peut plus filtrer en HTTP : la Conformité filtre. 1 test unitaire, tests HTTP adaptés.
+
+### I-4 · Écartement d'un rapprochement client à deux personnes (19 novembre)
+- **Constat :** le filtrage d'un nom de client est enregistré par le système ; une seule personne de la Conformité pouvait donc écarter un rapprochement et ouvrir le niveau 1 (I-7 seulement nominal).
+- **Appliqué (option prudente, migration 0064) :** un « faux positif » client est d'abord une proposition motivée (`kyc.screening_review_proposal`, réponse `PROPOSED`), confirmée par une autre personne (`RECORDED`) ; la base refuse l'écartement sans proposition ou par son auteur (`MAKER_CANNOT_APPROVE`). Confirmer une correspondance reste décidé par une personne (sens restrictif). Écran du back-office : message « une autre personne doit confirmer ». Contrat 0.31.0.
+- **⚖ À décider (D78) :** étendre la règle des deux personnes aux partenaires (aujourd'hui : auteur du filtrage ≠ examinateur) ; afficher dans la file qu'une proposition attend confirmation.
+
+### SEC-API-005 · CSP du back-office et du portail partenaire (19 novembre)
+- **Constat :** seul le client web envoyait une CSP ; le back-office et le portail partenaire n'avaient que des en-têtes statiques (aucune CSP).
+- **Appliqué :** même modèle que le client web : intergiciel Next.js à nonce neuf par requête (`script-src 'self' 'nonce-…' 'strict-dynamic'`, styles à nonce en production, `connect-src 'self'`, aucun cadre, ni service worker ni manifest, `upgrade-insecure-requests`), hors `/v1/` (API relayée). 10 tests. Non vérifié dans un navigateur : le build Next.js reste refusé (D64).
+
+### Mineurs de la revue indépendante (19 novembre)
+- **Liste ONU :** références numériques hors « Char » XML 1.0 (`&#0;`, contrôles, demi-substituts, U+FFFE/FFFF) refusées ; la limite de 64 Mio compte désormais les octets UTF-8 (et non les unités UTF-16). 5 tests, 2 mutants tués.
+- **Instantané unique :** l'historique des versements d'un objectif est lu en REPEATABLE READ lecture seule (`withTransaction(…, { readOnlySnapshot: true })`, 3 tests base) ; pour le tableau de bord et la file (qui ajoutent un événement d'audit dans la même transaction, incompatible avec un instantané figé avant le verrou de la chaîne), les commentaires annonçant un « instantané unique » sont rectifiés.
+- **Assertions renforcées :** chaque refus des tests HTTP partenaire, nom légal, versements et réclamations vérifie désormais le statut **et** le code métier exact (règle 8) ; jeton du personnel transplanté sous le cookie `partner_session` (et l'inverse) : refusé ; défi d'un identifiant partenaire inconnu : même forme qu'un défi d'identifiant connu, aléatoire, jamais enregistré.
+- **Détail uniforme :** `PARTNER_AUTH_INVALID` et `STAFF_AUTH_INVALID` portent toujours le détail « Authentification refusée » (les messages des déclencheurs — compte désactivé, défi expiré, compteur non croissant — ne sortent plus). 7 tests.
+
+### D79 · Points mineurs du portail partenaire laissés en l'état (19 novembre)
+- **Énumération des identifiants :** la création d'un vendeur avec un identifiant déjà pris renvoie 409 au gérant authentifié (qui apprend qu'il existe, éventuellement chez un autre partenaire). Option appliquée : inchangé (un identifiant doit être unique et le gérant doit pouvoir en choisir un autre). ⚖ Préfixer les identifiants par partenaire ?
+- **Enrôlement par le gérant :** le jeton d'enrôlement d'un vendeur est remis au gérant, qui pourrait enrôler sa propre clé sous le compte du vendeur (actions imputées au vendeur). Option appliquée : inchangé, consigné. ⚖ Remise du jeton au vendeur seul (canal à définir) ou attestation de l'authentificateur ?
+- **Défaillance marchand :** une session partenaire reste valide quand le marchand est déclaré défaillant (D31) ou non validé ; la remise d'un article reste refusée par la base dans ce cas (migration 0039, `partner_defaulted`), mais la consultation des commandes et des règlements reste possible. ⚖ Couper les sessions du partenaire à la déclaration de défaillance ?
+
+### Seconde revue indépendante (19 novembre) : IMP-1 à IMP-3
+- **IMP-1 (prouvé) :** `app_rw` pouvait importer une version de liste « officielle » forgée (préfixe d'URL seul contrôlé), devenue la référence du recalcul : tout nom listé sortait sans rapprochement. **Appliqué (0065) :** import réservé au rôle `kyc_list_importer` (sans connexion) ; `app_rw` ne garde que la lecture ; le rôle d'import n'élève aucun niveau. 2 tests, mutant tué. **Exploitation :** le compte de connexion de l'application ne doit pas être membre de `kyc_list_importer`.
+- **IMP-2 (prouvé) :** la base ne retire que certaines marques diacritiques ; une autre (ex. U+0951) coupait un mot côté base seulement, ce qui permettait à `app_rw` de rattacher un filtrage « ERIC BAD EGE » à une déclaration visuellement « Eric Badege ». **Appliqué (0065 et `parseLegalName`) :** liste blanche identique en base et dans l'application — après décomposition et retrait des marques normalisées, seulement lettres, chiffres, espace, apostrophes, point, virgule, tiret. Sur tout nom accepté, les deux normalisations coïncident (test sur latin, cyrillique, grec, hébreu, arabe, devanagari, thaï, kana, hangeul ; divergences tolérées « ƛ » et « ɤ », majuscules d'Unicode 16, qui font refuser). **Conséquence :** un nom arabe vocalisé (harakat) est refusé ; sans voyelles, il est accepté. ⚖ D80.
+- **IMP-3 :** avec la CSP à nonce, les pages statiques du back-office auraient servi des scripts sans nonce, bloqués (aucune hydratation, aucune connexion). **Appliqué :** `export const dynamic = 'force-dynamic'` dans la mise en page du back-office (le portail partenaire est déjà dynamique : sa mise en page lit les cookies). 1 test, mutant tué. Non vérifié dans un navigateur (D64).
+- **Mineurs :** export de recette lu en REPEATABLE READ ; `middleware.ts` est déprécié en Next 16 au profit de `proxy.ts` (fonctionne encore, avertissement) — renommage à faire avec la montée D64 pour les trois applications ; la règle des deux personnes en base repose sur des identifiants texte que `app_rw` pourrait forger (limite du modèle de 0059 : la preuve forte est l'audit chaîné des sessions du personnel).
+
+### D80 · Import de la liste ONU et noms vocalisés (19 novembre)
+- ⚖ Qui détient le rôle `kyc_list_importer` en exploitation, et l'import doit-il être confirmé par une seconde personne ?
+- ⚖ Accepter les noms arabes vocalisés (étendre les marques normalisées en base et en application, avec preuve d'identité des deux normalisations) ? Option appliquée : refus (le nom sans voyelles reste accepté).
+
+### C2 · Compte client : profil, renouvellement, inscription par OTP, connexion appareil + PIN (20 novembre)
+- **Appliqué (contrats 0.32.0 à 0.34.0, migration 0066) :**
+  - `GET /v1/me` : profil minimal (identifiant, numéro masqué, date d'inscription, nom déclaré oui/non) ; ni numéro en clair, ni niveau KYC (D77) ;
+  - `POST /v1/auth/session-refreshes` : jeton de rafraîchissement à usage unique, cookie `client_refresh` restreint à `/v1/auth` (`SameSite=Strict`) ;
+  - inscription `otp-challenges` → `signups` : le code est vérifié dans une transaction validée à part (un essai faux reste décompté), puis compte, premier appareil, PIN Argon2id, acceptation des conditions et session dans une seule transaction ; le premier appareil est enregistré sur la preuve d'inscription (pas de second code) ;
+  - **D71 appliqué conformément à SEC-AUTH-001** (le CDC prime sur le brouillon) : connexion par défi signé par la clé Ed25519 de l'appareil, puis PIN ; refus uniforme ; défi indiscernable pour un appareil inconnu ; le brouillon « téléphone + PIN » et la route `/verify` sont retirés du contrat ;
+  - la base exige un OTP d'inscription consommé pour créer un compte et un premier appareil, un OTP « nouvel appareil » pour les suivants, un défi consommé (ou un appareil neuf) pour ouvrir une session. **Portée rectifiée (revue du 20 novembre) :** ces gardes arrêtent une erreur de l'application, pas un rôle `app_rw` compromis, qui peut marquer lui-même un code ou un défi comme consommé (la base ne connaît ni le poivre des codes ni Ed25519).
+- **Fermé par défaut :** sans prestataire SMS (D1, zéro simulation), `otp-challenges` répond 503 `SMS_UNCONFIGURED` ; seul l'adaptateur du prestataire manque (port `SmsSender`). Sans `OTP_PEPPER` ou `PIN_PEPPER` : 503.
+- **Tests :** 8 tests base (gardes), 12 tests HTTP, 7 tests renouvellement et profil ; 22 mutants tués, 1 équivalent.
+- **Reste :** ajout d'un nouvel appareil et récupération (OTP « nouvel appareil » + délai, domaine `recovery` existant) ; la signature Ed25519 est vérifiée par l'application (la base n'a pas cette primitive) ; formulaires web et mobile à recâbler (Gemini, G2/G4).
+
+### D81 · Limite d'envoi des codes OTP (20 novembre)
+- **Appliqué (option prudente) :** 5 codes au plus par numéro et par heure, imposé par la base ; au-delà 429 `REQUEST_RATE_LIMITED`. Code valable 5 minutes, 5 essais.
+- **⚖ À décider :** valeurs définitives ; limite complémentaire par adresse IP ou par appareil (coût des SMS, D67) ; texte du SMS (`sms.port.ts`).
+
+### Revue indépendante de la chaîne de compte client (20 novembre)
+- **Aucun bloquant ; aucun contournement par HTTP.** Constats traités (migration 0067, contrat 0.35.0) :
+  - **Session (base) :** ouverte seulement pour le compte propriétaire de l'appareil ; création et émission horodatées par la base (un `created_at` antidaté permettait de réutiliser un défi consommé) ;
+  - **Signature d'abord :** une signature fausse ne consomme plus le défi ; défi verrouillé pendant sa vérification ;
+  - **Objet du défi** (LOGIN ou REFRESH), immuable, inclus dans le message signé ; un défi de renouvellement n'ouvre pas de session ;
+  - **SEC-AUTH-005 :** le renouvellement exige la signature d'un défi REFRESH par l'appareil de la session (un cookie volé seul ne suffit plus) ; un ancien jeton présenté par l'appareil légitime révoque la session ;
+  - **SMS hors transaction :** aucune connexion à la base n'attend le prestataire ;
+  - **10 défis en attente au plus par appareil** sur 10 minutes ;
+  - **Course à l'inscription :** deux inscriptions simultanées donnent 201 et 409 `IDENTITY_ACCOUNT_EXISTS` (et non `REQUEST_CONFLICT`) ;
+  - masque du numéro aligné sur le contrat, test à valeur littérale ; test « compte bloqué » sur un vrai défi ; réponses 409 ajoutées au contrat.
+- **Mutations :** 13 mutants tués ; 3 équivalents (deux couches se recouvrent : contexte signé et objet du défi, domaine qui refuse un compte bloqué, contrainte de la base sur l'objet).
+- **Reste ⚖ (D81) :** limite par adresse IP ou globale de l'envoi de SMS (coût, prise de numéro par essais : ≈ 25 essais par numéro et par heure) ; préfixe `__Host-` des cookies (exige `Path=/`, incompatible avec le chemin restreint du rafraîchissement) à arbitrer.
+
+### D82 · Ajout d'un nouveau téléphone sur le même numéro (20 novembre)
+- **Constat :** SEC-AUTH-001 prévoit un OTP sur nouvel appareil ; la base l'exige déjà (OTP « nouvel appareil » lié à l'identifiant de l'appareil, migration 0066). Mais un OTP seul expose au **détournement de carte SIM** (fraude courante : l'escroc obtient le numéro, reçoit le code, enrôle son téléphone et choisit un nouveau PIN). Le changement de **numéro** (récupération) exige un KYC renforcé et un délai de 24 h (SEC-AUTH-007), bloqué par le prestataire de vérification.
+- **Option appliquée :** aucune route d'ajout d'appareil (fermé par défaut) ; un client qui change de téléphone ne peut pas encore se reconnecter.
+- **⚖ À décider (recommandation : A + C) :**
+  - **A.** approbation par un téléphone déjà enregistré (signature de l'ancien appareil) + OTP sur le nouveau ;
+  - **B.** OTP + délai de sécurité (ex. 24 h, avec avis sur les anciens appareils) pendant lequel le nouvel appareil ne peut faire aucune opération financière ;
+  - **C.** sans ancien téléphone : passage par l'agence ou le support avec contrôle d'identité (procédure humaine à écrire).
+- Rien ne sera ouvert avant le prestataire SMS (D1) de toute façon.
+
+### Suites d'attaque du compte client (20 novembre)
+- 5 attaques ajoutées (`tests/attack/identity.attack.test.ts`) : une signature de connexion ne vaut ni pour un renouvellement, ni pour un autre appareil ou défi ; clés d'appareil RSA ou P-256 refusées ; cookie de rafraîchissement dupliqué refusé (fixation de session) ; cookies toujours `HttpOnly; Secure` ; numéro masqué (200 tirages).
+- Back-office : la session du personnel dure 15 minutes au plus en absolu (migration 0056), plus strict que les 15 minutes d'inactivité de SEC-AUTH-005 — conforme.
+
+### C4 · Blocage d'un compte client par le support (F-ACC-006, 20 novembre)
+- **Constat :** seul le client pouvait bloquer son compte (depuis l'application, 0023) ; F-ACC-006 exige aussi le blocage par le support en cas de perte ou de vol du téléphone. Le canal `SUPPORT` existait dans le schéma sans aucune route.
+- **Appliqué (migration 0068, contrat 0.36.0) :** `POST /v1/backoffice/customers/{accountId}/block`, motif obligatoire (3 à 500 caractères), une seule personne (bloquer ne fait que protéger, comme D31) ; fonction `identity.block_account_by_support` (SECURITY DEFINER, seule voie : le rôle applicatif n'a pas de droit direct sur les comptes) qui bloque le compte, révoque appareils et sessions en une instruction ; compte inconnu 404, déjà bloqué 403 (motif d'origine conservé) ; événement `ACCOUNT_BLOCKED` à l'audit chaîné avec le motif et le compte. Écran du back-office `/clients/blocage` : résumé et confirmation explicite. 5 tests HTTP, 4 tests d'écran, 1 test de droits ; 8 mutants tués.
+- **⚖ D83 :** rôles autorisés appliqués : support niveaux 1 et 2, risque (pas la Conformité ni les opérations) — **valider** ; notifier le client par SMS du blocage (prestataire SMS) ; procédure de déblocage (récupération avec KYC renforcé, SEC-AUTH-007, ou procédure humaine en agence, D82 C). La recherche d'un client par numéro relève du CRM (Qoder, Q5).
+
+### C5 · Fil des notifications du client dans l'application (F-NOT-001, 20 novembre)
+- **Constat :** l'écran « Notifications » de l'application n'avait aucune route ; les notifications n'existaient que dans la boîte d'envoi (SMS et push, prestataires non choisis).
+- **Appliqué (migration 0069, contrat 0.37.0) :** `GET /v1/me/notifications` : une entrée par événement (SMS et push regroupés), du plus récent au plus ancien, 50 par page avec curseur `before`, textes génériques validés (aucune donnée personnelle, F-NOT-002) dans la langue enregistrée. Fonction `notifications.list_customer_feed` (SECURITY DEFINER, session revérifiée en base, seule voie de lecture). 5 tests ; 7 mutants tués.
+- **Reste :** état « lu / non lu » (non demandé par le CDC, à décider avec Gemini si l'écran l'exige) ; notification du blocage de compte (D83).
+
+### C6 · Back-office : écrans manquants et navigation (20 novembre)
+- **Constat :** quatre routes serveur n'avaient aucun écran (ouvrir un litige, lever un litige, valider la classe d'un écart, historique d'un objectif) ; la seconde personne d'une décision ne pouvait pas retrouver l'identifiant de la proposition ou du litige ; le back-office n'avait aucun menu (pages accessibles seulement par leur adresse).
+- **Appliqué (contrat 0.38.0) :** file de travail enrichie de `pendingGapClassifications` (propositions non décidées : identifiants, classe, auteur, date ; l'explication n'est pas reprise) et `openDisputes` (identifiants, auteur, date) ; actions « Valider / Refuser la classe » (motif obligatoire au refus) et « Lever le litige » dans la file (le serveur refuse toujours l'auteur, I-7) ; bouton « Ouvrir un litige » sur le détail d'une réclamation (ni close, ni déjà en litige) ; page `/objectifs` (historique d'un objectif, consultation motivée) reliée depuis la file et les réclamations ; menu du back-office avec déconnexion (masqué sur la connexion et l'enrôlement ; chaque page revérifie les droits côté serveur). 1 test HTTP, 10 tests d'écran ; 6 mutants tués.
+
+### C7 · Interrupteur d'arrêt des flux sortants (SEC-INC-003, 21 novembre)
+- **Constat :** SEC-INC-003 exige de pouvoir geler les flux sortants en cas d'incident ; rien ne le permettait (seul l'arrêt de l'application aurait coupé les sorties, en coupant aussi tout le reste).
+- **Appliqué (migration 0070, contrat 0.39.0) :** demande motivée de gel ou de levée (`POST /v1/backoffice/outgoing-freeze/requests`), confirmation par une **autre** personne dans l'heure (`POST …/requests/{requestId}/confirmation`), état courant et demandes en attente (`GET /v1/backoffice/outgoing-freeze`). Tables en ajout seul ; état dérivé de la dernière confirmation. Pendant le gel, la base refuse toute nouvelle instruction signée (règlement marchand, remboursement, virement au bénéficiaire C) avec `SETTLEMENT_OUTGOING_FROZEN` — déclencheur exécuté avant toute autre règle de la ligne ; préparations, décisions et exécutions rapportées par l'établissement restent enregistrables. Refus : auteur qui confirme (`MAKER_CANNOT_APPROVE`), demande de plus d'une heure (`SETTLEMENT_FREEZE_EXPIRED`), action sans effet sur l'état (`SETTLEMENT_FREEZE_STATE`), double confirmation (`REQUEST_CONFLICT`). Événements `OUTGOING_FREEZE_REQUESTED` / `OUTGOING_FREEZE_CONFIRMED` à l'audit chaîné. Écran `/incidents/gel` du back-office. 3 tests HTTP et base, tests d'écran et de droits ; 13 mutants tués (aucun survivant).
+- **⚖ D84 :** rôles autorisés appliqués : finance, conformité, risque (pas l'administration technique ni les opérations) — **valider** ; délai de confirmation d'une heure — **valider** ; prévenir automatiquement le fondateur lors d'un gel (canal à choisir).
+
+### Traçabilité par les noms de tests (21 novembre)
+- **SEC-AUTHZ-004 :** la matrice rôle × action du domaine d'administration cite l'exigence ; chaque refus vérifie désormais le code exact `ADMIN_FORBIDDEN` (auparavant : seulement « refusé »).
+- **SEC-API-004 :** nouveau test de contrat (`packages/contracts/src/identifiers.test.ts`) : tout identifiant du contrat est un UUID, sauf une liste blanche de références textuelles (ville, plan, partenaire, bénéficiaire, identifiant de connexion du personnel, WebAuthn) ; aucun identifiant entier ; seuls rangs entiers exposés : position dans les chaînes du grand livre et de l'audit (lecture interne) et rang d'une signature dans un objectif.
+- **F-BO-002 :** sur la chaîne complète des migrations, chaque rôle non superutilisateur de la base (liste dynamique) est refusé (`42501`) en UPDATE, DELETE et TRUNCATE sur chaque table du grand livre, droits et tentative réelle ; le propriétaire est arrêté par `LEDGER_APPEND_ONLY`.
+- **INT-HASH-004 :** le binaire Rust recalcule les empreintes d'un grand livre produit par les flux réels ; une altération qui laisse l'écriture équilibrée (auteur, montants doublés) n'est détectée que par ce recalcul (`ENTRY_HASH_MISMATCH`).
+- **INT-ANC-006 (preuve d'inclusion pour le client) : non fait.** Il n'existe encore ni lots Merkle ni tête signée côté serveur (INT-ANC-001/002) : ils exigent la clé de signature de la plateforme (HSM) et les témoins (lot 23, bloqué).
+
+### C8 · Interdiction d'avertir le client d'un soupçon (REG-LBC-004, 21 novembre)
+- **Prouvé :** (1) test de contrat `packages/contracts/src/tipping-off.test.ts` : aucune route du client ou du partenaire n'expose un champ ou une valeur liés au filtrage, aux sanctions, au risque ou au niveau KYC (schémas suivis par `$ref`) ; (2) la boîte d'envoi vers le client n'accepte que six types d'événements métier (contrainte lue en base ; un type `SCREENING_MATCH` est refusé, 23514) ; (3) la réponse à la déclaration du nom légal reste identique octet pour octet avec ou sans rapprochement (B-1).
+- **Point ouvert (signal indirect) :** un client en rapprochement reste au niveau KYC « aucun » ; son premier versement serait refusé pour plafond KYC, alors qu'un client sans rapprochement passe au niveau 1 tout de suite. La différence de comportement peut révéler l'examen. Sans effet aujourd'hui (versements non branchés : agrégateur). **⚖ D85 :** message neutre et identique « vérification en cours » pour tout refus lié au niveau KYC, et délai d'examen court annoncé à tous — recommandé ; ou accorder un plafond minimal pendant l'examen (à éviter : fonds d'une personne listée).
+
+### NF-SAFE-002 · Plafond du nombre d'objectifs actifs par client (21 novembre)
+- **Constat :** le plafond de montant cumulé existait (`kyc_limits`, 0036, D43) ; le nombre d'objectifs simultanés n'était limité nulle part (seulement le rythme de création, D61).
+- **Appliqué (migration 0071) :** paramètre versionné `customer_commitment_limits` = `{"max_active_goals": n}` (1 à 50), publié par le circuit existant des paramètres financiers (préparé par une personne, approuvé par une autre). La base refuse l'activation d'un objectif si le client en a déjà n actifs (`AGREEMENT_ACTIVE_LIMIT_REACHED`, 422) ; activations simultanées sérialisées par client. Refus par défaut : sans paramètre publié valide, **aucune activation** (`AGREEMENT_LIMITS_NOT_CONFIGURED`). Seul l'état ACTIVE compte (un objectif annulé, financé ou remis libère sa place). 5 tests dont la concurrence ; 10 mutants tués sur 11 (le survivant est équivalent : un paramètre absent est déjà refusé par le contrôle du nombre de clés).
+- **⚖ D86 :** valeur du plafond à publier avant l'ouverture — **recommandation : 3 objectifs actifs** ; compter aussi les objectifs financés en attente de remise ? (non appliqué). **À faire en exploitation :** publier ce paramètre, sinon aucune activation n'est possible.
+
+### C9 · Gel automatique sur divergence du vérificateur indépendant (INT-VER-002, 21 novembre)
+- **Constat :** INT-VER-002 exige qu'une divergence du contrôle nocturne déclenche une alerte critique et le gel des flux sortants (SEC-INC-003) ; le vérificateur Rust existait, la réaction non.
+- **Appliqué (migration 0072, contrat 0.40.0) :** table `settlement.integrity_divergence` en ajout seul, écrite uniquement par le rôle dédié `integrity_reporter` (auteur et instant posés par la base ; l'application ne peut ni en créer ni en effacer). Dès l'enregistrement, `settlement.outgoing_frozen()` renvoie vrai : toute nouvelle instruction signée est refusée. Aucune machine ne lève un gel : il faut une levée **demandée après la divergence** et confirmée par une autre personne (une levée demandée avant une nouvelle divergence est refusée, `SETTLEMENT_FREEZE_STATE`). Outil `pnpm verify:nightly --export … --public-key …` : lance le vérificateur, enregistre la divergence et sort en code 1 (alerte critique) ; vérification impossible : code 2, alerte **sans gel**. État du gel au back-office : cause et code de la divergence affichés (`divergence` dans `OutgoingFreezeState`). Tests : HTTP et base (7), outil (4), binaire réel sur grand livre des flux réels (export intact : rien ; altéré : divergence et gel) ; 17 mutants tués, aucun survivant.
+- **Reste hors de mon périmètre :** planification nocturne et alerte de l'ordonnanceur sur code ≠ 0 (Qoder, Q7) ; export signé de production (têtes de Merkle, clé HSM, témoins : lot 23).
+- **⚖ D87 :** une vérification **impossible** (export absent, binaire en panne) doit-elle aussi geler ? Appliqué : non, alerte critique seulement (le plus réversible ; un gel à chaque panne de l'outil bloquerait les remises).
+
+### C10 · Administrateur technique : deux personnes au plus (F-BO-001, 21 novembre)
+- **Constat :** F-BO-001 limite le rôle « Administrateur technique » à deux personnes ; rien ne l'imposait (deux administrateurs pouvaient en approuver un troisième).
+- **Appliqué (migration 0073) :** la base refuse toute attribution qui donnerait `TECH_ADMIN` à une troisième personne active (`ADMIN_TECH_ADMIN_LIMIT`, 422), même approuvée ; rôles courants = dernière attribution ; compte désactivé non compté ; attributions simultanées sérialisées. 3 tests (dont la concurrence) ; 7 mutants tués. La matrice rôle × action cite désormais F-BO-001.
+
+### Traçabilité 2 (21 novembre)
+- **Nouveaux tests :** NF-MNT-004 (`tools/quality-config.test.ts` : TypeScript strict lu par le compilateur ; règles `any`/`unsafe` en erreur sur chaque fichier des modules grand livre, paiements, règlements, rapprochement et `packages/money` ; aucune directive de contournement — un `as any` injecté est détecté) ; NF-COMP-002 (`tools/contract-interop.test.ts` : OpenAPI 3.1, chaque réponse 4xx/5xx en `application/problem+json` du schéma Problem, membres RFC 9457).
+- **Citations ajoutées à des tests existants qui prouvent l'exigence :** INT-HASH-005 (chaîne du journal d'audit), NF-MNT-001 (frontières de modules), NF-PORT-003 (paramètres versionnés), REG-LBC-005 (une demande d'effacement ne supprime rien), REG-FIS-002 (fonds de tiers distincts des produits).
+- **Écarts relevés, non comblés :** F-ACC-004 — l'acceptation des conditions est horodatée et conservée, mais une **nouvelle version** n'impose pas encore une nouvelle acceptation avant toute opération (la version des conditions dépend des textes juridiques, D23) ; INT-HASH-005 — le **journal des événements métier** n'est pas chaîné par hachage (seuls le grand livre et l'audit le sont) ; REG-DPD-003 — minimisation côté application mobile (Gemini).
+
+### C11 · Conditions en vigueur acceptées avant tout nouvel engagement (F-ACC-004, 21 novembre)
+- **Constat :** l'acceptation des conditions était horodatée et conservée à l'inscription (0066), mais rien n'imposait une nouvelle acceptation quand la version change (« avant toute opération »).
+- **Appliqué (migration 0074, contrat 0.41.0) :** version en vigueur unique dans `@achat/contracts` (`CURRENT_TERMS_VERSION`, partagée avec les interfaces) ; fonction `identity.has_accepted_terms` (seule voie de lecture, faux pour un compte non actif ou une version antérieure) ; `POST /v1/me/terms-acceptances` (version en vigueur seulement, corps en liste blanche, idempotent, une seule acceptation par version, horodatage de la base) ; `GET /v1/me` indique `currentTermsVersion` et `termsAccepted`. Sans acceptation de la version en vigueur, **création d'objectif et activation refusées** (`IDENTITY_TERMS_NOT_ACCEPTED`, 422), l'activation avant tout essai de PIN ; **annulation, verrouillage, blocage, réclamation et droits sur les données restent possibles** (ils protègent le client). Tests : 6 nouveaux ; 10 mutants tués.
+- **⚖ D88 :** étendre le refus aux **versements** (dès l'agrégateur branché) et au **règlement au bénéficiaire C** ? Appliqué : création et activation seulement (un règlement bloqué piégerait des fonds déjà versés). La nouvelle version elle-même dépend des textes juridiques (D23).
+- **Pour Gemini :** si `termsAccepted` est faux, afficher les conditions et appeler `POST /v1/me/terms-acceptances` avant de proposer un nouvel objectif.
+
+### G4 · Client web repris de Gemini ; inscription et connexion par clé de navigateur (24 novembre)
+- **Repris sur instruction du fondateur :** branches `agent/gemini/web-client` (G4) et `agent/gemini/portail-partenaire` (G5) relues puis intégrées (aucun conflit de code ; tests verts). Toutes les routes client du contrat ont désormais un écran web, sauf `GET /v1/goals/{goalId}/handover-code` (D69).
+- **Conditions en vigueur (F-ACC-004) :** `/compte` affiche la version et invite à l'accepter ; version unique partagée avec le serveur (`@achat/contracts/terms`).
+- **Constat :** sur le web, inscription et connexion étaient impossibles (aucune clé d'appareil dans le navigateur ; les formulaires renvoyaient vers l'application mobile).
+- **Appliqué :** le navigateur génère une clé **Ed25519 non exportable** (WebCrypto), conservée dans IndexedDB ; la clé publique part en SPKI au serveur, qui traite le navigateur comme un appareil (D71 inchangé : défi signé + PIN). Navigateur sans Ed25519 : message clair, aucune clé de remplacement. Tests : clé non exportable, signature vérifiée par `node:crypto` comme le fait le serveur, parcours inscription → connexion.
+- **⚖ D89 :** accepter le **navigateur comme appareil** du client (appliqué ; le plus simple pour le web léger) — ou réserver le client web à la consultation et exiger le mobile pour l'inscription ? Risque connu : un script injecté peut faire signer la clé tant que la page est ouverte (elle ne peut pas être copiée) ; la politique CSP à nonce et le PIN limitent ce risque.
+
+### G2/G3/G6 · Application mobile reprise de Gemini (24 novembre)
+- **Intégré :** branche `agent/gemini/e2e` (contient G2 socle, G3 parcours, G6 bout en bout) relue et intégrée ; Flutter 3.47.9 (Dart 3.13.7) épinglé, archive vérifiée par SHA-256, télémétrie désactivée ; `flutter analyze` sans remarque, 39 tests.
+- **Corrigé :** l'écran de connexion envoyait encore téléphone + PIN (contrat périmé, refusé par le serveur depuis 0.34.0) et attendait un corps de session inexistant. Connexion désormais par défi signé par la clé de l'appareil enrôlé + PIN (D71) ; sans clé enrôlée, l'écran le dit et n'envoie rien. L'inscription envoie la clé publique de la plateforme et associe l'appareil rendu par le serveur. Le message signé est vérifié octet pour octet contre la fonction du serveur. Profil : conditions en vigueur (F-ACC-004) et acceptation.
+- **⚖ D90 — clé d'appareil matérielle sur mobile :** le contrat impose Ed25519 ; le **Secure Enclave d'iOS ne connaît que P-256** et le Keystore Android n'offre Ed25519 qu'à partir d'Android 13. Options : **A.** accepter aussi des clés **P-256 (ECDSA)** côté serveur, matérielles sur les deux plateformes (recommandé : SEC-MOB-002 satisfaite) ; **B.** clé Ed25519 logicielle chiffrée par une clé matérielle (Keychain / Keystore), nouvelle dépendance cryptographique à revoir ; **C.** Android 13+ seulement. **Appliqué en attendant :** aucune implémentation de plateforme branchée — l'application l'affiche honnêtement (ni inscription ni connexion), aucune clé simulée.
+
+### Décisions du fondateur du 24 novembre : SMS, versements, inscription en agence
+- **Réponses :** « pas d'agrégateur ni de service SMS pour l'instant » ; SMS : « je réglerai ce problème avec **Twilio** dans peu de temps » (D1 tranché : Twilio) ; « ajoute aussi l'enregistrement en agence » ; versements au lancement : **aucun** (en attendant l'agrégateur).
+- **C12 · adaptateur SMS Twilio (appliqué) :** API Messages officielle (`POST /2010-04-01/Accounts/{SID}/Messages.json`, HTTP Basic, formulaire `To`/`Body`/`From` ou `MessagingServiceSid`, format vérifié dans la documentation de Twilio). Configuration par l'environnement seulement : `TWILIO_ACCOUNT_SID` ; `TWILIO_API_KEY_SID` + `TWILIO_API_KEY_SECRET` (recommandé) ou `TWILIO_AUTH_TOKEN` ; exactement un de `TWILIO_FROM` ou `TWILIO_MESSAGING_SERVICE_SID`. Incomplet ou invalide : envoi fermé (503 SMS_UNCONFIGURED). Aucune erreur ne reprend le numéro, le code ni la réponse du prestataire. Tests : 4 unitaires (7 mutants tués, 1 équivalent) ; `pnpm test:sms` contre l'environnement de test officiel de Twilio (numéros « magiques », aucun SMS réel) — **en échec tant que les identifiants de test ne sont pas fournis** (`TWILIO_TEST_ACCOUNT_SID`, `TWILIO_TEST_AUTH_TOKEN`).
+- **À faire par le fondateur :** compte Twilio ; numéro expéditeur ou service de messagerie autorisé vers le Cameroun ; secrets dans la configuration du serveur (jamais dans le dépôt) ; autoriser l'hôte `api.twilio.com` sur le réseau de production.
+- **Versements (D92) :** aucun au lancement ; les objectifs peuvent être créés et activés, rien n'est encaissé.
+
+### C13 · Inscription en agence, sans SMS (F-ACC-001, 24 novembre)
+- **Demandé par le fondateur :** « ajoute aussi l'enregistrement en agence ».
+- **Appliqué (migration 0075, contrat 0.42.0) :** `POST /v1/backoffice/agency-enrollments` (`phone`, `documentType` CNI / passeport / carte de séjour, `cityId`) : l'agent du support (N1 ou N2), dans sa ville, vérifie en personne la pièce et le téléphone, puis émet un **code d'inscription ordinaire** (mêmes règles que par SMS : 5 minutes, 5 essais, 5 codes par numéro et par heure) qu'il remet au client ; le client termine sur son appareil par la route habituelle (code, PIN, clé d'appareil, conditions). Le code n'est rendu qu'une fois : jamais conservé en clair, `null` sur un rejeu. Numéro déjà inscrit signalé à l'agent (409). Rattachement en ajout seul (agent, ville, type de pièce, jamais le numéro de pièce) ; audit chaîné sans numéro ni code. Écran `/clients/inscription-agence` (case « vérifié en présence du client » obligatoire). Tests : 4 HTTP et base, 2 d'écran ; 11 mutants tués (1 équivalent supprimé du code).
+- **⚖ D91 :** une seule personne émet le code (appliqué, comme le blocage) avec **30 codes par agent sur 24 h** — valider ; faut-il une seconde personne, ou une photo de la pièce (prestataire KYC) ?
+- **Limite connue :** sans clé d'appareil de plateforme sur mobile (D90), le client termine aujourd'hui l'inscription sur le **client web** (clé du navigateur, D89).
+
+### Hébergement tranché par le fondateur (24 novembre) — ADR-0004, D5, D93
+- **Localisation :** base entière au Cameroun (comptes, KYC, objectifs, grand livre, audit, sauvegardes) ; à l'étranger seulement le non-personnel (signatures KMS/HSM, pages publiques). Pas d'autorisation de transfert nécessaire.
+- **Clés (D5) :** KMS/HSM managé, clés non exportables ; le message signé ne contiendra aucune donnée personnelle (à imposer dans l'adaptateur de signature).
+- **Sauvegardes (D93) :** un site + copie hors site au Cameroun, chiffrée, immuable 35 jours ; écart temporaire accepté à OPS-BAK-001 et NF-REL-002 (RPO non nul) jusqu'à l'ouverture des versements.
+- **Exploitation :** VM + conteneurs (lot Q4), PostgreSQL 16 exploité par l'équipe.
+- **Reste à choisir (humain) :** l'hébergeur camerounais et le fournisseur KMS/HSM ; comptes et accès. Côté code : adaptateur de signature KMS (port existant) dès que le fournisseur est connu.
+
+### Hébergement révisé par le fondateur (25 novembre) — ADR-0004
+- **Décision :** les hébergeurs camerounais ne sont pas jugés sûrs ; **tout est hébergé à l'étranger chez AWS, fortement chiffré**, KYC compris, pour le moment. Clés : **AWS KMS** (Ed25519 vérifié dans la documentation officielle ; Azure exclu, faute d'Ed25519).
+- **Appliqué par défaut (réversible) :** région Paris (eu-west-3) ; copie des sauvegardes dans une seconde région AWS.
+- **Chiffrement exigé :** TLS 1.3 ; volumes et sauvegardes chiffrés par nos clés KMS ; **chiffrement applicatif par enveloppe** du numéro, du nom légal et des données KYC (lot C14 à réaliser) ; accès aux clés journalisés.
+- **Signalé, non tranché :** autorisation préalable de l'Autorité de protection des données (loi 2024/017, REG-DPD-004) ; le fondateur a refusé de répondre à la question à ce stade (« fais comme je t'ai dit »). Tant qu'il ne décide pas de collecter des données réelles avant l'accord, la règle de l'ADR-0004 s'applique : données synthétiques seulement.
+
+### Hébergement MVP : Neon + AWS Francfort ; C15 transfert de base (25 novembre)
+- **Décidé par le fondateur (« ok go ») :** Neon Francfort pour la base, serveurs et AWS KMS à Francfort, chiffrement applicatif (C14), notre propre sauvegarde, transfert vers AWS répété (ADR-0004).
+- **Vérifié :** les 75 migrations s'appliquent sous un rôle sans superutilisateur (droits du propriétaire Neon).
+- **C15 livré :** `pnpm db:transfer` (`tools/transfer-database.ts`) et `docs/03_agents_ia/PROCEDURE_TRANSFERT_BASE.md` : copie complète cohérente, données chargées avant les déclencheurs, une seule transaction, droits conservés ; vérification du contenu de chaque table, des déclencheurs (dont ENABLE ALWAYS), des droits et du grand livre. Répétition réelle entre deux bases (grand livre des flux réels) : 3 tests ; 4 mutants tués, dont la restauration sans droits (`--no-privileges`), défaut repéré dans `infra/backup/restore.sh` de la PR #9 de Qoder (déjà signalé en revue).
+
+### C14 · Chiffrement applicatif (25 novembre) — tranche 1
+- **Décidé par le fondateur :** chiffrer le **téléphone** (et les futures pièces d'identité) ; garder le **nom légal lisible par la base**, pour que le filtrage ONU reste garanti par elle (0063).
+- **Livré (tranche 1) :** noyau `apps/api/src/crypto/envelope.ts` — AES-256-GCM, une clé de données par valeur, emballée par la clé maîtresse ; chiffré lié à table, colonne et ligne ; empreinte à clé (HMAC-SHA-256) pour unicité et recherche ; configuration fermée par défaut (`PII_KMS_KEY_ARN`, ou `PII_LOCAL_MASTER_KEY` hors production seulement). Adaptateur AWS KMS (`@aws-sdk/client-kms` 3.1166.0, épinglé, publié le 10 novembre) : clé imposée et contexte d'usage fixe. 5 tests, 4 mutants tués ; `pnpm test:kms` contre AWS réel, en échec tant que `PII_KMS_TEST_KEY_ARN` et des identifiants AWS ne sont pas fournis.
+- **Tranche 2 (à suivre) :** colonnes `phone_index` (empreinte, unique), `phone_ciphertext`, `phone_masked` dans `identity.account` et empreinte seule dans `identity.otp_challenge` ; fonctions et quotas de la base passés à l'empreinte ; plus aucun numéro en clair en base.
+
+### C14 · Tranche 2 : plus aucun numéro de téléphone en clair en base (25 novembre)
+- **Appliqué (migration 0076) :** les colonnes `phone` (compte, défi OTP) et `old_phone`/`new_phone` (récupération) ne contiennent plus que l'**empreinte à clé** (HMAC-SHA-256, 64 hexadécimaux) : unicité, liaison des défis, quota par numéro et récupération restent exacts. Le numéro n'est stocké que **chiffré par enveloppe** (`phone_ciphertext`, clé AWS KMS, lié à son empreinte) et **masqué** (`phone_masked`, indicatif + 2 derniers chiffres). Écrits à l'émission du code d'inscription (seul moment où l'application voit le numéro), recopiés dans le compte ; la base vérifie que le chiffré du compte est celui d'un code vérifié pour ce numéro. Profil : lit le masque. Idempotence : portée et empreinte de requête sur l'empreinte du numéro. La migration refuse de s'appliquer sur des numéros en clair (aucune donnée réelle).
+- **Configuration (fermée par défaut) :** `PII_KMS_KEY_ARN` (ou `PII_LOCAL_MASTER_KEY` hors production) et `PHONE_INDEX_KEY_WRAPPED` (clé d'index de 32 octets, emballée par la clé maîtresse). Sans elles : inscription 503.
+- **Tests :** balayage de toutes les tables de tous les schémas après une inscription (numéro absent partout) ; garanties de la base (numéro en clair refusé, code d'inscription sans chiffré refusé, chiffré substitué refusé) ; unitaires (empreinte stable, chiffré lié à l'empreinte, masque) ; 8 mutants tués. Un vrai défaut trouvé et corrigé : le masque acceptait un numéro sans `+`.
+- **Limite :** la route `POST /v1/auth/otp-challenges` (envoi SMS) n'est pas exercée de bout en bout tant que Twilio n'est pas configuré (aucune simulation) ; sa logique de protection est commune avec l'inscription en agence, testée.
+- **Pour Qoder (PR #10, CRM) :** la fiche 360° doit lire `identity.account.phone_masked` ; `phone` n'est plus un numéro.
+
+
+### C16 · Version minimale de l'application imposée par le serveur (SEC-MOB-005, contrat 0.43.0)
+- **Fait :** en-tête `X-Client-Version: <plateforme>/<x.y.z>` (plateformes `mobile`, `desktop`) ; paramètre versionné `client_min_versions` publié avec préparateur ≠ approbateur ; sous le minimum de sa plateforme → **426 `CLIENT_UPGRADE_REQUIRED`** avant toute logique métier. Le mobile envoie l'en-tête sur chaque requête et reconnaît 426.
+- **Option prudente et réversible retenue :** en-tête absent → requête acceptée (navigateur, USSD, partenaires, anciennes versions du mobile qui ne l'envoyaient pas encore). En-tête présent mais mal formé → 400. Sans paramètre publié → aucune version refusée. Lecture du paramètre mise en cache 60 s.
+- **Question au fondateur (D114) :** une fois toutes les versions en circulation porteuses de l'en-tête, faut-il refuser aussi son **absence** sur les routes client mobiles ? Recommandation : oui, après la première publication en boutique.
+
+### C17 · Mobile : règlement au bénéficiaire C (F-PLN-003, lot G3 repris de Gemini)
+- **Fait :** sur un objectif C financé, l'écran de détail propose « Préparer le règlement » → résumé (montant, bénéficiaire, avertissement d'irréversibilité, comme le client web) → PIN (6 chiffres vérifiés avant tout appel) → `POST …/beneficiary-payment`. Le PIN est effacé du champ dès l'envoi. 3 tests de widget, 6 mutants tués.
+- **Dépôt de la pièce (F-PLN-002) :** non proposé sur mobile ; l'écran oriente vers le client web. Raison : calculer l'empreinte d'un fichier exige un sélecteur de fichiers et une implémentation SHA-256, donc deux nouvelles dépendances (`file_picker`, `crypto`) à revoir et épingler. Les anciens libellés de saisie manuelle d'empreinte (inutilisables par un client) sont supprimés.
+- **Question (D115) :** ajouter ces deux dépendances au mobile (revue de chaîne d'approvisionnement à faire), ou garder le dépôt sur le web ? Recommandation : les ajouter au moment de la première version publiée, après revue.
+- **Restent bloqués sur mobile :** activation et annulation signées, renouvellement de session (clé d'appareil, D90) ; code de remise (D69).
+
+### C18 · Mobile : écran « mise à jour requise » (SEC-MOB-005, suite de C16)
+- **Fait :** toute réponse 426 du serveur efface la session en mémoire et remplace l'application entière par un écran unique (titre, explication, version installée) ; aucune autre action n'est proposée. Une autre erreur (409, 503…) ne le déclenche pas. 3 tests, 6 mutants tués (dont un survivant initial — session non vérifiée — corrigé en renforçant le test).
+- **Option prudente :** pas de lien vers une boutique tant que l'application n'y est pas publiée (aucune adresse inventée) ; ouvrir un lien exigerait aussi une dépendance (`url_launcher`) à revoir. L'écran nomme Google Play et l'App Store. À compléter à la publication (avec D115).
+
+### C19 · Décès d'un client, tranche 1 : déclaration, décision par une autre personne, gel (F-ACC-007, contrat 0.44.0, migration 0077)
+- **Fait :** `POST /v1/backoffice/customers/{accountId}/decease-cases` (support N2 ou conformité, motif obligatoire : date du décès + **empreinte SHA-256** de l'acte, la pièce reste hors base) puis `POST /v1/backoffice/decease-cases/{caseId}/decision` (conformité, **jamais le déclarant**, vérifié par la base ; une seule décision ; rejet motivé). À l'approbation, dans la même transaction que la décision : compte bloqué définitivement (canal `DECEASED`), appareils révoqués, sessions fermées, objectifs **actifs** gelés (`ACTIVE → FROZEN`, au nom du décideur). Ensuite la base refuse toute modification de l'état, du canal ou du numéro du compte et toute récupération, **même pour un rôle de confiance**. Dossiers en ajout seul. Audit chaîné sans l'empreinte.
+- **Options prudentes retenues :** un seul dossier en attente ou approuvé par compte ; un rejet permet une nouvelle déclaration ; les objectifs non actifs (brouillon, financés, en litige) ne sont pas modifiés — le client bloqué ne peut plus agir dessus ; **aucun mouvement de fonds** n'est créé.
+- **⚖ D116 — restitution aux ayants droit (tranche 2), à trancher par le fondateur avec le juriste :** (a) pièces exigées (acte de décès + acte de notoriété, jugement ou certificat d'hérédité ?) ; (b) un seul bénéficiaire désigné (notaire, mandataire) ou partage entre plusieurs ayants droit ; (c) canal de paiement (virement par l'établissement vers un compte vérifié au nom de l'ayant droit ou du notaire) ; (d) sort des objectifs financés à 100 % (remise de l'article aux ayants droit ou restitution) ; (e) versements reçus après la date du décès. **Recommandation :** un seul bénéficiaire (notaire ou mandataire désigné par acte), virement bancaire uniquement, préparé puis approuvé par deux personnes avec pièces versées, réutilisant le circuit de remboursement signé (D49).
+- **Tests :** 8 tests HTTP + base (dont refus : déclarant décideur 403 `MAKER_CANNOT_APPROVE`, rôles hors liste 403, double dossier/décision 409, rejet sans motif et date future 400, compte inconnu 404, ajout seul et garde du compte même pour un superutilisateur) ; 17 mutants tués (un survivant initial — empreinte en majuscules acceptée — corrigé par un test).
+- **Pour Qoder (PR #8) :** messages FR/EN des 4 nouveaux codes `IDENTITY_DECEASE_*` et `IDENTITY_ACCOUNT_DECEASED`.
+
+### C20 · Inventaire cryptographique vérifié par test (SEC-CRY-006)
+- **Fait :** `docs/04_annexes/INVENTAIRE_CRYPTOGRAPHIQUE.md` — 7 lignes (SHA-256, HMAC-SHA-256, AES-256-GCM, Ed25519, WebAuthn ES256/EdDSA, Argon2id, AWS KMS) : usage, algorithme et longueurs, bibliothèque, position post-quantique (conservé ou à migrer, cible ML-DSA FIPS 204 / SLH-DSA FIPS 205), emplacements exacts. `tools/crypto-inventory.test.ts` (dans `pnpm test`) parcourt tout le code de production (TypeScript, SQL, Dart, Rust) et échoue sur un emplacement non inventorié, un emplacement périmé, une ligne manquante ou en trop, ou l'apparition d'un algorithme faible ou non inventorié (MD5, SHA-1, RSA, PBKDF2, scrypt, 3DES, autre chiffrement qu'AES-256-GCM). 6 tests, 6 mutants tués.
+- **Hors périmètre du dépôt (dit dans le document) :** TLS des hébergeurs, chiffrement au repos du fournisseur de base, HSM des clés de signature (SEC-CRY-003, D5).
+- **Constat pour la migration post-quantique :** seules les signatures (Ed25519, ES256) sont à migrer ; priorité aux têtes de lots signées (durée de vie la plus longue). Aucune décision demandée maintenant.
+
+### C21 · Aucune mécanique de loterie, de grattage ni de rémunération au clic (NF-SAFE-001)
+- **Fait :** `tools/no-gambling.test.ts` (dans `pnpm test`) parcourt tout le code de production et tous les textes montrés aux clients (web, mobile, notifications, contrat, migrations, documents des applications) et refuse le vocabulaire de ces mécaniques en français et en anglais, en texte comme en identifiant (`LOTTERY_ENTRY`, `prizeDraw`, « Gagnez… », « tirage au sort », « cashback », « au clic »…). Contrôle du contrôle : chaque forme est détectée, sans faux positif sur des mots voisins (« surprise », « gratuit », « retrait »…). 4 tests, 2 mutants tués (texte mobile, identifiant SQL). Aucun usage trouvé dans le code actuel.
+- **Limite dite :** un contrôle lexical ne prouve pas l'absence d'une mécanique déguisée ; il bloque les formes ordinaires, et le reste relève de la revue (AGENTS.md § 8, revue humaine avant fusion).
+
+### N1 · Lots Neon — outil de migration `pnpm db:migrate` (ADR-0004)
+- **Demande du fondateur (26 nov.) :** « travaille sur les lots de Neon ». Lots déduits de l'ADR-0004 (aucune liste préexistante) : N1 migrations, N2 TLS, N3 rôles de connexion, N4 sauvegarde chiffrée, N5 procédure Neon.
+- **Fait :** `MIGRATION_DATABASE_URL=… pnpm db:migrate [--dry-run]` applique `db/migrations` dans l'ordre sous le rôle propriétaire (sans superutilisateur, droits Neon). Chaque migration est exécutée **et** inscrite dans `ops.schema_migration` (nom, SHA-256, auteur, instant) dans la même transaction. Refus : migration appliquée puis modifiée (`MIGRATION_CHECKSUM_MISMATCH`), retirée ou renommée (`MIGRATION_UNKNOWN_APPLIED`), trou de numérotation, fichier hors format (une seule transaction `BEGIN; … COMMIT;` par fichier, vrai pour les 77), base déjà peuplée sans historique (`MIGRATION_BASELINE_REQUIRED`, aucune supposition). Échec d'une migration ou de son inscription : rien n'est conservé de celle-ci. Verrou consultatif : deux exécutions simultanées n'appliquent rien deux fois. Historique en ajout seul, séquence imposée par la base. `ops` ajouté au transfert (C15) : l'historique suit la base vers AWS.
+- **Tests :** 11 tests sur PostgreSQL réel, dont l'application complète des 77 migrations par un propriétaire `NOSUPERUSER CREATEROLE CREATEDB` (comme sur Neon) ; 11 mutants tués sur 12, le 12ᵉ équivalent (contrôle redondant du nombre de `BEGIN`, déjà couvert par le refus de tout code hors transaction).
+- **Limite dite :** l'empreinte prouve l'intégrité par rapport au dépôt, pas l'auteur ; la signature des migrations (AGENTS.md § 3) repose sur les commits signés. Proposition (D117) : manifeste des empreintes signé Ed25519 par le fondateur, vérifié par l'outil avant d'appliquer — à décider.
+
+### N2 · TLS vérifié obligatoire vers la base (SEC-CRY-001, ADR-0004)
+- **Fait :** l'API (`DATABASE_URL`), l'outil de migration et l'outil de transfert refusent toute base distante, et en production toute base, sans `sslmode=verify-full` (`DATABASE_TLS_REQUIRED`) ; tout autre réglage TLS (`sslrootcert`, `sslaccept`, `uselibpqcompat`…) est refusé, car il changerait la vérification par défaut de node-postgres (autorités du système, nom d'hôte vérifié). Le message ne recopie jamais l'adresse. Base locale sans TLS permise hors production seulement. 6 tests unitaires + 3 refus dans les outils, 6 mutants tués.
+- **À faire à la création du projet Neon :** adresse de connexion de la forme `postgresql://<rôle>@<point d'accès>.eu-central-1.aws.neon.tech/<base>?sslmode=verify-full` (ajouter `channel_binding=require` est accepté).
+
+### N3 · Comptes de connexion Neon à droits minimaux ; N5 · procédure Neon
+- **Fait :** `pnpm db:roles plan` produit le SQL (rejouable, **sans mot de passe**) que le propriétaire exécute : un compte par composant (`molopay_api`, `molopay_notifier`, `molopay_monitor`, `molopay_nightly`, `molopay_kyc_import`), `NOINHERIT`, membre de ses seuls rôles fonctionnels avec `INHERIT FALSE, SET TRUE`. Le compte n'a donc aucun droit tant qu'il ne prend pas son rôle (vérifié : l'API ne lit rien sans `SET ROLE app_ro`, et ne peut pas prendre `integrity_reporter`). `ROLES_DATABASE_URL=… pnpm db:roles check` refuse tout écart : compte absent, `SUPERUSER`/`CREATEROLE`/`CREATEDB`/`REPLICATION`/`BYPASSRLS`/`INHERIT`, appartenance en trop (y compris un rôle prédéfini comme `pg_read_all_data`) ou manquante, héritage d'une appartenance, droit direct sur une table, une fonction ou un schéma, objet possédé. TLS vérifié exigé (N2). 3 tests sur PostgreSQL réel sous un propriétaire sans superutilisateur ; 8 mutants tués (un d'abord survivant, équivalent, rendu observable en imposant l'option explicite dans le plan).
+- **Contrôle nocturne :** `tools/nightly-verify.ts` exige aussi le TLS vérifié (N2).
+- **Choix prudent :** comptes créés en SQL par le propriétaire, et non par la console Neon, car un rôle créé par la console deviendrait membre de `neon_superuser` d'après la documentation de Neon (à vérifier ; le contrôle le signalerait). Mots de passe saisis par l'opérateur avec `\password`, jamais écrits.
+- **N5 :** `docs/03_agents_ia/PROCEDURE_NEON.md` — création du projet (Francfort, PostgreSQL 16, calcul toujours actif), adresse `verify-full`, migrations, comptes, contrôles réguliers, lien avec le transfert vers AWS. Points Neon non vérifiés marqués « à vérifier ».
+- **Reste :** N4 (copie quotidienne chiffrée par nos clés dans une seconde région AWS) ; D117 (manifeste signé des migrations).
+
+### N4 · Copie quotidienne chiffrée par nos clés, restauration vérifiée (ADR-0004)
+- **Fait :** `pnpm db:backup` lit `pg_dump` (format personnalisé, instantané cohérent) en flux et le chiffre à la volée : **aucun clair sur disque**. Une clé de données par copie, emballée par une clé KMS **dédiée** (contexte `molopay-backup-dek-v1`, refus si c'est la clé des données personnelles). Blocs AES-256-GCM d'1 Mio, chacun lié à l'en-tête, à son rang et à l'indicateur de fin. Sortie : `molopay-<instant>.dump.enc` + `.sha256`, écrite sous un nom provisoire puis renommée. `pnpm db:restore-backup <fichier>` déchiffre et vérifie **tout** le fichier avant d'en livrer le moindre octet, restaure en une transaction dans une base **vide**, supprime le clair temporaire dans tous les cas, puis contrôle le grand livre. Refus : octet modifié, troncature (y compris exactement au dernier bloc), octets ajoutés, mauvaise clé → `BACKUP_INTEGRITY_FAILED`, sans fichier partiel ; cible non vide ; source sans TLS vérifié ; clé locale en production. 4 tests sur PostgreSQL réel avec le scénario des flux réels (copie puis restauration : contenu, déclencheurs, droits identiques, grand livre intact) ; 9 mutants tués.
+- **Hors dépôt (procédure, § 5) :** dépôt dans S3 seconde région par `aws s3 cp` du serveur, avec verrouillage des objets — aucune dépendance ajoutée au dépôt. **D118 :** région de la copie (proposition : Irlande `eu-west-1`, autre région de l'UE) et durée de rétention verrouillée (proposition : 35 jours, comme l'ADR-0004 révisé) — à trancher par le fondateur.
+- **Lots Neon N1–N5 :** tous livrés. Restent, hors code : création du projet Neon, DPA, autorisation de transfert, clés KMS et compartiment S3 (accès humains).
+
+### N6 · L'API ne démarre que sur le schéma exact de son code (AGENTS.md § 0.7)
+- **Fait :** en production (`NODE_ENV=production`), l'API lit au démarrage, avec le rôle `app_ro`, l'historique `ops.schema_migration` et le compare aux migrations livrées avec le code (`MIGRATIONS_DIR`, par défaut `db/migrations`) : même nombre, mêmes noms, mêmes empreintes. Base en retard, en avance, migration réécrite ou historique absent → `SCHEMA_VERSION_MISMATCH`, refus de démarrer ; migrations livrées introuvables → `SCHEMA_MANIFEST_MISSING`. `pnpm db:migrate` accorde désormais à `app_ro` la seule lecture de l'historique (rejouable). Lecture des migrations déplacée dans `apps/api/src/http/migration-manifest.ts`, partagée par l'outil et l'API. 6 tests sur PostgreSQL réel, 6 mutants tués.
+- **Conséquence pour le déploiement :** l'image de l'API doit contenir `db/migrations` (ou `MIGRATIONS_DIR` doit y pointer), et `pnpm db:migrate` passe **avant** le démarrage de la nouvelle version.
+
+### C22 · F-REP-002, tranche 1 : définitions écrites des indicateurs produits
+- **Fait :** `docs/04_annexes/DEFINITIONS_INDICATEURS.md`. Le document fixe, avant tout calcul, chaque indicateur (volume confirmé au grand livre, objectifs ouverts, taux d'objectifs à 100 % sur les activés de la période, délai de remise médian et 90ᵉ centile, marge brute de commission par commande), leur source, leur unité et leurs règles (totaux toujours publiés, cases de moins de 5 masquées, agrégats seulement). « Impayés B » est publié « sans objet » tant que B n'est pas ouvert, jamais 0.
+- **⚖ D119 — attribution des dimensions, à trancher :** (a) **ville** : aucun objectif n'en porte. Proposition : figer à la création la ville choisie par le client, ce qui demande une migration et une évolution du contrat ; en attendant, ville de l'offre si elle est unique, sinon case `NON_ATTRIBUÉE`. (b) **univers d'un objectif C** : proposition, déduire l'univers de la catégorie du bénéficiaire (logement pour bailleur, agence, matériaux, terrain ; école à décider) ; en attendant, case « hors univers ».
+- **Suite (tranche 2) :** fonctions SQL en lecture seule par `app_ro`, testées sur les flux réels, puis route du back-office.
+
+### C23 · F-REP-002, tranche 2 : calcul des indicateurs, testé
+- **Fait :** `apps/api/src/modules/reporting/kpi.store.ts` calcule, en lecture seule (`app_ro`), exactement les définitions de `DEFINITIONS_INDICATEURS.md` sur une période `[début, fin[` :
+  - volume des versements confirmés ;
+  - objectifs ouverts à date ;
+  - taux d'objectifs à 100 % (activés de la période qui ont atteint `FUNDED`) ;
+  - délai de remise (médiane et 90ᵉ centile) ;
+  - impayés B « sans objet » ;
+  - marge brute de commission des règlements exécutés.
+
+  Ventilation par univers et par ville sans supposition (D119) ; cases de moins de 5 objectifs masquées, totaux toujours publiés.
+- **Tests :** 6 sur PostgreSQL réel, avec le scénario des flux réels et des valeurs calculées à la main (volume 550 000, taux 66,7 %, commission 3 750, offre sur deux villes → `NON_ATTRIBUEE`) ; 4 unitaires (masquage à partir de 5, arrondi du taux demi vers le haut, moyenne entière).
+- **Mutants :** 10 au total — 7 tués après renforcement (offre sur deux villes, moyenne sur plusieurs commandes, période vide), 1 équivalent (type seulement), 1 non couvert. Ce dernier, un règlement rejeté compté dans la marge, n'est pas testé : il faudrait construire un second achat complet. La base garantit déjà qu'un règlement rejeté n'a pas d'écriture ; test à ajouter avec un scénario de rejet.
+- **Définition ajustée :** aucun flux actuel ne contre-passe un versement confirmé ; la déduction sera écrite avec son test si un tel flux apparaît.
+- **Suite (tranche 3) :** route du back-office (lecture, rôle à définir — proposition : `FINANCE`, `COMPLIANCE`, `AUDIT`) et contrat ; ventilation par ville réelle après D119.
+
+### C24 · F-REP-002, tranche 3 : indicateurs au back-office (contrat 0.45.0)
+- **Fait :** `GET /v1/backoffice/reports/product-kpis?from=AAAA-MM-JJ&to=AAAA-MM-JJ&reason=…`. La période est exprimée en dates de Douala (UTC+1, sans heure d'été), début inclus, fin exclue, au plus 366 jours ; sinon 400 `REPORT_PERIOD_INVALID`, nouveau code, y compris pour une date de calendrier impossible. Le calcul tourne en lecture par `app_ro` ; la consultation est motivée et inscrite à l'audit chaîné (`PRODUCT_KPIS_READ`, avec la période seule) dans la même transaction.
+- **Option prudente (à confirmer, D120) :** nouvelle action `READ_PRODUCT_KPIS` donnée à **FINANCE, COMPLIANCE et AUDIT** seulement, motif obligatoire. Proposition : l'ouvrir aussi au fondateur ou à la direction quand ce rôle existera.
+- **Tests :** 4 tests HTTP sur PostgreSQL réel (flux réels), dont les refus : support 403 `ADMIN_FORBIDDEN`, sans session 401, sans motif 400, période inversée, vide, de 367 jours ou impossible 400 `REPORT_PERIOD_INVALID`, paramètre hors liste 400. 7 mutants tués.
+- **Pour Qoder (PR #8) :** message FR/EN de `REPORT_PERIOD_INVALID`.
+
+### C25 · F-REP-002, tranche 4 : écran « Indicateurs » du back-office
+- **Fait :** page `/indicateurs` (lien dans la navigation), branchée sur la route réelle `GET /v1/backoffice/reports/product-kpis`. Elle affiche les totaux, le taux d'objectifs à 100 % (virgule décimale), le délai de remise, la marge de commission et « Impayés B : sans objet », ainsi que quatre ventilations (volume et objectifs ouverts, par univers et par ville) avec libellés français. Une case de moins de 5 objectifs s'affiche « moins de 5 », sans montant. Refus avant tout appel : dates absentes ou hors format, période vide, inversée ou de plus de 366 jours, motif trop court. Un refus du serveur efface les chiffres précédents (aucun chiffre périmé à l'écran).
+- **Tests :** 5 tests de composant, dont l'accessibilité (axe) ; 7 mutants tués, dont un d'abord survivant (chiffres conservés après un refus), tué par un test de séquence.
+
+### Plan · Travailleur de notifications (suite Neon, non commencé)
+- **Constat :** aucun processus de distribution n'existe. Côté base, il n'y a que `claimNotification` et `retryNotification` (rôle `notification_worker`), sans confirmation d'envoi.
+- **Ce qu'il faut :** un processus `pnpm notify:worker` connecté avec `molopay_notifier` (`options=-c role=notification_worker`, TLS vérifié), qui réclame une notification, révèle le numéro (KMS, C14), envoie par Twilio (adaptateur fermé sans configuration), puis confirme ou replanifie, de façon idempotente. Il faut aussi une fonction de confirmation d'envoi en base, qui manque aujourd'hui.
+- **⚖ D121 — à trancher avant de coder :** (a) **push** : prestataire (Firebase Cloud Messaging ou autre) ou SMS seulement au lancement ; (b) **plages d'envoi** (proposition : 8 h–20 h, heure de Douala) ; (c) **textes** des messages FR/EN, à valider par la conformité (NF-SAFE-003 : non culpabilisants).
+
+### P1 · Production : configuration complète, fermée par défaut, vérifiable (`pnpm config:check`)
+- **Demande du fondateur (27 nov.) :** avancer sur ce qui relève de la production sans décision de sa part.
+- **Défaut trouvé :** `main.ts` ne transmettait ni la partie de confiance WebAuthn du personnel, ni celle des partenaires, ni le poivre du code de remise. En production, la connexion au back-office, celle au portail partenaire et la remise en boutique auraient toutes répondu 503, quelle que soit la configuration.
+- **Fait :** `apps/api/src/config/production-config.ts`.
+  - `STAFF_RP_ID`/`STAFF_RP_ORIGINS` et `PARTNER_RP_ID`/`PARTNER_RP_ORIGINS` : domaine valide ; origines https seules, sans chemin, sur ce domaine ou un sous-domaine avec un vrai point (`evilmolopay.cm` refusé) ; localhost en http hors production seulement.
+  - `HANDOVER_PEPPER` : base64 de 32 à 64 octets. Les trois poivres (PIN, OTP, remise) doivent être différents.
+  - Absent : capacité fermée (503). Présent mais invalide : l'API ne démarre pas. Message toujours sans la valeur.
+- **Signature des instructions :** reste fermée en production, sans chargement depuis l'environnement. La clé doit vivre dans un HSM (D5), et il n'y a pas de versement au lancement (décision du fondateur). Un signataire AWS KMS (Ed25519) sera nécessaire quand les versements ouvriront.
+- **`pnpm config:check` :** affiche l'état de chaque capacité (configurée ou fermée), sans aucune valeur ; code 1 si une configuration présente est invalide. `.env.example` liste désormais toutes les variables lues par l'API, sans valeur.
+- **Tests :** 8 unitaires. 9 mutants, dont 7 tués et 2 équivalents : « localhost en http en production », impossible car le domaine localhost est refusé en production, et « chemin accepté », déjà refusé par la comparaison d'origine.
+
+### P2 · Production : artefact de l'API construit, lancé et vérifié
+- **Fait :** `pnpm build:api` (esbuild 0.28.2, déjà présent dans le fichier de verrouillage, désormais épinglé en dépendance de développement) produit `apps/api/dist/main.cjs`. `pnpm start:api` le lance.
+- **Démarrage et arrêt (`main.ts`) :**
+  - un échec de démarrage affiche **un seul code** d'erreur, jamais le message (qui pourrait contenir une adresse ou une valeur), et sort avec le code 1 ;
+  - sur SIGTERM ou SIGINT, l'API ferme l'application puis le pool de connexions et sort avec le code 0. Avant, le pool n'était jamais fermé.
+- **Test sur l'artefact réel :** 3 tests. Construction, lancement par Node, `/health` 200, arrêt en code 0 sur SIGTERM ; refus de démarrer en production sans TLS vérifié (ni l'adresse ni le mot de passe affichés) ; configuration absente (`CONFIG_MISSING`) ou invalide (`CONFIG_INVALID`). 4 mutants tués.
+- **Constat :** les dépendances publiées doivent être résolues depuis `apps/api/node_modules` (fonctionnement de pnpm). D'où l'emplacement de l'artefact et le paquet de déploiement par `pnpm deploy --filter @achat/api --prod` (procédure `PROCEDURE_DEPLOIEMENT_API.md`).
+- **Non fait (dit) :** pas de Dockerfile. Aucun moteur Docker n'est disponible ici pour le construire et le tester, et l'AGENTS.md interdit de déclarer « fonctionne » sans preuve. À écrire et tester sur la machine de construction.
+
+### P3 · Production : en-têtes de sécurité sur toute réponse de l'API (SEC-CRY-001, SEC-API-005)
+- **Défaut trouvé :** l'API ne posait aucun en-tête de sécurité et annonçait son cadriciel (`X-Powered-By: Express`). Seuls le portail et le back-office avaient une politique de contenu.
+- **Fait :** intergiciel global (`apps/api/src/http/security-headers.ts`), appliqué avant tout traitement, donc aussi aux problèmes RFC 9457 et aux routes inconnues. En-têtes : HSTS de 2 ans avec sous-domaines, `nosniff`, CSP `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` (l'API ne sert que du JSON), `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, COOP et CORP `same-origin`, `Permissions-Policy` fermant caméra, micro, géolocalisation et paiement. `X-Powered-By` est retiré.
+- **Option prudente :** pas de `preload` HSTS, car l'inscription à la liste de préchargement des navigateurs est difficilement réversible ; à décider une fois le domaine définitif en service.
+- **Tests :** 1 test HTTP sur trois réponses (200, 404, 403) ; 3 mutants tués.
+
+### P4 · Confirmation d'envoi des notifications en base (migration 0078, aucun envoi)
+- **Fait :** `notifications.complete_notification(bail, référence)`, accordée au seul `notification_worker`, et `completeNotification` dans le store. La confirmation est enregistrée en ajout seul (`notifications.delivery`) avec la référence opaque du prestataire, jamais le texte ni le numéro.
+- **Effets :** une notification confirmée n'est plus jamais reprise, ce qui évite un double SMS ; elle sort des compteurs de la file ; le bail est libéré. Une confirmation rejouée avec la même référence est sans effet ; avec une autre, elle est refusée (`NOTIFICATION_ALREADY_DELIVERED`).
+- **Option prudente :** un bail repris par un autre travailleur est refusé (`NOTIFICATION_CLAIM_LOST`). Un bail expiré mais non repris est en revanche **accepté** : le message est parti, et le refuser provoquerait un second envoi.
+- **Tests :** 5 sur PostgreSQL réel, plus les 24 tests existants de distribution, toujours verts après le remplacement de la fonction de prise. 6 mutants, dont 5 tués (un d'abord survivant, « bail conservé », tué par l'assertion du bail libéré) et 1 équivalent (second contrôle du bail sous verrou).
+- **Reste, pour le travailleur :** D121 (push, plages, textes) avant tout envoi réel.
+
+### P5 · Contrôles de plateforme en liste blanche (NF-COMP-001, REG-DPD-003, NF-PORT-002)
+- **Fait :** `tools/client-platform.test.ts`, lancé par `pnpm test`.
+  - **NF-COMP-001** : Android `minSdk = 26` (8.0) désormais **fixé** ; avant, il suivait la valeur par défaut de Flutter, 24 (Android 7). iOS : cible 15.0 dans toutes les configurations.
+  - **REG-DPD-003** : seule permission Android `INTERNET`, dans tous les manifestes ; aucune demande d'accès dans `Info.plist` ; dépendances Flutter en liste blanche (`flutter`, `cupertino_icons`, `http`). La géolocalisation n'est lue que par le port du comptoir de remise du portail partenaire, une fois par remise (`getCurrentPosition`) ; jamais de suivi continu ; aucun accès aux contacts.
+  - **NF-PORT-002** : le SDK AWS n'est importé que par l'adaptateur KMS, Twilio n'est joint que par son adaptateur, et aucun nom d'hôte de fournisseur cloud ne figure dans le code métier ; un seul paquet de fournisseur dans les dépendances de l'API.
+- **Tests :** 8 ; 6 mutants tués, dont un d'abord survivant (importation nue `import '@aws-sdk/…'`) après élargissement du contrôle.
+- **Limite dite :** la construction Android n'a pas pu être lancée ici (pas de SDK Android). Le changement de `minSdk` est à vérifier par `flutter build apk` sur la machine de construction.
+
+### P6 · Chaque route protégée par la session de son espace (liste blanche des routes publiques)
+- **Constat :** les clés d'idempotence étaient déjà exigées sur toutes les routes d'écriture (test du lot 24), mais aucun test ne garantissait qu'une **nouvelle** route du back-office, du portail partenaire ou du client serait protégée.
+- **Fait :** `apps/api/src/route-auth.test.ts` lit les métadonnées de **toutes** les routes. Chacune doit porter la garde de session de son espace, déduite du chemin : back-office et personnel → personnel ; `/v1/partner/` → partenaire ; `/v1/me`, `/v1/goals`, devis, `/v1/auth/` hors connexion → client.
+  - Seules 17 routes publiques sont permises, chacune avec sa raison : santé, catalogue, inscription et connexions, enrôlements par jeton à usage unique, déconnexions.
+  - Un chemin d'espace inconnu fait échouer le test.
+- **Tests :** 3 ; 2 mutants tués (garde retirée d'une route du back-office, garde client posée sur une route du back-office). Aucun défaut trouvé dans le code actuel.
+
+### P7 · Alertes de supervision calculées en base (NF-OBS-003, migration 0079)
+- **Fait :** `monitoring.alert_counts()` (compteurs seulement) et `MONITOR_DATABASE_URL=… pnpm ops:alerts`, lancé avec le compte `molopay_monitor`, rôle `notification_observer`, TLS vérifié. Alertes :
+  - critiques : paiement en attente depuis plus de 15 minutes, écart de rapprochement non classé, divergence d'intégrité, flux sortants gelés ;
+  - avertissement : notifications ayant épuisé leurs tentatives (file en échec).
+- **Codes de sortie :** 0 sans alerte, 1 avec alerte, 2 si la supervision n'a pas pu s'exécuter (à traiter comme une alerte).
+- **Hors base :** les erreurs 5xx > 1 % relèvent des métriques de l'hébergeur (non câblées).
+- **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
+- **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.
+
+### N7 · Neon : point d'accès direct pour les outils à session, pool et durée des requêtes bornés
+- **Demande du fondateur (27 nov.) :** « continue avec Neon ».
+- **Constat :** Neon fournit une adresse groupée (`-pooler`), sur laquelle les fonctions de session ne sont pas garanties. Or l'outil de migration prend un verrou de session, et le contrôle nocturne comme la supervision prennent leur rôle au démarrage de la connexion. Par ailleurs, l'API avait un pool fixe de 10 connexions, **sans durée maximale de requête ni délai de connexion** : une requête emballée ou une base injoignable bloquaient indéfiniment.
+- **Fait :**
+  - `assertDirectEndpoint` (`DATABASE_POOLER_FORBIDDEN`) est appliqué à `db:migrate`, `db:backup`, `db:transfer` (source et cible), au contrôle nocturne et à `ops:alerts` (nouvelle fonction `monitorDatabaseUrl`).
+  - Pool de l'API : `DATABASE_POOL_MAX` (1 à 50, défaut 10), délai de connexion de 10 s, connexions inactives rendues après 30 s.
+  - `DATABASE_STATEMENT_TIMEOUT_MS` (1 à 120 s, défaut 15 s), posé par `SET LOCAL` dans **chaque** transaction, donc valable aussi derrière le regroupeur. Vérifié sur PostgreSQL réel : une requête trop longue est interrompue (57014) et la limite ne fuit pas hors de la transaction.
+  - Procédure Neon et `.env.example` mis à jour.
+- **Tests :** 2 unitaires, 1 sur base réelle, plus un refus de l'adresse groupée dans les tests de chacun des cinq outils ; 5 mutants tués.
+- **À vérifier sur la console Neon :** la limite de connexions de la taille de calcul choisie, pour fixer `DATABASE_POOL_MAX` en dessous.
+
+### Plan du fondateur du 27 novembre, étape 2 · Documentation UX et site public reprises de `claude/kind-gauss-3npnkd`
+- **Constat :** la branche ne contient que de la documentation (77 fichiers), avec un historique sans ancêtre commun avec la nôtre : impossible à fusionner, donc **copiée**. 45 fichiers sont nouveaux, 19 identiques, 13 différents. Parmi ces 13, plusieurs sont des versions **plus anciennes** des nôtres (ADR-0004 du 26 octobre, journal, état, registre) : les recopier aurait effacé notre travail.
+- **Fait :**
+  - Copie des 45 nouveaux fichiers : `docs/05_direction_ux_et_ui/` (identité, catalogue des écrans, maquettes HTML, jetons de design, recherches, textes FR/EN) et les deux prompts Gemini.
+  - ADR du site public **renuméroté `ADR-0008`** (collision avec notre ADR-0006 PWA), ses 10 mentions corrigées.
+  - Seuls les **ajouts** de cette branche sont repris dans les documents communs :
+    - CDC_01 § 15 (F-PUB-001 à 010), CDC_02 (NF-PUB) et CDC_05 ;
+    - glossaire, plan de lots (lot 26), liste de contrôle du lancement, matrice de traçabilité ;
+    - lignes du LISEZMOI, paragraphe du dossier projet ;
+    - traitements du site public **renumérotés T-16 et T-17** dans le registre (version 1.2).
+  - Rien n'est repris de leurs anciennes versions d'ADR-0004, du journal ni de l'état.
+- **Vérifié :** aucun secret dans les fichiers copiés ; le script `jetons/generate.py` ne fait que lire et écrire son dossier, sans dépendance ni réseau.
+- **Statut :** ADR-0008 reste **Proposé**, en attente de ta validation avant le lot 26, comme sur la branche d'origine. Les exigences F-PUB et NF-PUB ne sont pas encore couvertes par des tests (lot 26 non commencé).
+
+### Plan du fondateur du 27 novembre, étape 3 · CI alignée, actions épinglées, fins de ligne normalisées
+- **Fait :**
+  - **`ci.yml`** :
+    - déclenchée sur `sprint/integration` **et** `sprint/integration-*`, dont la branche active ;
+    - nouvelle étape `pnpm test:web` ;
+    - nouveau travail `verifier` (`cargo test --locked`, vérificateur Rust) ;
+    - nouveau travail `mobile` : SDK Flutter **officiel** 3.47.9 cloné depuis son dépôt, sans action tierce, puis `flutter pub get`, `flutter analyze`, `flutter test` ;
+    - les trois actions GitHub sont **épinglées par empreinte de commit** (SEC-SDLC-004), résolues depuis leurs dépôts officiels : `actions/checkout` et `actions/setup-node` v4, `pnpm/action-setup` v4 (étiquette annotée, empreinte du commit).
+  - **`pnpm ci:local`** : les mêmes contrôles. Il vérifiait les types de 3 projets sur 5 seulement et ne lançait ni les tests web, ni le vérificateur, ni Flutter : corrigé. `cargo` et `flutter` sont pris du système ; absents, l'étape est en échec, jamais sautée.
+  - **`.gitattributes`** : `* text=auto eol=lf`, binaires exclus. Aucun fichier du dépôt n'est renormalisé (tous déjà en LF) : la règle évite le faux écart sous Windows sur `INVENTAIRE_ROUTES.md` dans les copies de travail.
+- **Vérifié ici :** `ci:local verifier mobile` → vérificateur 10/10, analyse et tests Flutter OK ; YAML valide (6 travaux). Le test `tools/ci-config.test.ts` (6 cas) échoue si un contrôle, la branche active ou l'épinglage disparaît ; 2 mutants tués.
+- **Non fait, à ta main :**
+  - le déblocage de GitHub Actions (D30) dépend de la facturation de ton compte GitHub ; tant qu'il dure, la CI GitHub ne tourne pas, d'où `pnpm ci:local` ;
+  - `CODEOWNERS` n'est pas ajouté : l'AGENTS.md § 8 exige une demande explicite de ta part, avec la liste des propriétaires ;
+  - le shim global `pnpm` de ton poste et l'alignement du dossier racine `molopay` local sont sur ta machine, non reliée à cette session.
+
+### D5 · Signataire AWS KMS des instructions de sortie de fonds (28 novembre)
+
+- **Fait :**
+  - **Interface asynchrone.** `apps/api/src/crypto/instruction-signer.ts` définit `InstructionSigner` (`keyId`, `publicKey`, `sign`), appelé par les trois émissions d'instruction : remboursement (`refund.store.ts`), règlement partenaire (`execution.store.ts`) et virement au bénéficiaire C (`beneficiary-payout.store.ts`).
+    - Le signataire local (`localInstructionSigner`) ne sert qu'aux tests. Aucune clé privée n'est lue depuis l'environnement.
+  - **Adaptateur KMS.** `awsKmsInstructionSigner` dans `apps/api/src/crypto/aws-kms.ts`, seul fichier qui importe le SDK AWS (garde NF-PORT-002 inchangée).
+    - Au démarrage : `GetPublicKey`. Refus de démarrer si la clé n'est pas `ECC_NIST_EDWARDS25519` / `SIGN_VERIFY` / `ED25519_SHA_512`, ou si KMS ne répond pas.
+    - Un alias est résolu en ARN de clé ; c'est cet ARN qui est enregistré comme `key_id`.
+    - À chaque instruction : `Sign` (message brut, `ED25519_SHA_512`), délai borné à 5 s, puis signature **revérifiée** avec la clé publique.
+    - En cas de panne : 503 `SIGNING_UNAVAILABLE`, rien n'est écrit, et le détail du fournisseur n'est jamais renvoyé.
+  - **Aucune donnée personnelle signée (exigence du 24 novembre).** Seuls les trois documents d'instruction connus sont acceptés, octet pour octet sous leur forme canonique. Tout autre message est refusé (`SIGNING_DOCUMENT_FORBIDDEN`) sans appel à KMS.
+    - Champs acceptés : UUID ; code partenaire ou bénéficiaire de la même forme qu'en base ; montant entier.
+  - **Format inchangé.** Ed25519 pur ; `verify*Instruction`, le vérificateur et les contraintes de base sont intacts. Les 177 tests de base des circuits de sortie passent, et la suite HTTP du règlement passe désormais par l'adaptateur KMS (transport remplacé par une vraie clé).
+  - **Configuration.** `INSTRUCTION_SIGNING_KMS_KEY_ARN` doit être distincte des clés de chiffrement (`SIGNING_KEY_NOT_DISTINCT`). `pnpm config:check` l'affiche ; `.env.example` et `PROCEDURE_DEPLOIEMENT_API.md` décrivent la mise en service, et l'inventaire cryptographique est à jour.
+  - **Test vivant.** `aws-kms-signer.live.test.ts` dans `pnpm test:kms`, qui exige `INSTRUCTION_SIGNING_KMS_TEST_KEY_ARN`.
+  - **Mutation.** 34 mutants : 31 tués, 3 équivalents (bornes et types rejetés plus loin). Un vrai défaut évité : `{"domain":"constructor"}` aurait passé avec `in` au lieu de `Object.hasOwn`.
+- **Choix prudents appliqués (réversibles) :**
+  - un code partenaire ou bénéficiaire contenant 8 chiffres consécutifs ou plus est refusé à la signature (forme d'un numéro de téléphone) ;
+  - `customer_id` (UUID opaque) reste dans le document de remboursement, car son format est figé par la migration 0045 ;
+  - montant signé limité à 18 chiffres.
+- **Reste humain :** créer la clé KMS de production et la clé de test, accorder au rôle du serveur `kms:GetPublicKey` et `kms:Sign`, et remettre la clé publique à l'établissement. Il n'y a toujours pas de versement au lancement.
+
+### D121 · Notifications : tranché par le fondateur (28 novembre)
+
+- **Décisions du fondateur :**
+  - (a) **push au lancement**. Le SMS est activé par l'équipe, par objet de notification, avec une simple bascule ;
+  - (b) **plages d'envoi 8 h–20 h, heure de Douala** (proposition acceptée) ;
+  - (c) la **langue** du message est celle que l'utilisateur a choisie dans l'application.
+- **Lecture appliquée (prudente, réversible, à confirmer d'un mot si elle est fausse) :**
+  - « par objectif » est lu comme **par type de notification** (versement confirmé, rappel d'échéance, objectif atteint, code de remise, règlement, litige), c'est-à-dire l'objet du message, et non par projet d'épargne ;
+  - la bascule est un geste unique de l'équipe des opérations, **motivé et inscrit à l'audit**, sans double validation (« simple bascule ») ;
+  - SMS **désactivé par défaut** pour tous les types (le push est le canal de lancement ; chaque SMS coûte) ;
+  - la décision de canal est prise **à la mise en file** : une bascule s'applique aux événements suivants, jamais rétroactivement ;
+  - plages : F-NOT-003 les réserve aux **rappels**. Les confirmations (versement confirmé, code de remise, etc.) partent tout de suite, car l'utilisateur vient d'agir. Un rappel hors plage est reporté, jamais perdu ;
+  - langue : l'application déclare la langue choisie à l'API ; sans déclaration, le français (langue de référence) s'applique ;
+  - textes : gabarits FR/EN actuels, à valider par la conformité (NF-SAFE-003).
+- **⚖ D122 — nouveau, à trancher pour envoyer réellement un push :** le prestataire. Firebase Cloud Messaging est le passage obligé sur Android hors appareils Huawei ; APNs sur iOS, directement ou via FCM. Ce choix ajoute à l'application mobile une dépendance (`firebase_messaging`) hors de la liste blanche actuelle (REG-DPD-003, NF-PORT-002), et côté serveur une authentification de compte de service Google. En attendant, les notifications push restent en file : rien n'est simulé, et la supervision signale leur attente.
+
+### D121 · Tranche 1 : langue de l'application et bascule SMS par type (contrat 0.46.0)
+- **Fait :**
+  - **Migration 0080, en ajout seul et gardée par la base** (déclencheurs `ENABLE ALWAYS`, y compris en mode réplica ; aucune écriture directe ; horodatages posés par la base).
+    - `identity.language_preference` : `declare_language` (fr ou en ; compte actif seulement ; rien n'est écrit si la langue ne change pas) et `preferred_language` (dernière déclaration, sinon français).
+    - `notifications.sms_channel_setting` : `set_sms_channel` (motif obligatoire ; verrou par type ; état inchangé refusé avec `NOTIFICATION_CHANNEL_UNCHANGED`), `sms_enabled` (désactivé par défaut) et `sms_channel_states` (les six types, dans l'ordre du catalogue).
+  - **Mise en file (`notifyCustomer`) :** push toujours ; SMS seulement si le type est ouvert ; langue déclarée par le client. Les deux réglages sont lus dans la transaction du fait : une bascule ne change rien de ce qui est déjà en file.
+  - **Routes :**
+    - `PUT /v1/me/language` (client, rejouable) ; `GET /v1/me` renvoie désormais `language` ;
+    - `GET /v1/backoffice/notifications/sms-channels` et `PUT /v1/backoffice/notifications/sms-channels/{eventType}` : nouvelle action `MANAGE_NOTIFICATION_CHANNELS` donnée à OPERATIONS, motif obligatoire, audit `SMS_CHANNEL_SET` dans la même transaction.
+    - Nouveaux codes : `IDENTITY_LANGUAGE_INVALID` (400) et `NOTIFICATION_CHANNEL_UNCHANGED` (409).
+  - **Tests existants adaptés à la décision :** 8 tests attendaient « SMS et push » pour chaque notification. Ils ouvrent désormais le SMS pour leur type avant d'agir, et les deux canaux restent couverts. Le cas par défaut (push seul) est vérifié à part.
+- **Tests :** 10 tests de base, 4 tests HTTP pour la langue (dont les refus 400, 401 et le rejeu), 2 tests HTTP pour les bascules (refus 409, 400, 403, 401, rien d'inscrit). Les 168 tests des flux qui notifient passent.
+- **Mutation :** 33 mutants, 28 tués et 5 équivalents. Les équivalents sont des contrôles applicatifs doublés par la base (langue, motif, booléen) ; un droit accordé à `app_ro`, qui n'a pas accès au schéma ; et l'ordre explicite des types.
+- **Pour les interfaces (à faire) :**
+  - l'application mobile et le client web appellent `PUT /v1/me/language` au changement de langue et après connexion ;
+  - le back-office ajoute un écran « Canaux de notification » (six bascules, motif).
+- **Suite :**
+  - tranche 2 : travailleur SMS (Twilio, numéro déchiffré par KMS, plages 8 h–20 h pour les rappels) ;
+  - tranche 3 : push, après le choix du prestataire (D122).
+
+### D121 · Tranche 2 : travailleur SMS (`pnpm notify:worker`, migration 0081)
+- **Fait :**
+  - **0081 :**
+    - `claim_sms_notification` : prise limitée au SMS. Les rappels ne sont pris qu'entre 8 h et 20 h, heure de Douala (`within_reminder_window`, décidé par la base) ; hors plage, ils attendent sans consommer de tentative.
+    - `claimed_sms_recipient` : empreinte et chiffré du numéro, pour le seul bail SMS en cours et un compte actif ; réservé à `notification_worker`.
+    - Politique de consommation par défaut, posée si aucune n'existe ; jusqu'ici aucune migration ne la créait, et toute prise aurait été refusée en production. Valeurs : bail de 60 s, nouvel essai après 5 min, 5 tentatives.
+  - **`workflows/sms-worker.ts` :** à chaque itération, prise (bail commité), numéro déchiffré au dernier moment, gabarit dans la langue de la notification, envoi par l'adaptateur Twilio, puis confirmation avec la référence `SM…`. Tout échec entraîne un nouvel essai après délai. Boucle arrêtée par signal ; une erreur de base ne fait pas tomber le processus et est suivie d'une attente.
+  - **Port SMS :** `send` rend désormais la référence opaque du prestataire.
+  - **`tools/notify-worker.ts` :**
+    - compte `molopay_notifier`, rôle pris au démarrage de la session, adresse directe en `verify-full` ;
+    - fermé sans Twilio ou sans clés (code 2) ;
+    - journal sans numéro, texte ni identifiant.
+  - Procédure : `PROCEDURE_DEPLOIEMENT_API.md` § 2 bis.
+- **Tests :**
+  - 7 tests de base, avec l'adaptateur Twilio réel dont seul le transport HTTP est remplacé : envoi au numéro déchiffré et dans la bonne langue, refus et panne puis réussite à la 3ᵉ tentative, compte bloqué, bail expiré ou push sans numéro, droits (le travailleur ne lit ni le compte ni la file, l'API n'appelle pas la lecture du numéro), plage des rappels quelle que soit l'heure réelle, boucle et attente après erreur ;
+  - 3 tests de configuration.
+- **Mutation :** 26 mutants, 25 tués, 1 équivalent (contrôle du canal côté application, doublé par la base).
+- **Choix prudents (réversibles) :**
+  - distribution « au moins une fois » : si la confirmation échoue après un envoi accepté, le SMS peut repartir une fois ;
+  - un compte bloqué ne reçoit pas de SMS, et sa notification finit épuisée puis signalée par la supervision.
+- **Reste :**
+  - push (D122, prestataire) ;
+  - écran back-office des canaux ;
+  - appel de `PUT /v1/me/language` par les applications ;
+  - génération des rappels d'échéance (le gabarit et la plage existent, mais aucun rappel n'est encore produit).
+
+### N8 · Neon : coupures de connexion sans chute du processus (28 novembre)
+- **Demande du fondateur (28 nov.) :** « pendant ce temps, continue à avancer sur les lots Neon ».
+- **Défaut trouvé :** Neon coupe les connexions au redémarrage ou à la mise à jour du calcul (arrêt administratif, code 57P01). Or ni le pool de l'API ni celui du travailleur SMS n'écoutaient les erreurs de `pg`.
+  - Une connexion inactive coupée émettait une erreur non écoutée, et le processus **tombait**.
+  - Même chose pour une connexion prise pendant une transaction, qui émet sur elle-même ; vérifié : `ECONNRESET` non géré en test.
+- **Fait :**
+  - **API (`http/database.ts`) :** écouteur d'erreur sur le pool et sur chaque connexion prise pendant `withTransaction` ; signalement par une ligne JSON avec **le code seul** (`DATABASE_CONNECTION_LOST`, jamais le message, qui peut contenir une adresse) ; `keepAlive` activé.
+  - **Travailleur SMS :** `createNotifierPool` (rôle `notification_worker` par défaut) avec le même écouteur ; les transactions du travailleur (`committed`) écoutent aussi leur connexion.
+  - Le pool de `pg` n'y remet jamais une connexion devenue inutilisable : la requête suivante repart sur une connexion neuve. Vérifié sur PostgreSQL réel avec `pg_terminate_backend`.
+- **Tests :**
+  - 4 sur base réelle : inactive coupée, coupée en pleine transaction (rien de validé), puis les deux mêmes cas pour le travailleur, avec son rôle par défaut ;
+  - 2 unitaires : code seul, et format de la ligne.
+- **Mutation :** 7 mutants tués. Un indicateur « connexion à écarter », d'abord ajouté, a été retiré : 4 mutants équivalents ont montré que `pg` le fait déjà.
+- **Hors périmètre, prudent :** aucune requête n'est rejouée automatiquement après une coupure. Une transaction interrompue échoue (500, ou nouvel essai du travailleur) et le client la rejoue avec sa clé d'idempotence (I-5).

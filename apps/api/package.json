@@ -1,0 +1,21 @@
+{
+  "name": "@achat/api",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/main.ts",
+  "types": "./src/main.ts",
+  "dependencies": {
+    "@achat/chain": "workspace:*",
+    "@achat/contracts": "workspace:*",
+    "@achat/money": "workspace:*",
+    "@aws-sdk/client-kms": "3.1166.0",
+    "@nestjs/common": "12.2.0",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "@node-rs/argon2": "2.2.2",
+    "canonicalize": "5.1.0",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  }
+}

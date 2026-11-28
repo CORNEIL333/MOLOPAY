@@ -1,0 +1,180 @@
+import 'reflect-metadata';
+import { createHash, generateKeyPairSync } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import type { Server } from 'node:http';
+import { resolve } from 'node:path';
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { Client } from 'pg';
+import request from 'supertest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { AppModule } from '../../src/app.module';
+import { createDatabase, type Database } from '../../src/http/database';
+import { issueSessionTokens } from '../../src/modules/identity/domain';
+import { sessionCookieValue } from '../../src/modules/identity/session.store';
+import { uuidv7 } from '../../src/modules/ledger/domain';
+import { seedCustomerAccount } from './agreement-fixture';
+import { revealPhone } from '../../src/modules/identity/phone-key';
+import { protectedPhone, TEST_PII_KEYS } from './pii-fixture';
+import { startTestDatabase, type TestDatabase } from './harness';
+
+/** C2 / contrat 1.0 : profil du client connecté (`GET /v1/me`) en HTTP réel, sans niveau KYC (D77) ni numéro en clair. */
+const DIRECTORY = resolve(process.cwd(), 'db/migrations');
+const SCHEMAS = ['kyc', 'risk', 'settlement', 'disputes', 'reconciliation', 'payments', 'notifications', 'api', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];
+const ORIGIN = 'https://app.molopay.test';
+const CUSTOMER = '019ab800-0000-7000-8000-0000000000c1';
+const OTHER_CUSTOMER = '019ab800-0000-7000-8000-0000000000c2';
+
+
+/** Statut et code métier d'une réponse d'erreur (règle 8 : un refus vérifie le code exact). */
+function problem(response: { readonly status: number; readonly body: unknown }): [number, string | undefined] {
+  return [response.status, (response.body as { code?: string }).code];
+}
+let db: TestDatabase;
+let admin: Client;
+let database: Database;
+let app: INestApplication;
+let migrations: string[];
+
+function server(): Server {
+  return app.getHttpServer() as Server;
+}
+
+async function session(accountId: string): Promise<string> {
+  const device = uuidv7();
+  const { publicKey } = generateKeyPairSync('ed25519');
+  await admin.query(
+    `INSERT INTO identity.device(id, account_id, public_key_pem, fingerprint, name, status, registered_at) VALUES ($1, $2, $3, $4, 'Appareil test', 'ACTIVE', now())`,
+    [device, accountId, publicKey.export({ type: 'spki', format: 'pem' }), createHash('sha256').update(publicKey.export({ type: 'spki', format: 'der' })).digest()],
+  );
+  const sessionId = uuidv7();
+  const token = issueSessionTokens();
+  await admin.query(
+    `INSERT INTO identity.session(id, account_id, device_id, access_token_hash, refresh_token_hash, access_issued_at, access_expires_at, refresh_expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, now() - interval '1 minute', now() + interval '10 minutes', now() + interval '1 day', now() - interval '1 minute')`,
+    [sessionId, accountId, device, token.accessTokenHash, token.refreshTokenHash],
+  );
+  return `client_session=${sessionCookieValue(sessionId, token.accessToken)}`;
+}
+
+function me(cookie: string | null): request.Test {
+  const call = request(server()).get('/v1/me').set('Origin', ORIGIN);
+  return cookie === null ? call : call.set('Cookie', cookie);
+}
+
+beforeAll(async () => {
+  migrations = readdirSync(DIRECTORY).filter((file) => file.endsWith('.sql')).sort().map((file) => readFileSync(resolve(DIRECTORY, file), 'utf8'));
+  db = await startTestDatabase();
+  admin = new Client({ connectionString: db.getConnectionUri() });
+  await admin.connect();
+  database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN]) })] }).compile();
+  app = moduleRef.createNestApplication({ logger: false });
+  await app.init();
+}, 300_000);
+
+afterAll(async () => {
+  await app.close();
+  await database.pool.end();
+  await admin.end();
+  await db.stop();
+});
+
+beforeEach(async () => {
+  for (const schema of SCHEMAS) {
+    await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+  }
+  for (const sql of migrations) {
+    await admin.query(sql);
+  }
+  await seedCustomerAccount(admin, CUSTOMER, 'NONE');
+});
+
+describe('C2 profil du client connecté (GET /v1/me)', () => {
+  it('profil minimal, privé : identifiant, numéro masqué, date d’inscription, nom déclaré ou non ; jamais le numéro en clair ni le niveau KYC', async () => {
+    const stored = (await admin.query<{ phone: string; phone_ciphertext: string; created: string }>(`SELECT phone, phone_ciphertext, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS created FROM identity.account WHERE id = $1`, [CUSTOMER])).rows[0];
+    const response = await me(await session(CUSTOMER));
+    expect(response.status, JSON.stringify(response.body)).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    // C14 : en base, seulement l'empreinte et le chiffré ; le numéro se retrouve en déchiffrant.
+    expect(stored?.phone).toMatch(/^[0-9a-f]{64}$/);
+    const clear = await revealPhone({ key: stored?.phone ?? '', ciphertext: stored?.phone_ciphertext ?? '' }, TEST_PII_KEYS);
+    expect(clear).toMatch(/^\+2376[0-9]{8}$/);
+    const digits = clear.slice(1);
+    const phone = { created: stored?.created };
+    expect(response.body).toEqual({
+      accountId: CUSTOMER,
+      // Valeur littérale attendue (et non la formule du code) : indicatif 237, sept points, deux derniers chiffres.
+      phoneMasked: `+237•••••••${digits.slice(-2)}`,
+      memberSince: phone?.created,
+      legalNameDeclared: false,
+      currentTermsVersion: '2026-10-26-v1',
+      termsAccepted: true,
+      // D121 : sans déclaration de l'application, le français (langue de référence).
+      language: 'fr',
+    });
+    expect(JSON.stringify(response.body)).not.toContain(digits.slice(3, -2));
+    expect(JSON.stringify(response.body)).not.toMatch(/kyc|level|BASIC|NONE/i);
+  });
+
+  it('nom légal déclaré : seul le fait est indiqué (ni le nom ni le résultat du filtrage) ; niveau BASIC jamais montré (D77)', async () => {
+    await admin.query(`INSERT INTO identity.legal_name_declaration (id, account_id, legal_name, declared_at) VALUES ($1, $2, 'Aïcha Ngono', now())`, [uuidv7(), CUSTOMER]);
+    await admin.query(`UPDATE identity.account SET kyc_level = 'BASIC' WHERE id = $1`, [CUSTOMER]);
+    const response = await me(await session(CUSTOMER));
+    expect(response.body).toMatchObject({ accountId: CUSTOMER, legalNameDeclared: true });
+    expect(JSON.stringify(response.body)).not.toMatch(/Aïcha|Ngono|BASIC/);
+  });
+
+  it('chaque client ne voit que son profil ; sans session : 401 IDENTITY_SESSION_INVALID', async () => {
+    await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
+    expect(((await me(await session(OTHER_CUSTOMER))).body as { accountId?: string }).accountId).toBe(OTHER_CUSTOMER);
+    expect(problem(await me(null))).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+  });
+
+  it('F-ACC-004 sans acceptation de la version en vigueur : termsAccepted faux, version courante indiquée ; vrai après acceptation par la route', async () => {
+    const other = await protectedPhone('+237690000444');
+    await admin.query(`INSERT INTO identity.account (id, phone, phone_verified_at, kyc_level, phone_ciphertext, phone_masked) VALUES ($1, $2, now(), 'NONE', $3, $4)`, [OTHER_CUSTOMER, other.key, other.ciphertext, other.masked]);
+    const cookie = await session(OTHER_CUSTOMER);
+    expect((await me(cookie)).body).toMatchObject({ currentTermsVersion: '2026-10-26-v1', termsAccepted: false });
+    const accepted = await request(server()).post('/v1/me/terms-acceptances').set('Cookie', cookie).set('Origin', ORIGIN).set('Idempotency-Key', 'me-terms-accept-0001').send({ version: '2026-10-26-v1' });
+    expect(accepted.status).toBe(201);
+    expect((await me(cookie)).body).toMatchObject({ termsAccepted: true });
+  });
+});
+
+describe('D121 langue choisie dans l’application (PUT /v1/me/language)', () => {
+  function declare(cookie: string, body: unknown, key = `lang-${uuidv7()}`): request.Test {
+    return request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', key).send(body as object);
+  }
+
+  it('déclare l’anglais : profil et notifications suivantes en anglais ; rejouable ; l’autre client n’est pas touché', async () => {
+    const cookie = await session(CUSTOMER);
+    const key = `lang-${uuidv7()}`;
+    const first = await declare(cookie, { language: 'en' }, key);
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    expect(first.body).toEqual({ language: 'en' });
+    expect(first.headers['cache-control']).toBe('private, no-store');
+    expect((await declare(cookie, { language: 'en' }, key)).body).toEqual({ language: 'en' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'en' });
+    await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
+    expect((await me(await session(OTHER_CUSTOMER))).body).toMatchObject({ language: 'fr' });
+    expect((await declare(cookie, { language: 'fr' })).body).toEqual({ language: 'fr' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'fr' });
+    const rows = await admin.query<{ language: string }>('SELECT language FROM identity.language_preference WHERE account_id = $1 ORDER BY seq', [CUSTOMER]);
+    expect(rows.rows.map((row) => row.language)).toEqual(['en', 'fr']);
+  });
+
+  it('refuse : langue hors liste (400 IDENTITY_LANGUAGE_INVALID), champ en trop ou absent (400 REQUEST_INVALID), sans clé d’idempotence, sans session (401)', async () => {
+    const cookie = await session(CUSTOMER);
+    for (const language of ['de', 'EN', '', null, 1]) {
+      expect(problem(await declare(cookie, { language }))).toEqual([400, 'IDENTITY_LANGUAGE_INVALID']);
+    }
+    expect(problem(await declare(cookie, { language: 'en', accountId: OTHER_CUSTOMER }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await declare(cookie, {}))).toEqual([400, 'REQUEST_INVALID']);
+    const noKey = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).send({ language: 'en' });
+    expect(problem(noKey)).toEqual([400, 'REQUEST_INVALID']);
+    const anonymous = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Idempotency-Key', `lang-${uuidv7()}`).send({ language: 'en' });
+    expect(problem(anonymous)).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+    expect((await admin.query('SELECT 1 FROM identity.language_preference')).rowCount).toBe(0);
+  });
+});

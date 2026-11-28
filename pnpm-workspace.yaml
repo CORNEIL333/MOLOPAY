@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+overrides:
+  multer: 2.5.0
+
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  protobufjs: true
+  ssh2: false

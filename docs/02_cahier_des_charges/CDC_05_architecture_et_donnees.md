@@ -5,6 +5,7 @@
 ## 1. Vue de contexte (C4 niveau 1)
 
 ```
+ [Visiteur]──site public──► CDN (catalogue publié, lecture seule)
  [Client]──app/USSD──┐                     ┌──[Agrégateur MoMo/OM/cartes]
  [Diaspora]──web─────┤                     ├──[Établissement de cantonnement]
  [Partenaire]─portail┼──► PLATEFORME ◄─────┼──[Financeur agréé (B)]
@@ -17,6 +18,7 @@
 
 | Conteneur | Technologie proposée | Rôle |
 |---|---|---|
+| Site public marketplace | Next.js (TypeScript), rendu statique/incrémental, servi par CDN (ADR-0008) | Acquisition des visiteurs non inscrits : catalogue, simulateur, pages SEO, redirection vers l'inscription ; aucune écriture financière |
 | Application client | Flutter (Android, iOS) + web léger | Parcours client |
 | Passerelle USSD | Service dédié (même dépôt) derrière l'agrégateur/opérateur | Menus USSD, sessions courtes |
 | Portail partenaire | Next.js (TypeScript) | Catalogue, commandes, remises, règlements |
@@ -46,6 +48,8 @@
 | `notifications` | SMS, push | événements |
 | `audit` | Journal d'audit chaîné | — |
 | `admin` | Rôles, paramètres versionnés, maker-checker | `audit` |
+
+Le module `catalog` expose en plus un **modèle de lecture public** (offres publiées, partenaires validés, simulation) consommé par le site public via l'API `/v1/public/*`, sans authentification, en lecture seule et avec limitation de débit (ADR-0008).
 
 Règles : aucun module n'écrit dans les tables d'un autre ; communication par interfaces publiques ou événements ; frontières vérifiées en CI.
 

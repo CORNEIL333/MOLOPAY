@@ -1,0 +1,103 @@
+'use client';
+
+import type { ProblemSummary } from '@achat/contracts/client';
+import { Button, ErrorState, TextField } from '@achat/ui';
+import { getDictionary, type Locale } from '../i18n';
+import { useEffect, useId, useState, type FormEvent, type ReactElement } from 'react';
+
+/** Appels injectés : position du navigateur et route réelle de remise (`browserCounterPorts`). */
+export type CounterHandoverPorts = {
+  readonly locate: () => Promise<{ readonly latitude: number; readonly longitude: number }>;
+  readonly confirm: (body: { readonly code: string; readonly latitude: string; readonly longitude: string }) => Promise<
+    { readonly ok: true; readonly agreementId: string; readonly validatedAt: string } | { readonly ok: false; readonly problem: ProblemSummary }
+  >;
+};
+
+// D45 : 10 caractères Crockford, tirets et espaces tolérés à la saisie.
+const CODE = /^[0-9A-HJKMNP-TV-Z]{10}$/;
+
+/** Coordonnée bornée et arrondie à 6 décimales (contrat de la route), jamais en notation exponentielle. */
+function coordinate(value: number, limit: number): string | null {
+  return Number.isFinite(value) && Math.abs(value) <= limit ? value.toFixed(6) : null;
+}
+
+/**
+ * F-SET-001 / D63 : le vendeur saisit le code présenté par le client ; la
+ * position du comptoir est jointe. Partenaire et vendeur viennent de la
+ * session (serveur), jamais de ce formulaire.
+ */
+export function CounterHandover({ ports, locale = 'fr' }: { readonly ports: CounterHandoverPorts; readonly locale?: Locale }): ReactElement {
+  const t = getDictionary(locale).counter;
+  const codeId = useId();
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [problem, setProblem] = useState<ProblemSummary | null>(null);
+  const [done, setDone] = useState<{ readonly agreementId: string; readonly validatedAt: string } | null>(null);
+  const [pending, setPending] = useState(false);
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    const onOffline = (): void => { setOnline(false); };
+    const onOnline = (): void => { setOnline(true); };
+    setOnline(navigator.onLine);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
+
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (!online || pending) return;
+    const compact = code.toUpperCase().replace(/[\s-]/g, '');
+    if (!CODE.test(compact)) {
+      setError(t.invalidCode);
+      return;
+    }
+    setError(undefined);
+    setProblem(null);
+    setDone(null);
+    setPending(true);
+    try {
+      let position: { readonly latitude: string; readonly longitude: string } | null = null;
+      try {
+        const located = await ports.locate();
+        const latitude = coordinate(located.latitude, 90);
+        const longitude = coordinate(located.longitude, 180);
+        position = latitude === null || longitude === null ? null : { latitude, longitude };
+      } catch {
+        position = null;
+      }
+      if (position === null) {
+        setProblem({ title: t.noPositionTitle, detail: t.noPositionDetail });
+        return;
+      }
+      const result = await ports.confirm({ code: `${compact.slice(0, 5)}-${compact.slice(5)}`, ...position });
+      if (result.ok) {
+        setDone({ agreementId: result.agreementId, validatedAt: result.validatedAt });
+        setCode('');
+      } else {
+        setProblem(result.problem);
+      }
+    } catch {
+      setProblem({ title: t.failedTitle, detail: t.failedDetail });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section>
+      <h1>{t.title}</h1>
+      {!online ? <p role="status">{t.offline}</p> : null}
+      {done === null ? null : <p role="status">{t.doneLead(done.agreementId)}<time dateTime={done.validatedAt}>{new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(done.validatedAt))}</time>{t.doneTail}</p>}
+      {problem === null ? null : <ErrorState problem={problem} />}
+      <form onSubmit={(event) => void submit(event)} noValidate>
+        <TextField id={codeId} label={t.code} autoComplete="off" value={code} error={error} onChange={(event) => { setCode(event.target.value); }} />
+        <Button type="submit" disabled={pending || !online}>{t.submit}</Button>
+      </form>
+    </section>
+  );
+}

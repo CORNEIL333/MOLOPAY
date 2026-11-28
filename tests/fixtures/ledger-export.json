@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "log_id": "achat-ledger-fixture-v1",
+  "generated_at": "2026-10-26T09:00:00.000Z",
+  "entries": [
+    {
+      "seq": 1,
+      "id": "019a0000-0000-7000-8000-000000000001",
+      "ts": "2026-10-01T00:00:00.000Z",
+      "type": "GENESIS",
+      "refs": {
+        "chart": "v1",
+        "signing_key": "fixture-only"
+      },
+      "postings": [],
+      "actor": "system",
+      "approvers": [
+        "founder"
+      ],
+      "idem_scope": "ledger",
+      "idem_key": "genesis",
+      "reverses_entry_id": null,
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "entry_hash": "f9b5139520e97d3291271402fc01291ed1eb7b2cfc4d52fc7c6c1406817bc5e9"
+    },
+    {
+      "seq": 2,
+      "id": "019a0000-0000-7000-8000-000000000002",
+      "ts": "2026-10-02T08:00:00.000Z",
+      "type": "PAYMENT_RECEIVED",
+      "refs": {
+        "payment_id": "pay-001",
+        "plan_id": "plan-001"
+      },
+      "postings": [
+        {
+          "account_id": "019a0000-0000-7000-8000-000000001200",
+          "amount_xaf": "15000",
+          "direction": "D",
+          "ordinal": 1
+        },
+        {
+          "account_id": "019a0000-0000-7000-8000-000000002900",
+          "amount_xaf": "15000",
+          "direction": "C",
+          "ordinal": 2
+        }
+      ],
+      "actor": "maker-1",
+      "approvers": [
+        "checker-2",
+        "checker-1"
+      ],
+      "idem_scope": "payments",
+      "idem_key": "pay-001:received",
+      "reverses_entry_id": null,
+      "prev_hash": "f9b5139520e97d3291271402fc01291ed1eb7b2cfc4d52fc7c6c1406817bc5e9",
+      "entry_hash": "db116184a6c8edd961622c259419a15450fe95a93ec8c3491b3f2b78ac5821b5"
+    },
+    {
+      "seq": 3,
+      "id": "019a0000-0000-7000-8000-000000000003",
+      "ts": "2026-10-03T08:00:00.000Z",
+      "type": "SETTLEMENT_SENT",
+      "refs": {
+        "settlement_id": "set-001"
+      },
+      "postings": [
+        {
+          "account_id": "019a0000-0000-7000-8000-000000002900",
+          "amount_xaf": "15000",
+          "direction": "D",
+          "ordinal": 1
+        },
+        {
+          "account_id": "019a0000-0000-7000-8000-000000001100",
+          "amount_xaf": "15000",
+          "direction": "C",
+          "ordinal": 2
+        }
+      ],
+      "actor": "system",
+      "approvers": [
+        "treasury-1"
+      ],
+      "idem_scope": "settlements",
+      "idem_key": "set-001",
+      "reverses_entry_id": null,
+      "prev_hash": "db116184a6c8edd961622c259419a15450fe95a93ec8c3491b3f2b78ac5821b5",
+      "entry_hash": "7be96748f99fb84d03c12cdb570c3565737ebd6545ee5af243a058f78398af01"
+    },
+    {
+      "seq": 4,
+      "id": "019a0000-0000-7000-8000-000000000004",
+      "ts": "2026-10-04T08:00:00.000Z",
+      "type": "FEE_CHARGED",
+      "refs": {
+        "fee_id": "fee-001"
+      },
+      "postings": [
+        {
+          "account_id": "019a0000-0000-7000-8000-000000006100",
+          "amount_xaf": "500",
+          "direction": "D",
+          "ordinal": 1
+        },
+        {
+          "account_id": "019a0000-0000-7000-8000-000000001200",
+          "amount_xaf": "500",
+          "direction": "C",
+          "ordinal": 2
+        }
+      ],
+      "actor": "system",
+      "approvers": [
+        "finance-1"
+      ],
+      "idem_scope": "fees",
+      "idem_key": "fee-001",
+      "reverses_entry_id": null,
+      "prev_hash": "7be96748f99fb84d03c12cdb570c3565737ebd6545ee5af243a058f78398af01",
+      "entry_hash": "2b5756198e3ce669a71b6336a9d78fc31c40f67b1946aaee9569736c3ec55f17"
+    },
+    {
+      "seq": 5,
+      "id": "019a0000-0000-7000-8000-000000000005",
+      "ts": "2026-10-05T08:00:00.000Z",
+      "type": "PAYMENT_REVERSED",
+      "refs": {
+        "payment_id": "pay-001",
+        "reversal_id": "rev-001"
+      },
+      "postings": [
+        {
+          "account_id": "019a0000-0000-7000-8000-000000002900",
+          "amount_xaf": "15000",
+          "direction": "D",
+          "ordinal": 1
+        },
+        {
+          "account_id": "019a0000-0000-7000-8000-000000001200",
+          "amount_xaf": "15000",
+          "direction": "C",
+          "ordinal": 2
+        }
+      ],
+      "actor": "maker-2",
+      "approvers": [
+        "checker-3"
+      ],
+      "idem_scope": "payments",
+      "idem_key": "pay-001:reversed",
+      "reverses_entry_id": "019a0000-0000-7000-8000-000000000002",
+      "prev_hash": "2b5756198e3ce669a71b6336a9d78fc31c40f67b1946aaee9569736c3ec55f17",
+      "entry_hash": "38ca36db041b1b6b59dfb3ebc68ed7f41772a4089d636bd0952c59d1b2635f93"
+    },
+    {
+      "seq": 6,
+      "id": "019a0000-0000-7000-8000-000000000006",
+      "ts": "2026-10-06T08:00:00.000Z",
+      "type": "ADJUSTMENT",
+      "refs": {
+        "adjustment_id": "adj-001"
+      },
+      "postings": [
+        {
+          "account_id": "019a0000-0000-7000-8000-000000001100",
+          "amount_xaf": "250",
+          "direction": "D",
+          "ordinal": 1
+        },
+        {
+          "account_id": "019a0000-0000-7000-8000-000000007100",
+          "amount_xaf": "250",
+          "direction": "C",
+          "ordinal": 2
+        }
+      ],
+      "actor": "finance-2",
+      "approvers": [
+        "controller-1"
+      ],
+      "idem_scope": "ledger",
+      "idem_key": "adj-001",
+      "reverses_entry_id": null,
+      "prev_hash": "38ca36db041b1b6b59dfb3ebc68ed7f41772a4089d636bd0952c59d1b2635f93",
+      "entry_hash": "13a77f2d7e45a4496c46173bd90bd7644b5944d2e6ba622f3ad5c9272d686d86"
+    }
+  ],
+  "tree_heads": [
+    {
+      "tree_size": 2,
+      "root_hash": "8f43fc37aadb172fc20baa3a19c0e73c4f596a2bfd9da3f9b2629b43848ba748",
+      "timestamp": "2026-10-02T09:00:00.000Z",
+      "log_id": "achat-ledger-fixture-v1",
+      "signature": "oVAiFBrMifzhxWA42hgYWB71hQbrPLUjjHvxepYfe2o5jjvgTUYrm9EsH456TKFMSbvXniAG9T0oZ5id3t5BDA=="
+    },
+    {
+      "tree_size": 4,
+      "root_hash": "5961860be312bf47c536872290a6c1caa37ceb688a30b18e1e3ff50fc299e405",
+      "timestamp": "2026-10-04T09:00:00.000Z",
+      "log_id": "achat-ledger-fixture-v1",
+      "signature": "QVlkK77+L0S1rR7tdNw8nAwBjmThrovGoB57FdvKnJD8cpguPmkM2EPO7XSP3nC1V22CtLgJMw2Wl20k1pPAAw=="
+    },
+    {
+      "tree_size": 6,
+      "root_hash": "6a3cc6806fb2f779ea5abb8826fcd2788db5852c01d2b0cdabe864a8d2009112",
+      "timestamp": "2026-10-06T09:00:00.000Z",
+      "log_id": "achat-ledger-fixture-v1",
+      "signature": "1oepTdIf7l6rW2DEj4w90EyVWUX7EJJlLaINvkfMyMECw9vZN9KTafWeCJyB2Uk8RrqguCwNXPtOMf3nkno7Bw=="
+    }
+  ],
+  "witness_heads": [
+    {
+      "tree_size": 6,
+      "root_hash": "6a3cc6806fb2f779ea5abb8826fcd2788db5852c01d2b0cdabe864a8d2009112"
+    },
+    {
+      "tree_size": 4,
+      "root_hash": "5961860be312bf47c536872290a6c1caa37ceb688a30b18e1e3ff50fc299e405"
+    }
+  ]
+}

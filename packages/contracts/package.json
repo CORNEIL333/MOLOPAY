@@ -1,0 +1,27 @@
+{
+  "name": "@achat/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./api": {
+      "types": "./src/api.d.ts"
+    },
+    "./terms": {
+      "types": "./src/terms.ts",
+      "default": "./src/terms.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
+    }
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  }
+}

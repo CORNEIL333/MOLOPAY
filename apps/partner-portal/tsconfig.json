@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"],
+    "jsx": "preserve",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@achat/ui": ["../../packages/ui/src/index.ts"],
+      "@achat/ui/*": ["../../packages/ui/src/*"],
+      "@achat/contracts/api": ["../../packages/contracts/src/api.d.ts"],
+      "@achat/contracts/client": [
+        "../../packages/contracts/src/client.ts"
+      ],
+      "@achat/contracts": ["../../packages/contracts/src/index.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "../../vitest.web.setup.ts"
+  ],
+  "exclude": ["node_modules"]
+}
