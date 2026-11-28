@@ -1065,3 +1065,9 @@
 - **Option appliquée :** la base génère au premier démarrage un certificat auto-signé (`CN=database`, SAN `DNS:database`, 2 jours) et sert TLS ; les migrations passent par `pnpm db:migrate` (`ops.schema_migration`, verrou consultatif) ; un service `roles` joue `pnpm db:roles plan` puis pose le mot de passe du compte `molopay_api` ; l'API se connecte en `molopay_api` avec `DATABASE_ROLE=app_rw`. Les deux mots de passe locaux sont alphanumériques et distincts.
 - **Retour arrière :** modifier `infra/compose.yaml` et `infra/.env` seulement ; aucune donnée réelle en jeu.
 - **À trancher :** la composition n'a pas été exécutée (Docker absent du poste, D2) : la preuve d'exécution viendra du premier environnement qui a Docker. Le certificat auto-signé est local et éphémère ; en exploitation, TLS est fourni par l'hébergeur (ADR-0004).
+
+### D110 · Portabilité Windows des contrôles et du SCA (outillage, L0)
+- **Constat :** quatre contrôles (`tools/client-platform.test.ts`, `tools/crypto-inventory.test.ts`, `tools/no-gambling.test.ts`) comparaient des chemins avec `\` sous Windows ; `tools/sca.ts` lançait le shim `pnpm` du PATH, qui n'est pas un exécutable sous Windows (`spawnSync` échoue) ; le lanceur de base jetable ne transmettait pas `TRANSFER_PG_BIN`, les tests de sauvegarde cherchaient `pg_dump` dans un chemin Linux.
+- **Option appliquée :** chemins comparés en séparateur POSIX, `pnpm audit` lancé par le point d'entrée JavaScript de pnpm (recherche `pnpm.mjs` dans le PATH en repli), `TRANSFER_PG_BIN` posé par le lanceur sur le dossier de la grappe créée. Aucune assertion affaiblie : sur Linux le comportement est identique.
+- **Retour arrière :** sans effet hors poste Windows.
+- **À trancher :** exécuter la CI sur un poste Windows en plus de Linux pour prévenir ces écarts.
