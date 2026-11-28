@@ -37,13 +37,13 @@
 
 | Lot | Contenu | Branche | Échéance | Statut |
 |---|---|---|---|---|
-| Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | À démarrer |
-| Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | À démarrer |
-| Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | À démarrer |
-| Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | À démarrer |
-| Q5 | CRM : fiche client 360° (lecture motivée et journalisée), interactions de support et tâches de suivi en ajout seul, écrans du back-office | `agent/qoder/crm` | J6 | À démarrer |
-| Q6 | Archivage : archives signées du grand livre et de l'audit, conservation selon le registre, restauration vérifiée | `agent/qoder/archivage` | J6 | À démarrer |
-| Q7 | Procédures d'exploitation, exercice de restauration chronométré, test de charge | `agent/qoder/exploitation` | J9 | À démarrer |
+| Q1 | Arrivée : prise de connaissance (lecture seule, note) | `agent/qoder/arrivee` | J1 | Livré — PR #2 |
+| Q2 | Journalisation structurée JSON, identifiant de corrélation, masquage des données sensibles (`apps/api/src/observability/`) | `agent/qoder/journaux` | J2 | Livré — PR #6, contenue dans #9 (une seule fusion) |
+| Q3 | Gestion des erreurs : catalogue des codes métier, messages FR/EN, filtre RFC 9457, 5xx inattendues sans fuite | `agent/qoder/erreurs` | J3 | Livré — PR #8, contenue dans #9 ; **à compléter** : catalogue des codes ajoutés depuis (S5) |
+| Q4 | Serveurs : images de conteneur, composition locale, santé et disponibilité, configuration, sauvegarde et restauration de la base | `agent/qoder/serveurs` | J4 | Livré — PR #9 ; **corrections avant fusion** S1–S7 (`PROMPT_QODER_VERIFICATION_ET_RELANCE.md` § 4.1, 28 nov.) |
+| Q5 | CRM : fiche client 360° (lecture motivée et journalisée), interactions de support et tâches de suivi en ajout seul, écrans du back-office | `agent/qoder/crm` | J6 | Livré — PR #10 ; **corrections avant fusion** R1–R6 (migration 0100 → 0080, registre T-16 → T-18, `phone_masked`) |
+| Q6 | Archivage : archives signées du grand livre et de l'audit, conservation selon le registre, restauration vérifiée | `agent/qoder/archivage` | J6 | À démarrer après #9/#10 (partie non bloquée ; témoins d'ancrage D6) |
+| Q7 | Procédures d'exploitation, exercice de restauration chronométré, test de charge | `agent/qoder/exploitation` | J9 | À démarrer après Q6 (planification nocturne, `ops:alerts`, restauration chronométrée) |
 
 ## Demandes de contrat (remplies par Gemini et Qoder, traitées par Claude)
 
