@@ -15,6 +15,7 @@ describe('C2 / D77 — AccountProfileCard (GET /v1/me minimal, sans niveau KYC)'
       legalNameDeclared: true,
       currentTermsVersion: '2026-10-26-v1',
       termsAccepted: true,
+      language: 'fr',
     };
     const { container } = render(<AccountProfileCard account={account} locale="fr" />);
 
@@ -34,6 +35,7 @@ describe('C2 / D77 — AccountProfileCard (GET /v1/me minimal, sans niveau KYC)'
       legalNameDeclared: false,
       currentTermsVersion: '2026-10-26-v1',
       termsAccepted: false,
+      language: 'fr',
     };
     const { container } = render(<AccountProfileCard account={account} locale="en" />);
 

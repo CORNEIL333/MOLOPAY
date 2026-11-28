@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "API cœur — plateforme d'achat planifié",
-    "version": "0.45.0",
+    "version": "0.46.0",
     "description": "Contrat public de l'API cœur consommé par la PWA, le portail partenaire et le back-office. Erreurs au format RFC 9457. Les montants XAF sont des chaînes décimales entières, jamais des flottants.\n\n**Version minimale (SEC-MOB-005)** : toute route accepte l'en-tête facultatif `X-Client-Version` (voir `components.parameters.ClientVersion`) et peut répondre `426` (`components.responses.UpgradeRequired`, code `CLIENT_UPGRADE_REQUIRED`) quand l'application est en dessous du minimum publié."
   },
   "servers": [
@@ -5982,6 +5982,185 @@
           }
         }
       }
+    },
+    "/v1/me/language": {
+      "put": {
+        "operationId": "declareLanguage",
+        "summary": "Déclarer la langue choisie dans l'application (D121)",
+        "tags": [
+          "Authentification"
+        ],
+        "description": "Les notifications suivantes partent dans cette langue (fr ou en). Sans déclaration, le français. Une déclaration identique n'écrit rien.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguageDeclaration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Langue enregistrée",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageDeclaration"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/notifications/sms-channels": {
+      "get": {
+        "operationId": "listSmsChannels",
+        "summary": "État du canal SMS par type de notification (D121)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Le push est le canal de lancement ; le SMS est fermé tant que l'équipe ne l'ouvre pas pour un type. Rôle OPERATIONS.",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Six types, dans l'ordre du catalogue",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsChannelList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/backoffice/notifications/sms-channels/{eventType}": {
+      "put": {
+        "operationId": "setSmsChannel",
+        "summary": "Ouvrir ou fermer le SMS pour un type de notification (D121)",
+        "tags": [
+          "Personnel (back-office)"
+        ],
+        "description": "Geste simple, motivé, inscrit à l'audit chaîné (SMS_CHANNEL_SET) dans la même transaction. Vaut pour les notifications suivantes, jamais pour celles déjà en file. État inchangé : 409 NOTIFICATION_CHANNEL_UNCHANGED. Rôle OPERATIONS.",
+        "security": [
+          {
+            "staffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "eventType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationEventType"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsChannelToggle"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bascule enregistrée",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsChannelToggleResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6636,7 +6815,8 @@
           "memberSince",
           "legalNameDeclared",
           "currentTermsVersion",
-          "termsAccepted"
+          "termsAccepted",
+          "language"
         ],
         "description": "C2 / contrat 1.0 : profil minimal. Ni numéro en clair, ni nom légal, ni niveau KYC (D77).",
         "properties": {
@@ -6664,6 +6844,14 @@
           "termsAccepted": {
             "type": "boolean",
             "description": "F-ACC-004 : faux tant que la version en vigueur n’est pas acceptée ; aucun nouvel objectif ni activation n’est alors possible (IDENTITY_TERMS_NOT_ACCEPTED)."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ],
+            "description": "D121 : langue déclarée par l'application (PUT /v1/me/language), français par défaut ; langue des notifications."
           }
         },
         "additionalProperties": false
@@ -10401,6 +10589,118 @@
                 ]
               }
             }
+          }
+        }
+      },
+      "LanguageDeclaration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "language"
+        ],
+        "properties": {
+          "language": {
+            "type": "string",
+            "enum": [
+              "fr",
+              "en"
+            ]
+          }
+        },
+        "description": "D121 : langue choisie dans l'application."
+      },
+      "NotificationEventType": {
+        "type": "string",
+        "enum": [
+          "PAYMENT_CONFIRMED",
+          "PAYMENT_REMINDER",
+          "GOAL_FUNDED",
+          "HANDOVER_READY",
+          "SETTLEMENT_CONFIRMED",
+          "DISPUTE_UPDATED"
+        ],
+        "description": "Type de notification (F-NOT-001)."
+      },
+      "SmsChannelState": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventType",
+          "smsEnabled",
+          "setBy",
+          "setAt"
+        ],
+        "properties": {
+          "eventType": {
+            "$ref": "#/components/schemas/NotificationEventType"
+          },
+          "smsEnabled": {
+            "type": "boolean"
+          },
+          "setBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Agent auteur de la dernière bascule (null : jamais basculé)."
+          },
+          "setAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SmsChannelList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SmsChannelState"
+            },
+            "minItems": 6,
+            "maxItems": 6
+          }
+        }
+      },
+      "SmsChannelToggle": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "reason"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        }
+      },
+      "SmsChannelToggleResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventType",
+          "smsEnabled"
+        ],
+        "properties": {
+          "eventType": {
+            "$ref": "#/components/schemas/NotificationEventType"
+          },
+          "smsEnabled": {
+            "type": "boolean"
           }
         }
       }

@@ -18,6 +18,7 @@ import { seedCustomerAccount, validateMerchant } from './agreement-fixture';
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff, PARTNER_ORIGIN, PARTNER_RP_TEST, partnerCookie, partnerLoginBody } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_RP_TEST, staffCookie } from './staff-fixture';
+import { localInstructionSigner } from '../../src/crypto/instruction-signer';
 
 /**
  * Lot 24 / INT-IDEM-001 : chaque route d'écriture déclarée exige l'en-tête
@@ -201,7 +202,7 @@ beforeAll(async () => {
   await seedCustomerAccount(admin, ACCOUNT, 'STRONG');
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins, PARTNER_ORIGIN]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, partnerRp: PARTNER_RP_TEST, handoverPepper: PEPPER, platformSigningKey: { key: generateKeyPairSync('ed25519').privateKey, keyId: 'k1' } })],
+    imports: [AppModule.register({ database, allowedOrigins: new Set([ORIGIN, ...STAFF_RP_TEST.origins, PARTNER_ORIGIN]), pinPepper: PEPPER, staffRp: STAFF_RP_TEST, partnerRp: PARTNER_RP_TEST, handoverPepper: PEPPER, platformSigningKey: localInstructionSigner(generateKeyPairSync('ed25519').privateKey, 'k1') })],
   }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();

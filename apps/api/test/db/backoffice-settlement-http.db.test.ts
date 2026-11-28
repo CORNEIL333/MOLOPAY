@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes, sign, verify } from 'node:crypto';
+import { GetPublicKeyCommand } from '@aws-sdk/client-kms';
 import { readdirSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { resolve } from 'node:path';
@@ -31,6 +32,7 @@ import {
 import { startTestDatabase, type TestDatabase } from './harness';
 import { createPartnerStaff } from './partner-fixture';
 import { createStaffWithKey, loginOverHttp, STAFF_ORIGIN, STAFF_RP_TEST, staffCookie } from './staff-fixture';
+import { awsKmsInstructionSigner } from '../../src/crypto/aws-kms';
 
 /** D46 / D62 : règlements des marchands au back-office, ville du périmètre de l'agent comprise. */
 const DIRECTORY = resolve(process.cwd(), 'db/migrations');
@@ -40,6 +42,20 @@ const GOAL = '019aa700-0000-7000-8000-0000000000a1';
 const OFFER = '019aa700-0000-7000-8000-0000000000f1';
 const PEPPER = randomBytes(32);
 const PLATFORM = generateKeyPairSync('ed25519');
+/**
+ * D5 : le signataire branché est l'adaptateur AWS KMS réel de l'application ;
+ * seul le transport vers KMS est remplacé, par une vraie clé Ed25519 (aucun
+ * service AWS joint pendant les tests de base). `kmsDown` coupe le service.
+ */
+const KMS_ARN = 'arn:aws:kms:eu-central-1:123456789012:key/0190a1b2-c3d4-4e5f-8a9b-0c1d2e3f4a5b';
+let kmsDown = false;
+function kmsTransport(command: GetPublicKeyCommand | { readonly input: { readonly Message?: Uint8Array | undefined } }): Promise<Record<string, unknown>> {
+  if (command instanceof GetPublicKeyCommand) {
+    return Promise.resolve({ KeyId: KMS_ARN, KeySpec: 'ECC_NIST_EDWARDS25519', KeyUsage: 'SIGN_VERIFY', SigningAlgorithms: ['ED25519_SHA_512'], PublicKey: new Uint8Array(PLATFORM.publicKey.export({ format: 'der', type: 'spki' })) });
+  }
+  if (kmsDown) return Promise.reject(new Error('ServiceUnavailableException'));
+  return Promise.resolve({ KeyId: KMS_ARN, Signature: new Uint8Array(sign(null, Buffer.from(command.input.Message ?? new Uint8Array()), PLATFORM.privateKey)) });
+}
 
 let db: TestDatabase;
 let admin: Client;
@@ -78,7 +94,7 @@ beforeAll(async () => {
   admin = new Client({ connectionString: db.getConnectionUri() });
   await admin.connect();
   database = createDatabase({ connectionString: db.getConnectionUri(), role: 'app_rw' });
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, platformSigningKey: { key: PLATFORM.privateKey, keyId: 'k1' } })] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule.register({ database, allowedOrigins: new Set([STAFF_ORIGIN]), staffRp: STAFF_RP_TEST, platformSigningKey: await awsKmsInstructionSigner(KMS_ARN, kmsTransport) })] }).compile();
   app = moduleRef.createNestApplication({ logger: false });
   await app.init();
 }, 300_000);
@@ -299,6 +315,34 @@ describe('D46 / D62 règlement marchand au back-office', () => {
     expect((await post(`/v1/backoffice/settlements/${payoutId}/execution`, cookies.finTwo, { outcome: 'EXECUTED', bankReference: 'ETAB-REG-1', cityId: 'douala' })).status).toBe(200);
     const types = await admin.query<{ operation_type: string }>(`SELECT operation_type FROM ledger.journal_entry WHERE operation_type IN ('FEE_CHARGED', 'SETTLEMENT_SENT') ORDER BY seq`);
     expect(types.rows.map((row) => row.operation_type)).toEqual(['FEE_CHARGED', 'SETTLEMENT_SENT']);
+  });
+
+  it('D5 : signature par l’adaptateur KMS ; KMS indisponible → 503 SIGNING_UNAVAILABLE, aucune instruction écrite, nouvel essai possible', async () => {
+    await handedOver();
+    const prepared = await post('/v1/backoffice/settlements', cookies.ops, { agreementId: GOAL, cityId: 'douala' });
+    const { payoutId } = prepared.body as { payoutId: string };
+    expect((await post(`/v1/backoffice/settlements/${payoutId}/decision`, cookies.finOne, { decision: 'APPROVED', cityId: 'douala' })).status).toBe(200);
+    kmsDown = true;
+    try {
+      const refused = await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' });
+      expect(refused.status).toBe(503);
+      expect((refused.body as { code: string }).code).toBe('SIGNING_UNAVAILABLE');
+      expect(JSON.stringify(refused.body)).not.toContain('ServiceUnavailableException');
+      expect(JSON.stringify(refused.body)).not.toContain(KMS_ARN);
+    } finally {
+      kmsDown = false;
+    }
+    expect((await admin.query('SELECT 1 FROM settlement.payout_instruction WHERE payout_id = $1', [payoutId])).rowCount).toBe(0);
+    const signed = await post(`/v1/backoffice/settlements/${payoutId}/instruction`, cookies.finOne, { cityId: 'douala' });
+    expect(signed.status).toBe(201);
+    const body = signed.body as { document: Record<string, string>; signature: string; keyId: string };
+    expect(body.keyId).toBe(KMS_ARN);
+    const stored = await admin.query<{ document: Record<string, string>; signature: Buffer; key_id: string }>('SELECT document, signature, key_id FROM settlement.payout_instruction WHERE payout_id = $1', [payoutId]);
+    expect(stored.rows[0]?.key_id).toBe(KMS_ARN);
+    expect(stored.rows[0]?.signature.toString('base64')).toBe(body.signature);
+    // Format inchangé : Ed25519 pur sur le document canonique, vérifiable avec la seule clé publique.
+    const canonical = Buffer.from(JSON.stringify(Object.fromEntries(Object.entries(body.document).sort(([a], [b]) => (a < b ? -1 : 1)))), 'utf8');
+    expect(verify(null, canonical, PLATFORM.publicKey, Buffer.from(body.signature, 'base64'))).toBe(true);
   });
 
   it('SEC-AUTHZ-001 (ABAC) : un agent de Yaoundé ne décide pas un règlement de Douala, ni en se déclarant à Douala', async () => {

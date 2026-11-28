@@ -110,6 +110,8 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
       legalNameDeclared: false,
       currentTermsVersion: '2026-10-26-v1',
       termsAccepted: true,
+      // D121 : sans déclaration de l'application, le français (langue de référence).
+      language: 'fr',
     });
     expect(JSON.stringify(response.body)).not.toContain(digits.slice(3, -2));
     expect(JSON.stringify(response.body)).not.toMatch(/kyc|level|BASIC|NONE/i);
@@ -140,3 +142,39 @@ describe('C2 profil du client connecté (GET /v1/me)', () => {
   });
 });
 
+describe('D121 langue choisie dans l’application (PUT /v1/me/language)', () => {
+  function declare(cookie: string, body: unknown, key = `lang-${uuidv7()}`): request.Test {
+    return request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).set('Idempotency-Key', key).send(body as object);
+  }
+
+  it('déclare l’anglais : profil et notifications suivantes en anglais ; rejouable ; l’autre client n’est pas touché', async () => {
+    const cookie = await session(CUSTOMER);
+    const key = `lang-${uuidv7()}`;
+    const first = await declare(cookie, { language: 'en' }, key);
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
+    expect(first.body).toEqual({ language: 'en' });
+    expect(first.headers['cache-control']).toBe('private, no-store');
+    expect((await declare(cookie, { language: 'en' }, key)).body).toEqual({ language: 'en' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'en' });
+    await seedCustomerAccount(admin, OTHER_CUSTOMER, 'NONE');
+    expect((await me(await session(OTHER_CUSTOMER))).body).toMatchObject({ language: 'fr' });
+    expect((await declare(cookie, { language: 'fr' })).body).toEqual({ language: 'fr' });
+    expect((await me(cookie)).body).toMatchObject({ language: 'fr' });
+    const rows = await admin.query<{ language: string }>('SELECT language FROM identity.language_preference WHERE account_id = $1 ORDER BY seq', [CUSTOMER]);
+    expect(rows.rows.map((row) => row.language)).toEqual(['en', 'fr']);
+  });
+
+  it('refuse : langue hors liste (400 IDENTITY_LANGUAGE_INVALID), champ en trop ou absent (400 REQUEST_INVALID), sans clé d’idempotence, sans session (401)', async () => {
+    const cookie = await session(CUSTOMER);
+    for (const language of ['de', 'EN', '', null, 1]) {
+      expect(problem(await declare(cookie, { language }))).toEqual([400, 'IDENTITY_LANGUAGE_INVALID']);
+    }
+    expect(problem(await declare(cookie, { language: 'en', accountId: OTHER_CUSTOMER }))).toEqual([400, 'REQUEST_INVALID']);
+    expect(problem(await declare(cookie, {}))).toEqual([400, 'REQUEST_INVALID']);
+    const noKey = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Cookie', cookie).send({ language: 'en' });
+    expect(problem(noKey)).toEqual([400, 'REQUEST_INVALID']);
+    const anonymous = await request(server()).put('/v1/me/language').set('Origin', ORIGIN).set('Idempotency-Key', `lang-${uuidv7()}`).send({ language: 'en' });
+    expect(problem(anonymous)).toEqual([401, 'IDENTITY_SESSION_INVALID']);
+    expect((await admin.query('SELECT 1 FROM identity.language_preference')).rowCount).toBe(0);
+  });
+});

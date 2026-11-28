@@ -55,6 +55,7 @@ export const ADMIN_ACTIONS = [
   'DECLARE_CUSTOMER_DEATH',
   'DECIDE_CUSTOMER_DEATH',
   'READ_PRODUCT_KPIS',
+  'MANAGE_NOTIFICATION_CHANNELS',
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -114,6 +115,8 @@ const GRANTS: Readonly<Record<InternalRole, ReadonlySet<AdminAction>>> = {
     'PREPARE_BENEFICIARY_PAYOUT',
     // D41 / D56 : levée des litiges (autre personne que l'ouverture, I-7).
     'RESOLVE_DISPUTE',
+    // D121 : bascule SMS par type de notification (geste simple, motivé, audité).
+    'MANAGE_NOTIFICATION_CHANNELS',
   ]),
   FINANCE: new Set<AdminAction>([
     'READ_FINANCIAL_HISTORY',
@@ -195,6 +198,7 @@ const REASON_REQUIRED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   'MANAGE_OUTGOING_FREEZE',
   'DECLARE_CUSTOMER_DEATH',
   'READ_PRODUCT_KPIS',
+  'MANAGE_NOTIFICATION_CHANNELS',
 ]);
 
 const PARTNER_SCOPED_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
