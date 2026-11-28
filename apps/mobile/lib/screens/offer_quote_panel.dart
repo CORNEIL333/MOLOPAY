@@ -137,7 +137,7 @@ class _OfferQuotePanelState extends State<OfferQuotePanel> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _selectedPlan?.planId == plan.planId
-                      ? orange
+                      ? ink
                       : const Color(0xFFF3ECE5),
                   width: _selectedPlan?.planId == plan.planId ? 2 : 1,
                 ),
@@ -203,7 +203,7 @@ class _OfferQuotePanelState extends State<OfferQuotePanel> {
                 Checkbox(
                   key: const Key('offer-terms-checkbox'),
                   value: _acceptedTerms,
-                  activeColor: orange,
+                  activeColor: ink,
                   onChanged: _creating
                       ? null
                       : (v) => setState(() => _acceptedTerms = v ?? false),
@@ -225,7 +225,7 @@ class _OfferQuotePanelState extends State<OfferQuotePanel> {
             const SizedBox(height: 12),
             Text(
               '${s.goalStatusName(_createdGoal!.status)} · ${_createdGoal!.goalId}',
-              style: type(13, color: orange, weight: FontWeight.w700),
+              style: type(13, color: ink, weight: FontWeight.w700),
             ),
           ],
         ],

@@ -50,11 +50,11 @@ final class MoneyXaf implements Comparable<MoneyXaf> {
 
   String toApiString() => amount.toString();
 
-  /// Formate le montant entier avec séparateur de milliers sans conversion en flottant.
-  String format({String locale = 'fr'}) {
+  /// Formate le montant entier (« 25 000 FCFA ») sans conversion en flottant.
+  /// En mode [sms] (GSM-7 / USSD), utilise l'espace ASCII ordinaire au lieu de U+202F.
+  String format({String locale = 'fr', bool sms = false}) {
     final digits = amount.toString();
-    final sep = locale == 'en' ? ',' : '\u202F';
-    final currency = locale == 'en' ? 'XAF' : 'FCFA';
+    final sep = sms ? ' ' : '\u202F';
     final buffer = StringBuffer();
     final len = digits.length;
     for (var i = 0; i < len; i++) {
@@ -63,8 +63,7 @@ final class MoneyXaf implements Comparable<MoneyXaf> {
       }
       buffer.write(digits[i]);
     }
-    buffer.write(' ');
-    buffer.write(currency);
+    buffer.write(' FCFA');
     return buffer.toString();
   }
 

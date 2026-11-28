@@ -165,7 +165,7 @@ class _NewPlannedExpenseScreenState extends State<NewPlannedExpenseScreen> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
-                      child: CircularProgressIndicator(color: orange),
+                      child: CircularProgressIndicator(color: ink),
                     ),
                   )
                 else if (_plans.isEmpty)
@@ -237,7 +237,7 @@ class _NewPlannedExpenseScreenState extends State<NewPlannedExpenseScreen> {
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: _acceptedTerms,
-                    activeColor: orange,
+                    activeColor: ink,
                     onChanged: _submitting
                         ? null
                         : (v) => setState(() => _acceptedTerms = v ?? false),

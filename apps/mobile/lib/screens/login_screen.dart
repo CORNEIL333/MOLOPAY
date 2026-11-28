@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                     child: Text(
                       s.isEn ? 'Create an account' : 'Créer un compte',
-                      style: type(14, color: orange, weight: FontWeight.w700),
+                      style: type(14, color: ink, weight: FontWeight.w700),
                     ),
                   ),
                 ),

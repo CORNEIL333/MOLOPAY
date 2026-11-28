@@ -262,7 +262,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       Checkbox(
                         key: const Key('signup-terms-checkbox'),
                         value: _acceptedTerms,
-                        activeColor: orange,
+                        activeColor: ink,
                         onChanged: _pending
                             ? null
                             : (v) =>

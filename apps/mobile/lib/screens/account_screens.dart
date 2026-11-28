@@ -81,7 +81,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (_statusMessage != null) ...[
-                  Text(_statusMessage!, style: type(14, color: orange, weight: FontWeight.w700)),
+                  Text(_statusMessage!, style: type(14, color: ink, weight: FontWeight.w700)),
                   const SizedBox(height: 12),
                 ],
                 if (_problem != null) ...[
@@ -89,7 +89,7 @@ class _AccountSecurityScreenState extends State<AccountSecurityScreen> {
                   const SizedBox(height: 16),
                 ],
                 if (_loading)
-                  const Center(child: CircularProgressIndicator(color: orange))
+                  const Center(child: CircularProgressIndicator(color: ink))
                 else if (_security != null) ...[
                   Text(s.dataAsOf(_security!.asOf), style: type(12, color: muted)),
                   const SizedBox(height: 12),
@@ -203,7 +203,7 @@ class _DataRightsScreenState extends State<DataRightsScreen> {
                 ),
                 const SizedBox(height: 20),
                 if (_loading)
-                  const Center(child: CircularProgressIndicator(color: orange))
+                  const Center(child: CircularProgressIndicator(color: ink))
                 else if (_history != null) ...[
                   Text(s.dataAsOf(_history!.asOf), style: type(12, color: muted)),
                   const SizedBox(height: 12),

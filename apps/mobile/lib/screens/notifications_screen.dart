@@ -97,7 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
-                      child: CircularProgressIndicator(color: orange),
+                      child: CircularProgressIndicator(color: ink),
                     ),
                   )
                 else if (_items.isEmpty && _problem == null)

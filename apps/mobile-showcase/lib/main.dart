@@ -31,8 +31,8 @@ class MolopayShowcase extends StatelessWidget {
       useMaterial3: true,
       scaffoldBackgroundColor: paper,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: orange,
-        primary: orange,
+        seedColor: ink,
+        primary: ink,
         surface: paper,
       ),
       textTheme: const TextTheme(bodyMedium: TextStyle(color: ink)),
@@ -180,7 +180,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    peach.withValues(alpha: .75),
+                    mist.withValues(alpha: .75),
                     paper.withValues(alpha: 0),
                   ],
                 ),
@@ -211,7 +211,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                                   _eyebrow(),
                                   style: type(
                                     10,
-                                    color: orange,
+                                    color: ink,
                                     weight: FontWeight.w800,
                                   ),
                                 ),
@@ -256,11 +256,11 @@ class _ShowcasePageState extends State<ShowcasePage> {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: orange,
+                    color: ink,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: orange.withValues(alpha: .25),
+                        color: ink.withValues(alpha: .25),
                         blurRadius: 22,
                         offset: const Offset(0, 8),
                       ),
@@ -358,7 +358,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                   width: 5,
                   height: 5,
                   decoration: const BoxDecoration(
-                    color: orange,
+                    color: ink,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -421,7 +421,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                       children: [
                         Icon(
                           item.$3,
-                          color: widget.id == item.$1 ? orange : muted,
+                          color: widget.id == item.$1 ? ink : muted,
                           size: 22,
                         ),
                         const SizedBox(height: 5),
@@ -462,7 +462,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
               const Icon(
                 CupertinoIcons.location_solid,
                 size: 12,
-                color: orange,
+                color: ink,
               ),
               const SizedBox(width: 4),
               Text(city, style: type(11)),
@@ -518,7 +518,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                     width: 44,
                     height: 44,
                     decoration: const BoxDecoration(
-                      color: orange,
+                      color: ink,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -600,7 +600,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
         onPressed: () => open(id),
         child: Text(
           link,
-          style: type(12, color: orange, weight: FontWeight.w700),
+          style: type(12, color: ink, weight: FontWeight.w700),
         ),
       ),
     ],
@@ -616,7 +616,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: orange, size: 25),
+          Icon(icon, color: ink, size: 25),
           const SizedBox(height: 12),
           Text(text, style: type(12, weight: FontWeight.w600)),
         ],
@@ -670,20 +670,20 @@ class _ShowcasePageState extends State<ShowcasePage> {
       height: 142,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Colors.white, peach],
+          colors: [Colors.white, mist],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(48),
         boxShadow: [
           BoxShadow(
-            color: orange.withValues(alpha: .08),
+            color: ink.withValues(alpha: .08),
             blurRadius: 32,
             offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Icon(icon, size: 62, color: orange),
+      child: Icon(icon, size: 62, color: ink),
     ),
   );
 
@@ -729,7 +729,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
             ),
             const Icon(
               CupertinoIcons.slider_horizontal_3,
-              color: orange,
+              color: ink,
               size: 20,
             ),
           ],
@@ -797,12 +797,12 @@ class _ShowcasePageState extends State<ShowcasePage> {
                       const Icon(
                         CupertinoIcons.arrow_up_right,
                         size: 20,
-                        color: orange,
+                        color: ink,
                       ),
                     ],
                   ),
                 ),
-                Icon(item.$3, color: orange.withValues(alpha: .8), size: 66),
+                Icon(item.$3, color: ink.withValues(alpha: .8), size: 66),
               ],
             ),
           ),
@@ -818,12 +818,12 @@ class _ShowcasePageState extends State<ShowcasePage> {
             width: 62,
             height: 62,
             decoration: const BoxDecoration(
-              color: peach,
+              color: mist,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               CupertinoIcons.person_fill,
-              color: orange,
+              color: ink,
               size: 28,
             ),
           ),
@@ -883,7 +883,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
       () => setState(() => reminders = !reminders),
       trailing: CupertinoSwitch(
         value: reminders,
-        activeTrackColor: orange,
+        activeTrackColor: ink,
         onChanged: (v) => setState(() => reminders = v),
       ),
     ),
@@ -896,7 +896,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
       }),
       trailing: CupertinoSwitch(
         value: reduceMotion.value,
-        activeTrackColor: orange,
+        activeTrackColor: ink,
         onChanged: (v) {
           setState(() {
             reduceMotion.value = v;
@@ -1044,11 +1044,11 @@ class _ShowcasePageState extends State<ShowcasePage> {
                     width: 112,
                     height: 112,
                     decoration: BoxDecoration(
-                      color: orange,
+                      color: ink,
                       borderRadius: BorderRadius.circular(36),
                       boxShadow: [
                         BoxShadow(
-                          color: orange.withValues(alpha: .2),
+                          color: ink.withValues(alpha: .2),
                           blurRadius: 45,
                           offset: const Offset(0, 14),
                         ),
@@ -1116,7 +1116,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                       const Spacer(),
                       TextButton(
                         onPressed: () => open('home'),
-                        child: Text('Explorer', style: type(13, color: orange)),
+                        child: Text('Explorer', style: type(13, color: ink)),
                       ),
                     ],
                   ),
@@ -1140,7 +1140,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
                           width: intro == i ? 28 : 7,
                           height: 7,
                           decoration: BoxDecoration(
-                            color: intro == i ? orange : peach,
+                            color: intro == i ? ink : mist,
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),

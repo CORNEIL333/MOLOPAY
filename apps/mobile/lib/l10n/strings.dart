@@ -117,6 +117,8 @@ final class AppStrings {
   String get languageLabel => isEn ? 'Language' : 'Langue';
   String get reduceMotionLabel =>
       isEn ? 'Reduce animations' : 'Réduire les animations';
+  String get soberEffectsLabel =>
+      isEn ? 'Visual effects: sober' : 'Effets visuels : sobres';
   String get apiStatusLabel => isEn ? 'API status' : 'État de l’API';
   String get apiOnline => isEn ? 'Reachable' : 'Accessible';
   String get apiOffline => isEn ? 'Unavailable' : 'Indisponible';

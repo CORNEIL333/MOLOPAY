@@ -122,7 +122,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 36),
-                child: CircularProgressIndicator(color: orange),
+                child: CircularProgressIndicator(color: ink),
               ),
             )
           else if (_problem != null)
@@ -206,7 +206,7 @@ class _GoalCard extends StatelessWidget {
                     ),
                     child: Text(
                       strings.goalStatusName(goal.status),
-                      style: type(11, color: orange, weight: FontWeight.w700),
+                      style: type(11, color: ink, weight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -222,7 +222,7 @@ class _GoalCard extends StatelessWidget {
                   value: pct / 100,
                   minHeight: 8,
                   backgroundColor: const Color(0xFFF3ECE5),
-                  color: orange,
+                  color: ink,
                 ),
               ),
               const SizedBox(height: 10),
@@ -235,7 +235,7 @@ class _GoalCard extends StatelessWidget {
                   ),
                   Text(
                     '$pct %',
-                    style: type(13, color: orange, weight: FontWeight.w700),
+                    style: type(13, color: ink, weight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -452,7 +452,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             const SizedBox(height: 8),
             Text(
               s.beneficiaryPayIrreversible,
-              style: type(12, color: orange, weight: FontWeight.w700),
+              style: type(12, color: ink, weight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -576,14 +576,14 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                             const Icon(
                               CupertinoIcons.lock_fill,
                               size: 14,
-                              color: orange,
+                              color: ink,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               s.lockedLabel,
                               style: type(
                                 12,
-                                color: orange,
+                                color: ink,
                                 weight: FontWeight.w700,
                               ),
                             ),
@@ -597,7 +597,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 if (_actionStatus != null) ...[
                   Text(
                     _actionStatus!,
-                    style: type(14, color: orange, weight: FontWeight.w700),
+                    style: type(14, color: ink, weight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -631,7 +631,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   Text(
                     s.beneficiaryPaid,
                     key: const Key('beneficiary-paid-status'),
-                    style: type(14, color: orange, weight: FontWeight.w700),
+                    style: type(14, color: ink, weight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -679,7 +679,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
-                      child: CircularProgressIndicator(color: orange),
+                      child: CircularProgressIndicator(color: ink),
                     ),
                   )
                 else if (_problem != null)
@@ -711,7 +711,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                         children: [
                           const Icon(
                             CupertinoIcons.checkmark_seal_fill,
-                            color: orange,
+                            color: ink,
                             size: 20,
                           ),
                           const SizedBox(width: 12),

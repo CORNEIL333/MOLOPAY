@@ -156,7 +156,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 36),
-              child: CircularProgressIndicator(color: orange),
+              child: CircularProgressIndicator(color: ink),
             ),
           )
         else if (_problem != null)
@@ -291,7 +291,7 @@ class OfferDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   s.universeName(offer.universe).toUpperCase(),
-                  style: type(11, color: orange, weight: FontWeight.w800),
+                  style: type(11, color: ink, weight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(offer.title, style: type(30, weight: FontWeight.w800)),
