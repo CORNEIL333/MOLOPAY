@@ -85,6 +85,26 @@ body {
 .mp-liquid__blob--2 { width: 70%; height: 45%; right: -14%; top: 14%; animation-delay: -9s; }
 .mp-liquid__blob--3 { width: 70%; height: 40%; left: 8%; bottom: -4%; animation-delay: -16s; }
 .mp-liquid__blob--4 { width: 52%; height: 34%; right: 0; bottom: 14%; animation-delay: -4s; }
+.mp-liquid[data-mp-universe='home'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #e9f7a8 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='home'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #ffd0e0 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='home'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #cfeefa 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='home'] .mp-liquid__blob--4 { background: radial-gradient(closest-side, #dcd8ff 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='essentials'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #f3fbcf 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='essentials'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #d9f26b 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='essentials'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #eaf7a4 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='technology'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #bdeefc 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='technology'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #5cc6ea 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='technology'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #e6f8ff 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='technology'] .mp-liquid__blob--4 { background: radial-gradient(closest-side, #a5e3f7 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='housing'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #e9e6ff 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='housing'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #a99fff 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='housing'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #d7d2ff 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='mobility'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #ffd9e6 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='mobility'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #ff8db4 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='mobility'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #ffc4d8 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='aurora'] .mp-liquid__blob--1 { background: radial-gradient(closest-side, #3d4a12 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='aurora'] .mp-liquid__blob--2 { background: radial-gradient(closest-side, #1d4d5c 0%, transparent 100%); }
+.mp-liquid[data-mp-universe='aurora'] .mp-liquid__blob--3 { background: radial-gradient(closest-side, #3a2c5c 0%, transparent 100%); }
 .mp-liquid--frozen .mp-liquid__blob, .mp-liquid--aurora .mp-liquid__blob, html.mp-sober .mp-liquid__blob { animation: none; }
 html.mp-sober .mp-liquid { display: none; }
 .mp-liquid--aurora .mp-liquid__blob { opacity: 0.55; }
@@ -375,6 +395,7 @@ html.mp-sober .mp-grain { display: none; }
   font-size: var(--achat-font-xs);
   overflow-wrap: anywhere;
 }
+.achat-state--error .achat-state__code { color: var(--achat-ink); }
 
 .achat-badge {
   display: inline-flex;
@@ -515,7 +536,37 @@ table.mp-table .mp-num { text-align: right; font-variant-numeric: tabular-nums; 
 .mp-goal-card--housing { background: var(--mp-color-universe-housing); color: #0f1012; border-color: transparent; }
 .mp-goal-card--mobility { background: var(--mp-color-universe-mobility); color: #0f1012; border-color: transparent; }
 .mp-goal-card--essentials .achat-goal-card__meta, .mp-goal-card--technology .achat-goal-card__meta, .mp-goal-card--housing .achat-goal-card__meta, .mp-goal-card--mobility .achat-goal-card__meta, .mp-goal-card--essentials .achat-goal-card__label, .mp-goal-card--technology .achat-goal-card__label, .mp-goal-card--housing .achat-goal-card__label, .mp-goal-card--mobility .achat-goal-card__label, .mp-goal-card--essentials .achat-progress__label, .mp-goal-card--technology .achat-progress__label, .mp-goal-card--housing .achat-progress__label, .mp-goal-card--mobility .achat-progress__label { color: #1c1d21; }
+.mp-goal-card--essentials .mp-ring__seg--on, .mp-goal-card--technology .mp-ring__seg--on, .mp-goal-card--housing .mp-ring__seg--on, .mp-goal-card--mobility .mp-ring__seg--on { stroke: #0f1012; }
+.mp-goal-card--essentials .mp-ring__seg--off, .mp-goal-card--technology .mp-ring__seg--off, .mp-goal-card--housing .mp-ring__seg--off, .mp-goal-card--mobility .mp-ring__seg--off { stroke: rgba(15, 16, 18, 0.22); }
+.mp-goal-card--essentials .achat-progress__track, .mp-goal-card--technology .achat-progress__track, .mp-goal-card--housing .achat-progress__track, .mp-goal-card--mobility .achat-progress__track { background: rgba(15, 16, 18, 0.16); }
+.mp-goal-card--essentials .achat-progress__fill, .mp-goal-card--technology .achat-progress__fill, .mp-goal-card--housing .achat-progress__fill, .mp-goal-card--mobility .achat-progress__fill { background: #0f1012; }
 @media (prefers-reduced-motion: reduce) {
   .achat-button:active:not(:disabled), .mp-icon-btn:active:not(:disabled) { transform: none; }
   .mp-cotisation-ring--spin svg { animation: none; }
 }
+
+/* Surfaces et dialogues U1b (M-11, M-12, M-16, M-23, M-30, M-33, M-34, M-35) */
+.mp-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(15, 16, 18, 0.52); display: grid; place-items: end center; padding: 12px; }
+.mp-sheet { width: min(100%, 34rem); background: var(--achat-surface); color: var(--achat-ink); border-radius: 28px; padding: 14px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+.mp-sheet__grab { width: 38px; height: 4px; border-radius: 999px; background: var(--achat-border); margin: 0 auto; }
+.mp-dialog { width: min(100%, 28rem); margin: auto; background: var(--achat-surface); color: var(--achat-ink); border-radius: 28px; padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.mp-slide { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 24px; background: var(--achat-surface); border: 1px solid var(--achat-border); }
+.mp-slide__label { font-weight: 600; font-size: 14px; }
+.mp-slide__range { width: 100%; min-height: 44px; accent-color: var(--achat-primary); cursor: pointer; }
+.mp-toast { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: #0f1012; color: #ffffff; font-size: 13.5px; font-weight: 500; }
+.mp-toast--success { background: var(--mp-color-status-success); color: #ffffff; }
+.mp-toast--error { background: var(--mp-color-status-danger); color: #ffffff; }
+.mp-skeleton { display: grid; gap: 10px; padding: 12px 0; }
+.mp-skeleton__line { display: block; height: 16px; border-radius: 10px; background: var(--achat-surface-muted); }
+.mp-skeleton--pulse .mp-skeleton__line { animation: mp-skel-pulse 1100ms ease-in-out infinite alternate; }
+@keyframes mp-skel-pulse { from { opacity: 0.45; } to { opacity: 0.92; } }
+.mp-offline-banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 16px; background: #0f1012; color: #ffffff; font-size: 13px; }
+.mp-float-nav { padding: 6px 8px; border-radius: 999px; max-width: 100%; }
+.mp-float-nav__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.mp-float-nav__link { min-height: 44px; padding: 6px 8px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; color: inherit; font-size: 13px; font-weight: 600; }
+@media (max-width: 480px) { .mp-float-nav__link { flex-direction: column; gap: 2px; padding: 5px 4px; font-size: 11.5px; } }
+.mp-float-nav__link--on { background: #0f1012; color: #ffffff; }
+.mp-glass--dark .mp-float-nav__link--on { background: #ffffff; color: #0f1012; }
+.mp-table__sort { background: transparent; border: 0; padding: 4px 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
+.achat-badge--warning { background: #fbedd0; color: #734400; }
+.achat-badge--info { background: #eceefa; color: #0f1012; }

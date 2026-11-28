@@ -25,6 +25,17 @@ export {
 } from './u1-core';
 export type { BanknoteCount, MpIconName } from './u1-core';
 export {
+  BottomSheet,
+  ConfirmDialog,
+  DataTable,
+  DelayedSkeleton,
+  FloatingNavBar,
+  OfflineBanner,
+  SlideToConfirm,
+  ToastNotice,
+} from './u1-surfaces';
+export type { DataTableColumn, DataTableRow, FloatingNavItem } from './u1-surfaces';
+export {
   GlassSurface,
   LiquidBackground,
   SoberEffectsToggle,
