@@ -104,6 +104,7 @@ describe('N4 — copie quotidienne chiffrée par nos clés, restaurable et véri
     const backup = await backupDatabase({ sourceUrl, outDirectory: work, wrapper, pgBin: PG_BIN, now: new Date('2026-11-26T03:00:00Z') });
     await expect(restoreBackup({ file: backup.file, targetUrl: sourceUrl, wrapper, pgBin: PG_BIN })).rejects.toThrow(/^TARGET_NOT_EMPTY/);
     await expect(backupDatabase({ sourceUrl: 'postgresql://u@ep-x.eu-central-1.aws.neon.tech/db?sslmode=require', outDirectory: work, wrapper, pgBin: PG_BIN })).rejects.toThrow(/^DATABASE_TLS_REQUIRED/);
+    await expect(backupDatabase({ sourceUrl: 'postgresql://u@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full', outDirectory: work, wrapper, pgBin: PG_BIN })).rejects.toThrow(/^DATABASE_POOLER_FORBIDDEN/);
   }, 600_000);
 
   it('clé : AWS KMS (clé distincte de celle des données personnelles) en production ; clé locale refusée en production', () => {

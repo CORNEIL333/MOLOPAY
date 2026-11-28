@@ -1,0 +1,96 @@
+/* Généré par docs/05_direction_ux_et_ui/jetons/generate.py — ne pas modifier à la main. */
+
+:root {
+  --mp-color-ink: #0f1012;
+  --mp-color-ink-2: #1c1d21;
+  --mp-color-ink-3: #2a2c31;
+  --mp-color-paper: #ffffff;
+  --mp-color-mist: #f2f2ee;
+  --mp-color-mist-2: #e4e5df;
+  --mp-color-muted: #6a6d73;
+  --mp-color-muted-dark: #9a9ca3;
+  --mp-color-universe-essentials: #d9f26b;
+  --mp-color-universe-technology: #8fddf5;
+  --mp-color-universe-housing: #c3bdff;
+  --mp-color-universe-mobility: #ffa8c5;
+  --mp-color-status-success: #1f7a4a;
+  --mp-color-status-success-bg: #e2f2e8;
+  --mp-color-status-warning: #8a5300;
+  --mp-color-status-warning-bg: #fbedd0;
+  --mp-color-status-danger: #c4262e;
+  --mp-color-status-danger-bg: #fbe4e5;
+  --mp-color-dark-bg: #0b0b0d;
+  --mp-color-dark-surface: #17181b;
+  --mp-color-dark-surface-2: #1c1d21;
+  --mp-color-dark-text: #f1f2f4;
+  --mp-color-dark-line: #2a2c31;
+  --mp-font-family-display: Outfit, 'Segoe UI', system-ui, sans-serif;
+  --mp-font-family-text: Inter, 'Segoe UI', system-ui, sans-serif;
+  --mp-font-size-xs: 12px;
+  --mp-font-size-sm: 13px;
+  --mp-font-size-md: 15px;
+  --mp-font-size-lg: 17px;
+  --mp-font-size-xl: 22px;
+  --mp-font-size-2xl: 28px;
+  --mp-font-size-amount: 40px;
+  --mp-font-size-hero: 56px;
+  --mp-font-weight-light: 300;
+  --mp-font-weight-regular: 400;
+  --mp-font-weight-medium: 500;
+  --mp-font-weight-semibold: 600;
+  --mp-radius-sm: 12px;
+  --mp-radius-md: 20px;
+  --mp-radius-lg: 28px;
+  --mp-radius-xl: 40px;
+  --mp-radius-pill: 999px;
+  --mp-space-1: 4px;
+  --mp-space-2: 8px;
+  --mp-space-3: 12px;
+  --mp-space-4: 16px;
+  --mp-space-5: 24px;
+  --mp-space-6: 32px;
+  --mp-space-7: 48px;
+  --mp-size-touch-target: 44px;
+  --mp-size-button-height: 48px;
+  --mp-size-icon-button: 40px;
+  --mp-motion-duration-micro: 100ms;
+  --mp-motion-duration-short: 150ms;
+  --mp-motion-duration-base: 250ms;
+  --mp-motion-duration-medium: 350ms;
+  --mp-motion-duration-long: 500ms;
+  --mp-motion-duration-xlong: 800ms;
+  --mp-motion-duration-celebration: 1200ms;
+  --mp-motion-duration-liquid: 32000ms;
+  --mp-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --mp-motion-easing-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --mp-motion-easing-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --mp-motion-easing-utility-enter: cubic-bezier(0, 0, 0, 1);
+  --mp-motion-easing-utility-exit: cubic-bezier(0.3, 0, 1, 1);
+  --mp-motion-easing-linear: cubic-bezier(0, 0, 1, 1);
+  --mp-glass-light: rgba(255, 255, 255, 0.62);
+  --mp-glass-light-line: rgba(255, 255, 255, 0.75);
+  --mp-glass-light-text-secondary: #45484e;
+  --mp-glass-dark: rgba(15, 16, 18, 0.72);
+  --mp-glass-dark-line: rgba(255, 255, 255, 0.10);
+  --mp-glass-sober-light: rgba(255, 255, 255, 0.94);
+  --mp-glass-sober-dark: rgba(15, 16, 18, 0.94);
+  --mp-glass-blur: 20px;
+  --mp-glass-saturate: 1.5;
+  --mp-gradient-home: #e9f7a8, #ffd0e0, #cfeefa, #dcd8ff;
+  --mp-gradient-essentials: #f3fbcf, #d9f26b, #eaf7a4;
+  --mp-gradient-technology: #bdeefc, #5cc6ea, #e6f8ff, #a5e3f7;
+  --mp-gradient-housing: #e9e6ff, #a99fff, #d7d2ff;
+  --mp-gradient-mobility: #ffd9e6, #ff8db4, #ffc4d8;
+  --mp-gradient-aurora: #3d4a12, #1d4d5c, #3a2c5c;
+}
+/* Repli Sobre : réduction de la transparence (prise en charge variable) ou réglage de l'app (classe .mp-sober sur <html>) */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; }
+}
+.mp-sober { --mp-glass-light: var(--mp-glass-sober-light); --mp-glass-dark: var(--mp-glass-sober-dark); --mp-glass-blur: 0px; --mp-motion-duration-liquid: 0ms; }
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mp-motion-duration-micro: 0ms; --mp-motion-duration-short: 0ms; --mp-motion-duration-base: 120ms;
+    --mp-motion-duration-medium: 120ms; --mp-motion-duration-long: 120ms; --mp-motion-duration-xlong: 0ms; --mp-motion-duration-celebration: 0ms; --mp-motion-duration-liquid: 0ms;
+  }
+}

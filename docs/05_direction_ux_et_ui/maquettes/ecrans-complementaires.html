@@ -1,0 +1,555 @@
+<title>Écrans complémentaires MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : une section par application ; chaque écran est une maquette 1200 px mise à l'échelle de la colonne. */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --mist-2: #e7e8e3; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --u-ess: #d9f26b; --u-tech: #8fddf5; --u-log: #c3bdff; --u-mob: #ffa8c5;
+  --ok: #1f7a4a; --ok-bg: #e2f2e8; --warn: #8a5300; --warn-bg: #fbedd0; --bad: #b4232b; --bad-bg: #fbe4e5; --info-bg: #eceefa;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3, h4 { font-family: var(--display); margin: 0; font-weight: 500; text-wrap: balance; }
+p { margin: 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pg-muted); font-weight: 600; }
+.hero { padding-block: 48px 24px; display: grid; gap: 16px; }
+.hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.8rem); line-height: 1; letter-spacing: -0.035em; font-weight: 400; }
+.hero p { max-width: 66ch; color: var(--pg-muted); font-size: 1.05rem; }
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--pg-bg); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--pg-bg); }
+.jump nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.jump a { flex: none; text-decoration: none; color: var(--pg-ink); font-size: 0.88rem; font-weight: 500; padding: 8px 16px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); display: inline-flex; align-items: center; gap: 8px; }
+.jump a i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.jump a:focus-visible { outline: 3px solid var(--u-ess); outline-offset: 2px; }
+.app-sec { padding-block: 40px; border-top: 1px solid var(--pg-line); display: grid; gap: 24px; scroll-margin-top: 64px; }
+.app-sec > header { display: grid; gap: 8px; max-width: 70ch; }
+.app-sec h2 { font-size: clamp(1.7rem, 3.5vw, 2.5rem); letter-spacing: -0.03em; line-height: 1.05; }
+.app-sec > header p { color: var(--pg-muted); }
+.who { display: flex; flex-wrap: wrap; gap: 6px; }
+.who span { font-size: 0.8rem; padding: 4px 12px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); color: var(--pg-muted); }
+.shot { display: grid; gap: 10px; margin: 0; }
+.shot figcaption { font-size: 0.88rem; color: var(--pg-muted); max-width: 80ch; }
+.shot figcaption b { color: var(--pg-ink); font-weight: 600; }
+
+/* Mise à l'échelle des maquettes */
+.fit { position: relative; width: 100%; overflow: hidden; }
+.scaler { width: 1200px; transform-origin: top left; position: absolute; top: 0; left: 0; }
+
+/* Navigateur */
+.browser { border-radius: 18px; overflow: hidden; background: var(--paper); box-shadow: 0 24px 60px -30px rgba(0,0,0,0.4), 0 0 0 1px rgba(15,16,18,0.08); color: var(--ink); font-family: var(--text); font-size: 14px; line-height: 1.45; }
+.bbar { height: 42px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: #f6f6f3; border-bottom: 1px solid var(--mist-2); }
+.bbar .dots { display: flex; gap: 6px; }
+.bbar .dots i { width: 11px; height: 11px; border-radius: 50%; background: #d8d9d4; display: block; }
+.bbar .url { flex: 1; max-width: 460px; margin: 0 auto; height: 26px; border-radius: 999px; background: var(--paper); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.bbar .url svg { width: 11px; height: 11px; }
+
+/* Coque d'application */
+.app { display: grid; grid-template-columns: 228px minmax(0, 1fr); height: 740px; background: var(--mist); }
+.side { padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; background: var(--paper); border-right: 1px solid var(--mist-2); }
+.side.dark { background: var(--ink); color: #e9eaec; border-right: 0; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.04em; padding: 2px 8px 16px; }
+.brand small { font-family: var(--text); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--mist); color: var(--ink); margin-left: auto; }
+.side.dark .brand small { background: var(--ink-3); color: #e9eaec; }
+.navi { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: inherit; }
+.navi svg { width: 16px; height: 16px; flex: none; }
+.navi .n { margin-left: auto; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--mist); color: var(--ink); }
+.navi.on { background: var(--ink); color: #fff; }
+.navi.on .n { background: var(--u-ess); }
+.side.dark .navi { color: #b9bbc1; }
+.side.dark .navi.on { background: #fff; color: var(--ink); }
+.side.dark .navi .n { background: var(--ink-3); color: #e9eaec; }
+.side.dark .navi.on .n { background: var(--u-ess); color: var(--ink); }
+.sgroup { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--muted); padding: 14px 12px 4px; }
+.side.dark .sgroup { color: #75777e; }
+.side .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 18px; background: var(--mist); font-size: 12.5px; }
+.side.dark .me { background: var(--ink-2); }
+.me b { display: block; font-weight: 600; }
+.me span { color: var(--muted); font-size: 11.5px; }
+.side.dark .me span { color: var(--muted-dark); }
+.av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 12px; flex: none; color: var(--ink); }
+.main { padding: 22px 26px; display: flex; flex-direction: column; gap: 16px; min-width: 0; overflow: hidden; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top h3 { font-size: 28px; letter-spacing: -0.03em; font-weight: 400; }
+.top .sub { font-size: 13px; color: var(--muted); }
+.top .sp { flex: 1; }
+.search { height: 38px; width: 260px; border-radius: 999px; background: var(--paper); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--muted); font-size: 13px; }
+.search svg { width: 14px; height: 14px; }
+.ib { width: 38px; height: 38px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; flex: none; border: 0; color: var(--ink); }
+.ib svg { width: 16px; height: 16px; }
+.btn { height: 38px; border-radius: 999px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; font-family: var(--text); font-weight: 600; font-size: 13px; border: 0; background: var(--ink); color: #fff; white-space: nowrap; cursor: pointer; }
+.btn.ghost { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn.soft { background: var(--paper); color: var(--ink); }
+.btn.danger { background: var(--paper); color: var(--bad); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.btn.lg { height: 48px; font-size: 14.5px; padding: 0 24px; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn svg { width: 14px; height: 14px; }
+.btn:focus-visible, .codein:focus-visible, .chk input:focus-visible + span { outline: 3px solid var(--u-ess); outline-offset: 2px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi { background: var(--paper); border-radius: 22px; padding: 16px 18px; display: grid; gap: 4px; }
+.kpi .l { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
+.kpi .v { font-family: var(--display); font-size: 28px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.15; white-space: nowrap; }
+.kpi .v small { font-size: 13px; color: var(--muted); letter-spacing: 0; }
+.kpi .d { font-size: 12px; color: var(--muted); }
+.kpi.hl { background: var(--ink); color: #fff; }
+.kpi.hl .l, .kpi.hl .d, .kpi.hl .v small { color: var(--muted-dark); }
+.cols { display: grid; gap: 12px; min-height: 0; flex: 1; }
+.panel { background: var(--paper); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; overflow: hidden; }
+.ph { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ph h4 { font-size: 17px; letter-spacing: -0.01em; }
+.ph .sub { font-size: 12px; color: var(--muted); }
+.st { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.st.ok { background: var(--ok-bg); color: var(--ok); }
+.st.warn { background: var(--warn-bg); color: var(--warn); }
+.st.bad { background: var(--bad-bg); color: var(--bad); }
+.st.info { background: var(--info-bg); color: var(--ink); }
+.st.plain { background: var(--mist); color: var(--ink); }
+.st.plain::before { display: none; }
+.udot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.t th { text-align: left; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 10px 8px; }
+table.t td { padding: 10px; border-top: 1px solid var(--mist-2); vertical-align: middle; white-space: nowrap; }
+table.t td.r, table.t th.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.t tr.sel td { background: var(--mist); }
+table.t tr.sel td:first-child { border-radius: 14px 0 0 14px; }
+table.t tr.sel td:last-child { border-radius: 0 14px 14px 0; }
+.nm { display: flex; align-items: center; gap: 10px; }
+.nm b { font-weight: 600; display: block; }
+.nm span { font-size: 12px; color: var(--muted); }
+.thumb { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+.thumb svg { width: 24px; height: 24px; }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--mist-2); }
+.kv:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.bars svg { width: 100%; height: auto; display: block; }
+.hbar { display: grid; grid-template-columns: 110px 1fr 54px; gap: 10px; align-items: center; font-size: 12.5px; }
+.hbar .tr { height: 10px; border-radius: 999px; background: var(--mist); overflow: hidden; }
+.hbar .tr i { display: block; height: 100%; border-radius: inherit; }
+.hbar b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; font-size: 12.5px; }
+.banner svg { width: 16px; height: 16px; flex: none; }
+.chip { font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 999px; background: var(--paper); white-space: nowrap; }
+.chip.on { background: var(--ink); color: #fff; }
+.tabs { display: flex; gap: 6px; }
+
+/* Comptoir */
+.codein { width: 100%; height: 86px; border: 0; border-radius: 22px; background: var(--mist); font-family: var(--display); font-size: 48px; letter-spacing: 0.5em; text-align: center; padding-left: 0.5em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.codein::placeholder { color: #c5c6c1; }
+.res { border-radius: 24px; padding: 18px; display: grid; gap: 12px; }
+.res.valid { background: var(--ink); color: #fff; }
+.res.valid .kv { border-color: var(--ink-3); }
+.res.valid .kv span:first-child { color: var(--muted-dark); }
+.res.invalid { background: var(--bad-bg); color: var(--bad); }
+.res[hidden] { display: none; }
+.chk { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
+.chk input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chk span.box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #55575d; display: grid; place-items: center; flex: none; }
+.chk input:checked + span.box { background: var(--u-ess); border-color: var(--u-ess); }
+.chk input:checked + span.box::after { content: ""; width: 9px; height: 5px; border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(-45deg) translate(1px, -1px); }
+.serial { height: 40px; border-radius: 14px; border: 0; background: var(--ink-2); color: #fff; padding: 0 12px; font-family: var(--text); font-size: 13px; width: 100%; }
+
+/* Client web (PWA) */
+.wtop { display: flex; align-items: center; gap: 14px; padding: 16px 28px; background: var(--paper); border-bottom: 1px solid var(--mist-2); }
+.wtop .brand { padding: 0; }
+.pillnav { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--mist); margin: 0 auto; }
+.pillnav span { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.pillnav span.on { background: var(--ink); color: #fff; }
+.wbody { background: linear-gradient(180deg, #f7f7f2, #eef0e6); height: 698px; padding: 26px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; }
+.gcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gc { border-radius: 26px; padding: 18px; display: grid; gap: 8px; position: relative; min-height: 190px; align-content: start; }
+.gc .tag { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
+.gc .it { font-family: var(--display); font-size: 19px; letter-spacing: -0.02em; }
+.gc .am { font-family: var(--display); font-size: 26px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-top: auto; }
+.gc .am small { font-size: 12px; opacity: 0.7; letter-spacing: 0; }
+.thin { height: 6px; border-radius: 999px; background: rgba(15,16,18,0.14); overflow: hidden; }
+.thin i { display: block; height: 100%; background: var(--ink); border-radius: inherit; }
+.gc .go { position: absolute; right: 14px; top: 14px; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.7); display: grid; place-items: center; }
+.gc .go svg { width: 14px; height: 14px; }
+.install { background: var(--ink); color: #fff; border-radius: 26px; padding: 20px; display: grid; gap: 10px; }
+.install p { color: var(--muted-dark); font-size: 13px; }
+.install .btn { background: var(--u-ess); color: var(--ink); justify-self: start; }
+
+/* Téléphones (PWA mobile) */
+.phones { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+.phone { width: 260px; max-width: 100%; aspect-ratio: 260 / 540; border-radius: 42px; padding: 8px; background: #0a0a0b; box-shadow: 0 24px 50px -28px rgba(0,0,0,0.45), inset 0 0 0 1.5px #2b2c30; }
+.screen { position: relative; height: 100%; border-radius: 35px; overflow: hidden; font-family: var(--text); color: var(--ink); display: flex; flex-direction: column; font-size: 13px; line-height: 1.4; }
+.island { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 80px; height: 22px; border-radius: 20px; background: #000; z-index: 3; }
+.sbar { display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 11px; font-weight: 600; height: 32px; flex: none; }
+.murl { margin: 4px 12px 0; height: 30px; border-radius: 999px; background: var(--mist); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--muted); flex: none; }
+.murl svg { width: 10px; height: 10px; }
+.mbody { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.mgc { border-radius: 22px; padding: 14px; display: grid; gap: 6px; }
+.mgc .it { font-family: var(--display); font-size: 15px; }
+.mgc .am { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.msheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 28px 28px 35px 35px; padding: 10px 16px 18px; display: grid; gap: 10px; box-shadow: 0 -20px 40px -10px rgba(0,0,0,0.35); z-index: 2; }
+.grab { width: 36px; height: 4px; border-radius: 4px; background: var(--mist-2); justify-self: center; }
+.appicon { width: 52px; height: 52px; border-radius: 15px; background: var(--ink); display: grid; place-items: center; flex: none; }
+.offline { background: var(--ink); color: #fff; border-radius: 16px; padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; }
+.offline svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.offline span { color: var(--muted-dark); }
+.mbtn { height: 44px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-family: var(--text); font-weight: 600; font-size: 13px; width: 100%; }
+.mbtn.dis { background: var(--mist-2); color: var(--muted); }
+
+/* Kanban */
+.kan { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+.kcol { background: var(--mist-2); border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.kcol > header { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 2px; font-weight: 600; font-size: 13px; }
+.kcol > header span { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--paper); }
+.kc { background: var(--paper); border-radius: 16px; padding: 12px; display: grid; gap: 7px; font-size: 12.5px; }
+.kc .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: space-between; align-items: center; }
+.kc b { font-weight: 600; line-height: 1.35; white-space: normal; }
+.kc .meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.kc .av { width: 24px; height: 24px; font-size: 10px; }
+
+/* Chronologie */
+.tl { display: grid; gap: 0; }
+.ev { display: grid; grid-template-columns: 74px 22px minmax(0, 1fr); gap: 10px; font-size: 13px; }
+.ev time { font-size: 11.5px; color: var(--muted); text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.ev .rail { display: flex; flex-direction: column; align-items: center; }
+.ev .rail i { width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--paper); flex: none; margin-top: 3px; }
+.ev .rail::after { content: ""; width: 2px; flex: 1; background: var(--mist-2); margin: 3px 0; }
+.ev:last-child .rail::after { display: none; }
+.ev .c { padding-bottom: 14px; display: grid; gap: 3px; }
+.ev .c b { font-weight: 600; }
+.ev .c span { color: var(--muted); font-size: 12.5px; }
+.ev.alert .rail i { border-color: var(--bad); background: var(--bad); }
+.ev.good .rail i { border-color: var(--ok); background: var(--ok); }
+
+.next { padding-block: 40px 64px; border-top: 1px solid var(--pg-line); display: grid; gap: 10px; }
+.next p { color: var(--pg-muted); max-width: 70ch; }
+table.t.wrap td { white-space: normal; }
+table.t.wrap td .st { white-space: nowrap; }
+</style>
+<header class="wrap hero">
+  <span class="eyebrow">Identité UI/UX · écrans complémentaires</span>
+  <h1>Les écrans qui manquaient</h1>
+  <p>Le proche qui accepte une contribution de la diaspora, puis, côté équipe interne et partenaires : la validation d'un partenaire, la vérification d'un bailleur, les rapports pour le régulateur et les abonnements. Même identité, mêmes règles : l'argent ne bouge jamais sans deux regards, et chaque décision laisse une trace.</p>
+</header>
+<div class="jump"><nav class="wrap" aria-label="Aller à">
+  <a href="#proche"><i style="background:var(--u-mob)"></i>Proche (diaspora)</a>
+  <a href="#validation"><i style="background:var(--ink);box-shadow:0 0 0 1px var(--pg-line)"></i>Validation partenaire</a>
+  <a href="#bailleur"><i style="background:var(--u-log)"></i>Vérification bailleur</a>
+  <a href="#rapports"><i style="background:var(--ink);box-shadow:0 0 0 1px var(--pg-line)"></i>Rapports régulateur</a>
+  <a href="#abonnements"><i style="background:var(--u-tech)"></i>Abonnements</a>
+</nav></div>
+
+<main>
+<!-- ================= PROCHE ================= -->
+<section class="wrap app-sec" id="proche" aria-labelledby="h-pro">
+  <header><span class="eyebrow">App client · le proche au Cameroun</span><h2 id="h-pro">Accepter une contribution, en comprenant ce qu'elle implique</h2>
+    <p>Rien n'est crédité sans l'accord du proche. L'écran dit qui contribue, combien, avec quel message, et ce que cela change : l'argent reste dédié au projet. S'il refuse, la contribution est rendue à l'expéditeur.</p>
+    <div class="who"><span>Client</span><span>Modèle A et C</span><span>F-DIA-001</span></div></header>
+  <figure class="shot">
+    <div class="phones">
+      <div class="phone"><div class="screen" style="background:linear-gradient(180deg,#f7f7f2,#eeefe9)">
+        <div class="island"></div><div class="sbar"><span>19:12</span><span>4G</span></div>
+        <div class="mbody" style="opacity:0.45" aria-hidden="true">
+          <div class="mgc" style="background:var(--u-mob)"><span class="it">Moto Bajaj Boxer 150</span><span class="am">348 500</span></div>
+        </div>
+        <div class="msheet">
+          <div class="grab"></div>
+          <div style="display:flex;gap:10px;align-items:center"><div class="av" style="background:var(--u-log);width:44px;height:44px;font-size:14px">MN</div><div><b style="font-family:var(--display);font-weight:500;font-size:16px">Marie veut contribuer</b><div style="font-size:11.5px;color:var(--muted)">Votre sœur · depuis Paris</div></div></div>
+          <div style="font-family:var(--display);font-size:30px;font-weight:300;letter-spacing:-0.03em;font-variant-numeric:tabular-nums">64 000 <span style="font-size:13px;color:var(--muted)">FCFA</span></div>
+          <div style="background:var(--mist);border-radius:14px;padding:10px 12px;font-size:12px">« Pour ta moto, petit frère. Courage ! »</div>
+          <div style="font-size:11.5px;display:grid;gap:4px">
+            <span>· Cet argent ira <b>uniquement</b> à votre moto.</span>
+            <span>· Marie verra l'avancée et la remise.</span>
+            <span>· Si vous refusez, Marie est remboursée.</span>
+          </div>
+          <button class="mbtn" type="button">Accepter</button>
+          <button class="mbtn" type="button" style="background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)">Refuser poliment</button>
+        </div>
+      </div></div>
+      <div class="phone"><div class="screen" style="background:var(--u-mob)">
+        <div class="island"></div><div class="sbar"><span>19:13</span><span>4G</span></div>
+        <div class="mbody">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;opacity:0.7">MOBILITÉ</span>
+          <span style="font-family:var(--display);font-size:22px;font-weight:500;letter-spacing:-0.03em;line-height:1.1">Moto Bajaj Boxer 150</span>
+          <div style="display:flex;justify-content:center"><svg class="ring" data-fg="#0f1012" data-off="rgba(15,16,18,0.2)" width="96" height="96" viewBox="0 0 40 40" aria-hidden="true"></svg></div>
+          <div style="text-align:center"><span style="font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums">412 500</span><span style="font-size:12px"> / 650 000 FCFA</span></div>
+          <div style="background:#fff;border-radius:18px;padding:10px 12px;display:grid;gap:6px;font-size:12px">
+            <b style="font-size:12px">Ensemble sur ce projet</b>
+            <div style="display:flex;justify-content:space-between"><span>Vous</span><b class="num">348 500</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Marie · Paris</span><b class="num">64 000</b></div>
+          </div>
+          <button class="mbtn" type="button" style="margin-top:auto">Remercier Marie (message vocal)</button>
+        </div>
+      </div></div>
+    </div>
+    <figcaption><b>Le proche décide.</b> L'anneau ne se remplit qu'après son accord et la confirmation du serveur. Les contributeurs sont listés sans classement. Le remerciement vocal entretient le lien, sans transformer le suivi en surveillance.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= VALIDATION PARTENAIRE ================= -->
+<section class="wrap app-sec" id="validation" aria-labelledby="h-val">
+  <header><span class="eyebrow">Back-office · réseau partenaires et conformité</span><h2 id="h-val">Valider un partenaire, à deux</h2>
+    <p>Un partenaire n'apparaît au catalogue qu'après la validation de son dossier par une deuxième personne. Les pièces, les contrôles automatiques et la visite de terrain sont réunis sur un seul écran.</p>
+    <div class="who"><span>Réseau partenaires (prépare)</span><span>Conformité (valide)</span><span>F-PRT-001</span></div></header>
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · Partenaires · dossier PA-2026-0187</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="partners"></aside>
+        <div class="main">
+          <div class="top">
+            <div class="av" style="background:var(--u-tech);width:52px;height:52px;font-size:16px;border-radius:16px">ÉB</div>
+            <div><h3>Électro Bonapriso</h3><div class="sub">Commerce · Technologie et équipement · Douala, Bonapriso · dossier préparé par Hervé N. (réseau), le 18 nov.</div></div>
+            <span class="sp"></span><span class="st warn">À valider</span>
+          </div>
+          <div class="cols" style="grid-template-columns: minmax(0,1.7fr) minmax(0,1fr) 280px">
+            <div class="panel">
+              <div class="ph"><h4>Pièces du dossier</h4><span class="sub">6 sur 6 reçues</span></div>
+              <table class="t wrap">
+                <tbody>
+                  <tr><td><b>RCCM</b></td><td>RC/DLA/2019/B/4471</td><td class="r"><span class="st ok">OK</span></td></tr>
+                  <tr><td><b>NIU</b></td><td>M0519••••••7X</td><td class="r"><span class="st ok">OK</span></td></tr>
+                  <tr><td><b>CNI du gérant</b></td><td>Joël T. · valide jusqu'en 2031</td><td class="r"><span class="st ok">OK</span></td></tr>
+                  <tr><td><b>Compte de règlement</b></td><td>MoMo · titulaire « Electro Bonapriso SARL »</td><td class="r"><span class="st ok">Nom OK</span></td></tr>
+                  <tr><td><b>Photos de la boutique</b></td><td>4 photos · géolocalisées</td><td class="r"><span class="st ok">OK</span></td></tr>
+                  <tr><td><b>Contrat partenaire</b></td><td>Signé FR + EN le 17 nov.</td><td class="r"><span class="st ok">OK</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Contrôles</h4></div>
+              <div class="kv"><span>Listes de sanctions (ONU, nationales)</span><span style="color:var(--ok)">Aucune correspondance</span></div>
+              <div class="kv"><span>Personne politiquement exposée</span><span style="color:var(--ok)">Non</span></div>
+              <div class="kv"><span>Visite de terrain</span><span>Hervé N. · 16 nov. ✓</span></div>
+              <div class="kv"><span>Point de remise</span><span>Bonapriso · 8–19 h</span></div>
+              <div class="kv"><span>Doublon (téléphone, RCCM, compte)</span><span style="color:var(--ok)">Aucun</span></div>
+              <div class="banner" style="background:var(--mist);margin-top:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 11h.01"/></svg><span>Tant que le dossier n'est pas validé, ses offres restent invisibles au catalogue.</span></div>
+            </div>
+            <div class="panel" style="gap:10px">
+              <div class="ph"><h4>Décision</h4><span class="sub">Vous : Aline B. · Conformité</span></div>
+              <label style="font-size:12px;font-weight:600" for="m1">Motif (obligatoire)</label>
+              <div id="m1" style="min-height:56px;border-radius:14px;background:var(--mist);padding:10px 12px;font-size:13px;color:var(--muted)">Pièces conformes, visite faite, aucun signalement.</div>
+              <button class="btn lg" type="button" style="justify-content:center">Valider le partenaire</button>
+              <button class="btn lg ghost" type="button" style="justify-content:center">Demander un complément</button>
+              <button class="btn lg danger" type="button" style="justify-content:center">Refuser</button>
+              <div class="banner" style="background:var(--mist)"><span>Vous ne pouvez pas valider un dossier que vous avez préparé. La décision est inscrite au journal d'audit.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Validation à double contrôle.</b> Le dossier réunit les pièces, les contrôles automatiques et la visite de terrain. La personne qui valide doit être différente de celle qui a préparé, et le motif est obligatoire.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= BAILLEUR ================= -->
+<section class="wrap app-sec" id="bailleur" aria-labelledby="h-bai">
+  <header><span class="eyebrow">Back-office · conformité · modèle C</span><h2 id="h-bai">Vérifier un bailleur avant de payer une caution</h2>
+    <p>Le paiement d'un pack d'entrée reste bloqué tant que le bailleur n'est pas vérifié. Les exigences montent avec le montant. Les signaux d'alerte (même bailleur, nombreuses cautions) sont mis en évidence.</p>
+    <div class="who"><span>Conformité</span><span>F-PLN-001</span><span>F-PLN-002</span></div></header>
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · Bénéficiaires · BE-2026-0931</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="benef"></aside>
+        <div class="main">
+          <div class="top">
+            <div class="av" style="background:var(--u-log);width:52px;height:52px;font-size:16px;border-radius:16px">FE</div>
+            <div><h3>M. Félix Ekambi · bailleur</h3><div class="sub">Studio, Logpom (Douala) · pack d'entrée de Mme Ngo : 450 000 FCFA · règlement bloqué en attente de vérification</div></div>
+            <span class="sp"></span><span class="st warn">Palier renforcé requis</span>
+          </div>
+          <div class="cols" style="grid-template-columns: minmax(0,1fr) minmax(0,1fr) 340px">
+            <div class="panel">
+              <div class="ph"><h4>Exigences selon le montant</h4><span class="sub">seuils [à fixer]</span></div>
+              <table class="t wrap">
+                <thead><tr><th>Exigence</th><th class="r">Statut</th></tr></thead>
+                <tbody>
+                  <tr><td>CNI du bailleur</td><td class="r"><span class="st ok">Reçue</span></td></tr>
+                  <tr><td>Portefeuille au même nom</td><td class="r"><span class="st ok">« FELIX EKAMBI »</span></td></tr>
+                  <tr><td>Photo du bail signé</td><td class="r"><span class="st ok">Reçue</span></td></tr>
+                  <tr><td>Adresse géolocalisée</td><td class="r"><span class="st ok">Logpom</span></td></tr>
+                  <tr><td>Preuve de propriété ou mandat <span style="color:var(--muted);font-size:12px">(au-delà du seuil)</span></td><td class="r"><span class="st bad">Manquante</span></td></tr>
+                </tbody>
+              </table>
+              <div class="banner" style="background:var(--mist);margin-top:auto"><span>Pour un <b>terrain</b>, la vérification passe toujours par un notaire partenaire et le paiement par son compte séquestre.</span></div>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Signaux</h4></div>
+              <div class="kv"><span>Cautions reçues par ce bailleur (30 j)</span><span style="color:var(--warn)">4 ⚠</span></div>
+              <div class="kv"><span>Même adresse déclarée</span><span style="color:var(--warn)">3 objectifs</span></div>
+              <div class="kv"><span>Agent intervenant</span><span>M. Tchinda · mandat écrit ✓</span></div>
+              <div class="kv"><span>Ancienneté du portefeuille</span><span>4 ans</span></div>
+              <div class="banner" style="background:var(--warn-bg);color:var(--warn);margin-top:auto"><span>Plusieurs cautions pour une même adresse peuvent être légitimes (immeuble) ou signaler une location multiple du même bien. Vérifiez les numéros de logement.</span></div>
+            </div>
+            <div class="panel" style="gap:10px">
+              <div class="ph"><h4>Décision</h4><span class="sub">Vous : Aline B.</span></div>
+              <button class="btn lg" type="button" style="justify-content:center">Demander la preuve de propriété</button>
+              <button class="btn lg ghost" type="button" style="justify-content:center">Appeler le bailleur</button>
+              <button class="btn lg ghost" type="button" style="justify-content:center">Vérifié (2e personne requise)</button>
+              <button class="btn lg danger" type="button" style="justify-content:center">Refuser le bénéficiaire</button>
+              <div class="banner" style="background:var(--mist)"><span>Mme Ngo est prévenue automatiquement : « Votre bailleur doit fournir un justificatif. Votre argent reste en sécurité. »</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Vérification proportionnée.</b> Les exigences augmentent avec le montant. Les signaux d'alerte sont expliqués plutôt que simplement colorés. La cliente est informée sans être inquiétée.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= RAPPORTS ================= -->
+<section class="wrap app-sec" id="rapports" aria-labelledby="h-rap">
+  <header><span class="eyebrow">Back-office · finance et conformité</span><h2 id="h-rap">Des rapports signés, qu'on peut vérifier</h2>
+    <p>Chaque export pour l'établissement de cantonnement, le financeur ou le régulateur est généré depuis le grand livre, signé, et rattaché à la racine de Merkle du lot correspondant. Son cycle de vie (généré, approuvé, transmis, accusé) est visible.</p>
+    <div class="who"><span>Finance</span><span>Conformité</span><span>Audit (lecture)</span><span>F-REP-001</span><span>F-REP-002</span></div></header>
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>back-office · Rapports</div></div>
+      <div class="app">
+        <aside class="side dark" data-bo-side="reports"></aside>
+        <div class="main">
+          <div class="top"><div><h3>Rapports et exports</h3><div class="sub">Novembre 2026 · tous les chiffres sont issus du grand livre</div></div><span class="sp"></span><div class="tabs"><span class="chip on">Réglementaires</span><span class="chip">Partenaires financiers</span><span class="chip">Pilotage</span></div></div>
+          <div class="kpis">
+            <div class="kpi"><span class="l">Volume versé (mois)</span><span class="v">1,12 <small>Md FCFA</small></span><span class="d">+6 % vs octobre</span></div>
+            <div class="kpi"><span class="l">Objectifs à 100 %</span><span class="v">71 %</span><span class="d">des objectifs arrivés à échéance</span></div>
+            <div class="kpi"><span class="l">Délai moyen de remise</span><span class="v">2,4 <small>jours</small></span><span class="d">après 100 %</span></div>
+            <div class="kpi"><span class="l">Impayés modèle B (&gt; 30 j)</span><span class="v">3,1 %</span><span class="d">encours du financeur</span></div>
+          </div>
+          <div class="panel" style="flex:1">
+            <div class="ph"><h4>Exports</h4><button class="btn" type="button"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 2.5v9M2.5 7h9"/></svg>Préparer un export</button></div>
+            <table class="t wrap" style="font-size:12.5px">
+              <thead><tr><th>Rapport</th><th>Destinataire</th><th>Période</th><th>Format</th><th>Racine de Merkle</th><th>Statut</th></tr></thead>
+              <tbody>
+                <tr><td><b>Rapprochement des fonds cantonnés</b></td><td>[Banque partenaire]</td><td>quotidien · 20 nov.</td><td>CSV signé</td><td><code>7f3a…c91e</code> · lot 3 184</td><td><span class="st ok">Accusé reçu</span></td></tr>
+                <tr><td><b>Encours et remboursements modèle B</b></td><td>[Financeur agréé]</td><td>semaine 47</td><td>CSV signé</td><td><code>a01d…44b2</code></td><td><span class="st ok">Transmis</span></td></tr>
+                <tr><td><b>Indicateurs mensuels de paiement</b></td><td>Régulateur (BEAC/COBAC) [format à confirmer]</td><td>octobre 2026</td><td>XML ISO 20022</td><td><code>e9b0…12aa</code></td><td><span class="st warn">À approuver (2e personne)</span></td></tr>
+                <tr><td><b>Déclarations de soupçon</b></td><td>ANIF (via l'assujetti)</td><td>au fil de l'eau</td><td>Canal sécurisé</td><td>—</td><td><span class="st plain">2 transmises en novembre</span></td></tr>
+                <tr><td><b>Indicateurs par univers et par ville</b></td><td>Direction</td><td>octobre 2026</td><td>CSV</td><td><code>e9b0…12aa</code></td><td><span class="st ok">Généré</span></td></tr>
+              </tbody>
+            </table>
+            <div class="banner" style="background:var(--mist);margin-top:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/></svg><span>Chaque export peut être vérifié par le destinataire avec le vérificateur indépendant : signature, racine de Merkle, preuve d'inclusion.</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Exports traçables.</b> Le destinataire, le format, la racine de Merkle et le statut sont visibles d'un coup d'œil. L'envoi au régulateur exige une deuxième approbation. Les chiffres sont des exemples.</figcaption>
+  </figure>
+</section>
+
+<!-- ================= ABONNEMENTS ================= -->
+<section class="wrap app-sec" id="abonnements" aria-labelledby="h-abo">
+  <header><span class="eyebrow">Portail partenaire · gérant</span><h2 id="h-abo">Un abonnement clair, une commission visible à chaque vente</h2>
+    <p>Trois formules, présentées par ce qu'elles permettent de faire. La commission s'affiche en FCFA sur chaque vente, prélevée à la remise et jamais avant. Changer de formule ou résilier est aussi simple que souscrire.</p>
+    <div class="who"><span>Gérant</span><span>F-PRT-005</span><span>Loi 2011/012</span></div></header>
+  <figure class="shot">
+    <div class="fit"><div class="scaler"><div class="browser">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5.5" width="7" height="5" rx="1.2"/><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5"/></svg>partenaires · Abonnement</div></div>
+      <div class="app">
+        <aside class="side" id="pside"></aside>
+        <div class="main">
+          <div class="top"><div><h3>Votre abonnement</h3><div class="sub">Formule Pro depuis le 1er sept. · prochaine facture le 1er déc.</div></div><span class="sp"></span><button class="btn ghost" type="button">Télécharger les factures</button></div>
+          <div class="kpis k3">
+            <div class="kpi" style="border:2px solid transparent"><span class="l">Starter <span class="st plain">Pour démarrer</span></span><span class="v">[à fixer] <small>FCFA / mois</small></span><span class="d">1 point de remise · 2 vendeurs · comptoir et offres · règlement hebdomadaire</span><button class="btn ghost" type="button" style="justify-self:start;margin-top:8px">Passer à Starter</button></div>
+            <div class="kpi hl"><span class="l">Pro <span class="st" style="background:var(--u-ess);color:var(--ink)">Votre formule</span></span><span class="v">[à fixer] <small>FCFA / mois</small></span><span class="d" style="color:#c9cbd0">3 points de remise · 10 vendeurs · exports CSV · règlement 2 fois par semaine · tableau des ventes épargnées</span><span class="d" style="margin-top:8px;color:#c9cbd0">Formule actuelle</span></div>
+            <div class="kpi" style="border:2px solid transparent"><span class="l">Business <span class="st plain">Réseaux</span></span><span class="v">[à fixer] <small>FCFA / mois</small></span><span class="d">Points de remise illimités · API · règlement quotidien · interlocuteur dédié</span><button class="btn" type="button" style="justify-self:start;margin-top:8px">Passer à Business</button></div>
+          </div>
+          <div class="cols" style="grid-template-columns: minmax(0,1fr) 360px">
+            <div class="panel">
+              <div class="ph"><h4>Commission par vente</h4><span class="sub">prélevée à la remise, jamais avant</span></div>
+              <table class="t">
+                <thead><tr><th>Vente remise</th><th>Date</th><th class="r">Prix</th><th class="r">Commission 5 %</th><th class="r">Vous recevez</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Réfrigérateur 150 L</b></td><td>19 nov.</td><td class="r">185 000</td><td class="r">− 9 250</td><td class="r"><b>175 750</b></td></tr>
+                  <tr><td><b>Téléviseur 43" Smart</b></td><td>18 nov.</td><td class="r">210 000</td><td class="r">− 10 500</td><td class="r"><b>199 500</b></td></tr>
+                  <tr><td><b>Cuisinière 4 feux</b></td><td>17 nov.</td><td class="r">98 000</td><td class="r">− 4 900</td><td class="r"><b>93 100</b></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel">
+              <div class="ph"><h4>Ce qu'il faut savoir</h4></div>
+              <div class="kv"><span>Engagement</span><span>Aucun, résiliable chaque mois</span></div>
+              <div class="kv"><span>Changement de formule</span><span>Effet le mois suivant</span></div>
+              <div class="kv"><span>Ventes déjà épargnées</span><span>Conservées dans tous les cas</span></div>
+              <div class="kv"><span>Facture</span><span>FR + EN, avec TVA</span></div>
+              <button class="btn ghost" type="button" style="justify-content:center;margin-top:auto">Résilier l'abonnement</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+    <figcaption><b>Transparence pour le partenaire.</b> La commission apparaît en FCFA sur chaque vente. Les formules se distinguent par l'usage. La résiliation est aussi visible que la souscription. Prix et taux sont à fixer, la commission de 5 % est un exemple.</figcaption>
+  </figure>
+</section>
+
+<section class="wrap next" aria-labelledby="h-next">
+  <span class="eyebrow">Et ensuite</span>
+  <h2 id="h-next" style="font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-0.03em">Tous les parcours sont maquettés</h2>
+  <p>Ces écrans complètent les maquettes de l'app mobile, des écrans web, du site public, des parcours inclusifs et du parcours crédit. Noms, montants, seuils et prix sont des exemples ou restent à fixer.</p>
+</section>
+</main>
+
+<script>
+(function () {
+  // Barre latérale back-office (partagée)
+  var I = function (d) { return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">' + d + '</svg>'; };
+  var items = {
+    dash: ['Vue d\'ensemble', I('<rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>')],
+    queue: ['File de travail', I('<path d="M3 4h10M3 8h10M3 12h6"/>'), '12'],
+    client: ['Clients', I('<circle cx="8" cy="5.5" r="2.5"/><path d="M3 14c.7-3 2.6-4.2 5-4.2s4.3 1.2 5 4.2"/>')],
+    claims: ['Réclamations', I('<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2Z"/>'), '23'],
+    partners: ['Partenaires', I('<path d="M2.5 6 8 2.5 13.5 6v7.5h-11Z"/>'), '4'],
+    benef: ['Bénéficiaires', I('<path d="M2.5 7 8 3l5.5 4v6.5h-11Z"/><path d="M6.5 13.5v-3h3v3"/>'), '9'],
+    ledger: ['Grand livre', I('<path d="M3 2.5h8l2 2v9H3Z"/><path d="M5.5 7h5M5.5 10h5"/>')],
+    recon: ['Rapprochement', I('<path d="M3 6h9l-2-2M13 10H4l2 2"/>')],
+    risk: ['Fraude et risque', I('<path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/>'), '7'],
+    campaigns: ['Campagnes', I('<path d="M2.5 6.5v3h2l5 3v-9l-5 3Z"/><path d="M12 6a3 3 0 0 1 0 4"/>')],
+    reports: ['Rapports', I('<path d="M3 13V8M8 13V3M13 13v-5"/>')],
+    audit: ['Journal d\'audit', I('<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/>')]
+  };
+  var groups = [['', ['dash', 'queue']], ['Clients et support', ['client', 'claims', 'campaigns']], ['Argent', ['ledger', 'recon', 'partners', 'benef']], ['Contrôle', ['risk', 'reports', 'audit']]];
+  var me = { partners: ['AB', 'Aline B.', 'Conformité'], benef: ['AB', 'Aline B.', 'Conformité'], reports: ['CM', 'Clarisse M.', 'Finance'], dash: ['CM', 'Clarisse M.', 'Finance'], queue: ['CM', 'Clarisse M.', 'Finance'], client: ['IK', 'Inès K.', 'Support N2'], claims: ['IK', 'Inès K.', 'Support N2'] };
+  document.querySelectorAll('[data-bo-side]').forEach(function (side) {
+    var cur = side.dataset.boSide, html = '<div class="brand"><svg class="ring" data-fg="#ffffff" data-off="#3a3c41" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay<small>Interne</small></div>';
+    groups.forEach(function (g) {
+      if (g[0]) html += '<span class="sgroup">' + g[0] + '</span>';
+      g[1].forEach(function (k) { var it = items[k]; html += '<span class="navi' + (k === cur ? ' on' : '') + '">' + it[1] + it[0] + (it[2] ? '<span class="n">' + it[2] + '</span>' : '') + '</span>'; });
+    });
+    var m = me[cur];
+    html += '<div class="me"><div class="av" style="background:var(--u-ess)">' + m[0] + '</div><div><b>' + m[1] + '</b><span>' + m[2] + ' · production</span></div></div>';
+    side.innerHTML = html;
+  });
+
+
+  // Barre latérale partenaire
+  var pitems = [['Tableau de bord','<rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9" width="5" height="5" rx="1.5"/><rect x="9" y="9" width="5" height="5" rx="1.5"/>'],['Comptoir','<rect x="2" y="4" width="12" height="9" rx="2"/><path d="M5 4V2.5h6V4"/>'],['Commandes','<path d="M3 4h10M3 8h10M3 12h6"/>'],['Offres et stock','<path d="M2.5 6 8 2.5 13.5 6v7.5h-11Z"/>'],['Règlements','<rect x="2" y="4" width="12" height="8" rx="2"/><circle cx="8" cy="8" r="1.8"/>'],['Vendeurs','<circle cx="6" cy="6" r="2.5"/><path d="M1.5 13c.6-2.4 2.3-3.5 4.5-3.5s3.9 1.1 4.5 3.5"/>'],['Abonnement','<circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2"/>']];
+  var ps = document.getElementById('pside');
+  if (ps) ps.innerHTML = '<div class="brand"><svg class="ring" data-fg="#0f1012" data-off="#d6d7d2" width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"></svg>molopay<small>Pro</small></div>' + pitems.map(function (p, i) { return '<span class="navi' + (i === 6 ? ' on' : '') + '">' + I(p[1]) + p[0] + '</span>'; }).join('') + '<div class="me"><div class="av" style="background:var(--u-log)">ÉB</div><div><b>Électro Bonapriso</b><span>Joël T. · gérant</span></div></div>';
+
+  // Anneau
+  function arc(cx, cy, r, a0, a1) { return 'M' + (cx + r * Math.cos(a0)).toFixed(2) + ' ' + (cy + r * Math.sin(a0)).toFixed(2) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r * Math.cos(a1)).toFixed(2) + ' ' + (cy + r * Math.sin(a1)).toFixed(2); }
+  document.querySelectorAll('.ring').forEach(function (svg) {
+    var out = '';
+    for (var i = 0; i < 8; i++) { var a0 = -Math.PI / 2 + i * Math.PI / 4 + 0.2, a1 = a0 + Math.PI / 4 - 0.4; out += '<path d="' + arc(20, 20, 15, a0, a1) + '" fill="none" stroke="' + (i < 6 ? svg.dataset.fg : svg.dataset.off) + '" stroke-width="5.5" stroke-linecap="round"/>'; }
+    svg.innerHTML = out;
+  });
+
+  // Mise à l'échelle
+  function fit() {
+    document.querySelectorAll('.fit').forEach(function (f) {
+      var s = f.firstElementChild, k = Math.min(1, f.clientWidth / 1200);
+      s.style.transform = 'scale(' + k + ')';
+      f.style.height = Math.ceil(s.offsetHeight * k) + 'px';
+    });
+  }
+  fit();
+  try { new ResizeObserver(fit).observe(document.body); } catch (e) { window.addEventListener('resize', fit); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+</script>
+</script>

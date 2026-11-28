@@ -7,7 +7,7 @@ import { runRealFlowsScenario } from '../../apps/api/test/db/real-flows-scenario
 import { uuidv7 } from '../../apps/api/src/modules/ledger/domain';
 import { appendAttemptTransition, createStoredPaymentAttempt } from '../../apps/api/src/modules/payments/attempt.store';
 import { recordIntegrityDivergence } from '../../apps/api/src/modules/settlement/integrity-divergence.store';
-import { evaluateAlerts, readAlertCounts } from '../../tools/ops-alerts';
+import { evaluateAlerts, monitorDatabaseUrl, readAlertCounts } from '../../tools/ops-alerts';
 
 /**
  * NF-OBS-003 (alertes calculables en base) : paiement en attente depuis plus
@@ -113,5 +113,12 @@ describe('NF-OBS-003 — alertes de supervision calculées en base', () => {
       await expect(asRole(role, (client) => readAlertCounts(client)), role).rejects.toThrow(/permission denied/);
     }
     expect(JSON.stringify(await monitor())).not.toMatch(/019aa200|[0-9a-f]{8}-[0-9a-f]{4}/);
+  });
+
+  it('adresse : absente, sans TLS vérifié ou par le regroupeur de Neon → refus', () => {
+    expect(() => monitorDatabaseUrl({})).toThrow(/^MONITOR_DATABASE_MISSING/);
+    expect(() => monitorDatabaseUrl({ MONITOR_DATABASE_URL: 'postgresql://m@ep-x.eu-central-1.aws.neon.tech/db' })).toThrow(/^DATABASE_TLS_REQUIRED/);
+    expect(() => monitorDatabaseUrl({ MONITOR_DATABASE_URL: 'postgresql://u@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full' })).toThrow(/^DATABASE_POOLER_FORBIDDEN/);
+    expect(monitorDatabaseUrl({ MONITOR_DATABASE_URL: 'postgresql://m@ep-x.eu-central-1.aws.neon.tech/db?sslmode=verify-full' })).toContain('ep-x.');
   });
 });

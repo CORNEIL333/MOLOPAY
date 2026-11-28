@@ -3,7 +3,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Client } from 'pg';
-import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 
 /**
  * C15 / ADR-0004 : transfert de la base (Neon → AWS RDS/Aurora, ou toute
@@ -161,6 +161,9 @@ export async function transferDatabase(input: { readonly sourceUrl: string; read
   // N2 : source (Neon) et cible (AWS) jointes en TLS vérifié uniquement.
   assertSecureDatabaseUrl(input.sourceUrl, process.env);
   assertSecureDatabaseUrl(input.targetUrl, process.env);
+  // pg_dump / pg_restore : points d'accès directs exigés.
+  assertDirectEndpoint(input.sourceUrl);
+  assertDirectEndpoint(input.targetUrl);
   const roles = applicationRoles();
   await assertEmptyTarget(input.targetUrl);
   await ensureRoles(input.targetUrl, roles);
