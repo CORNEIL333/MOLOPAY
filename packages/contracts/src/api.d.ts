@@ -1728,6 +1728,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Déclarer la langue choisie dans l'application (D121)
+         * @description Les notifications suivantes partent dans cette langue (fr ou en). Sans déclaration, le français. Une déclaration identique n'écrit rien.
+         */
+        put: operations["declareLanguage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/notifications/sms-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du canal SMS par type de notification (D121)
+         * @description Le push est le canal de lancement ; le SMS est fermé tant que l'équipe ne l'ouvre pas pour un type. Rôle OPERATIONS.
+         */
+        get: operations["listSmsChannels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backoffice/notifications/sms-channels/{eventType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Ouvrir ou fermer le SMS pour un type de notification (D121)
+         * @description Geste simple, motivé, inscrit à l'audit chaîné (SMS_CHANNEL_SET) dans la même transaction. Vaut pour les notifications suivantes, jamais pour celles déjà en file. État inchangé : 409 NOTIFICATION_CHANNEL_UNCHANGED. Rôle OPERATIONS.
+         */
+        put: operations["setSmsChannel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1889,6 +1949,11 @@ export interface components {
             currentTermsVersion: string;
             /** @description F-ACC-004 : faux tant que la version en vigueur n’est pas acceptée ; aucun nouvel objectif ni activation n’est alors possible (IDENTITY_TERMS_NOT_ACCEPTED). */
             termsAccepted: boolean;
+            /**
+             * @description D121 : langue déclarée par l'application (PUT /v1/me/language), français par défaut ; langue des notifications.
+             * @enum {string}
+             */
+            language: "fr" | "en";
         };
         /** @description D32 : création d'un brouillon ; l'activation signée (appareil + PIN) est une route distincte. */
         GoalRequest: {
@@ -2900,6 +2965,35 @@ export interface components {
                 totalXaf: string;
                 averageXaf: string | null;
             };
+        };
+        /** @description D121 : langue choisie dans l'application. */
+        LanguageDeclaration: {
+            /** @enum {string} */
+            language: "fr" | "en";
+        };
+        /**
+         * @description Type de notification (F-NOT-001).
+         * @enum {string}
+         */
+        NotificationEventType: "PAYMENT_CONFIRMED" | "PAYMENT_REMINDER" | "GOAL_FUNDED" | "HANDOVER_READY" | "SETTLEMENT_CONFIRMED" | "DISPUTE_UPDATED";
+        SmsChannelState: {
+            eventType: components["schemas"]["NotificationEventType"];
+            smsEnabled: boolean;
+            /** @description Agent auteur de la dernière bascule (null : jamais basculé). */
+            setBy: string | null;
+            /** Format: date-time */
+            setAt: string | null;
+        };
+        SmsChannelList: {
+            items: components["schemas"]["SmsChannelState"][];
+        };
+        SmsChannelToggle: {
+            enabled: boolean;
+            reason: string;
+        };
+        SmsChannelToggleResult: {
+            eventType: components["schemas"]["NotificationEventType"];
+            smsEnabled: boolean;
         };
     };
     responses: {
@@ -6112,6 +6206,95 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    declareLanguage: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageDeclaration"];
+            };
+        };
+        responses: {
+            /** @description Langue enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageDeclaration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Unprocessable"];
+        };
+    };
+    listSmsChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Six types, dans l'ordre du catalogue */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsChannelList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    setSmsChannel: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                eventType: components["schemas"]["NotificationEventType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsChannelToggle"];
+            };
+        };
+        responses: {
+            /** @description Bascule enregistrée */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsChannelToggleResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             503: components["responses"]["Unavailable"];
         };
     };

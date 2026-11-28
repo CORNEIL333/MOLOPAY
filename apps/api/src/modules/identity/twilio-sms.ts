@@ -97,6 +97,7 @@ export function twilioSmsSender(config: TwilioConfig, fetcher: Fetch = fetch): S
       if (body === null || typeof body.sid !== 'string' || !MESSAGE_SID.test(body.sid) || body.status === 'failed' || body.status === 'undelivered') {
         throw new Error('SMS_PROVIDER_REFUSED');
       }
+      return { providerRef: body.sid };
     },
   };
 }

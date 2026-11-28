@@ -49,6 +49,8 @@ export const AGREEMENT_STACK_MIGRATIONS = [
   'db/migrations/0036_payments_kyc_limits.sql',
   'db/migrations/0018_notification_reminder_reservation.sql',
   'db/migrations/0019_notification_outbox.sql',
+  // D121 : langue déclarée et bascule SMS par type, lues à la mise en file.
+  'db/migrations/0080_notification_preferences.sql',
 ];
 
 export const AGREEMENT_STACK_SCHEMAS = ['notifications', 'payments', 'agreements', 'catalog', 'identity', 'admin', 'audit', 'ledger'];

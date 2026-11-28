@@ -40,5 +40,6 @@ describe('INT-VER-002 contrôle nocturne : lecture du résultat du vérificateur
     expect(() => reporterDatabaseUrl({})).toThrow(/^NIGHTLY_DATABASE_MISSING/);
     expect(() => reporterDatabaseUrl({ DATABASE_URL: 'postgresql://rapport@ep-x.eu-central-1.aws.neon.tech/molopay?sslmode=require' })).toThrow(/^DATABASE_TLS_REQUIRED/);
     expect(reporterDatabaseUrl({ DATABASE_URL: 'postgresql://rapport@ep-x.eu-central-1.aws.neon.tech/molopay?sslmode=verify-full' })).toContain('verify-full');
+    expect(() => reporterDatabaseUrl({ DATABASE_URL: 'postgresql://u@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full' })).toThrow(/^DATABASE_POOLER_FORBIDDEN/);
   });
 });

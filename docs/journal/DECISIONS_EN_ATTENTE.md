@@ -436,6 +436,7 @@
 ### D64 · Next.js 16.4.3 signalé vulnérable (GHSA-mfr8-8qww-v76h, modéré)
 - **Constat (17 novembre) :** `next build` refuse désormais de compiler (`SecurityFatalError`) : `pnpm test:e2e` (back-office) échoue au build, sans lien avec le code. `pnpm audit` : next ≥ 16.3.0 ≤ 16.4.4 vulnérable, corrigé en **16.4.5** (client web, back-office, racine). Le contrôle SCA (`--prod`, seuil élevé) passe.
 - **Option prudente appliquée :** aucune dépendance modifiée par l'agent (AGENTS.md § 8 : dépendance revue et épinglée). **À décider :** montée épinglée `next@16.4.5` dans les trois `package.json` et le lockfile, en PR dédiée revue. Le test de bout en bout est à rejouer ensuite.
+- **✅ Tranché par le fondateur (27 novembre) et fait :** `next@16.4.5` épinglé dans la racine et les trois applications web. Le fichier de verrouillage ne change que `next`, `@next/env` et `@next/swc-*`, de 16.4.3 à 16.4.5. `pnpm audit --prod` ne trouve aucune vulnérabilité connue. `next build` passe pour le client web, le back-office et le portail partenaire, ce dernier compilé pour la première fois. `pnpm test:e2e` : 2/2.
 - **Mise à jour D63 (tranche 3, 17 novembre) :** gestion des vendeurs par le gérant en HTTP : `GET /v1/partner/users`, `POST /v1/partner/sellers`, `POST /v1/partner/sellers/{sellerId}/enrollments` (jeton rendu une seule fois, jamais mémorisé), `POST /v1/partner/sellers/{sellerId}/disable` (motif). Vendeur → 403 `PARTNER_ROLE_DENIED` ; compte inconnu, d'un autre partenaire ou gérant → même 404 `PARTNER_USER_NOT_FOUND` (F-PRT-004, aucun oracle). Contrat 0.15.0. 6 tests HTTP ; 5 mutants tués, 2 équivalents (rejeu sans jeton déjà garanti ; motif vide déjà refusé par le store).
 - **Reste :** création du gérant au back-office (périmètre partenaire du personnel à trancher) ; écrans du portail partenaire ; tableau des commandes et règlements (F-PRT-004) ; abonnements (F-PRT-005, décision commerciale).
 - **Mise à jour D63 (tranche 4, 17 novembre) :** `GET /v1/partner/orders` (gérant et vendeur) : accords du seul partenaire de la session, brouillons exclus, 200 plus récents ; état, titre de la version d'offre figée, montant cible, progression dérivée du grand livre (I-9), date de remise. **Aucune donnée du client**, même à 100 % (option la plus prudente : F-PRT-004 autorise l'anonymisation levée à 100 %, mais le code de remise suffit au comptoir). Contrat 0.16.0 (l'ancien schéma prévoyait un nom de client). 5 tests HTTP ; 4 mutants tués.
@@ -904,6 +905,135 @@
 - **Tests :** 6 sur les flux réels, chaque alerte déclenchée par un vrai événement : tentative réelle laissée en attente et évaluée 16 minutes plus tard, contrôle de cantonnement avec écart, notification à tentatives épuisées, divergence enregistrée par `integrity_reporter`. Lecture refusée à l'API et au travailleur ; aucun identifiant dans le résultat.
 - **Mutants :** 4, dont 3 tués et 1 équivalent (droit d'exécution donné à `app_rw`, sans effet puisque le schéma `monitoring` lui reste fermé). Le schéma `monitoring` est ajouté au transfert et à l'outil de migration.
 
+### N7 · Neon : point d'accès direct pour les outils à session, pool et durée des requêtes bornés
+- **Demande du fondateur (27 nov.) :** « continue avec Neon ».
+- **Constat :** Neon fournit une adresse groupée (`-pooler`), sur laquelle les fonctions de session ne sont pas garanties. Or l'outil de migration prend un verrou de session, et le contrôle nocturne comme la supervision prennent leur rôle au démarrage de la connexion. Par ailleurs, l'API avait un pool fixe de 10 connexions, **sans durée maximale de requête ni délai de connexion** : une requête emballée ou une base injoignable bloquaient indéfiniment.
+- **Fait :**
+  - `assertDirectEndpoint` (`DATABASE_POOLER_FORBIDDEN`) est appliqué à `db:migrate`, `db:backup`, `db:transfer` (source et cible), au contrôle nocturne et à `ops:alerts` (nouvelle fonction `monitorDatabaseUrl`).
+  - Pool de l'API : `DATABASE_POOL_MAX` (1 à 50, défaut 10), délai de connexion de 10 s, connexions inactives rendues après 30 s.
+  - `DATABASE_STATEMENT_TIMEOUT_MS` (1 à 120 s, défaut 15 s), posé par `SET LOCAL` dans **chaque** transaction, donc valable aussi derrière le regroupeur. Vérifié sur PostgreSQL réel : une requête trop longue est interrompue (57014) et la limite ne fuit pas hors de la transaction.
+  - Procédure Neon et `.env.example` mis à jour.
+- **Tests :** 2 unitaires, 1 sur base réelle, plus un refus de l'adresse groupée dans les tests de chacun des cinq outils ; 5 mutants tués.
+- **À vérifier sur la console Neon :** la limite de connexions de la taille de calcul choisie, pour fixer `DATABASE_POOL_MAX` en dessous.
+
+### Plan du fondateur du 27 novembre, étape 2 · Documentation UX et site public reprises de `claude/kind-gauss-3npnkd`
+- **Constat :** la branche ne contient que de la documentation (77 fichiers), avec un historique sans ancêtre commun avec la nôtre : impossible à fusionner, donc **copiée**. 45 fichiers sont nouveaux, 19 identiques, 13 différents. Parmi ces 13, plusieurs sont des versions **plus anciennes** des nôtres (ADR-0004 du 26 octobre, journal, état, registre) : les recopier aurait effacé notre travail.
+- **Fait :**
+  - Copie des 45 nouveaux fichiers : `docs/05_direction_ux_et_ui/` (identité, catalogue des écrans, maquettes HTML, jetons de design, recherches, textes FR/EN) et les deux prompts Gemini.
+  - ADR du site public **renuméroté `ADR-0008`** (collision avec notre ADR-0006 PWA), ses 10 mentions corrigées.
+  - Seuls les **ajouts** de cette branche sont repris dans les documents communs :
+    - CDC_01 § 15 (F-PUB-001 à 010), CDC_02 (NF-PUB) et CDC_05 ;
+    - glossaire, plan de lots (lot 26), liste de contrôle du lancement, matrice de traçabilité ;
+    - lignes du LISEZMOI, paragraphe du dossier projet ;
+    - traitements du site public **renumérotés T-16 et T-17** dans le registre (version 1.2).
+  - Rien n'est repris de leurs anciennes versions d'ADR-0004, du journal ni de l'état.
+- **Vérifié :** aucun secret dans les fichiers copiés ; le script `jetons/generate.py` ne fait que lire et écrire son dossier, sans dépendance ni réseau.
+- **Statut :** ADR-0008 reste **Proposé**, en attente de ta validation avant le lot 26, comme sur la branche d'origine. Les exigences F-PUB et NF-PUB ne sont pas encore couvertes par des tests (lot 26 non commencé).
+
+### Plan du fondateur du 27 novembre, étape 3 · CI alignée, actions épinglées, fins de ligne normalisées
+- **Fait :**
+  - **`ci.yml`** :
+    - déclenchée sur `sprint/integration` **et** `sprint/integration-*`, dont la branche active ;
+    - nouvelle étape `pnpm test:web` ;
+    - nouveau travail `verifier` (`cargo test --locked`, vérificateur Rust) ;
+    - nouveau travail `mobile` : SDK Flutter **officiel** 3.47.9 cloné depuis son dépôt, sans action tierce, puis `flutter pub get`, `flutter analyze`, `flutter test` ;
+    - les trois actions GitHub sont **épinglées par empreinte de commit** (SEC-SDLC-004), résolues depuis leurs dépôts officiels : `actions/checkout` et `actions/setup-node` v4, `pnpm/action-setup` v4 (étiquette annotée, empreinte du commit).
+  - **`pnpm ci:local`** : les mêmes contrôles. Il vérifiait les types de 3 projets sur 5 seulement et ne lançait ni les tests web, ni le vérificateur, ni Flutter : corrigé. `cargo` et `flutter` sont pris du système ; absents, l'étape est en échec, jamais sautée.
+  - **`.gitattributes`** : `* text=auto eol=lf`, binaires exclus. Aucun fichier du dépôt n'est renormalisé (tous déjà en LF) : la règle évite le faux écart sous Windows sur `INVENTAIRE_ROUTES.md` dans les copies de travail.
+- **Vérifié ici :** `ci:local verifier mobile` → vérificateur 10/10, analyse et tests Flutter OK ; YAML valide (6 travaux). Le test `tools/ci-config.test.ts` (6 cas) échoue si un contrôle, la branche active ou l'épinglage disparaît ; 2 mutants tués.
+- **Non fait, à ta main :**
+  - le déblocage de GitHub Actions (D30) dépend de la facturation de ton compte GitHub ; tant qu'il dure, la CI GitHub ne tourne pas, d'où `pnpm ci:local` ;
+  - `CODEOWNERS` n'est pas ajouté : l'AGENTS.md § 8 exige une demande explicite de ta part, avec la liste des propriétaires ;
+  - le shim global `pnpm` de ton poste et l'alignement du dossier racine `molopay` local sont sur ta machine, non reliée à cette session.
+
 ### U0 · Fondations des interfaces MVP 0.0.1 (direction UX et UI v1.1)
 - **Remplacement documentaire consigné :** les anciens fichiers `PROMPT_STITCH_APP_MOBILE.md` et `PROMPT_CHATGPT_APP_MOBILE.md` sont remplacés par le dossier de référence `docs/05_direction_ux_et_ui/` (`09_passage_maquettes_mvp_0.0.1.md`, `02_identite_visuelle.md` v1.1, `06_animations.md`, `jetons/`, `textes/mvp_0.0.1_fr_en.json`).
 - **Limite mesurée (F8, `06_animations.md` § 7.1) :** la bascule automatique vers le mode Sobre au-delà de 5 % de trames > 16 ms (`MpVisualEffectsController` branché sur `SchedulerBinding.addTimingsCallback`) est vérifiée par test unitaire déterministe sur Flutter, mais la mesure réelle sur appareil physique Android d'entrée de gamme (2 Go de RAM) n'a pas pu être exécutée sur ce poste sans appareil ni SDK Android ; à valider sur matériel cible avant ouverture au public.
+
+### U4 · Portail partenaire, Back-office et Fiche client 360° (MVP 0.0.1)
+- **Comptoir partenaire (`09_…` § 4.2, `POST /v1/partner/handovers`) :** le schéma `HandoverValidationRequest` (`additionalProperties: false`, contrat `0.45.0`) n'accepte que `{ code, latitude, longitude }`. Les deux cases de contrôle obligatoires (*pièce d'identité* et *conformité de l'article*) et le numéro de série bloquent la confirmation côté comptoir et s'affichent dans le récapitulatif de session sans modifier le contrat serveur ; la persistance en base du numéro de série relèvera d'une évolution ultérieure du contrat.
+- **Fiche client 360° (`/crm`, PR #10 `agent/qoder/crm`) :** tant que la PR #10 n'est pas fusionnée dans `sprint/integration-t01urw`, aucune route `/v1/backoffice/crm/` n'est simulée ; le pôle `/clients` affiche l'état honnête d'intégration et `CrmCustomer360` héritera directement de la coque noire du back-office à la fusion.
+
+### D5 · Signataire AWS KMS des instructions de sortie de fonds (28 novembre)
+
+- **Fait :**
+  - **Interface asynchrone.** `apps/api/src/crypto/instruction-signer.ts` définit `InstructionSigner` (`keyId`, `publicKey`, `sign`), appelé par les trois émissions d'instruction : remboursement (`refund.store.ts`), règlement partenaire (`execution.store.ts`) et virement au bénéficiaire C (`beneficiary-payout.store.ts`).
+    - Le signataire local (`localInstructionSigner`) ne sert qu'aux tests. Aucune clé privée n'est lue depuis l'environnement.
+  - **Adaptateur KMS.** `awsKmsInstructionSigner` dans `apps/api/src/crypto/aws-kms.ts`, seul fichier qui importe le SDK AWS (garde NF-PORT-002 inchangée).
+    - Au démarrage : `GetPublicKey`. Refus de démarrer si la clé n'est pas `ECC_NIST_EDWARDS25519` / `SIGN_VERIFY` / `ED25519_SHA_512`, ou si KMS ne répond pas.
+    - Un alias est résolu en ARN de clé ; c'est cet ARN qui est enregistré comme `key_id`.
+    - À chaque instruction : `Sign` (message brut, `ED25519_SHA_512`), délai borné à 5 s, puis signature **revérifiée** avec la clé publique.
+    - En cas de panne : 503 `SIGNING_UNAVAILABLE`, rien n'est écrit, et le détail du fournisseur n'est jamais renvoyé.
+  - **Aucune donnée personnelle signée (exigence du 24 novembre).** Seuls les trois documents d'instruction connus sont acceptés, octet pour octet sous leur forme canonique. Tout autre message est refusé (`SIGNING_DOCUMENT_FORBIDDEN`) sans appel à KMS.
+    - Champs acceptés : UUID ; code partenaire ou bénéficiaire de la même forme qu'en base ; montant entier.
+  - **Format inchangé.** Ed25519 pur ; `verify*Instruction`, le vérificateur et les contraintes de base sont intacts. Les 177 tests de base des circuits de sortie passent, et la suite HTTP du règlement passe désormais par l'adaptateur KMS (transport remplacé par une vraie clé).
+  - **Configuration.** `INSTRUCTION_SIGNING_KMS_KEY_ARN` doit être distincte des clés de chiffrement (`SIGNING_KEY_NOT_DISTINCT`). `pnpm config:check` l'affiche ; `.env.example` et `PROCEDURE_DEPLOIEMENT_API.md` décrivent la mise en service, et l'inventaire cryptographique est à jour.
+  - **Test vivant.** `aws-kms-signer.live.test.ts` dans `pnpm test:kms`, qui exige `INSTRUCTION_SIGNING_KMS_TEST_KEY_ARN`.
+  - **Mutation.** 34 mutants : 31 tués, 3 équivalents (bornes et types rejetés plus loin). Un vrai défaut évité : `{"domain":"constructor"}` aurait passé avec `in` au lieu de `Object.hasOwn`.
+- **Choix prudents appliqués (réversibles) :**
+  - un code partenaire ou bénéficiaire contenant 8 chiffres consécutifs ou plus est refusé à la signature (forme d'un numéro de téléphone) ;
+  - `customer_id` (UUID opaque) reste dans le document de remboursement, car son format est figé par la migration 0045 ;
+  - montant signé limité à 18 chiffres.
+- **Reste humain :** créer la clé KMS de production et la clé de test, accorder au rôle du serveur `kms:GetPublicKey` et `kms:Sign`, et remettre la clé publique à l'établissement. Il n'y a toujours pas de versement au lancement.
+
+### D121 · Notifications : tranché par le fondateur (28 novembre)
+
+- **Décisions du fondateur :**
+  - (a) **push au lancement**. Le SMS est activé par l'équipe, par objet de notification, avec une simple bascule ;
+  - (b) **plages d'envoi 8 h–20 h, heure de Douala** (proposition acceptée) ;
+  - (c) la **langue** du message est celle que l'utilisateur a choisie dans l'application.
+- **Lecture appliquée (prudente, réversible, à confirmer d'un mot si elle est fausse) :**
+  - « par objectif » est lu comme **par type de notification** (versement confirmé, rappel d'échéance, objectif atteint, code de remise, règlement, litige), c'est-à-dire l'objet du message, et non par projet d'épargne ;
+  - la bascule est un geste unique de l'équipe des opérations, **motivé et inscrit à l'audit**, sans double validation (« simple bascule ») ;
+  - SMS **désactivé par défaut** pour tous les types (le push est le canal de lancement ; chaque SMS coûte) ;
+  - la décision de canal est prise **à la mise en file** : une bascule s'applique aux événements suivants, jamais rétroactivement ;
+  - plages : F-NOT-003 les réserve aux **rappels**. Les confirmations (versement confirmé, code de remise, etc.) partent tout de suite, car l'utilisateur vient d'agir. Un rappel hors plage est reporté, jamais perdu ;
+  - langue : l'application déclare la langue choisie à l'API ; sans déclaration, le français (langue de référence) s'applique ;
+  - textes : gabarits FR/EN actuels, à valider par la conformité (NF-SAFE-003).
+- **⚖ D122 — nouveau, à trancher pour envoyer réellement un push :** le prestataire. Firebase Cloud Messaging est le passage obligé sur Android hors appareils Huawei ; APNs sur iOS, directement ou via FCM. Ce choix ajoute à l'application mobile une dépendance (`firebase_messaging`) hors de la liste blanche actuelle (REG-DPD-003, NF-PORT-002), et côté serveur une authentification de compte de service Google. En attendant, les notifications push restent en file : rien n'est simulé, et la supervision signale leur attente.
+
+### D121 · Tranche 1 : langue de l'application et bascule SMS par type (contrat 0.46.0)
+- **Fait :**
+  - **Migration 0080, en ajout seul et gardée par la base** (déclencheurs `ENABLE ALWAYS`, y compris en mode réplica ; aucune écriture directe ; horodatages posés par la base).
+    - `identity.language_preference` : `declare_language` (fr ou en ; compte actif seulement ; rien n'est écrit si la langue ne change pas) et `preferred_language` (dernière déclaration, sinon français).
+    - `notifications.sms_channel_setting` : `set_sms_channel` (motif obligatoire ; verrou par type ; état inchangé refusé avec `NOTIFICATION_CHANNEL_UNCHANGED`), `sms_enabled` (désactivé par défaut) et `sms_channel_states` (les six types, dans l'ordre du catalogue).
+  - **Mise en file (`notifyCustomer`) :** push toujours ; SMS seulement si le type est ouvert ; langue déclarée par le client. Les deux réglages sont lus dans la transaction du fait : une bascule ne change rien de ce qui est déjà en file.
+  - **Routes :**
+    - `PUT /v1/me/language` (client, rejouable) ; `GET /v1/me` renvoie désormais `language` ;
+    - `GET /v1/backoffice/notifications/sms-channels` et `PUT /v1/backoffice/notifications/sms-channels/{eventType}` : nouvelle action `MANAGE_NOTIFICATION_CHANNELS` donnée à OPERATIONS, motif obligatoire, audit `SMS_CHANNEL_SET` dans la même transaction.
+    - Nouveaux codes : `IDENTITY_LANGUAGE_INVALID` (400) et `NOTIFICATION_CHANNEL_UNCHANGED` (409).
+  - **Tests existants adaptés à la décision :** 8 tests attendaient « SMS et push » pour chaque notification. Ils ouvrent désormais le SMS pour leur type avant d'agir, et les deux canaux restent couverts. Le cas par défaut (push seul) est vérifié à part.
+- **Tests :** 10 tests de base, 4 tests HTTP pour la langue (dont les refus 400, 401 et le rejeu), 2 tests HTTP pour les bascules (refus 409, 400, 403, 401, rien d'inscrit). Les 168 tests des flux qui notifient passent.
+- **Mutation :** 33 mutants, 28 tués et 5 équivalents. Les équivalents sont des contrôles applicatifs doublés par la base (langue, motif, booléen) ; un droit accordé à `app_ro`, qui n'a pas accès au schéma ; et l'ordre explicite des types.
+- **Pour les interfaces (à faire) :**
+  - l'application mobile et le client web appellent `PUT /v1/me/language` au changement de langue et après connexion ;
+  - le back-office ajoute un écran « Canaux de notification » (six bascules, motif).
+- **Suite :**
+  - tranche 2 : travailleur SMS (Twilio, numéro déchiffré par KMS, plages 8 h–20 h pour les rappels) ;
+  - tranche 3 : push, après le choix du prestataire (D122).
+
+### D121 · Tranche 2 : travailleur SMS (`pnpm notify:worker`, migration 0081)
+- **Fait :**
+  - **0081 :**
+    - `claim_sms_notification` : prise limitée au SMS. Les rappels ne sont pris qu'entre 8 h et 20 h, heure de Douala (`within_reminder_window`, décidé par la base) ; hors plage, ils attendent sans consommer de tentative.
+    - `claimed_sms_recipient` : empreinte et chiffré du numéro, pour le seul bail SMS en cours et un compte actif ; réservé à `notification_worker`.
+    - Politique de consommation par défaut, posée si aucune n'existe ; jusqu'ici aucune migration ne la créait, et toute prise aurait été refusée en production. Valeurs : bail de 60 s, nouvel essai après 5 min, 5 tentatives.
+  - **`workflows/sms-worker.ts` :** à chaque itération, prise (bail commité), numéro déchiffré au dernier moment, gabarit dans la langue de la notification, envoi par l'adaptateur Twilio, puis confirmation avec la référence `SM…`. Tout échec entraîne un nouvel essai après délai. Boucle arrêtée par signal ; une erreur de base ne fait pas tomber le processus et est suivie d'une attente.
+  - **Port SMS :** `send` rend désormais la référence opaque du prestataire.
+  - **`tools/notify-worker.ts` :**
+    - compte `molopay_notifier`, rôle pris au démarrage de la session, adresse directe en `verify-full` ;
+    - fermé sans Twilio ou sans clés (code 2) ;
+    - journal sans numéro, texte ni identifiant.
+  - Procédure : `PROCEDURE_DEPLOIEMENT_API.md` § 2 bis.
+- **Tests :**
+  - 7 tests de base, avec l'adaptateur Twilio réel dont seul le transport HTTP est remplacé : envoi au numéro déchiffré et dans la bonne langue, refus et panne puis réussite à la 3ᵉ tentative, compte bloqué, bail expiré ou push sans numéro, droits (le travailleur ne lit ni le compte ni la file, l'API n'appelle pas la lecture du numéro), plage des rappels quelle que soit l'heure réelle, boucle et attente après erreur ;
+  - 3 tests de configuration.
+- **Mutation :** 26 mutants, 25 tués, 1 équivalent (contrôle du canal côté application, doublé par la base).
+- **Choix prudents (réversibles) :**
+  - distribution « au moins une fois » : si la confirmation échoue après un envoi accepté, le SMS peut repartir une fois ;
+  - un compte bloqué ne reçoit pas de SMS, et sa notification finit épuisée puis signalée par la supervision.
+- **Reste :**
+  - push (D122, prestataire) ;
+  - écran back-office des canaux ;
+  - appel de `PUT /v1/me/language` par les applications ;
+  - génération des rappels d'échéance (le gabarit et la plage existent, mais aucun rappel n'est encore produit).

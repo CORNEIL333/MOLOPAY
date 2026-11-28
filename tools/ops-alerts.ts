@@ -1,5 +1,5 @@
 import { Client } from 'pg';
-import { assertSecureDatabaseUrl } from '../apps/api/src/http/database';
+import { assertDirectEndpoint, assertSecureDatabaseUrl } from '../apps/api/src/http/database';
 
 /**
  * NF-OBS-003 : alertes calculables en base, lues par le compte de supervision
@@ -45,11 +45,18 @@ export function evaluateAlerts(counts: AlertCounts): { readonly status: 'OK' | '
   return { status: alerts.length === 0 ? 'OK' : 'ALERT', alerts };
 }
 
+/** Adresse de supervision : TLS vérifié et point d'accès direct (paramètre `options`). */
+export function monitorDatabaseUrl(env: NodeJS.ProcessEnv): string {
+  const url = env['MONITOR_DATABASE_URL']?.trim() ?? '';
+  if (url === '') throw new Error('MONITOR_DATABASE_MISSING');
+  assertSecureDatabaseUrl(url, env);
+  assertDirectEndpoint(url);
+  return url;
+}
+
 async function main(): Promise<number> {
-  const url = process.env['MONITOR_DATABASE_URL']?.trim() ?? '';
   try {
-    if (url === '') throw new Error('MONITOR_DATABASE_MISSING');
-    assertSecureDatabaseUrl(url, process.env);
+    const url = monitorDatabaseUrl(process.env);
     const client = new Client({ connectionString: url, options: '-c role=notification_observer', application_name: 'molopay-ops-alerts', statement_timeout: 10_000 });
     await client.connect();
     try {

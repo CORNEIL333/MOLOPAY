@@ -64,6 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   bool _acceptingTerms = false;
+  bool _marketingOptIn = false;
 
   /// F-ACC-004 : acceptation de la version en vigueur, puis profil relu.
   Future<void> _acceptTerms() async {
@@ -128,9 +129,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: MpColors.paper,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFF3ECE5)),
+            border: Border.all(color: MpColors.mist2),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,6 +171,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     key: const Key('profile-terms-notice'),
                     style: type(13, color: ink),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    s.isEn ? 'The essentials in 5 points' : 'L’essentiel en 5 points',
+                    style: type(14, weight: FontWeight.w700),
+                  ),
+                  Text(
+                    s.isEn
+                        ? '1. Funds held by the licensed partner institution.\n2. 0 FCFA to save; project price locked.\n3. Regulatory limit increases with your ID.\n4. "Call me back", answer within 72 h.\n5. Cancel and close your account at any time.'
+                        : '1. Fonds gardés par l’établissement partenaire agréé.\n2. 0 FCFA pour épargner ; prix figé.\n3. Plafond augmenté avec votre pièce d’identité.\n4. « Être rappelé », réponse sous 72 h.\n5. Annulation et fermeture à tout moment.',
+                    style: type(12, color: muted),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(child: Text(s.isEn ? 'Offer messages (optional)' : 'Messages d’offres (facultatif)', style: type(12, color: muted))),
+                      Switch.adaptive(value: _marketingOptIn, activeTrackColor: ink, onChanged: (v) => setState(() => _marketingOptIn = v)),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   Primary(
                     s.isEn
@@ -194,9 +212,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: MpColors.paper,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFF3ECE5)),
+            border: Border.all(color: MpColors.mist2),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: widget.state.locale == 'fr'
                               ? ink
-                              : const Color(0xFFF7F2EC),
+                              : MpColors.mist,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
@@ -244,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: widget.state.locale == 'en'
                               ? ink
-                              : const Color(0xFFF7F2EC),
+                              : MpColors.mist,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(

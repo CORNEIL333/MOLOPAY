@@ -436,6 +436,17 @@ class MoloPayApiClient {
     return AccountProfile.fromJson(_decodeJsonObject(response));
   }
 
+  /// Code de remise d'un objectif financé (`GET /v1/goals/{goalId}/handover-code`, D69).
+  Future<HandoverCodeInfo> getHandoverCode(String goalId) async {
+    final response = await _sendGet('/v1/goals/${Uri.encodeComponent(goalId)}/handover-code', authenticated: true);
+    return HandoverCodeInfo.fromJson(_decodeJsonObject(response));
+  }
+
+  /// Déclare la langue préférée (`PUT /v1/me/language`, contrat 0.46.0 / D121).
+  Future<void> declareLanguage(String language) async {
+    await _sendPut('/v1/me/language', body: {'language': language});
+  }
+
   /// Renouvelle la session via le cookie `client_refresh` à usage unique (`POST /v1/auth/session-refreshes`).
   Future<ClientSessionRefresh> refreshSession({
     required String challengeId,
@@ -523,6 +534,26 @@ class MoloPayApiClient {
     } catch (_) {
       throw ApiProblemException(ApiProblem.network());
     }
+  }
+
+  Future<http.Response> _sendPut(String path, {required Map<String, Object?> body}) async {
+    final uri = _buildUri(path, null);
+    final headers = <String, String>{
+      'accept': 'application/json',
+      'x-client-version': clientVersionHeader,
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'origin': origin,
+      'idempotency-key': _generateUuidV4(),
+      'cookie': ?_sessionCookie,
+    };
+    try {
+      final response = await _http.put(uri, headers: headers, body: jsonEncode(body));
+      _ensureSuccess(response);
+      return response;
+    } on ApiProblemException { rethrow; }
+    on http.ClientException catch (error) { throw ApiProblemException(ApiProblem.network(detail: error.message)); }
+    catch (_) { throw ApiProblemException(ApiProblem.network()); }
   }
 
   Uri _buildUri(String path, Map<String, String>? queryParameters) {

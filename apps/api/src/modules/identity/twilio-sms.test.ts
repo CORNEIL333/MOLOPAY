@@ -50,9 +50,9 @@ describe('D1 / F-ACC-001 adaptateur SMS Twilio', () => {
 
   it('réponse : 2xx avec identifiant SM… accepté ; refus, échec ou panne → erreur sans numéro ni code', async () => {
     const reply = (status: number, body: unknown) => () => Promise.resolve({ status, json: () => Promise.resolve(body) });
-    const send = (fetcher: Parameters<typeof twilioSmsSender>[1]): Promise<void> => twilioSmsSender(CONFIG, fetcher).send({ phone: '+237690000000', text: otpSmsText('987654') });
-    await expect(send(reply(201, { sid: `SM${'f'.repeat(32)}`, status: 'queued' }))).resolves.toBeUndefined();
-    const failures: Promise<void>[] = [
+    const send = (fetcher: Parameters<typeof twilioSmsSender>[1]): Promise<{ readonly providerRef: string }> => twilioSmsSender(CONFIG, fetcher).send({ phone: '+237690000000', text: otpSmsText('987654') });
+    await expect(send(reply(201, { sid: `SM${'f'.repeat(32)}`, status: 'queued' }))).resolves.toEqual({ providerRef: `SM${'f'.repeat(32)}` });
+    const failures: Promise<{ readonly providerRef: string }>[] = [
       send(reply(400, { code: 21211, message: 'invalid' })),
       send(reply(201, { sid: `SM${'f'.repeat(32)}`, status: 'failed' })),
       send(reply(201, { status: 'queued' })),

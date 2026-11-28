@@ -6,8 +6,11 @@
  * prestataire retenu, contre son environnement de test.
  */
 export type SmsSender = {
-  /** Envoie le texte au numéro E.164 ; lève une erreur si le prestataire refuse ou ne répond pas. */
-  send(input: { readonly phone: string; readonly text: string }): Promise<void>;
+  /**
+   * Envoie le texte au numéro E.164 ; rend la référence opaque du prestataire
+   * (jamais le texte ni le numéro) ; lève une erreur s'il refuse ou ne répond pas.
+   */
+  send(input: { readonly phone: string; readonly text: string }): Promise<{ readonly providerRef: string }>;
 };
 
 export const SMS_SENDER = Symbol('SMS_SENDER');
