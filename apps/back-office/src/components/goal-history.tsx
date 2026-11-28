@@ -75,23 +75,25 @@ export function GoalHistory({ ports, initialGoalId = '' }: { readonly ports: Goa
   }
 
   return (
-    <section>
-      <h1>Historique d’un objectif</h1>
-      <form onSubmit={(event) => void load(event)} noValidate>
+    <section className="mp-page">
+      <header className="mp-top"><div><h1>Historique d’un objectif</h1><p className="mp-sub">Chronologie des statuts, versements, réclamations et litiges (consultation motivée).</p></div></header>
+      <form className="mp-panel mp-form" onSubmit={(event) => void load(event)} noValidate>
         <TextField id={ids.goal} label="Identifiant de l’objectif" autoComplete="off" value={goalId} error={errors.goal} onChange={(event) => { setGoalId(event.target.value.trim()); }} />
         <TextField id={ids.reason} label="Motif de la consultation" value={reason} error={errors.reason} onChange={(event) => { setReason(event.target.value); }} />
         <Button type="submit" disabled={pending}>Consulter l’historique</Button>
       </form>
       {problem === null ? null : <ErrorState problem={problem} />}
       {history === null ? null : (
-        <section aria-labelledby={ids.list}>
-          <h2 id={ids.list}>Événements de l’objectif</h2>
+        <section className="mp-panel" aria-labelledby={ids.list}>
+          <p className="mp-banner mp-banner--audit">{`Consultation journalisée. Motif : ${reason.trim()}. Visible par l’audit.`}</p>
+          <div className="mp-ph"><h2 id={ids.list}>Événements de l’objectif</h2></div>
           {history.items.length === 0 ? <p>Aucun événement.</p> : (
-            <ol aria-labelledby={ids.list}>
+            <ol className="mp-tl" aria-labelledby={ids.list}>
               {history.items.map((item, index) => (
-                <li key={index.toString()}>
-                  {typeof item['at'] === 'string' ? <time dateTime={item['at']}>{DATE.format(new Date(item['at']))}</time> : null}
-                  {' — '}<strong>{KINDS[String(item['kind'])] ?? String(item['kind'])}</strong>{' — '}{details(item)}
+                <li key={index.toString()} className="mp-tl__item">
+                  <div className="mp-tl__time">{typeof item['at'] === 'string' ? <time dateTime={item['at']}>{DATE.format(new Date(item['at']))}</time> : '—'}</div>
+                  <div className="mp-tl__rail" aria-hidden="true"><span className="mp-tl__dot" /></div>
+                  <div className="mp-tl__body"><strong>{KINDS[String(item['kind'])] ?? String(item['kind'])}</strong><span>{details(item)}</span></div>
                 </li>
               ))}
             </ol>

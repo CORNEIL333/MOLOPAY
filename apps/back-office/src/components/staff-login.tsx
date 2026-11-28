@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { BrandRing, Button, ErrorState, TextField } from '@achat/ui';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 
 /** Assertion WebAuthn brute rendue par l'authentificateur (navigateur). */
@@ -84,10 +84,15 @@ export function StaffLogin({ ports, onSignedIn }: { readonly ports: StaffLoginPo
   }
 
   return (
-    <section>
+    <section className="mp-panel mp-form">
+      <div className="mp-brand">
+        <BrandRing tone="light" />
+        <span>molopay</span>
+        <small>Interne</small>
+      </div>
       <h1>Back-office MoloPay</h1>
       {problem === null ? null : <ErrorState problem={problem} />}
-      <form onSubmit={(event) => void submit(event)} noValidate>
+      <form className="mp-form" onSubmit={(event) => void submit(event)} noValidate>
         <TextField id={loginId} label="Identifiant" autoComplete="username webauthn" value={login} error={error} onChange={(event) => { setLogin(event.target.value.trim()); }} />
         <Button type="submit" disabled={pending}>
           Se connecter avec ma clé de sécurité

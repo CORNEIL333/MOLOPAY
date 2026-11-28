@@ -13,11 +13,13 @@ describe('C6 navigation du back-office', () => {
       ['File de travail', '/file'],
       ['Tableau de bord', '/tableau-de-bord'],
       ['Indicateurs', '/indicateurs'],
+      ['Clients et support', '/clients'],
       ['Conformité', '/conformite'],
       ['Réclamations', '/reclamations'],
       ['Historique d’un objectif', '/objectifs'],
       ['Inscription en agence', '/clients/inscription-agence'],
       ['Bloquer un compte client', '/clients/blocage'],
+      ['Déclaration de décès', '/clients/deces'],
       ['Gel des flux sortants', '/incidents/gel'],
       ['Administration', '/administration'],
     ]);

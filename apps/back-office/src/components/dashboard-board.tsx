@@ -66,54 +66,60 @@ export function DashboardBoard({ ports }: { readonly ports: DashboardPorts }): R
   }
 
   return (
-    <section>
-      <h1>Tableau de bord</h1>
-      <form onSubmit={(event) => void load(event)} noValidate>
+    <section className="mp-page">
+      <header className="mp-top">
+        <div><h1>Tableau de bord</h1><p className="mp-sub">Vue d’ensemble agrégée issue du grand livre et des accords.</p></div>
+      </header>
+      <form className="mp-panel mp-form" onSubmit={(event) => void load(event)} noValidate>
         <TextField id={reasonId} label="Motif de la consultation" value={reason} error={error} onChange={(event) => { setReason(event.target.value); }} />
         <Button type="submit" disabled={pending}>Afficher le tableau de bord</Button>
       </form>
       {problem === null ? null : <ErrorState problem={problem} />}
       {board === null ? null : (
         <>
-          <p>Instantané du <time dateTime={board.asOf}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(board.asOf))}</time>.</p>
-          <ul aria-label="Compteurs">
-            <li>Remises : {board.handovers}</li>
-            <li>Litiges ouverts : {board.openDisputes}</li>
-            <li>Réclamations ouvertes : {board.openComplaints}</li>
-            <li>Alertes de fraude ouvertes : {board.openRiskAlerts}</li>
+          <p className="mp-banner mp-banner--audit">Instantané du <time dateTime={board.asOf}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(board.asOf))}</time>.</p>
+          <ul className="mp-kpis" aria-label="Compteurs">
+            <li className="mp-kpi mp-kpi--hl"><span className="mp-kpi__label">Remises</span><span className="mp-kpi__val">{`Remises : ${board.handovers.toString()}`}</span></li>
+            <li className="mp-kpi"><span className="mp-kpi__label">Litiges</span><span className="mp-kpi__val">{`Litiges ouverts : ${board.openDisputes.toString()}`}</span></li>
+            <li className="mp-kpi"><span className="mp-kpi__label">Réclamations</span><span className="mp-kpi__val">{`Réclamations ouvertes : ${board.openComplaints.toString()}`}</span></li>
+            <li className="mp-kpi"><span className="mp-kpi__label">Risque</span><span className="mp-kpi__val">{`Alertes de fraude ouvertes : ${board.openRiskAlerts.toString()}`}</span></li>
           </ul>
-          <table aria-label="Accords">
-            <thead>
-              <tr><th scope="col">Modèle</th><th scope="col">Univers</th><th scope="col">Villes</th><th scope="col">État</th><th scope="col">Nombre</th><th scope="col">Montant cible</th><th scope="col">Fonds confirmés</th></tr>
-            </thead>
-            <tbody>
-              {board.agreements.map((row) => (
-                <tr key={`${row.model}-${row.universe ?? ''}-${row.cities}-${row.status}`}>
-                  <td>{MODELS[row.model]}</td>
-                  <td>{row.universe === null ? '—' : (UNIVERSES[row.universe] ?? row.universe)}</td>
-                  <td>{cities(row.cities)}</td>
-                  <td>{row.status}</td>
-                  <td>{row.count}</td>
-                  <td><AmountXaf amount={row.targetXaf} /></td>
-                  <td><AmountXaf amount={row.confirmedFundsXaf} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <table aria-label="Règlements marchands">
-            <thead>
-              <tr><th scope="col">État</th><th scope="col">Nombre</th><th scope="col">Net</th></tr>
-            </thead>
-            <tbody>
-              {board.settlements.map((row) => (
-                <tr key={row.state}>
-                  <td>{SETTLEMENT_STATES[row.state]}</td>
-                  <td>{row.count}</td>
-                  <td><AmountXaf amount={row.netXaf} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="mp-panel mp-table-wrap">
+            <table className="mp-table" aria-label="Accords">
+              <thead>
+                <tr><th scope="col">Modèle</th><th scope="col">Univers</th><th scope="col">Villes</th><th scope="col">État</th><th scope="col" className="mp-num">Nombre</th><th scope="col" className="mp-num">Montant cible</th><th scope="col" className="mp-num">Fonds confirmés</th></tr>
+              </thead>
+              <tbody>
+                {board.agreements.map((row) => (
+                  <tr key={`${row.model}-${row.universe ?? ''}-${row.cities}-${row.status}`}>
+                    <td>{MODELS[row.model]}</td>
+                    <td>{row.universe === null ? '—' : (UNIVERSES[row.universe] ?? row.universe)}</td>
+                    <td>{cities(row.cities)}</td>
+                    <td>{row.status}</td>
+                    <td className="mp-num">{row.count}</td>
+                    <td className="mp-num"><AmountXaf amount={row.targetXaf} /></td>
+                    <td className="mp-num"><AmountXaf amount={row.confirmedFundsXaf} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mp-panel mp-table-wrap">
+            <table className="mp-table" aria-label="Règlements marchands">
+              <thead>
+                <tr><th scope="col">État</th><th scope="col" className="mp-num">Nombre</th><th scope="col" className="mp-num">Net</th></tr>
+              </thead>
+              <tbody>
+                {board.settlements.map((row) => (
+                  <tr key={row.state}>
+                    <td>{SETTLEMENT_STATES[row.state]}</td>
+                    <td className="mp-num">{row.count}</td>
+                    <td className="mp-num"><AmountXaf amount={row.netXaf} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>

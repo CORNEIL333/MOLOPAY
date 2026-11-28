@@ -38,8 +38,10 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${outfit.variable} ${inter.variable}`}>
       <body>
-        <SessionNav />
-        <main>{children}</main>
+        <div className="mp-shell">
+          <SessionNav />
+          <main className="mp-main">{children}</main>
+        </div>
       </body>
     </html>
   );

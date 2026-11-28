@@ -2,7 +2,7 @@
 
 import type { components } from '@achat/contracts/api';
 import type { ProblemSummary } from '@achat/contracts/client';
-import { Button, ErrorState, TextField } from '@achat/ui';
+import { Button, ErrorState, StatusPill, TextField } from '@achat/ui';
 import { useId, useState, type FormEvent, type ReactElement } from 'react';
 import { FundsAction, type FundsActionPort, type FundsFlow } from './funds-action';
 import { OversightAction, type OversightKind, type OversightPort } from './oversight-action';
@@ -107,9 +107,15 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
   }
 
   return (
-    <section>
-      <h1>File de travail</h1>
-      <form onSubmit={(event) => void load(event)} noValidate>
+    <section className="mp-page">
+      <header className="mp-top">
+        <div>
+          <h1>File de travail</h1>
+          <p className="mp-sub">Opérations à double contrôle : règlements partenaires, virements aux bailleurs et écoles (modèle C), remboursements, rapprochements, alertes et litiges.</p>
+        </div>
+      </header>
+      <p className="mp-banner">Vous ne pouvez pas approuver une opération que vous avez préparée.</p>
+      <form className="mp-panel mp-form" onSubmit={(event) => void load(event)} noValidate>
         <TextField id={reasonId} label="Motif de consultation" value={reason} error={error} onChange={(event) => { setReason(event.target.value); }} />
         <Button type="submit" disabled={pending}>
           Afficher la file
@@ -119,42 +125,53 @@ export function WorkQueue({ ports }: { readonly ports: WorkQueuePorts }): ReactE
       {problem?.status === 401 ? <p><a href="/">Se reconnecter</a></p> : null}
       {queue === null
         ? null
-        : SECTIONS.map(({ key, title }) => {
-            const items = queue[key] as readonly Item[];
-            return (
-              <section key={key} aria-labelledby={`${sectionId}-${key}`}>
-                <h2 id={`${sectionId}-${key}`}>{`${title} (${items.length.toString()})`}</h2>
-                <ul>
-                  {items.map((item, index) => {
-                    const actionable = ACTIONABLE[key];
-                    const itemId = actionable === undefined ? undefined : item[actionable.idKey];
-                    const oversight = OVERSIGHT[key];
-                    const oversightId = oversight === undefined ? undefined : item[oversight.idKey];
-                    return (
-                      <li key={`${key}-${index.toString()}`}>
-                        {typeof item['stage'] === 'string' ? <strong>{STAGES[item['stage']] ?? item['stage']}</strong> : null} {describe(item)}
-                        {actionable !== undefined && ports.act !== undefined && typeof itemId === 'string' && typeof item['stage'] === 'string' ? (
-                          <FundsAction flow={actionable.flow} id={itemId} stage={item['stage']} act={ports.act} onDone={() => void refresh()} />
-                        ) : null}
-                        {key === 'pendingSanctionsReviews' && typeof item['screeningId'] === 'string' ? (
-                          <> <a href={`/conformite?filtrage=${encodeURIComponent(item['screeningId'])}`} aria-label={`Examiner le rapprochement ${item['screeningId']}`}>Examiner</a></>
-                        ) : null}
-                        {key === 'openDisputes' && typeof item['agreementId'] === 'string' ? (
-                          <> <a href={`/objectifs?objectif=${encodeURIComponent(item['agreementId'])}`} aria-label={`Historique de l’objectif ${item['agreementId']}`}>Historique</a></>
-                        ) : null}
-                        {key === 'overdueComplaints' && typeof item['complaintId'] === 'string' ? (
-                          <> <a href={`/reclamations?reclamation=${encodeURIComponent(item['complaintId'])}`} aria-label={`Consulter la réclamation ${String(item['reference'])}`}>Consulter</a></>
-                        ) : null}
-                        {oversight !== undefined && ports.oversee !== undefined && typeof oversightId === 'string' ? (
-                          <OversightAction kind={oversight.kind} id={oversightId} act={ports.oversee} onDone={() => void refresh()} />
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            );
-          })}
+        : (
+          <>
+            <p className="mp-banner mp-banner--audit">{`Consultation journalisée. Motif : ${reason.trim()}. Visible par l’audit.`}</p>
+            {SECTIONS.map(({ key, title }) => {
+              const items = queue[key] as readonly Item[];
+              return (
+                <section key={key} className="mp-panel" aria-labelledby={`${sectionId}-${key}`}>
+                  <div className="mp-ph">
+                    <h2 id={`${sectionId}-${key}`}>{`${title} (${items.length.toString()})`}</h2>
+                    <StatusPill tone={items.length === 0 ? 'ok' : key === 'openRiskAlerts' || key === 'gapsToEscalate' ? 'bad' : 'warn'}>{items.length.toString()}</StatusPill>
+                  </div>
+                  {key === 'beneficiaryPayouts' ? (
+                    <p className="mp-sub">Modèle C (bailleurs et écoles) : vérifiez les pièces justificatives et signaux d’adresse avant toute approbation par une seconde personne.</p>
+                  ) : null}
+                  <ul>
+                    {items.map((item, index) => {
+                      const actionable = ACTIONABLE[key];
+                      const itemId = actionable === undefined ? undefined : item[actionable.idKey];
+                      const oversight = OVERSIGHT[key];
+                      const oversightId = oversight === undefined ? undefined : item[oversight.idKey];
+                      return (
+                        <li key={`${key}-${index.toString()}`}>
+                          {typeof item['stage'] === 'string' ? <strong>{STAGES[item['stage']] ?? item['stage']}</strong> : null} {describe(item)}
+                          {actionable !== undefined && ports.act !== undefined && typeof itemId === 'string' && typeof item['stage'] === 'string' ? (
+                            <FundsAction flow={actionable.flow} id={itemId} stage={item['stage']} act={ports.act} onDone={() => void refresh()} />
+                          ) : null}
+                          {key === 'pendingSanctionsReviews' && typeof item['screeningId'] === 'string' ? (
+                            <> <a href={`/conformite?filtrage=${encodeURIComponent(item['screeningId'])}`} aria-label={`Examiner le rapprochement ${item['screeningId']}`}>Examiner</a></>
+                          ) : null}
+                          {key === 'openDisputes' && typeof item['agreementId'] === 'string' ? (
+                            <> <a href={`/objectifs?objectif=${encodeURIComponent(item['agreementId'])}`} aria-label={`Historique de l’objectif ${item['agreementId']}`}>Historique</a></>
+                          ) : null}
+                          {key === 'overdueComplaints' && typeof item['complaintId'] === 'string' ? (
+                            <> <a href={`/reclamations?reclamation=${encodeURIComponent(item['complaintId'])}`} aria-label={`Consulter la réclamation ${String(item['reference'])}`}>Consulter</a></>
+                          ) : null}
+                          {oversight !== undefined && ports.oversee !== undefined && typeof oversightId === 'string' ? (
+                            <OversightAction kind={oversight.kind} id={oversightId} act={ports.oversee} onDone={() => void refresh()} />
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              );
+            })}
+          </>
+        )}
     </section>
   );
 }

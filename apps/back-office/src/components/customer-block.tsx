@@ -59,28 +59,29 @@ export function CustomerBlock({ ports }: { readonly ports: CustomerBlockPorts })
   }
 
   return (
-    <section>
-      <h1>Bloquer un compte client</h1>
-      <p>Perte ou vol du téléphone, ou fraude présumée. Le blocage est immédiat ; le déblocage exige une récupération avec vérification d’identité renforcée.</p>
+    <section className="mp-page">
+      <header className="mp-top"><div><h1>Bloquer un compte client</h1><p className="mp-sub">Perte ou vol du téléphone, ou fraude présumée. Le blocage est immédiat ; le déblocage exige une récupération avec vérification d’identité renforcée.</p></div></header>
       {blockedAt === null ? (
-        <form onSubmit={prepare} noValidate>
+        <form className="mp-panel mp-form" onSubmit={prepare} noValidate>
           <TextField id={ids.account} label="Identifiant du compte client" autoComplete="off" value={accountId} error={errors.account} onChange={(event) => { setAccountId(event.target.value.trim()); setConfirming(false); }} />
           <TextField id={ids.reason} label="Motif du blocage" value={reason} error={errors.reason} onChange={(event) => { setReason(event.target.value); setConfirming(false); }} />
           <Button type="submit" disabled={pending}>Préparer le blocage</Button>
         </form>
       ) : null}
       {confirming && blockedAt === null ? (
-        <section aria-labelledby={ids.summary}>
+        <section className="mp-panel" aria-labelledby={ids.summary}>
           <h2 id={ids.summary}>Confirmer le blocage</h2>
           <p>Compte : <strong>{accountId}</strong></p>
           <p>Motif : {reason.trim()}</p>
           <p>Le compte ne pourra plus rien faire ; tous les appareils et sessions du client sont fermés.</p>
-          <Button type="button" disabled={pending} onClick={() => void confirm()}>Bloquer le compte</Button>
-          <Button type="button" disabled={pending} onClick={() => { setConfirming(false); }}>Annuler</Button>
+          <div className="mp-actions">
+            <Button type="button" variant="danger" disabled={pending} onClick={() => void confirm()}>Bloquer le compte</Button>
+            <Button type="button" variant="secondary" disabled={pending} onClick={() => { setConfirming(false); }}>Annuler</Button>
+          </div>
         </section>
       ) : null}
       {problem === null ? null : <ErrorState problem={problem} />}
-      {blockedAt === null ? null : <p role="status">Compte bloqué le {new Date(blockedAt).toLocaleString('fr-FR', { timeZone: 'Africa/Douala' })}.</p>}
+      {blockedAt === null ? null : <p className="mp-banner" role="status">Compte bloqué le {new Date(blockedAt).toLocaleString('fr-FR', { timeZone: 'Africa/Douala' })}.</p>}
     </section>
   );
 }

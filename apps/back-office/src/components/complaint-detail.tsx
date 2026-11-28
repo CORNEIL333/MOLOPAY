@@ -71,23 +71,26 @@ export function ComplaintDetail({ ports, initialComplaintId = '' }: { readonly p
   }
 
   return (
-    <section>
-      <h1>Réclamation</h1>
-      <form onSubmit={(event) => void load(event)} noValidate>
+    <section className="mp-page">
+      <header className="mp-top">
+        <div><h1>Réclamation</h1><p className="mp-sub">Accusé de réception sous 24 h · réponse sous 72 h (délais publiés). Un litige suspend le règlement du partenaire.</p></div>
+      </header>
+      <form className="mp-panel mp-form" onSubmit={(event) => void load(event)} noValidate>
         <TextField id={ids.complaint} label="Identifiant de la réclamation" autoComplete="off" value={complaintId} error={errors.complaint} onChange={(event) => { setComplaintId(event.target.value.trim()); }} />
         <TextField id={ids.reason} label="Motif de la consultation" value={reason} error={errors.reason} onChange={(event) => { setReason(event.target.value); }} />
         <Button type="submit" disabled={pending}>Consulter</Button>
       </form>
       {problem === null ? null : <ErrorState problem={problem} />}
       {complaint === null ? null : (
-        <section aria-labelledby={ids.heading}>
-          <h2 id={ids.heading}>Réclamation {complaint.reference}</h2>
+        <section className="mp-panel" aria-labelledby={ids.heading}>
+          <p className="mp-banner mp-banner--audit">{`Consultation journalisée. Motif : ${reason.trim()}. Visible par l’audit.`}</p>
+          <div className="mp-ph"><h2 id={ids.heading}>Réclamation {complaint.reference}</h2></div>
           <dl>
-            <div><dt>Canal</dt><dd>{CHANNELS[complaint.channel]}</dd></div>
-            <div><dt>Reçue le</dt><dd><time dateTime={complaint.receivedAt}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(complaint.receivedAt))}</time></dd></div>
-            <div><dt>Objectif</dt><dd>{complaint.agreementId === null ? '—' : <a href={`/objectifs?objectif=${encodeURIComponent(complaint.agreementId)}`} aria-label={`Historique de l’objectif ${complaint.agreementId}`}>{complaint.agreementId}</a>}</dd></div>
-            <div><dt>Motif</dt><dd>{complaint.reason === null ? '—' : (REASONS[complaint.reason] ?? complaint.reason)}</dd></div>
-            <div><dt>Description</dt><dd>{complaint.details ?? 'Aucune description saisie'}</dd></div>
+            <div className="mp-kv"><dt>Canal</dt><dd>{CHANNELS[complaint.channel]}</dd></div>
+            <div className="mp-kv"><dt>Reçue le</dt><dd><time dateTime={complaint.receivedAt}>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(complaint.receivedAt))}</time></dd></div>
+            <div className="mp-kv"><dt>Objectif</dt><dd>{complaint.agreementId === null ? '—' : <a href={`/objectifs?objectif=${encodeURIComponent(complaint.agreementId)}`} aria-label={`Historique de l’objectif ${complaint.agreementId}`}>{complaint.agreementId}</a>}</dd></div>
+            <div className="mp-kv"><dt>Motif</dt><dd>{complaint.reason === null ? '—' : (REASONS[complaint.reason] ?? complaint.reason)}</dd></div>
+            <div className="mp-kv"><dt>Description</dt><dd>{complaint.details ?? 'Aucune description saisie'}</dd></div>
           </dl>
           <p>Litige ouvert : {complaint.openDispute ? 'oui' : 'non'} · Close : {complaint.closed ? 'oui' : 'non'}</p>
           {complaint.openDispute || complaint.closed || complaint.agreementId === null ? null : (

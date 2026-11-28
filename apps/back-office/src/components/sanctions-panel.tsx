@@ -125,36 +125,44 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
   }
 
   return (
-    <section>
-      <h1>Filtrage sanctions (liste ONU)</h1>
-      <form onSubmit={(event) => void screenPartner(event)} noValidate>
-        <TextField id={ids.partner} label="Identifiant du partenaire" autoComplete="off" value={partnerId} error={partnerError} onChange={(event) => { setPartnerId(event.target.value.trim()); }} />
-        <Button type="submit" disabled={pending}>Filtrer contre la liste ONU</Button>
-      </form>
-      {screening !== null ? null : (
-        <form onSubmit={(event) => void openExisting(event)} noValidate>
-          <h2>Examiner un filtrage existant</h2>
-          <TextField id={ids.existing} label="Identifiant du filtrage" autoComplete="off" value={existingId} error={existingError} onChange={(event) => { setExistingId(event.target.value.trim()); }} />
-          <TextField id={ids.consultation} label="Motif de la consultation" value={consultation} error={consultationError} onChange={(event) => { setConsultation(event.target.value); }} />
-          <Button type="submit" disabled={pending}>Ouvrir le filtrage</Button>
+    <section className="mp-page">
+      <header className="mp-top">
+        <div>
+          <h1>Filtrage sanctions (liste ONU)</h1>
+          <p className="mp-sub">Validation partenaire à double contrôle : tant que le dossier n’est pas validé par une seconde personne de la Conformité, ses offres restent invisibles au catalogue.</p>
+        </div>
+      </header>
+      <div className="mp-cols mp-cols--split">
+        <form className="mp-panel mp-form" onSubmit={(event) => void screenPartner(event)} noValidate>
+          <TextField id={ids.partner} label="Identifiant du partenaire" autoComplete="off" value={partnerId} error={partnerError} onChange={(event) => { setPartnerId(event.target.value.trim()); }} />
+          <Button type="submit" disabled={pending}>Filtrer contre la liste ONU</Button>
         </form>
-      )}
+        {screening !== null ? null : (
+          <form className="mp-panel mp-form" onSubmit={(event) => void openExisting(event)} noValidate>
+            <h2>Examiner un filtrage existant</h2>
+            <TextField id={ids.existing} label="Identifiant du filtrage" autoComplete="off" value={existingId} error={existingError} onChange={(event) => { setExistingId(event.target.value.trim()); }} />
+            <TextField id={ids.consultation} label="Motif de la consultation" value={consultation} error={consultationError} onChange={(event) => { setConsultation(event.target.value); }} />
+            <Button type="submit" disabled={pending}>Ouvrir le filtrage</Button>
+          </form>
+        )}
+      </div>
       {problem === null ? null : <ErrorState problem={problem} />}
       {screening === null ? null : (
-        <p role="status">
+        <p className="mp-banner" role="status">
           {screening.outcome === 'CLEAR'
             ? `Aucun rapprochement pour ${screening.partnerId}.`
             : `Rapprochement possible : ${screening.matchedReferences.join(', ')}. Examen requis par une autre personne de la Conformité.`}
         </p>
       )}
       {screening?.outcome !== 'POTENTIAL_MATCH' || detail !== null ? null : (
-        <form onSubmit={(event) => void showDetail(event)} noValidate>
+        <form className="mp-panel mp-form" onSubmit={(event) => void showDetail(event)} noValidate>
           <TextField id={ids.consultation} label="Motif de la consultation" value={consultation} error={consultationError} onChange={(event) => { setConsultation(event.target.value); }} />
           <Button type="submit" disabled={pending}>Voir le détail</Button>
         </form>
       )}
       {detail === null ? null : (
-        <section aria-labelledby={ids.detailHeading}>
+        <section className="mp-panel" aria-labelledby={ids.detailHeading}>
+          <p className="mp-banner mp-banner--audit">{`Consultation journalisée. Motif : ${consultation.trim()}. Visible par l’audit.`}</p>
           <h2 id={ids.detailHeading}>Détail du filtrage</h2>
           <p>Nom filtré : <strong>{detail.normalizedName}</strong></p>
           <ul>
@@ -167,11 +175,12 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
         </section>
       )}
       {screening?.outcome !== 'POTENTIAL_MATCH' || reviewed !== null ? null : (
-        <form onSubmit={(event) => void review(event)} noValidate>
+        <form className="mp-panel mp-form" onSubmit={(event) => void review(event)} noValidate>
           <h2>Examen du rapprochement</h2>
+          <p className="mp-banner">Vous ne pouvez pas valider un dossier que vous avez préparé. La décision est inscrite au journal d’audit.</p>
           <div className="achat-field">
             <label className="achat-field__label" htmlFor={ids.decision}>Décision</label>
-            <select id={ids.decision} className="achat-field__input" value={decision} onChange={(event) => { setDecision(event.target.value === 'CONFIRMED_MATCH' ? 'CONFIRMED_MATCH' : 'FALSE_POSITIVE'); }}>
+            <select id={ids.decision} className="mp-select" value={decision} onChange={(event) => { setDecision(event.target.value === 'CONFIRMED_MATCH' ? 'CONFIRMED_MATCH' : 'FALSE_POSITIVE'); }}>
               <option value="FALSE_POSITIVE">Faux positif (homonyme)</option>
               <option value="CONFIRMED_MATCH">Correspondance confirmée</option>
             </select>
@@ -180,8 +189,8 @@ export function SanctionsPanel({ ports, initialScreeningId = '' }: { readonly po
           <Button type="submit" disabled={pending}>Enregistrer l’examen</Button>
         </form>
       )}
-      {reviewed === 'RECORDED' ? <p role="status">Examen enregistré.</p> : null}
-      {reviewed === 'PROPOSED' ? <p role="status">Proposition d’écartement enregistrée. Une autre personne de la Conformité doit la confirmer pour qu’elle prenne effet.</p> : null}
+      {reviewed === 'RECORDED' ? <p className="mp-banner" role="status">Examen enregistré.</p> : null}
+      {reviewed === 'PROPOSED' ? <p className="mp-banner" role="status">Proposition d’écartement enregistrée. Une autre personne de la Conformité doit la confirmer pour qu’elle prenne effet.</p> : null}
     </section>
   );
 }

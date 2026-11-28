@@ -72,11 +72,10 @@ export function OutgoingFreeze({ ports }: { readonly ports: OutgoingFreezePorts 
   }
 
   return (
-    <section>
-      <h1>Gel des flux sortants</h1>
-      <p>En cas d’incident, deux personnes peuvent suspendre toute nouvelle instruction de règlement, de remboursement ou de virement. La demande doit être confirmée par une autre personne dans l’heure.</p>
+    <section className="mp-page">
+      <header className="mp-top"><div><h1>Gel des flux sortants</h1><p className="mp-sub">En cas d’incident, deux personnes peuvent suspendre toute nouvelle instruction de règlement, de remboursement ou de virement. La demande doit être confirmée par une autre personne dans l’heure.</p></div></header>
       {state === null ? null : (
-        <p role="status">
+        <p className="mp-banner" role="status">
           {state.frozen
             ? `Flux sortants gelés depuis le ${state.since === null ? '—' : DATE.format(new Date(state.since))} — ${freezeCause(state)}`
             : 'Flux sortants ouverts.'}
@@ -84,7 +83,7 @@ export function OutgoingFreeze({ ports }: { readonly ports: OutgoingFreezePorts 
       )}
       {problem === null ? null : <ErrorState problem={problem} />}
       {state === null || state.pending.length === 0 ? null : (
-        <section aria-labelledby={ids.pending}>
+        <section className="mp-panel" aria-labelledby={ids.pending}>
           <h2 id={ids.pending}>Demandes à confirmer</h2>
           <ul>
             {state.pending.map((item) => {
@@ -100,7 +99,7 @@ export function OutgoingFreeze({ ports }: { readonly ports: OutgoingFreezePorts 
         </section>
       )}
       {state === null ? null : (
-        <form onSubmit={ask} noValidate>
+        <form className="mp-panel mp-form" onSubmit={ask} noValidate>
           <TextField id={ids.reason} label="Motif" value={reason} error={error} onChange={(event) => { setReason(event.target.value); }} />
           <Button type="submit" variant={state.frozen ? 'secondary' : 'danger'} disabled={pending}>{state.frozen ? 'Demander la levée du gel' : 'Demander le gel'}</Button>
         </form>

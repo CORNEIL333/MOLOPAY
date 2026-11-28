@@ -1,29 +1,40 @@
 'use client';
 
-import { Button } from '@achat/ui';
+import { BrandRing, Button } from '@achat/ui';
 import { useState, type ReactElement } from 'react';
 
-const LINKS: readonly (readonly [string, string])[] = [
-  ['/file', 'File de travail'],
-  ['/tableau-de-bord', 'Tableau de bord'],
-  ['/indicateurs', 'Indicateurs'],
-  ['/conformite', 'Conformité'],
-  ['/reclamations', 'Réclamations'],
-  ['/objectifs', 'Historique d’un objectif'],
-  ['/clients/inscription-agence', 'Inscription en agence'],
-  ['/clients/blocage', 'Bloquer un compte client'],
-  ['/incidents/gel', 'Gel des flux sortants'],
-  ['/administration', 'Administration'],
+const GROUPS: readonly { readonly heading?: string; readonly links: readonly (readonly [string, string])[] }[] = [
+  {
+    links: [
+      ['/file', 'File de travail'],
+      ['/tableau-de-bord', 'Tableau de bord'],
+      ['/indicateurs', 'Indicateurs'],
+    ],
+  },
+  {
+    heading: 'Clients et support',
+    links: [
+      ['/clients', 'Clients et support'],
+      ['/conformite', 'Conformité'],
+      ['/reclamations', 'Réclamations'],
+      ['/objectifs', 'Historique d’un objectif'],
+      ['/clients/inscription-agence', 'Inscription en agence'],
+      ['/clients/blocage', 'Bloquer un compte client'],
+      ['/clients/deces', 'Déclaration de décès'],
+    ],
+  },
+  {
+    heading: 'Contrôle',
+    links: [
+      ['/incidents/gel', 'Gel des flux sortants'],
+      ['/administration', 'Administration'],
+    ],
+  },
 ];
 
-/** Pages sans session : aucun menu (connexion, enrôlement d'une clé). */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set(['/', '/enrolement']);
 
-/**
- * C6 : navigation du back-office. Simple aide d'affichage : chaque route
- * revérifie la session et les droits côté serveur (une page sans droit
- * affiche le refus du serveur).
- */
+/** C6 : barre latérale noire du back-office (outil interne à plat, aucun verre ni fond liquide). */
 export function BackofficeNav({
   pathname,
   signOut,
@@ -49,15 +60,27 @@ export function BackofficeNav({
   }
 
   return (
-    <nav aria-label="Back-office">
-      <ul>
-        {LINKS.map(([href, label]) => (
-          <li key={href}>
-            <a href={href} aria-current={pathname === href ? 'page' : undefined}>{label}</a>
-          </li>
-        ))}
-      </ul>
-      <Button variant="secondary" disabled={pending} onClick={() => void leave()}>Se déconnecter</Button>
+    <nav className="mp-side mp-side--dark" aria-label="Back-office">
+      <div className="mp-brand">
+        <BrandRing tone="dark" />
+        <span>molopay</span>
+        <small>Interne</small>
+      </div>
+      {GROUPS.map((group, idx) => (
+        <div key={group.heading ?? String(idx)}>
+          {group.heading === undefined ? null : <div className="mp-sgroup">{group.heading}</div>}
+          <ul className="mp-navlist">
+            {group.links.map(([href, label]) => (
+              <li key={href}>
+                <a className="mp-navlink" href={href} aria-current={pathname === href ? 'page' : undefined}>{label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <div className="mp-side__footer">
+        <Button variant="secondary" disabled={pending} onClick={() => void leave()}>Se déconnecter</Button>
+      </div>
     </nav>
   );
 }
