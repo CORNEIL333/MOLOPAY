@@ -1071,3 +1071,10 @@
 - **Option appliquée :** chemins comparés en séparateur POSIX, `pnpm audit` lancé par le point d'entrée JavaScript de pnpm (recherche `pnpm.mjs` dans le PATH en repli), `TRANSFER_PG_BIN` posé par le lanceur sur le dossier de la grappe créée. Aucune assertion affaiblie : sur Linux le comportement est identique.
 - **Retour arrière :** sans effet hors poste Windows.
 - **À trancher :** exécuter la CI sur un poste Windows en plus de Linux pour prévenir ces écarts.
+
+### D122 · Archives signées et conservation (Q6, L2)
+- **Constat :** le vérificateur indépendant ne lit que l'export JSON signé (têtes Ed25519) ; il n'existe ni archive de conservation, ni clé de signature d'archive distincte, ni témoin d'ancrage (D6).
+- **Option appliquée :** `tools/archive.ts` embarque l'export signé **sans le réécrire**, le journal d'audit et, sur demande, la copie chiffrée de `tools/backup.ts` ; un manifeste JCS fige empreintes, volumes et retenue de **10 ans** (T-03/T-09/T-15, durée « à confirmer » → option la plus prudente). Aucune signature supplémentaire n'est fabriquée : l'authenticité reste celle des têtes de l'export, vérifiée avec une clé hors bande.
+- **Témoins (D6) :** aucune archive n'est déclarée ancrée ; le manifeste porte `UNCONFIGURED` et `tools/archive.ts witness` échoue avec `ANCHORING_UNCONFIGURED`. Aucun faux témoin, aucune connexion externe.
+- **Retour arrière :** outil et script `pnpm archive` supprimables ; aucune donnée en base, aucun contrat API modifié.
+- **À trancher :** détenteur et format d'une clé de signature d'archive (KMS), emplacement de conservation (stockage objet non choisi, D2/D108), politique de retenue définitive avec le DPO/juriste, et branchement des témoins réels.

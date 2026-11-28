@@ -37,7 +37,8 @@
     "openapi:check": "tsx tools/check-openapi.ts",
     "security:scan": "tsx tools/scan-secrets.ts && tsx tools/sca.ts",
     "ci:local": "tsx tools/ci-local.ts",
-    "sbom": "pnpm sbom --lockfile-only --sbom-format cyclonedx --sbom-spec-version 1.6 --sbom-type application --out sbom.json"
+    "sbom": "pnpm sbom --lockfile-only --sbom-format cyclonedx --sbom-spec-version 1.6 --sbom-type application --out sbom.json",
+    "archive": "tsx tools/archive.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
