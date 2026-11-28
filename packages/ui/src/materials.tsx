@@ -118,11 +118,10 @@ export function LiquidBackground({ universe = 'home', frozen = false, className 
       data-mp-frozen={isFrozen ? 'true' : 'false'}
       className={cx('mp-liquid', isFrozen && 'mp-liquid--frozen', universe === 'aurora' && 'mp-liquid--aurora', className)}
     >
-      {UNIVERSE_STOPS[universe].map((stop, idx) => (
+      {UNIVERSE_STOPS[universe].map((_, idx) => (
         <span
           key={`${universe}-${String(idx)}`}
           className={`mp-liquid__blob mp-liquid__blob--${String((idx % 4) + 1)}`}
-          style={{ background: `radial-gradient(closest-side, ${stop} 0%, transparent 100%)` }}
         />
       ))}
       {!sober && universe !== 'aurora' ? <span className="mp-grain" /> : null}
