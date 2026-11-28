@@ -108,3 +108,9 @@ Codes de refus :
 ## 7. Bascule future vers AWS (RDS/Aurora)
 
 Voir `PROCEDURE_TRANSFERT_BASE.md` (`pnpm db:transfer`). L'historique `ops.schema_migration` est transféré avec le reste. Après la bascule, `pnpm db:migrate --dry-run` doit répondre `UP_TO_DATE` sur la cible.
+
+## 8. Planification et archives (Q7, ajout du 28 novembre 2026)
+
+- Le contrôle nocturne tourne sous `molopay_nightly` (unique rôle `integrity_reporter`) et les alertes sous `molopay_monitor` (unique rôle `notification_observer`) ; crontab et codes de sortie : `docs/04_annexes/exploitation/PLANIFICATION_ET_ALERTES.md`.
+- Les archives signées (`pnpm archive`) combinent l'export signé (lot 23), le journal d'audit et la copie chiffrée ; conservation 10 ans, témoins d'ancrage fermés (D6).
+- L'exercice de restauration chronométré réutilise `pnpm db:restore-backup` sur une base vide ; la durée mesurée est consignée dans le même document.

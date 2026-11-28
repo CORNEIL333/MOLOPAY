@@ -44,4 +44,13 @@ export default tseslint.config(
       globals: { ...globals.node },
     },
   },
+  {
+    // Scénarios k6 : exécutés par le binaire k6 (API `http`/`check`), hors TypeScript.
+    files: ['tests/load/**/*.js'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: { ...globals.node, __ENV: 'readonly' },
+      parserOptions: { projectService: false },
+    },
+  },
 );

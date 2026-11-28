@@ -33,3 +33,11 @@ Ordre **obligatoire** :
   5. lance `pnpm test:kms` avec une clé de test (`INSTRUCTION_SIGNING_KMS_TEST_KEY_ARN`).
 
   En marche, une panne de KMS refuse l'instruction (503 `SIGNING_UNAVAILABLE`) sans rien écrire ; un nouvel essai est possible. Chaque signature est revérifiée avec la clé publique avant d'être enregistrée.
+
+## 4. Après la mise en service : planification et archives (Q7, ajout du 28 novembre 2026)
+
+- Planifier `pnpm verify:nightly --export <export signé> --public-key <clé hors bande>` chaque nuit, sous `molopay_nightly` ; codes 1 et 2 = alerte critique (voir `docs/04_annexes/exploitation/PLANIFICATION_ET_ALERTES.md`).
+- Planifier `pnpm ops:alerts` toutes les 5 minutes, sous `molopay_monitor` ; code 2 = supervision non exécutée.
+- Produire une archive signée (`pnpm archive create …`) après chaque export ancré ; la vérifier (`pnpm archive verify …`) avec le binaire Rust et la clé publique hors bande.
+- Exercice mensuel de restauration : `pnpm db:restore-backup` sur une base vide, durée mesurée et consignée.
+- Charge : `tests/load/charge-locale.js` refuse tout hôte non local ; ne jamais le pointer vers Neon.
