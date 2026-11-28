@@ -915,3 +915,17 @@
   - Procédure Neon et `.env.example` mis à jour.
 - **Tests :** 2 unitaires, 1 sur base réelle, plus un refus de l'adresse groupée dans les tests de chacun des cinq outils ; 5 mutants tués.
 - **À vérifier sur la console Neon :** la limite de connexions de la taille de calcul choisie, pour fixer `DATABASE_POOL_MAX` en dessous.
+
+### Plan du fondateur du 27 novembre, étape 2 · Documentation UX et site public reprises de `claude/kind-gauss-3npnkd`
+- **Constat :** la branche ne contient que de la documentation (77 fichiers), avec un historique sans ancêtre commun avec la nôtre : impossible à fusionner, donc **copiée**. 45 fichiers sont nouveaux, 19 identiques, 13 différents. Parmi ces 13, plusieurs sont des versions **plus anciennes** des nôtres (ADR-0004 du 26 octobre, journal, état, registre) : les recopier aurait effacé notre travail.
+- **Fait :**
+  - Copie des 45 nouveaux fichiers : `docs/05_direction_ux_et_ui/` (identité, catalogue des écrans, maquettes HTML, jetons de design, recherches, textes FR/EN) et les deux prompts Gemini.
+  - ADR du site public **renuméroté `ADR-0008`** (collision avec notre ADR-0006 PWA), ses 10 mentions corrigées.
+  - Seuls les **ajouts** de cette branche sont repris dans les documents communs :
+    - CDC_01 § 15 (F-PUB-001 à 010), CDC_02 (NF-PUB) et CDC_05 ;
+    - glossaire, plan de lots (lot 26), liste de contrôle du lancement, matrice de traçabilité ;
+    - lignes du LISEZMOI, paragraphe du dossier projet ;
+    - traitements du site public **renumérotés T-16 et T-17** dans le registre (version 1.2).
+  - Rien n'est repris de leurs anciennes versions d'ADR-0004, du journal ni de l'état.
+- **Vérifié :** aucun secret dans les fichiers copiés ; le script `jetons/generate.py` ne fait que lire et écrire son dossier, sans dépendance ni réseau.
+- **Statut :** ADR-0008 reste **Proposé**, en attente de ta validation avant le lot 26, comme sur la branche d'origine. Les exigences F-PUB et NF-PUB ne sont pas encore couvertes par des tests (lot 26 non commencé).

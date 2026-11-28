@@ -1,0 +1,323 @@
+<title>Direction liquide MoloPay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : en-tête + sélecteur de mode, puis 4 écrans côte à côte dans le mode choisi, puis les règles (où le flou est permis, où il est interdit, budget de performance). */
+:root {
+  --pg-bg: #eceeea; --pg-surface: #ffffff; --pg-ink: #0f1012; --pg-muted: #5d6066; --pg-line: #d9dbd6;
+  --ink: #0f1012; --ink-2: #1c1d21; --ink-3: #2a2c31; --paper: #ffffff; --mist: #f2f2ee; --muted: #6a6d73; --muted-dark: #9a9ca3;
+  --ess: #d9f26b; --tech: #8fddf5; --log: #c3bdff; --mob: #ffa8c5; --bad: #c4262e; --ok: #1f7a4a;
+  /* Verre (exploration) */
+  --glass-light: rgba(255, 255, 255, 0.62); --glass-light-line: rgba(255, 255, 255, 0.75);
+  --glass-dark: rgba(15, 16, 18, 0.72); --glass-dark-line: rgba(255, 255, 255, 0.10);
+  --blur: 20px;
+  --display: 'Outfit', 'Segoe UI', system-ui, sans-serif; --text: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; } }
+:root[data-theme="dark"] { --pg-bg: #0c0d0f; --pg-surface: #18191c; --pg-ink: #f1f2f4; --pg-muted: #a0a3aa; --pg-line: #2a2c31; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--pg-bg); color: var(--pg-ink); font-family: var(--text); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 80rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 400; letter-spacing: -0.03em; text-wrap: balance; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--ess); outline-offset: 2px; }
+.eyebrow { font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--pg-muted); }
+header.hero { padding-block: 48px 20px; display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(2.3rem, 5.5vw, 4rem); line-height: 1; font-weight: 300; letter-spacing: -0.05em; }
+.hero h1 b { font-weight: 600; }
+.hero p { color: var(--pg-muted); max-width: 70ch; font-size: 1.05rem; }
+.modes { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--pg-bg); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--pg-bg); }
+.modes .wrap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--pg-surface); border: 1px solid var(--pg-line); }
+.seg button { border: 0; background: transparent; height: 38px; padding: 0 16px; border-radius: 999px; font-weight: 600; font-size: 0.88rem; cursor: pointer; color: var(--pg-muted); }
+.seg button[aria-pressed="true"] { background: var(--pg-ink); color: var(--pg-bg); }
+.modes .hint { font-size: 0.85rem; color: var(--pg-muted); }
+.row { overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scrollbar-width: thin; }
+.row > .in { display: flex; gap: 22px; width: max-content; padding-block: 22px 14px; }
+figure.shot { margin: 0; width: 276px; display: grid; gap: 10px; }
+figcaption { font-size: 0.86rem; color: var(--pg-muted); }
+figcaption b { color: var(--pg-ink); }
+
+/* ---------- Téléphone ---------- */
+.phone { width: 276px; aspect-ratio: 276 / 580; border-radius: 44px; padding: 8px; background: #0a0a0b; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.5), inset 0 0 0 1.5px #2b2c30; }
+.scr { position: relative; height: 100%; border-radius: 37px; overflow: hidden; color: var(--ink); font-size: 13px; line-height: 1.4; isolation: isolate; }
+.isl { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 82px; height: 24px; border-radius: 20px; background: #000; z-index: 9; }
+.sb { position: relative; z-index: 5; display: flex; justify-content: space-between; padding: 12px 22px 0; font-size: 11px; font-weight: 600; height: 34px; }
+.bd { position: relative; z-index: 5; height: calc(100% - 34px); padding: 8px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Fonds liquides : couches de taches floues (pré-calculées en production) */
+.liquid { position: absolute; inset: -20%; z-index: 0; overflow: hidden; }
+.liquid i { position: absolute; border-radius: 50%; filter: blur(42px); opacity: 0.9; animation: flow 26s ease-in-out infinite alternate; }
+.liquid i:nth-child(2) { animation-duration: 32s; animation-delay: -8s; }
+.liquid i:nth-child(3) { animation-duration: 38s; animation-delay: -15s; }
+.liquid i:nth-child(4) { animation-duration: 29s; animation-delay: -4s; }
+@keyframes flow { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(18%, 10%) scale(1.15); } 100% { transform: translate(-10%, 16%) scale(0.95); } }
+.grain { position: absolute; inset: 0; z-index: 1; opacity: 0.08; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* Verre */
+.glass { background: var(--glass-light); backdrop-filter: blur(var(--blur)) saturate(1.5); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5); border: 1px solid var(--glass-light-line); box-shadow: 0 10px 30px -18px rgba(15,16,18,0.35), inset 0 1px 0 rgba(255,255,255,0.6); }
+.glass-dk { background: var(--glass-dark); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4); border: 1px solid var(--glass-dark-line); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+
+/* Modes */
+body.m-actuel .liquid, body.m-actuel .grain { display: none; }
+body.m-actuel .glass { background: var(--paper); backdrop-filter: none; -webkit-backdrop-filter: none; border-color: transparent; box-shadow: none; }
+body.m-actuel .glass-dk { background: var(--ink); backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.m-actuel .scr { background: var(--flat, #f2f2ee); }
+body.m-sobre .liquid i { animation: none; }
+body.m-sobre .glass { background: rgba(255,255,255,0.94); backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.m-sobre .glass-dk { background: rgba(15,16,18,0.94); backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.m-sobre .grain { display: none; }
+@media (prefers-reduced-motion: reduce) { .liquid i { animation: none; } }
+@media (prefers-reduced-transparency: reduce) { .glass { background: rgba(255,255,255,0.94); backdrop-filter: none; -webkit-backdrop-filter: none; } .glass-dk { background: rgba(15,16,18,0.94); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+
+/* Éléments communs */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ib { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 0; flex: none; }
+.ib svg { width: 16px; height: 16px; }
+.h { font-family: var(--display); font-weight: 500; letter-spacing: -0.03em; }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.mut { color: var(--muted); font-size: 11.5px; }
+.glass .mut { color: #45484e; } /* texte secondaire sur verre : contraste ≥ 4,5:1 sur le fond le plus foncé */
+.pill { height: 48px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.pill svg { width: 15px; height: 15px; }
+.tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.72; }
+
+/* Écran 1 : accueil */
+.s1 { --flat: #f2f2ee; background: #f4f4ef; }
+.total { border-radius: 26px; padding: 14px 16px; display: grid; gap: 2px; }
+.total .num { font-size: 34px; font-weight: 300; line-height: 1; }
+.total .num small { font-size: 13px; color: var(--muted); letter-spacing: 0; }
+.chips { display: flex; gap: 6px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.chip { flex: none; height: 32px; padding: 0 12px; border-radius: 999px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; border: 0; }
+.chip.on { background: var(--ink); color: #fff; }
+.stack { position: relative; height: 236px; }
+.card { position: absolute; left: 0; right: 0; border-radius: 26px; padding: 14px 16px; display: grid; gap: 5px; overflow: hidden; }
+.card .shine { position: absolute; inset: 0; background: radial-gradient(120% 80% at 90% 0%, rgba(255,255,255,0.65), transparent 55%); pointer-events: none; }
+body.m-actuel .card .shine { display: none; }
+.card.c3 { top: 0; transform: scale(0.9); transform-origin: top; background: var(--tech); padding-bottom: 40px; }
+.card.c2 { top: 46px; transform: scale(0.95); transform-origin: top; background: var(--log); padding-bottom: 40px; }
+.card.c1 { top: 94px; background: var(--mob); box-shadow: 0 -12px 26px -16px rgba(15,16,18,0.45); }
+.card .it { font-family: var(--display); font-size: 16px; font-weight: 500; }
+.bar { height: 6px; border-radius: 6px; background: rgba(15,16,18,0.14); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 63%; background: var(--ink); border-radius: inherit; }
+.nav { margin-top: auto; align-self: center; display: flex; gap: 4px; padding: 6px; border-radius: 999px; }
+.nav span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #c9cbd0; }
+.nav span.on { background: #fff; color: var(--ink); }
+.nav svg { width: 17px; height: 17px; }
+
+/* Écran 2 : fiche produit qui prend la couleur du projet */
+.s2 { --flat: #8fddf5; background: #7fd4ef; }
+.variants { position: absolute; right: 14px; top: 120px; display: grid; gap: 6px; z-index: 6; }
+.variants b { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; }
+.variants b.on { background: var(--ink); color: #fff; }
+.prodimg { position: relative; height: 190px; display: grid; place-items: center; }
+.prodimg svg { width: 132px; height: 132px; filter: drop-shadow(0 24px 22px rgba(15,16,18,0.28)); transform: rotate(-8deg); }
+.sheet { margin: auto -14px -14px; background: var(--paper); border-radius: 30px 30px 0 0; padding: 16px 16px 16px; display: grid; gap: 9px; }
+.sheet .kv { display: flex; justify-content: space-between; font-size: 12px; }
+.sheet .kv span:first-child { color: var(--muted); }
+.sheet .kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--mist); }
+.tabs span { flex: 1; text-align: center; height: 30px; display: grid; place-items: center; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.tabs span.on { background: var(--ink); color: #fff; }
+
+/* Écran 3 : verser (sombre, aurore figée pendant la saisie) */
+.s3 { --flat: #0b0b0d; background: #0b0b0d; color: #fff; }
+.s3 .liquid i { opacity: 0.55; animation: none; }
+.amt { text-align: center; display: grid; gap: 4px; margin-top: 4px; }
+.amt .num { font-size: 42px; font-weight: 300; line-height: 1; }
+.amt .num small { font-size: 14px; color: var(--muted-dark); letter-spacing: 0; }
+.oral { justify-self: center; padding: 3px 12px; border-radius: 999px; background: var(--ess); color: var(--ink); font-weight: 700; font-size: 12px; }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: auto; }
+.keys span { height: 44px; border-radius: 16px; display: grid; place-items: center; font-family: var(--display); font-size: 19px; }
+.slide { position: relative; height: 54px; border-radius: 999px; display: grid; place-items: center; font-size: 12px; color: #c9cbd0; }
+.slide b { position: absolute; left: 5px; top: 5px; width: 44px; height: 44px; border-radius: 50%; background: var(--ess); display: grid; place-items: center; color: var(--ink); }
+.slide b svg { width: 18px; height: 18px; }
+
+/* Écran 4 : objectif */
+.s4 { --flat: #ffa8c5; background: #ffb3cc; }
+.gauge { border-radius: 26px; padding: 14px; display: grid; place-items: center; gap: 2px; }
+.gauge svg { width: 180px; height: 100px; overflow: visible; }
+.gauge .num { font-size: 32px; font-weight: 500; margin-top: -44px; }
+.list { background: var(--paper); border-radius: 24px; padding: 12px 14px; display: grid; gap: 7px; margin-top: auto; }
+.list .kv { display: flex; justify-content: space-between; font-size: 12px; }
+.list .kv span:first-child { color: var(--muted); }
+.list .kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.acc { border-radius: 16px; background: var(--mist); padding: 9px 11px; font-size: 11.5px; display: flex; justify-content: space-between; align-items: center; }
+
+/* Règles */
+section.sec { padding-block: 36px; border-top: 1px solid var(--pg-line); display: grid; gap: 18px; }
+.sec > header { display: grid; gap: 8px; max-width: 70ch; }
+.sec h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.04; }
+.sec > header p { color: var(--pg-muted); }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.rule { background: var(--pg-surface); border: 1px solid var(--pg-line); border-radius: 20px; padding: 14px 16px; display: grid; gap: 5px; font-size: 0.9rem; align-content: start; }
+.rule b { font-family: var(--display); font-weight: 500; font-size: 1.04rem; }
+.rule span { color: var(--pg-muted); }
+.rule code { font-size: 0.8rem; }
+.rule.yes { border-left: 4px solid var(--ok); }
+.rule.no { border-left: 4px solid var(--bad); }
+.src { font-size: 0.74rem; font-weight: 600; color: var(--pg-muted); }
+table.tk { width: 100%; border-collapse: collapse; font-size: 0.86rem; background: var(--pg-surface); border-radius: 18px; overflow: hidden; }
+table.tk th, table.tk td { text-align: left; padding: 10px 12px; border-top: 1px solid var(--pg-line); vertical-align: top; }
+table.tk th { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pg-muted); border-top: 0; }
+table.tk code { font-size: 0.78rem; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--pg-line); border-radius: 18px; }
+footer { padding-block: 28px 56px; border-top: 1px solid var(--pg-line); color: var(--pg-muted); font-size: 0.86rem; }
+</style>
+
+<header class="wrap hero">
+  <span class="eyebrow">Exploration · à valider</span>
+  <h1>Du liquide et du verre, <b>sans perdre la lecture</b>.</h1>
+  <p>Les mêmes quatre écrans en trois modes. <b>Liquide</b> : dégradés vivants et verre flou. <b>Actuel</b> : l'identité validée, à plat. <b>Sobre</b> : le repli automatique pour les téléphones modestes ou quand l'utilisateur a demandé moins de transparence ou de mouvement. Les règles qui suivent fixent où le flou est permis et où il est interdit.</p>
+</header>
+<div class="modes"><div class="wrap">
+  <div class="seg" role="group" aria-label="Mode d'affichage">
+    <button type="button" data-mode="liquide" aria-pressed="true">Liquide</button>
+    <button type="button" data-mode="actuel" aria-pressed="false">Actuel</button>
+    <button type="button" data-mode="sobre" aria-pressed="false">Sobre (repli)</button>
+  </div>
+  <span class="hint" id="hint">Dégradés animés lentement, verre flou sur la navigation et les cartes d'information.</span>
+</div></div>
+
+<main>
+<div class="wrap row"><div class="in">
+
+  <!-- Accueil -->
+  <figure class="shot">
+    <div class="phone"><div class="scr s1">
+      <div class="liquid" aria-hidden="true"><i style="width:70%;height:45%;left:-5%;top:0;background:#e9f7a8"></i><i style="width:65%;height:45%;right:-10%;top:15%;background:#ffd0e0"></i><i style="width:70%;height:40%;left:10%;bottom:0;background:#cfeefa"></i><i style="width:50%;height:35%;right:0;bottom:15%;background:#dcd8ff"></i></div><div class="grain"></div>
+      <div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+      <div class="bd">
+        <div class="top"><div><div class="mut">Bonsoir</div><div class="h" style="font-size:17px">Aïcha Ngo</div></div><span class="ib glass" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7a4 4 0 0 1 8 0v3l1.2 2H2.8L4 10V7Z"/></svg></span></div>
+        <div class="total glass"><span class="mut">Épargné sur vos 3 projets</span><span class="num">618 000 <small>FCFA</small></span></div>
+        <div class="chips"><span class="chip on">En cours</span><span class="chip glass">Terminés</span><span class="chip glass">Univers</span><span class="chip glass">Favoris</span></div>
+        <div class="stack">
+          <div class="card c3"><span class="shine"></span><span class="tag">Technologie</span><span class="it">Tecno Camon 30</span></div>
+          <div class="card c2"><span class="shine"></span><span class="tag">Logement</span><span class="it">Caution, Bonamoussadi</span></div>
+          <div class="card c1"><span class="shine"></span><span class="tag">Mobilité</span><span class="it">Moto Bajaj Boxer 150</span><span class="num" style="font-size:20px">412 500 <small style="font-size:11px;letter-spacing:0">sur 650 000 FCFA</small></span><div class="bar"><i></i></div></div>
+        </div>
+        <nav class="nav glass-dk" aria-label="Navigation"><span class="on"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8 9 3l6 5v7H3V8Z"/></svg></span><span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="5" height="5" rx="1.5"/><rect x="10" y="3" width="5" height="5" rx="1.5"/><rect x="3" y="10" width="5" height="5" rx="1.5"/><rect x="10" y="10" width="5" height="5" rx="1.5"/></svg></span><span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h10M4 9h10M4 12h6"/></svg></span><span><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="6.5" r="3"/><path d="M3.5 15c1-3 3-4 5.5-4s4.5 1 5.5 4"/></svg></span></nav>
+      </div>
+    </div></div>
+    <figcaption><b>Accueil.</b> Le fond respire avec les quatre couleurs d'univers. Le total et la navigation sont en verre. Les cartes de projet restent <b>opaques</b> : elles portent des montants.</figcaption>
+  </figure>
+
+  <!-- Fiche produit -->
+  <figure class="shot">
+    <div class="phone"><div class="scr s2">
+      <div class="liquid" aria-hidden="true"><i style="width:80%;height:50%;left:-15%;top:-5%;background:#bdeefc"></i><i style="width:70%;height:50%;right:-15%;top:10%;background:#5cc6ea"></i><i style="width:60%;height:40%;left:15%;top:25%;background:#e6f8ff"></i><i style="width:50%;height:30%;right:5%;top:5%;background:#a5e3f7"></i></div><div class="grain"></div>
+      <div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+      <div class="variants" aria-label="Capacité"><b class="glass">128</b><b class="on">256</b><b class="glass">512</b></div>
+      <div class="bd">
+        <div class="top"><span class="ib glass" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></span><span class="chip glass" style="height:30px">Tech Mboa · vérifié</span><span class="ib glass" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 13.5S2 10 2 6a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4-6 7.5-6 7.5Z"/></svg></span></div>
+        <div class="prodimg"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="31" y="8" width="38" height="84" rx="9" fill="#fff" stroke="#0f1012" stroke-width="3"/><rect x="36" y="14" width="28" height="64" rx="4" fill="#0f1012"/><circle cx="42" cy="21" r="2.8" fill="#8fddf5"/><circle cx="49" cy="21" r="2.8" fill="#8fddf5"/><path d="M40 60c6-10 14-14 22-12" fill="none" stroke="#d9f26b" stroke-width="3"/></svg></div>
+        <div class="sheet">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div><div class="tag" style="color:var(--muted)">Technologie</div><div class="h" style="font-size:19px">Tecno Camon 30</div></div><span class="num" style="font-size:21px;white-space:nowrap">165 000 <small style="font-size:10px;color:var(--muted);letter-spacing:0">FCFA</small></span></div>
+          <div class="tabs"><span class="on">Épargner</span><span>Financer</span></div>
+          <div class="kv"><span>Sur 90 jours</span><span>≈ 1 835 FCFA/jour</span></div>
+          <div class="kv"><span>Coût total</span><span>165 000 FCFA · 0 frais</span></div>
+          <button class="pill" type="button">Réserver à ce prix</button>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>Fiche produit.</b> Le produit « devient l'interface » : fond liquide dans sa couleur d'univers, objet détouré avec ombre portée, variantes en verre à droite. La feuille d'achat est <b>blanche et opaque</b>, avec un bouton <b>noir</b> (jamais de bouton de la couleur du fond).</figcaption>
+  </figure>
+
+  <!-- Verser -->
+  <figure class="shot">
+    <div class="phone"><div class="scr s3">
+      <div class="liquid" aria-hidden="true"><i style="width:70%;height:40%;left:-20%;top:-10%;background:#3d4a12"></i><i style="width:70%;height:40%;right:-25%;top:5%;background:#1d4d5c"></i><i style="width:60%;height:35%;left:20%;bottom:-10%;background:#3a2c5c"></i></div>
+      <div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+      <div class="bd">
+        <div class="top"><span class="ib glass-dk" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></span><span class="chip glass-dk" style="height:30px">Moto Bajaj Boxer 150</span><span style="width:38px"></span></div>
+        <div class="amt"><span class="num">5 000<small>FCFA</small></span><span class="oral">5 mille</span><span class="mut" style="color:var(--muted-dark)">Depuis MTN MoMo · 6•• •• •• 42</span></div>
+        <div class="keys" aria-hidden="true"><span class="glass-dk">1</span><span class="glass-dk">2</span><span class="glass-dk">3</span><span class="glass-dk">4</span><span class="glass-dk">5</span><span class="glass-dk">6</span><span class="glass-dk">7</span><span class="glass-dk">8</span><span class="glass-dk">9</span><span class="glass-dk">00</span><span class="glass-dk">0</span><span class="glass-dk">⌫</span></div>
+        <div class="slide glass-dk"><b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg></b>Glissez pour verser</div>
+      </div>
+    </div></div>
+    <figcaption><b>Verser.</b> Une aurore sombre et <b>figée</b> : rien ne bouge pendant qu'on tape un montant. Les touches en verre fumé, le texte blanc toujours lisible (verre sombre ≥ 72 % d'opacité).</figcaption>
+  </figure>
+
+  <!-- Objectif -->
+  <figure class="shot">
+    <div class="phone"><div class="scr s4">
+      <div class="liquid" aria-hidden="true"><i style="width:80%;height:50%;left:-20%;top:-10%;background:#ffd9e6"></i><i style="width:70%;height:50%;right:-20%;top:5%;background:#ff8db4"></i><i style="width:60%;height:40%;left:5%;top:30%;background:#ffc4d8"></i></div><div class="grain"></div>
+      <div class="isl"></div><div class="sb"><span>9:41</span><span>4G</span></div>
+      <div class="bd">
+        <div class="top"><span class="ib glass" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></span><span class="ib glass" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg></span></div>
+        <div><div class="tag">Mobilité</div><div class="h" style="font-size:24px;line-height:1.05">Moto Bajaj<br>Boxer 150</div></div>
+        <div class="gauge glass"><svg viewBox="0 0 200 112" aria-hidden="true"><path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="rgba(15,16,18,0.12)" stroke-width="20" stroke-linecap="round"/><path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="#0f1012" stroke-width="20" stroke-linecap="round" pathLength="100" stroke-dasharray="63 100"/></svg><span class="num">63 %</span><span class="mut">412 500 / 650 000 FCFA</span></div>
+        <div class="list">
+          <div class="kv"><span>Reste à verser</span><span>237 500 FCFA</span></div>
+          <div class="kv"><span>Remise estimée</span><span>14 mars 2027</span></div>
+          <div class="acc"><span><b>Versements</b> · 46</span><span>›</span></div>
+          <div class="acc"><span><b>Accord et sortie</b></span><span>›</span></div>
+          <button class="pill" type="button">Verser maintenant</button>
+        </div>
+      </div>
+    </div></div>
+    <figcaption><b>Objectif.</b> Jauge sur verre clair, puis une feuille opaque avec les chiffres et des sections repliées en accordéon (historique, accord) pour ne pas tout afficher d'un coup.</figcaption>
+  </figure>
+</div></div>
+
+<section class="wrap sec" aria-labelledby="h-r">
+  <header><span class="eyebrow">Règles proposées</span><h2 id="h-r">Le verre décore et sépare, il ne porte jamais l'argent</h2>
+    <p>Le flou et les dégradés liquides sont réservés au décor et aux éléments de navigation. Tout ce qui affiche un montant, un statut ou une décision reste sur une surface opaque. Sur téléphone modeste, ou si l'utilisateur demande moins de transparence ou de mouvement, l'interface bascule d'elle-même en mode Sobre.</p></header>
+  <div class="rules">
+    <div class="rule yes"><b>Permis : fonds liquides</b><span>Dégradés en taches floues aux couleurs d'univers, très lents (26 à 38 s), avec un léger grain. Écran de paiement : aurore <b>figée</b>.</span><span class="src">Charte M-50 · NF-UX-007</span></div>
+    <div class="rule yes"><b>Permis : verre sur la navigation</b><span>Barre flottante, boutons d'icône, pastilles, en-têtes, variantes de produit, carte du total.</span><span class="src">Inspirations : TripGlide, RH</span></div>
+    <div class="rule yes"><b>Permis : voile sous le texte sur image</b><span>Tout texte posé sur une photo ou un fond vivant reçoit un dégradé sombre ou une surface de verre dont le contraste est mesuré.</span><span class="src">WCAG 2.2 · analyse « scrim »</span></div>
+    <div class="rule no"><b>Interdit : montant ou statut sur verre fin</b><span>Montants, reçus, statuts de paiement, coûts et conditions : surface opaque (papier, encre ou couleur d'univers pleine).</span><span class="src">Rapport 07 · principe 2 de la charte</span></div>
+    <div class="rule no"><b>Interdit : bouton de la couleur du fond</b><span>Sur un écran coloré, l'action principale reste noire (ou blanche sur sombre).</span><span class="src">Critique Xefag</span></div>
+    <div class="rule no"><b>Interdit : mouvement de fond pendant une saisie</b><span>Aucun dégradé ne bouge sur les écrans de paiement, de PIN, de signature ou de formulaire.</span><span class="src">Charte d'animation · WCAG 2.3.3</span></div>
+  </div>
+</section>
+
+<section class="wrap sec" aria-labelledby="h-p">
+  <header><span class="eyebrow">Performance et accessibilité</span><h2 id="h-p">Un budget strict, et un repli automatique</h2>
+    <p>Le flou en direct (<code>backdrop-filter</code> sur le web, <code>BackdropFilter</code> en Flutter) recalcule l'arrière-plan à chaque image. C'est l'effet le plus coûteux de l'interface. Il doit tenir dans le budget de 16 ms par image sur l'Android de référence (2 Go de RAM).</p></header>
+  <div class="tablewrap"><table class="tk">
+    <thead><tr><th>Règle</th><th>Web</th><th>Flutter</th></tr></thead>
+    <tbody>
+      <tr><td><b>Au plus 2 surfaces en verre visibles</b> en même temps par écran ; flou de 20 px au plus</td><td><code>backdrop-filter: blur(20px) saturate(1.5)</code></td><td>Un seul <code>BackdropFilter</code> par zone, sous un <code>ClipRRect</code>, entouré d'un <code>RepaintBoundary</code></td></tr>
+      <tr><td><b>Fonds liquides pré-calculés</b> : pas de flou en direct sur les taches</td><td>Image AVIF/WebP générée (ou dégradés radiaux CSS sans <code>filter</code>), animée en <code>transform</code> seulement</td><td>Image d'arrière-plan ou <code>CustomPainter</code> avec dégradés radiaux, sans <code>ImageFiltered</code> en direct</td></tr>
+      <tr><td><b>Verre lisible</b> : verre clair ≥ 62 % de blanc + texte noir (texte secondaire <code>#45484e</code>, pas le gris habituel) ; verre sombre ≥ 72 % d'encre + texte blanc</td><td>Jetons <code>--mp-glass-*</code></td><td>Jetons <code>MpGlass</code></td></tr>
+      <tr><td><b>Repli Sobre</b> : flou retiré, surfaces opaques à 94 %, fonds figés</td><td><code>prefers-reduced-transparency</code> (prise en charge variable selon les navigateurs), <code>prefers-reduced-motion</code>, réglage de l'app</td><td>Réglage de l'app « Effets visuels : sobres », <code>disableAnimations</code> et <code>reduceMotion</code> ; bascule automatique si plus de 5 % d'images dépassent 16 ms</td></tr>
+      <tr><td><b>Pas de verre</b> dans le back-office, le portail partenaire, l'USSD et les SMS</td><td>Outils internes et denses : à plat</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="wrap sec" aria-labelledby="h-t">
+  <header><span class="eyebrow">Si vous validez</span><h2 id="h-t">Ce qui changerait dans la direction</h2></header>
+  <div class="rules">
+    <div class="rule"><b>Jetons ajoutés</b><span><code>glass.light</code>, <code>glass.dark</code>, <code>glass.blur</code>, <code>gradient.universe.*</code> (4 dégradés de 3 à 4 teintes chacun), <code>gradient.aurora</code> (écrans sombres).</span></div>
+    <div class="rule"><b>Couleurs inchangées</b><span>Mêmes 4 couleurs d'univers, même encre, même papier : le liquide les mélange, il n'en ajoute pas.</span></div>
+    <div class="rule"><b>Charte d'animation</b><span>Nouvelle entrée M-56 « fond liquide » (26–38 s, figé sur les écrans de saisie, arrêté en mode réduit et hors écran).</span></div>
+    <div class="rule"><b>Mises à jour à prévoir</b><span><code>02_identite_visuelle.md</code>, <code>06_animations.md</code>, <code>jetons/</code>, les maquettes concernées et les prompts Gemini.</span></div>
+  </div>
+</section>
+</main>
+<footer class="wrap">Exploration de direction, non validée. Les valeurs de verre et de flou sont des propositions, à mesurer sur l'appareil de référence avant adoption.</footer>
+
+<script>
+(function () {
+  var hints = {
+    liquide: 'Dégradés animés lentement, verre flou sur la navigation et les cartes d\'information.',
+    actuel: 'L\'identité validée aujourd\'hui : à plat, sans flou ni dégradé.',
+    sobre: 'Repli automatique : fonds figés, flou retiré, surfaces opaques. Pour les téléphones modestes et les utilisateurs qui demandent moins de transparence ou de mouvement.'
+  };
+  document.querySelector('.seg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mode]'); if (!b) return;
+    document.body.classList.remove('m-liquide', 'm-actuel', 'm-sobre');
+    document.body.classList.add('m-' + b.dataset.mode);
+    this.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+    document.getElementById('hint').textContent = hints[b.dataset.mode];
+  });
+  document.body.classList.add('m-liquide');
+})();
+</script>
