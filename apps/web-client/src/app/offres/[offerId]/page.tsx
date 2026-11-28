@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { ErrorState } from '@achat/ui';
+import { ErrorState, LiquidBackground, type LiquidUniverse } from '@achat/ui';
 import { OfferDetail } from '../../../components/offer-detail';
 import { QuotePanel } from '../../../components/quote-panel';
 import { getDictionary } from '../../../i18n';
@@ -18,7 +18,14 @@ export default async function OfferPage({ params }: { readonly params: Promise<{
     // D26 : plans approuvés du modèle A ; une indisponibilité n'empêche pas d'afficher l'offre.
     const plansResult = await (await serverApi()).GET('/v1/plans', { params: { query: { model: 'SAVE_THEN_BUY' } }, cache: 'no-store' });
     const plans = offer.models.includes('SAVE_THEN_BUY') ? (plansResult.data?.plans ?? []) : [];
+    const universeMap: Readonly<Record<string, LiquidUniverse>> = {
+      ESSENTIALS: 'essentials',
+      TECHNOLOGY: 'technology',
+      HOUSING: 'housing',
+      MOBILITY: 'mobility',
+    };
     return <>
+      <LiquidBackground universe={universeMap[offer.universe] ?? 'home'} />
       <a href="/">{labels.offer.backToCatalog}</a>
       <OfferDetail offer={offer} labels={{ ...labels.offer, ...labels.catalog }} />
       {offer.availability.kind === 'IN_STOCK' && offer.availability.units === 0 ? <p>{labels.offer.unavailable}</p> : <QuotePanel offer={offer} plans={plans} labels={{ ...labels.offer, models: labels.catalog.models }} locale={locale} />}
